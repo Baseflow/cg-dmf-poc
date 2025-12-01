@@ -9,19 +9,45 @@ with additional filtering for new relations between non-Zaken objects.
 ## Tech Stack
 
 - Language: Kotlin
+- Java: version 21 (LTS)
 - ORM: Exposed
 - Build Tool: Gradle
 - Database: PostgreSQL
+- Migration Tool: Flyway
 - Containerization: Docker, Docker Compose (development), Kubernetes (production)
-- OpenAPI Spec: docs/documenten.yaml
-- License: EUPL 1.2
-- Code of Conduct: included
 
 ## Directory Structure
 
 - `/src/main/kotlin` — Application source code
+- `/src/main/resources/db/migration` — Database migration scripts (Flyway)
 - `/docs` — Documentation, including OAS spec
-- `/docker` — Docker and Docker Compose files
+
+## Database Migrations
+
+The project uses Flyway for managing database schema changes. We use Exposed 1.0.0-rc-4 with migration utilities.
+
+### Quick Commands
+- **Apply migrations:** `./gradlew flywayMigrate`
+- **Check status:** `./gradlew flywayInfo`
+- **Validate:** `./gradlew flywayValidate`
+- **Undo migration:** `./flyway-undo.sh <version>` (manual script, Community Edition limitation)
+
+### Creating Migrations from Exposed Models
+1. Update your Exposed `Table` definition in `src/main/kotlin/entities/`
+2. Generate migration: `./gradlew generateMigration -Pargs="V2__Description"`
+3. Review generated SQL (may need manual enhancement)
+4. Create matching undo script: `U2__Description.sql`
+5. Apply: `./gradlew flywayMigrate`
+
+**Important:** The migration generator provides a starting point but may not detect all changes. Always review and test generated SQL.
+
+### Migration Files
+- **Location:** `src/main/resources/db/migration/`
+- **Naming:** `V<version>__<Description>.sql` for upgrades, `U<version>__<Description>.sql` for undos
+- **Undo scripts:** Must be created manually (Flyway Community Edition limitation)
+
+See `docs/DATABASE.md` for detailed workflow and known limitations.
+
 
 ## Setup & Development
 
@@ -35,8 +61,8 @@ with additional filtering for new relations between non-Zaken objects.
 ## Service Description
 
 This is a Kotlin application exposing the Documenten API, using Exposed ORM for PostgreSQL persistence.
-It implements the basic EnkelvoudigInformationObject and ObjectInformationObject endpoints,
-but will mostly ignore the Audittrail, verzendingen and gebruiksrechten part of the API. We will also not be sending Notifications at this stage.
+It implements the basic EnkelvoudigInformatieObject and ObjectInformatieObject endpoints,
+but will mostly ignore the Audittrail, Verzendingen and Gebruiksrechten part of the API. We will also not be sending Notifications at this stage.
 
 It should support additional filtering for new object relations other than Zaken.
 
@@ -45,11 +71,12 @@ It should support additional filtering for new object relations other than Zaken
 - Open source, EUPL 1.2 license.
 - See `CODE_OF_CONDUCT.md` and `CONTRIBUTING.md` for guidelines.
 
-When possible i want new files to have a prefix of
+When possible, I want new files to have a prefix of:
 ```
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
 ```
+But use appropriate commenting, and some files may simply not be suited to be prefixed with this.
 
 ## Deployment
 
@@ -58,4 +85,4 @@ When possible i want new files to have a prefix of
 
 ## API Specification
 
-- The original API is in `docs/documenten-1.5.0.yaml` for the OpenAPI specification.
+- The original API is in `docs/documenten-1.5.0.yaml` for the OpenAPI specification (OAS).
