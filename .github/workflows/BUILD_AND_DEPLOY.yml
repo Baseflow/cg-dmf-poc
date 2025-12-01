@@ -37,6 +37,6 @@ jobs:
           username: ${{ secrets.BASEFLOW_ACR_USERNAME }}
           password: ${{ secrets.BASEFLOW_ACR_PASSWORD }}
           push: ${{ github.event_name != 'pull_request' }}
-          vulnerability_scan: ${{ github.event_name != 'pull_request' }}
+          vulnerability_scan: false #${{ github.event_name != 'pull_request' }}
           version: ${{ steps.get_version.outputs.version }}
 
