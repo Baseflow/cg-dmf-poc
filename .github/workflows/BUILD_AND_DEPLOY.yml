@@ -40,5 +40,4 @@ jobs:
           vulnerability_scan: ${{ github.event_name != 'pull_request' }}
           version: ${{ steps.get_version.outputs.version }}
           context: ./src
-          repository: "cg"
 
