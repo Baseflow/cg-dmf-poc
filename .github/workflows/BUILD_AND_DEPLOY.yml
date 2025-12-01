@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - develop
     paths:
       - 'src/**'
       - '.github/workflows/BUILD_AND_DEPLOY.yml'
@@ -37,6 +38,6 @@ jobs:
           username: ${{ secrets.BASEFLOW_ACR_USERNAME }}
           password: ${{ secrets.BASEFLOW_ACR_PASSWORD }}
           push: ${{ github.event_name != 'pull_request' }}
-          vulnerability_scan: false #${{ github.event_name != 'pull_request' }}
+          vulnerability_scan: false #eme${{ github.event_name != 'pull_request' }}
           version: ${{ steps.get_version.outputs.version }}
 
