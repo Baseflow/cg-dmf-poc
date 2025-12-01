@@ -39,5 +39,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           vulnerability_scan: ${{ github.event_name != 'pull_request' }}
           version: ${{ steps.get_version.outputs.version }}
-          context: ./src
 
