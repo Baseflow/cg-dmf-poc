@@ -1,0 +1,44 @@
+name: "Build docker container image"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/BUILD_AND_DEPLOY.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/BUILD_AND_DEPLOY.yml'
+
+jobs:
+  # validate that the docker image is built.
+  # will only scan for vulnerabilities and push to acr on push events
+  docker-build:
+    name: Build docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+
+      - name: Get project version from build.gradle.kts
+        id: get_version
+        run: |
+          version=$(grep '^version' build.gradle.kts | head -n 1 | cut -d '"' -f2)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - uses: Baseflow/github-actions/docker@main
+        name: Build docker image
+        with:
+          username: ${{ secrets.BASEFLOW_ACR_USERNAME }}
+          password: ${{ secrets.BASEFLOW_ACR_PASSWORD }}
+          push: ${{ github.event_name != 'pull_request' }}
+          vulnerability_scan: ${{ github.event_name != 'pull_request' }}
+          version: ${{ steps.get_version.outputs.version }}
+          context: ./src
+          repository: "cg"
+

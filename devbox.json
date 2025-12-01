@@ -1,0 +1,21 @@
+{
+  "$schema":  "https://raw.githubusercontent.com/jetify-com/devbox/0.10.7/.schema/devbox.schema.json",
+  "packages": [
+      "gradle@latest",
+      "jdk@21",
+      "binutils@latest",
+      "jetbrains.idea-ultimate"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Welcome to devbox!' > /dev/null",
+      "alias idea=\"idea-ultimate > /dev/null 2>&1 &\"",
+      "IDEA_JVM_OPTS=\"-Dsun.java2d.uiScale=1\"",
+    ],
+    "scripts": {
+      "test": [
+        "echo \"Error: no test specified\" && exit 1"
+      ]
+    }
+  }
+}
