@@ -35,8 +35,9 @@ jobs:
       - uses: Baseflow/github-actions/docker@main
         name: Build docker image
         with:
-          username: ${{ secrets.BASEFLOW_ACR_USERNAME }}
-          password: ${{ secrets.BASEFLOW_ACR_PASSWORD }}
+          username: ${{ secrets.CG_ACR_USERNAME }}
+          password: ${{ secrets.CG_ACR_PASSWORD }}
+          registry: "commongroundacr.azurecr.io"
           push: ${{ github.event_name != 'pull_request' }}
           vulnerability_scan: false #eme${{ github.event_name != 'pull_request' }}
           version: ${{ steps.get_version.outputs.version }}
