@@ -14,6 +14,8 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("io.ktor:ktor-server-core-jvm:2.3.7")
     implementation("io.ktor:ktor-server-netty-jvm:2.3.7")
+    implementation("io.ktor:ktor-server-content-negotiation:2.3.7")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
     testImplementation("io.ktor:ktor-server-test-host-jvm:2.3.7")
     testImplementation("io.ktor:ktor-client-content-negotiation:2.3.7")
     implementation("org.jetbrains.exposed:exposed-core:1.0.0-rc-4")
