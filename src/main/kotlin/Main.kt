@@ -4,10 +4,14 @@ package com.baseflow
 
 import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
+import com.baseflow.services.StorageService
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 
 fun main() {
+    val storageService = StorageService()
+    storageService.printConfig()
+
     embeddedServer(Netty, port = 8080) {
         helloWorldModule()      // Keep for basic health check at /
         healthModule()          // Health endpoints at /health/liveness and /health/readiness
