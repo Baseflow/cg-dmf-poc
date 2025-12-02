@@ -2,12 +2,13 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow
 
+import com.baseflow.api.healthModule
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.server.application.*
 
 fun main() {
     embeddedServer(Netty, port = 8080) {
-        helloWorldModule()
+        helloWorldModule()      // Keep for basic health check at /
+        healthModule()          // Health endpoints at /health/liveness and /health/readiness
     }.start(wait = true)
 }

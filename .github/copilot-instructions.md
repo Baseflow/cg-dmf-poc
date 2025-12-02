@@ -10,7 +10,7 @@ with additional filtering for new relations between non-Zaken objects.
 
 - Language: Kotlin
 - Java: version 21 (LTS)
-- ORM: Exposed
+- ORM: Exposed v1.0.0 (or the rc version)
 - Build Tool: Gradle
 - Database: PostgreSQL
 - Migration Tool: Flyway
