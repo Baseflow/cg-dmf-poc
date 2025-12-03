@@ -25,7 +25,10 @@ fun main() {
     )
 
     // apply migrations
-    val flyway = Flyway.configure().dataSource(dbUrl, dbUser, dbPassword).load()
+    val flyway = Flyway.configure()
+        .dataSource(dbUrl, dbUser, dbPassword)
+        .locations("classpath:db/migration")
+        .load()
     flyway.migrate()
 
     val storageService = StorageService()
