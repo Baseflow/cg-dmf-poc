@@ -7,8 +7,21 @@ import com.baseflow.api.healthModule
 import com.baseflow.services.StorageService
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import org.jetbrains.exposed.v1.jdbc.Database
 
 fun main() {
+    // Initialize Exposed database connection
+    val dbUrl = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/documenten"
+    val dbUser = System.getenv("DB_USER") ?: "documenten"
+    val dbPassword = System.getenv("DB_PASSWORD") ?: "documenten"
+    val dbDriver = "org.postgresql.Driver"
+    Database.connect(
+        url = dbUrl,
+        driver = dbDriver,
+        user = dbUser,
+        password = dbPassword
+    )
+
     val storageService = StorageService()
     storageService.printConfig()
 

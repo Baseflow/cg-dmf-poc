@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "2.2.21"
     application
+    kotlin("plugin.serialization") version "1.9.10"
 }
 
 group = "com.baseflow"
@@ -12,6 +13,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("com.h2database:h2:2.2.224")
     implementation("io.ktor:ktor-server-core-jvm:2.3.7")
     implementation("io.ktor:ktor-server-netty-jvm:2.3.7")
     implementation("io.ktor:ktor-server-content-negotiation:2.3.7")
@@ -29,6 +31,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql:10.21.0")
     implementation("ch.qos.logback:logback-classic:1.4.11")
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }
 
 configurations.all {
