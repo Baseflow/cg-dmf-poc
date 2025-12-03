@@ -7,7 +7,9 @@ import com.baseflow.api.healthModule
 import com.baseflow.services.StorageService
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
+
 
 fun main() {
     // Initialize Exposed database connection
@@ -21,6 +23,10 @@ fun main() {
         user = dbUser,
         password = dbPassword
     )
+
+    // apply migrations
+    val flyway = Flyway.configure().dataSource(dbUrl, dbUser, dbPassword).load()
+    flyway.migrate()
 
     val storageService = StorageService()
     storageService.printConfig()
