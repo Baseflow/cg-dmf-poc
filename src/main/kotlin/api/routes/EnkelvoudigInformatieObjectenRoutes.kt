@@ -19,8 +19,15 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
     // List all documents (with optional filters)
     get {
+        val items = service.getAll()
         call.respond(
-            service.getAll()
+            mapOf(
+                "count" to items.size,
+                "next" to null,
+                "previous" to null,
+                "results" to items
+            )
+
         )
     }
 

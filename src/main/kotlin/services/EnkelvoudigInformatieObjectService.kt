@@ -55,8 +55,8 @@ class EnkelvoudigInformatieObjectService {
     }
 
     /**
-     * Get an EnkelvoudigInformatieObject by ID
-     * Returns the latest version data
+     * Gets all EnkelvoudigInformatieObjects with their latest versions
+     * Returns the latest versions of all records
      */
     fun getAll(): List<EnkelvoudigInformatieObjectResponse> {
         return transaction {
