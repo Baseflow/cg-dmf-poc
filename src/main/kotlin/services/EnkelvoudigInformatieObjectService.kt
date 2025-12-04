@@ -55,6 +55,27 @@ class EnkelvoudigInformatieObjectService {
     }
 
     /**
+     * Get an EnkelvoudigInformatieObject by ID
+     * Returns the latest version data
+     */
+    fun getAll(): List<EnkelvoudigInformatieObjectResponse> {
+        return transaction {
+            val record = EIORecordEntity.all()
+            // get the latest version for each record
+            record.mapNotNull { rec ->
+                val version = rec.versions.maxByOrNull { it.versie }
+                    ?: return@mapNotNull null
+                EnkelvoudigInformatieObjectResponse(
+                    id = rec.id.value.toString(),
+                    versie = version.versie,
+                    taal = version.taal,
+                    bestandsnaam = version.bestandsnaam
+                )
+            }
+        }
+    }
+
+    /**
      * Update an EnkelvoudigInformatieObject (creates new version)
      * Increments version and creates new EIOVersion in a transaction
      */

@@ -20,12 +20,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // List all documents (with optional filters)
     get {
         call.respond(
-            mapOf(
-                "count" to 0,
-                "next" to null,
-                "previous" to null,
-                "results" to emptyList<Any>()
-            )
+            service.getAll()
         )
     }
 
