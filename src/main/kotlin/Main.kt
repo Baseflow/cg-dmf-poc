@@ -28,10 +28,7 @@ fun main() {
     // apply migrations
     val flyway = Flyway.configure()
         .dataSource(dbUrl, dbUser, dbPassword)
-        .sqlMigrationPrefix("V")
-        .repeatableSqlMigrationPrefix("R")
-        .sqlMigrationSeparator("__")
-        .sqlMigrationSuffixes(".sql")
+        .validateMigrationNaming(true)
         .load()
     flyway.migrate()
 
