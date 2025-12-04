@@ -8,12 +8,14 @@ on:
       - develop
     paths:
       - 'src/**'
+      - 'Dockerfile'
       - '.github/workflows/BUILD_AND_DEPLOY.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'src/**'
+      - 'Dockerfile'
       - '.github/workflows/BUILD_AND_DEPLOY.yml'
 
 jobs:
