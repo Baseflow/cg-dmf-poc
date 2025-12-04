@@ -24,10 +24,10 @@ fun main() {
         password = dbPassword
     )
 
+
     // apply migrations
     val flyway = Flyway.configure()
         .dataSource(dbUrl, dbUser, dbPassword)
-        .locations("classpath:db/migration")
         .load()
     flyway.migrate()
 
