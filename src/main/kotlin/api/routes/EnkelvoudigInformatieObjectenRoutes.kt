@@ -3,6 +3,7 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
@@ -20,15 +21,13 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // List all documents (with optional filters)
     get {
         val items = service.getAll()
-        call.respond(
-            mapOf(
-                "count" to items.size,
-                "next" to null,
-                "previous" to null,
-                "results" to items
-            )
-
+        val response = PaginatedResponse(
+            count = items.size,
+            next = null,
+            previous = null,
+            results = items
         )
+        call.respond(response)
     }
 
     // Create new document
