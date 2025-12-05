@@ -10,11 +10,35 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./data/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U documenten"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  keycloak:
+    container_name: dmf-keycloak
+    image: keycloak/keycloak:latest
+    command:
+      - start-dev
+      - --import-realm
+      - -Dkeycloak.migration.strategy=SKIP
+    environment:
+      - KEYCLOAK_ADMIN=keycloak
+      - KEYCLOAK_ADMIN_PASSWORD=keycloak
+      - KC_DB_URL_HOST=postgres
+      - KC_DB_PASSWORD=documenten
+      - KC_DB=postgres
+      - KC_DB_URL_DATABASE=keycloak
+      - KC_DB_USERNAME=documenten
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./data/realm-export.json:/opt/keycloak/data/import/realm.json
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   app:
     build: .
@@ -25,6 +49,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/documenten
       DB_USER: documenten
       DB_PASSWORD: documenten
+      OIDC_ISSUER: http://localhost:8081/realms/cg-dmf
     depends_on:
       postgres:
         condition: service_healthy
