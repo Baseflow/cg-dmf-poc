@@ -8,6 +8,7 @@ import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
 import com.baseflow.api.routes.objectInformatieObjectenRoutes
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -37,36 +38,38 @@ fun Application.documentenApiModule() {
     }
 
     routing {
-        // API root - provides version info and available endpoints
-        route("/documenten/api/v1") {
+        authenticate("auth-jwt") {
+            // API root - provides version info and available endpoints
+            route("/documenten/api/v1") {
 
-            // Health check endpoint
-            get("/") {
-                call.respond(
-                    mapOf(
-                        "service" to "Documenten API",
-                        "version" to "1.5.0",
-                        "status" to "operational"
+                // Health check endpoint
+                get("/") {
+                    call.respond(
+                        mapOf(
+                            "service" to "Documenten API",
+                            "version" to "1.5.0",
+                            "status" to "operational"
+                        )
                     )
-                )
-            }
+                }
 
-            // EnkelvoudigInformatieObject endpoints
-            // These handle the core document CRUD operations
-            route("/enkelvoudiginformatieobjecten") {
-                enkelvoudigInformatieObjectenRoutes()
-            }
+                // EnkelvoudigInformatieObject endpoints
+                // These handle the core document CRUD operations
+                route("/enkelvoudiginformatieobjecten") {
+                    enkelvoudigInformatieObjectenRoutes()
+                }
 
-            // ObjectInformatieObject endpoints
-            // These handle relations between documents and other objects (Zaken, etc.)
-            route("/objectinformatieobjecten") {
-                objectInformatieObjectenRoutes()
-            }
+                // ObjectInformatieObject endpoints
+                // These handle relations between documents and other objects (Zaken, etc.)
+                route("/objectinformatieobjecten") {
+                    objectInformatieObjectenRoutes()
+                }
 
-            // BestandsDeel endpoints
-            // These handle uploads for large files (>4GB support)
-            route("/bestandsdelen") {
-                bestandsDelenRoutes()
+                // BestandsDeel endpoints
+                // These handle uploads for large files (>4GB support)
+                route("/bestandsdelen") {
+                    bestandsDelenRoutes()
+                }
             }
         }
     }
