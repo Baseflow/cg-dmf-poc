@@ -13,8 +13,7 @@ import java.util.concurrent.TimeUnit
 
 fun Application.authenticationModule() {
 
-    val jwtRealm = System.getenv("KEYCLOAK_REALM") ?: "cg-dmf"
-    val issuer = System.getenv("KEYCLOAK_ISSUER") ?: "https://auth.gzac.baseflow.com/realms/$jwtRealm"
+    val issuer = System.getenv("OIDC_ISSUER") ?: "https://auth.gzac.baseflow.com/realms/cg-dmf"
 
     // Configure JWK provider to fetch signing keys from Keycloak which are served at issuer's certs endpoint
     val jwkProvider = JwkProviderBuilder(URL("$issuer/protocol/openid-connect/certs"))
@@ -24,7 +23,6 @@ fun Application.authenticationModule() {
 
     install(Authentication) {
         jwt("auth-jwt") {
-            realm = jwtRealm
 
             verifier(jwkProvider, issuer) {
                 acceptLeeway(3)
