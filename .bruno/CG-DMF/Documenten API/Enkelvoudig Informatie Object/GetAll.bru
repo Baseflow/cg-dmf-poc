@@ -1,0 +1,16 @@
+meta {
+  name: GetAll
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

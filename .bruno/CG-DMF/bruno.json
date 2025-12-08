@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "CG-DMF",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
