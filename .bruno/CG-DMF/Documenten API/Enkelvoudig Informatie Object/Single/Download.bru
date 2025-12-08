@@ -1,0 +1,16 @@
+meta {
+  name: Download
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{firstId}}/download
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

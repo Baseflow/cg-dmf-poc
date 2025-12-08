@@ -1,0 +1,26 @@
+auth {
+  mode: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:8080
+  authorization_url: {{oidc.authUrl}}
+  access_token_url: {{oidc.tokenUrl}}
+  refresh_token_url: 
+  client_id: {{oidc.clientId}}
+  client_secret: {{oidc.clientSecret}}
+  scope: 
+  state: 
+  pkce: true
+  credentials_placement: body
+  credentials_id: credentials
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: false
+}
+
+vars:pre-request {
+  firstId: ""
+}

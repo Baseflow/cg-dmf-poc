@@ -1,0 +1,26 @@
+meta {
+  name: Single
+}
+
+auth {
+  mode: inherit
+}
+
+script:pre-request {
+  const response = await bru.runRequest(
+    "Documenten API/Object Informatie Objecten/Get All"
+  );
+  
+  if (!response) {
+    throw new Error("Get All request returned no response");
+  }
+  
+  const data = response.data;
+  if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
+    throw new Error("No results returned from Get All");
+  }
+  
+  const firstId = data.results[0].id;
+  bru.setVar("firstId", firstId);
+  
+}

@@ -1,0 +1,16 @@
+meta {
+  name: Search
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/_zoek
+  body: json
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

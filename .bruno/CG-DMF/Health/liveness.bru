@@ -1,11 +1,11 @@
 meta {
-  name: GetAll
+  name: liveness
   type: http
   seq: 1
 }
 
 get {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
+  url: {{baseUrl}}/health/liveness
   body: none
   auth: inherit
 }

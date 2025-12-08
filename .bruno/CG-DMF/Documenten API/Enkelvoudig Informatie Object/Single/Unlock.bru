@@ -1,0 +1,16 @@
+meta {
+  name: Unlock
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{firstId}}/unlock
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

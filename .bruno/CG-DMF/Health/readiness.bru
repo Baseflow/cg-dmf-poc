@@ -1,0 +1,15 @@
+meta {
+  name: readiness
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/health/readiness
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

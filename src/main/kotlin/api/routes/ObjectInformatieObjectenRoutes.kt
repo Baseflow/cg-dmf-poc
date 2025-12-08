@@ -3,9 +3,12 @@
 
 package com.baseflow.api.routes
 
+import com.baseflow.api.models.ObjectInformatieObjectResponse
+import com.baseflow.api.models.PaginatedResponse
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.math.log
 
 /**
  * ObjectInformatieObject routes
@@ -20,15 +23,15 @@ import io.ktor.server.routing.*
  */
 fun Route.objectInformatieObjectenRoutes() {
     // List all document-object relations
+
     get {
-        call.respond(
-            mapOf(
-                "count" to 0,
-                "next" to null,
-                "previous" to null,
-                "results" to emptyList<Any>()
-            )
+        val response = PaginatedResponse(
+            count = 0,
+            next = null,
+            previous = null,
+            results = emptyList<ObjectInformatieObjectResponse>()
         )
+        call.respond(response)
     }
 
     // Create new document-object relation

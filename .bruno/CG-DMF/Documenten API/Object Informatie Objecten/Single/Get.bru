@@ -1,0 +1,15 @@
+meta {
+  name: Get
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten/{{firstId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
