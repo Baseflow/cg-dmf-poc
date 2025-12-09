@@ -1,3 +1,7 @@
+-- V2__Complete_EIO_tables.sql
+-- SPDX-License-Identifier: EUPL-1.2
+-- Copyright (C) 2025 Gemeente Utrecht
+
 ALTER TABLE eio_versions ADD formaat VARCHAR(255) DEFAULT '' NULL;
 ALTER TABLE eio_versions ADD bestandsomvang BIGINT NULL;
 ALTER TABLE eio_versions ADD link VARCHAR(200) DEFAULT '' NOT NULL;

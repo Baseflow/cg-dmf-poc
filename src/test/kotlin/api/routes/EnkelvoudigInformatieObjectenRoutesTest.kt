@@ -67,7 +67,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals("dut", responseBody.taal)
         assertEquals("test.pdf", responseBody.bestandsnaam)
         assertEquals(1, responseBody.versie)
-        assert(responseBody.id.isNotEmpty()) // UUID should be generated
+        assert(responseBody.identificatie.isNotEmpty()) // UUID should be generated
     }
 
     @Test
@@ -102,12 +102,12 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
         assertEquals(HttpStatusCode.OK, postResponse.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
-        val uuid = created.id
+        val uuid = created.identificatie
 
         val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResponse.bodyAsText())
-        assertEquals(uuid, fetched.id)
+        assertEquals(uuid, fetched.identificatie)
         assertEquals("dut", fetched.taal)
         assertEquals("test.pdf", fetched.bestandsnaam)
         assertEquals(1, fetched.versie)
@@ -127,14 +127,14 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
         assertEquals(HttpStatusCode.OK, postResponse.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
-        val uuid = created.id
+        val uuid = created.identificatie
 
         val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         val contentType = getResponse.headers[HttpHeaders.ContentType]
         assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), contentType)
         val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResponse.bodyAsText())
-        assertEquals(uuid, fetched.id)
+        assertEquals(uuid, fetched.identificatie)
         assertEquals("dut", fetched.taal)
         assertEquals("test.pdf", fetched.bestandsnaam)
         assertEquals(1, fetched.versie)

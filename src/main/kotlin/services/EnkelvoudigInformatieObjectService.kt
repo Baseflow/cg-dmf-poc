@@ -6,6 +6,8 @@ import com.baseflow.EIORecordEntity
 import com.baseflow.EIOVersionEntity
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
+import com.baseflow.api.models.Integriteit
+import com.baseflow.api.models.Ondertekening
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
@@ -28,12 +30,7 @@ class EnkelvoudigInformatieObjectService {
                 taal = request.taal.orEmpty()
                 bestandsnaam = request.bestandsnaam.orEmpty()
             }
-            EnkelvoudigInformatieObjectResponse(
-                id = record.id.value.toString(),
-                versie = version.versie,
-                taal = version.taal,
-                bestandsnaam = version.bestandsnaam
-            )
+            mapToResponse(record, version)
         }
     }
 
@@ -45,12 +42,7 @@ class EnkelvoudigInformatieObjectService {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
-            EnkelvoudigInformatieObjectResponse(
-                id = record.id.value.toString(),
-                versie = version.versie,
-                taal = version.taal,
-                bestandsnaam = version.bestandsnaam
-            )
+            mapToResponse(record, version)
         }
     }
 
@@ -65,12 +57,7 @@ class EnkelvoudigInformatieObjectService {
             record.mapNotNull { rec ->
                 val version = rec.versions.maxByOrNull { it.versie }
                     ?: return@mapNotNull null
-                EnkelvoudigInformatieObjectResponse(
-                    id = rec.id.value.toString(),
-                    versie = version.versie,
-                    taal = version.taal,
-                    bestandsnaam = version.bestandsnaam
-                )
+                mapToResponse(rec, version)
             }
         }
     }
@@ -90,12 +77,46 @@ class EnkelvoudigInformatieObjectService {
                 taal = request.taal.orEmpty()
                 bestandsnaam = request.bestandsnaam.orEmpty()
             }
-            EnkelvoudigInformatieObjectResponse(
-                id = record.id.value.toString(),
-                versie = version.versie,
-                taal = version.taal,
-                bestandsnaam = version.bestandsnaam
-            )
+            mapToResponse(record, version)
         }
+    }
+
+    fun mapToResponse(
+        record: EIORecordEntity,
+        version: EIOVersionEntity
+    ): EnkelvoudigInformatieObjectResponse {
+        return EnkelvoudigInformatieObjectResponse(
+            identificatie = record.id.value.toString(),
+            bronorganisatie = version.bronOrganisatie,
+            creatiedatum = version.creatieDatum,
+            titel = version.titel,
+            vertrouwelijkheidaanduiding = version.vertrouwlijkheidsAanduiding,
+            auteur = version.auteur,
+            status = version.status,
+            formaat = version.formaat.orEmpty(),
+            taal = version.taal,
+            bestandsnaam = version.bestandsnaam,
+            inhoud = "", // Placeholder for inhoud
+            bestandsomvang = version.bestandsomvang,
+            link = version.link,
+            beschrijving = version.beschrijving,
+            indicatieGebruiksrecht = version.indicatieGebruiksrecht,
+            verschijningsvorm = version.verschijningsVorm,
+            ondertekening = Ondertekening(
+                soort = version.ondertekening_soort,
+                datum = version.ondertekenings_datum?.toString().orEmpty()
+            ),
+            integriteit = Integriteit(
+                algoritme = version.integriteitAlgoritme,
+                waarde = version.integriteitWaarde,
+                datum = version.integriteitsDatum?.toString().orEmpty()
+            ),
+            informatieobjecttype = "EnkelvoudigInformatieObject",
+            trefwoorden = version.trefwoorden,
+            inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
+            locked = version.locked,
+            versie = version.versie,
+            beginRegistratie = version.beginRegistratie,
+        )
     }
 }
