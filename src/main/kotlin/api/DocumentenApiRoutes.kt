@@ -41,6 +41,7 @@ fun Application.documentenApiModule() {
         authenticate("auth-jwt") {
             // API root - provides version info and available endpoints
             route(DOCUMENTEN_API_BASE_PATH) {
+                install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
 
                 // Health check endpoint
                 get("/") {

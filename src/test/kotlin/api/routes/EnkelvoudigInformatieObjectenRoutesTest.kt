@@ -4,6 +4,7 @@ package com.baseflow.api.routes
 
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
+import com.baseflow.api.ApiVersionHeader
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
@@ -80,6 +81,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
         val responseBody = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(response.bodyAsText())
         assertEquals("dut", responseBody.taal)
         assertEquals("test.pdf", responseBody.bestandsnaam)
