@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.2.21"
     application
-    kotlin("plugin.serialization") version "1.9.10"
+    kotlin("plugin.serialization") version "2.2.21"
 }
 
 group = "com.baseflow"
@@ -26,23 +26,17 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-migration-core:1.0.0-rc-4")
     implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.0.0-rc-4")
     implementation("org.postgresql:postgresql:42.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.flywaydb:flyway-core:10.21.0")
     implementation("org.flywaydb:flyway-database-postgresql:10.21.0")
     implementation("ch.qos.logback:logback-classic:1.5.13")
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("io.ktor:ktor-server-auth:3.3.3")
     implementation("io.ktor:ktor-server-auth-jwt:3.3.3")
     implementation("com.auth0:jwks-rsa:0.22.1")
 }
 
-configurations.all {
-    resolutionStrategy {
-        force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-        force("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.3")
-    }
-}
 
 kotlin {
     jvmToolchain {
