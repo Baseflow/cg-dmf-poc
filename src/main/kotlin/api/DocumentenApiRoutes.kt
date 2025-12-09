@@ -40,14 +40,14 @@ fun Application.documentenApiModule() {
     routing {
         authenticate("auth-jwt") {
             // API root - provides version info and available endpoints
-            route("/documenten/api/v1") {
+            route(DOCUMENTEN_API_BASE_PATH) {
 
                 // Health check endpoint
                 get("/") {
                     call.respond(
                         mapOf(
                             "service" to "Documenten API",
-                            "version" to "1.5.0",
+                            "version" to DOCUMENTEN_API_VERSION,
                             "status" to "operational"
                         )
                     )

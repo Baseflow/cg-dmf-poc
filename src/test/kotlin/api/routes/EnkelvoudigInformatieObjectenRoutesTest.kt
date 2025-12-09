@@ -4,6 +4,8 @@ package com.baseflow.api.routes
 
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
+import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
@@ -25,7 +27,7 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 
 class EnkelvoudigInformatieObjectenRoutesTest {
     companion object {
-        private const val API_BASE = "/documenten/api/v1"
+        private const val API_BASE = DOCUMENTEN_API_BASE_PATH
     }
 
     @Serializable
