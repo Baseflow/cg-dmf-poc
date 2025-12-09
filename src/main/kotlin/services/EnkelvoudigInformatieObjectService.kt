@@ -10,7 +10,10 @@ import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.Ondertekening
-import com.baseflow.api.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.services.models.LockPayload
+import com.baseflow.services.models.LockResult
+import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.services.models.UnlockResult
 import org.jetbrains.exposed.v1.core.ArrayColumnType
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.JoinType
@@ -29,19 +32,6 @@ import java.util.UUID
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
 class EnkelvoudigInformatieObjectService {
-    @kotlinx.serialization.Serializable
-    data class LockPayload(val lock: String)
-
-    sealed class LockResult {
-        data class Success(val payload: LockPayload) : LockResult()
-        data object AlreadyLocked : LockResult()
-    }
-
-    sealed class UnlockResult {
-        data object Success : UnlockResult()
-        data object InvalidLock : UnlockResult()
-        data object NotLocked : UnlockResult()
-    }
     /**
      * Create a new EnkelvoudigInformatieObject
      * Creates both EIORecord and initial EIOVersion in a transaction
@@ -53,7 +43,7 @@ class EnkelvoudigInformatieObjectService {
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1
-                taal = request.taal.orEmpty()
+                taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
                 auteur = request.auteur
@@ -126,7 +116,7 @@ class EnkelvoudigInformatieObjectService {
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                taal = request.taal.orEmpty()
+                taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
                 auteur = request.auteur
@@ -140,7 +130,7 @@ class EnkelvoudigInformatieObjectService {
         version: EIOVersionEntity
     ): EnkelvoudigInformatieObjectResponse {
         return EnkelvoudigInformatieObjectResponse(
-            identificatie = record.id.value.toString(),
+            identificatie = version.identificatie,
             bronorganisatie = version.bronOrganisatie,
             creatiedatum = version.creatieDatum,
             titel = version.titel,

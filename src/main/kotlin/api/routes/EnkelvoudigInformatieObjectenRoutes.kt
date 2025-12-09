@@ -4,8 +4,9 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.PaginatedResponse
-import com.baseflow.api.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.models.*
 import com.baseflow.api.ApiVersionHeader
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import io.ktor.http.HttpStatusCode
@@ -122,8 +123,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 val result = service.lock(uuid)
                 when (result) {
                     null -> call.respond(HttpStatusCode.NotFound, mapOf("error" to "EnkelvoudigInformatieObject not found"))
-                    is EnkelvoudigInformatieObjectService.LockResult.Success -> call.respond(result.payload)
-                    is EnkelvoudigInformatieObjectService.LockResult.AlreadyLocked -> call.respond(
+                    is LockResult.Success -> call.respond(result.payload)
+                    is LockResult.AlreadyLocked -> call.respond(
                         HttpStatusCode.Conflict,
                         mapOf("error" to "EnkelvoudigInformatieObject is already locked")
                     )
@@ -147,12 +148,12 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 val result = service.unlock(uuid, body.lock)
                 when (result) {
                     null -> call.respond(HttpStatusCode.NotFound, mapOf("error" to "EnkelvoudigInformatieObject not found"))
-                    is EnkelvoudigInformatieObjectService.UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
-                    is EnkelvoudigInformatieObjectService.UnlockResult.InvalidLock -> call.respond(
+                    is UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is UnlockResult.InvalidLock -> call.respond(
                         HttpStatusCode.Conflict,
                         mapOf("error" to "Invalid lock token for unlock")
                     )
-                    is EnkelvoudigInformatieObjectService.UnlockResult.NotLocked -> call.respond(
+                    is UnlockResult.NotLocked -> call.respond(
                         HttpStatusCode.Conflict,
                         mapOf("error" to "EnkelvoudigInformatieObject is not locked")
                     )

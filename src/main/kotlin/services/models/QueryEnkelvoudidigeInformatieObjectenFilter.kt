@@ -1,4 +1,4 @@
-package com.baseflow.api.models
+package com.baseflow.services.models
 
 class QueryEnkelvoudigeInformatieObjectenFilter(
     val bronOrganisatie: String? = null,
