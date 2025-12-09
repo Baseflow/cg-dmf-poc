@@ -6,6 +6,8 @@ import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.EIORecordEntity
 import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.services.models.LockResult
+import com.baseflow.services.models.UnlockResult
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -97,8 +99,8 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val result = service.lock(id)
         assertNotNull(result)
-        assertTrue(result is EnkelvoudigInformatieObjectService.LockResult.Success)
-        val token = (result as EnkelvoudigInformatieObjectService.LockResult.Success).payload.lock
+        assertTrue(result is LockResult.Success)
+        val token = (result as LockResult.Success).payload.lock
         assertTrue(token.isNotBlank())
 
         transaction {
@@ -114,21 +116,21 @@ class EnkelvoudigInformatieObjectServiceTest {
         val id = UUID.fromString(created.identificatie)
 
         val first = service.lock(id)
-        assertTrue(first is EnkelvoudigInformatieObjectService.LockResult.Success)
+        assertTrue(first is LockResult.Success)
 
         val second = service.lock(id)
-        assertTrue(second is EnkelvoudigInformatieObjectService.LockResult.AlreadyLocked)
+        assertTrue(second is LockResult.AlreadyLocked)
     }
 
     @Test
     fun `unlock with correct token should clear lock`() {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.identificatie)
-        val lockRes = service.lock(id) as EnkelvoudigInformatieObjectService.LockResult.Success
+        val lockRes = service.lock(id) as LockResult.Success
         val token = lockRes.payload.lock
 
         val unlockRes = service.unlock(id, token)
-        assertTrue(unlockRes is EnkelvoudigInformatieObjectService.UnlockResult.Success)
+        assertTrue(unlockRes is UnlockResult.Success)
 
         transaction {
             val rec = EIORecordEntity.findById(id)
@@ -143,18 +145,18 @@ class EnkelvoudigInformatieObjectServiceTest {
         val id = UUID.fromString(created.identificatie)
 
         val res = service.unlock(id, "some-token")
-        assertTrue(res is EnkelvoudigInformatieObjectService.UnlockResult.NotLocked)
+        assertTrue(res is UnlockResult.NotLocked)
     }
 
     @Test
     fun `unlock with invalid token should return InvalidLock and keep lock`() {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.identificatie)
-        val lockRes = service.lock(id) as EnkelvoudigInformatieObjectService.LockResult.Success
+        val lockRes = service.lock(id) as LockResult.Success
         val token = lockRes.payload.lock
 
         val res = service.unlock(id, token + "-wrong")
-        assertTrue(res is EnkelvoudigInformatieObjectService.UnlockResult.InvalidLock)
+        assertTrue(res is UnlockResult.InvalidLock)
 
         transaction {
             val rec = EIORecordEntity.findById(id)
