@@ -5,6 +5,8 @@ package com.baseflow.api.routes
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.api.ApiVersionHeader
+import com.baseflow.api.DOCUMENTEN_API_VERSION
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -15,6 +17,9 @@ import java.util.UUID
  * Routes for EnkelvoudigInformatieObjecten (Single Information Objects).
  */
 fun Route.enkelvoudigInformatieObjectenRoutes() {
+    // Ensure API-version header is added for all responses under this subtree,
+    // including tests that don't install the plugin at the parent route.
+    install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
     val service = EnkelvoudigInformatieObjectService()
 
     // List all documents (with optional filters)

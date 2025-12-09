@@ -42,6 +42,8 @@ class EnkelvoudigInformatieObjectService {
                 versie = 1
                 taal = request.taal.orEmpty()
                 bestandsnaam = request.bestandsnaam.orEmpty()
+                titel = request.titel
+                auteur = request.auteur
             }
             mapToResponse(record, version)
         }
@@ -89,6 +91,8 @@ class EnkelvoudigInformatieObjectService {
                 versie = newVersionNumber
                 taal = request.taal.orEmpty()
                 bestandsnaam = request.bestandsnaam.orEmpty()
+                titel = request.titel
+                auteur = request.auteur
             }
             mapToResponse(record, version)
         }
