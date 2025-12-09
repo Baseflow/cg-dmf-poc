@@ -13,9 +13,6 @@ import org.jetbrains.exposed.v1.datetime.CurrentDate
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.datetime.datetime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.todayIn
 import java.util.UUID
 
 import kotlin.time.ExperimentalTime
@@ -26,33 +23,30 @@ object EIOVersions : UUIDTable("eio_versions") {
         reference("record_id", EIORecords, onDelete = ReferenceOption.CASCADE)
     val versie = integer("versie")
     val taal = varchar("taal", 3)
-    val bestandsnaam = varchar("bestandsnaam", 255).default("").clientDefault { "" }
-    val formaat = varchar("formaat", 255).nullable().default("").clientDefault { "" }
+    val bestandsnaam = varchar("bestandsnaam", 255).default("")
+    val formaat = varchar("formaat", 255).nullable().default("")
     val bestandsomvang = long("bestandsomvang").nullable()
-    val link = varchar("link", 200).default("").clientDefault { "" }
-    val integriteitAlgoritme = varchar("integriteit_algoritme", 20).default("").clientDefault { "" }
-    val integriteitWaarde = varchar("integriteit_waarde", 128).default("").clientDefault { "" }
+    val link = varchar("link", 200).default("")
+    val integriteitAlgoritme = varchar("integriteit_algoritme", 20).default("")
+    val integriteitWaarde = varchar("integriteit_waarde", 128).default("")
 
     val integriteitsDatum = datetime("integriteits_datum").nullable()
     val beginRegistratie = datetime("begin_registratie").defaultExpression(
-        CurrentDateTime ).clientDefault { kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.UTC) }
-    val verschijningsVorm = text("verschijnings_vorm").default("").clientDefault { "" }
-    // create an array column for keywords
+        CurrentDateTime )
+    val verschijningsVorm = text("verschijnings_vorm").default("")
     val trefwoorden = registerColumn<List<String>>(
         "trefwoorden", ArrayColumnType(VarCharColumnType(100))
-    ).default(emptyList()).clientDefault { emptyList() }
+    ).default(emptyList())
 
-    val bronOrganisatie = varchar("bron_organisatie", 9).default("").clientDefault { "" }
-    val creatieDatum = date("creatie_datum").defaultExpression(CurrentDate ).clientDefault {
-        kotlin.time.Clock.System.todayIn(TimeZone.UTC)
-    }
+    val bronOrganisatie = varchar("bron_organisatie", 9).default("")
+    val creatieDatum = date("creatie_datum").defaultExpression(CurrentDate )
     val titel = varchar("titel", 200)
-    val vertrouwlijkheidsAanduiding = varchar("vertrouwlijkheids_aanduiding", 20).default("").clientDefault { "" }
+    val vertrouwlijkheidsAanduiding = varchar("vertrouwlijkheids_aanduiding", 20).default("")
     val auteur = varchar("auteur", 200)
-    val status = varchar("status", 20).default("").clientDefault { "" }
-    val beschrijving = text("beschrijving").default("").clientDefault { "" }
-    val indicatieGebruiksrecht = bool("indicatie_gebruiksrecht").default(false).clientDefault { false }
-    val ondertekening_soort = varchar("ondertekening_soort", 10).default("").clientDefault { "" }
+    val status = varchar("status", 20).default("")
+    val beschrijving = text("beschrijving").default("")
+    val indicatieGebruiksrecht = bool("indicatie_gebruiksrecht").default(false)
+    val ondertekening_soort = varchar("ondertekening_soort", 10).default("")
     val ondertekenings_datum = datetime("ondertekenings_datum").nullable()
 }
 
