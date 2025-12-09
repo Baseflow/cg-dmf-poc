@@ -55,17 +55,15 @@ fun main(args: Array<String>) {
         // MigrationUtils will compare current DB state with Table definitions
         val tables = listOf<Table>(EIORecords, EIOVersions)
 
-        tables.forEach { table ->
-            try {
-                MigrationUtils.generateMigrationScript(
-                    table,
-                    scriptDirectory = "src/main/resources/db/migration",
-                    scriptName = scriptName,
-                )
-                println("✓ Generated migration script for ${table.tableName}")
-            } catch (e: Exception) {
-                println("✗ Error generating migration for ${table.tableName}: ${e.message}")
-            }
+        try {
+            MigrationUtils.generateMigrationScript(
+                *tables.toTypedArray(),
+                scriptDirectory = "src/main/resources/db/migration",
+                scriptName = "${scriptName}",
+            )
+            println("✓ Generated migration script $scriptName.sql")
+        } catch (e: Exception) {
+            println("✗ Error generating migration: ${e.message}")
         }
     }
 
