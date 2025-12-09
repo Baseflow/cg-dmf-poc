@@ -33,6 +33,7 @@ data class Integriteit(
 
 @Serializable
 data class EnkelvoudigInformatieObjectResponse(
+    val id: String,
     val identificatie: String,
     val bronorganisatie: String,
     val creatiedatum: LocalDate,

@@ -48,6 +48,7 @@ object EIOVersions : UUIDTable("eio_versions") {
     val indicatieGebruiksrecht = bool("indicatie_gebruiksrecht").default(false)
     val ondertekening_soort = varchar("ondertekening_soort", 10).default("")
     val ondertekenings_datum = datetime("ondertekenings_datum").nullable()
+    val identificatie = varchar("identificatie", 40).default("")
 }
 
 @OptIn(ExperimentalTime::class)
@@ -77,4 +78,5 @@ class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var indicatieGebruiksrecht by EIOVersions.indicatieGebruiksrecht
     var ondertekening_soort by EIOVersions.ondertekening_soort
     var ondertekenings_datum by EIOVersions.ondertekenings_datum
+    var identificatie by EIOVersions.identificatie
 }

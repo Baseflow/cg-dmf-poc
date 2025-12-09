@@ -4,6 +4,7 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.PaginatedResponse
+import com.baseflow.api.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.api.ApiVersionHeader
 import com.baseflow.api.DOCUMENTEN_API_VERSION
@@ -24,7 +25,21 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
     // List all documents (with optional filters)
     get {
-        val items = service.getAll()
+        val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
+        val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
+        val identificatie = call.request.queryParameters["identificatie"]
+        val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 0
+
+        var filter = QueryEnkelvoudigeInformatieObjectenFilter(
+            bronOrganisatie = bronOrganisatie,
+            trefwoorden = trefwoorden,
+            identificatie = identificatie,
+            expand = expand,
+            page = page
+        )
+
+        val items = service.getAll(filter)
         val response = PaginatedResponse(
             count = items.size,
             next = null,

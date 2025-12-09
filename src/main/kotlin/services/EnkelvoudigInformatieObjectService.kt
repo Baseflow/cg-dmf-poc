@@ -3,11 +3,24 @@
 package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
+import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
+import com.baseflow.EIOVersions
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.Ondertekening
+import com.baseflow.api.models.QueryEnkelvoudigeInformatieObjectenFilter
+import org.jetbrains.exposed.v1.core.ArrayColumnType
+import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.QueryBuilder
+import org.jetbrains.exposed.v1.core.QueryParameter
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
@@ -65,11 +78,35 @@ class EnkelvoudigInformatieObjectService {
      * Gets all EnkelvoudigInformatieObjects with their latest versions
      * Returns the latest versions of all records
      */
-    fun getAll(): List<EnkelvoudigInformatieObjectResponse> {
+    fun getAll(filters: QueryEnkelvoudigeInformatieObjectenFilter): List<EnkelvoudigInformatieObjectResponse> {
         return transaction {
-            val record = EIORecordEntity.all()
+            val condition = buildFilterOp(filters)
+
+            val pageSize = 10
+            val page = if (filters.page > 0) filters.page else 1
+            val offset = (page - 1L) * pageSize
+
+            // Base query: Record + Version, filtered and ordered by versie desc
+            val query = EIORecords
+                .join(
+                    EIOVersions,
+                    JoinType.INNER,
+                    onColumn = EIORecords.id,
+                    otherColumn = EIOVersions.recordId
+                )
+                .selectAll()
+                .apply {
+                    if (condition != Op.TRUE) {
+                        andWhere { condition }
+                    }
+                }
+                .offset(offset)
+                .limit(pageSize)
+
+            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(query).toList()
+
             // get the latest version for each record
-            record.mapNotNull { rec ->
+            records.mapNotNull { rec ->
                 val version = rec.versions.maxByOrNull { it.versie }
                     ?: return@mapNotNull null
                 mapToResponse(rec, version)
@@ -134,7 +171,54 @@ class EnkelvoudigInformatieObjectService {
             locked = record.lockToken != null,
             versie = version.versie,
             beginRegistratie = version.beginRegistratie,
+            id = record.id.value.toString()
         )
+    }
+
+    private fun buildFilterOp(filters: QueryEnkelvoudigeInformatieObjectenFilter): Op<Boolean> {
+        var op: Op<Boolean> = Op.TRUE
+
+        filters.identificatie?.let { id ->
+            op = op and (EIOVersions.identificatie eq id)
+        }
+
+        filters.bronOrganisatie?.let { bronOrganisatie ->
+            op = op and (EIOVersions.bronOrganisatie eq bronOrganisatie)
+        }
+
+        if (filters.trefwoorden.isNotEmpty()) {
+            op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
+        }
+
+        return op
+    }
+
+    private fun arrayContainsAll(
+        column: Column<List<String>>,
+        values: List<String>
+    ): Op<Boolean> = object : Op<Boolean>() {
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+            val arrayType = column.columnType as ArrayColumnType<String, *>
+            val elementType = arrayType.delegate
+
+            queryBuilder {
+                append(column)
+                append(" @> ")
+                append("ARRAY[")
+
+                values.forEachIndexed { index, value ->
+                    if (index > 0) append(", ")
+                    append(
+                        QueryParameter(
+                            value,
+                            elementType
+                        )
+                    )
+                }
+
+                append("]")
+            }
+        }
     }
 
     fun lock(id: UUID): LockResult? {
