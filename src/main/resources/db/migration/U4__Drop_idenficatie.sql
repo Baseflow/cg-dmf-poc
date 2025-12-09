@@ -1,1 +1,0 @@
-ALTER TABLE eio_versions DROP identificatie;
