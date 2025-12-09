@@ -8,7 +8,7 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.respondText
-import java.net.URL
+import java.net.URI
 import java.util.concurrent.TimeUnit
 
 fun Application.authenticationModule() {
@@ -16,7 +16,7 @@ fun Application.authenticationModule() {
     val issuer = System.getenv("OIDC_ISSUER") ?: "http://localhost:8081/realms/cg-dmf"
 
     // Configure JWK provider to fetch signing keys from Keycloak which are served at issuer's certs endpoint
-    val jwkProvider = JwkProviderBuilder(URL("$issuer/protocol/openid-connect/certs"))
+    val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
         .cached(10, 24, TimeUnit.HOURS)
         .rateLimited(10, 1, TimeUnit.MINUTES)
         .build()
