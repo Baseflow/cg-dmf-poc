@@ -25,6 +25,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:1.0.0-rc-4")
     implementation("org.jetbrains.exposed:exposed-migration-core:1.0.0-rc-4")
     implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.0.0-rc-4")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.0.0-rc-4")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.postgresql:postgresql:42.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.flywaydb:flyway-core:10.21.0")

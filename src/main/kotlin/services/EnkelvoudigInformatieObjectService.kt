@@ -25,8 +25,8 @@ class EnkelvoudigInformatieObjectService {
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1
-                taal = request.taal
-                bestandsnaam = request.bestandsnaam
+                taal = request.taal.orEmpty()
+                bestandsnaam = request.bestandsnaam.orEmpty()
             }
             EnkelvoudigInformatieObjectResponse(
                 id = record.id.value.toString(),
@@ -87,8 +87,8 @@ class EnkelvoudigInformatieObjectService {
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                taal = request.taal
-                bestandsnaam = request.bestandsnaam
+                taal = request.taal.orEmpty()
+                bestandsnaam = request.bestandsnaam.orEmpty()
             }
             EnkelvoudigInformatieObjectResponse(
                 id = record.id.value.toString(),
