@@ -11,8 +11,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class CreateEIORequest(
-    val taal: String? = null,
-    val bestandsnaam: String? = null
+    val taal: String,
+    val bestandsnaam: String,
+    val titel: String,
+    val auteur: String,
 )
 
 
@@ -55,4 +57,9 @@ data class EnkelvoudigInformatieObjectResponse(
     val trefwoorden: List<String>,
     val inhoudIsVervallen: Boolean,
     val locked: Boolean
+)
+
+@Serializable
+data class UnlockEIORequest(
+    val lock: String
 )

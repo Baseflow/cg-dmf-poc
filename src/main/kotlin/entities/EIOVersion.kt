@@ -39,7 +39,6 @@ object EIOVersions : UUIDTable("eio_versions") {
         "trefwoorden", ArrayColumnType(VarCharColumnType(100))
     ).default(emptyList())
 
-    val locked = bool("locked").default(false)
     val bronOrganisatie = varchar("bron_organisatie", 9).default("")
     val creatieDatum = date("creatie_datum").defaultExpression(CurrentDate )
     val titel = varchar("titel", 200)
@@ -69,7 +68,6 @@ class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var beginRegistratie by EIOVersions.beginRegistratie
     var verschijningsVorm by EIOVersions.verschijningsVorm
     var trefwoorden by EIOVersions.trefwoorden
-    var locked by EIOVersions.locked
     var bronOrganisatie by EIOVersions.bronOrganisatie
     var creatieDatum by EIOVersions.creatieDatum
     var titel by EIOVersions.titel

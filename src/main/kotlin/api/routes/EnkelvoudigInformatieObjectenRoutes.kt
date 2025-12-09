@@ -6,7 +6,6 @@ import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -92,14 +91,55 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
         // Lock document for editing
         post("/lock") {
-            val uuid = call.parameters["uuid"]
-            call.respond(mapOf("message" to "Lock EnkelvoudigInformatieObject $uuid - to be implemented"))
+            val uuidString = call.parameters["uuid"]
+            if (uuidString == null) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "UUID parameter is required"))
+                return@post
+            }
+
+            try {
+                val uuid = UUID.fromString(uuidString)
+                val result = service.lock(uuid)
+                when (result) {
+                    null -> call.respond(HttpStatusCode.NotFound, mapOf("error" to "EnkelvoudigInformatieObject not found"))
+                    is EnkelvoudigInformatieObjectService.LockResult.Success -> call.respond(result.payload)
+                    is EnkelvoudigInformatieObjectService.LockResult.AlreadyLocked -> call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "EnkelvoudigInformatieObject is already locked")
+                    )
+                }
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid UUID format"))
+            }
         }
 
         // Unlock document
         post("/unlock") {
-            val uuid = call.parameters["uuid"]
-            call.respond(mapOf("message" to "Unlock EnkelvoudigInformatieObject $uuid - to be implemented"))
+            val uuidString = call.parameters["uuid"]
+            if (uuidString == null) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "UUID parameter is required"))
+                return@post
+            }
+
+            try {
+                val uuid = UUID.fromString(uuidString)
+                val body = call.receive<com.baseflow.api.models.UnlockEIORequest>()
+                val result = service.unlock(uuid, body.lock)
+                when (result) {
+                    null -> call.respond(HttpStatusCode.NotFound, mapOf("error" to "EnkelvoudigInformatieObject not found"))
+                    is EnkelvoudigInformatieObjectService.UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is EnkelvoudigInformatieObjectService.UnlockResult.InvalidLock -> call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Invalid lock token for unlock")
+                    )
+                    is EnkelvoudigInformatieObjectService.UnlockResult.NotLocked -> call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "EnkelvoudigInformatieObject is not locked")
+                    )
+                }
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid UUID format"))
+            }
         }
     }
 }

@@ -9,9 +9,11 @@ import org.jetbrains.exposed.v1.dao.UUIDEntityClass
 import java.util.UUID
 
 object EIORecords : UUIDTable("eio_records") {
+    val lockToken = varchar("lock_token", 100).nullable()
 }
 
 class EIORecordEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     companion object : UUIDEntityClass<EIORecordEntity>(EIORecords)
-    val versions by com.baseflow.EIOVersionEntity referrersOn com.baseflow.EIOVersions.recordId
+    var lockToken by EIORecords.lockToken
+    val versions by EIOVersionEntity referrersOn EIOVersions.recordId
 }

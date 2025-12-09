@@ -16,6 +16,19 @@ import java.util.UUID
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
 class EnkelvoudigInformatieObjectService {
+    @kotlinx.serialization.Serializable
+    data class LockPayload(val lock: String)
+
+    sealed class LockResult {
+        data class Success(val payload: LockPayload) : LockResult()
+        data object AlreadyLocked : LockResult()
+    }
+
+    sealed class UnlockResult {
+        data object Success : UnlockResult()
+        data object InvalidLock : UnlockResult()
+        data object NotLocked : UnlockResult()
+    }
     /**
      * Create a new EnkelvoudigInformatieObject
      * Creates both EIORecord and initial EIOVersion in a transaction
@@ -114,9 +127,36 @@ class EnkelvoudigInformatieObjectService {
             informatieobjecttype = "EnkelvoudigInformatieObject",
             trefwoorden = version.trefwoorden,
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
-            locked = version.locked,
+            locked = record.lockToken != null,
             versie = version.versie,
             beginRegistratie = version.beginRegistratie,
         )
+    }
+
+    fun lock(id: UUID): LockResult? {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction null
+            if (record.lockToken != null) {
+                return@transaction LockResult.AlreadyLocked
+            }
+            val token = UUID.randomUUID().toString()
+            record.lockToken = token
+            LockResult.Success(LockPayload(lock = token))
+        }
+    }
+
+    fun unlock(id: UUID, lock: String): UnlockResult? {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction null
+            val current = record.lockToken
+            if (current == null) {
+                return@transaction UnlockResult.NotLocked
+            }
+            if (current != lock) {
+                return@transaction UnlockResult.InvalidLock
+            }
+            record.lockToken = null
+            UnlockResult.Success
+        }
     }
 }

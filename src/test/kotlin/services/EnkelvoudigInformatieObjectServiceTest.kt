@@ -4,6 +4,7 @@ package com.baseflow.services
 
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
+import com.baseflow.EIORecordEntity
 import com.baseflow.api.models.CreateEIORequest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -14,6 +15,19 @@ import java.util.UUID
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
 
+    private fun generateTestDocument(
+        taal: String = "dut",
+        bestandsnaam: String = "doc.pdf",
+        titel: String = "test",
+        auteur: String = "auteur"
+    ): CreateEIORequest {
+        return CreateEIORequest(
+            taal = taal,
+            bestandsnaam = bestandsnaam,
+            titel = titel,
+            auteur = auteur
+        )
+    }
     @BeforeTest
     fun setup() {
         Database.connect(
@@ -37,21 +51,21 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `create should persist and return correct data`() {
-        val req = CreateEIORequest(taal = "dut", bestandsnaam = "doc.pdf")
+        val req = generateTestDocument()
         val resp = service.create(req)
         assertEquals("dut", resp.taal)
         assertEquals("doc.pdf", resp.bestandsnaam)
         assertEquals(1, resp.versie)
-        assertTrue(resp.id.isNotEmpty())
+        assertTrue(resp.identificatie.isNotEmpty())
     }
 
     @Test
     fun `getById should return created object`() {
-        val req = CreateEIORequest(taal = "dut", bestandsnaam = "doc.pdf")
+        val req = generateTestDocument()
         val created = service.create(req)
-        val found = service.getById(UUID.fromString(created.id))
+        val found = service.getById(UUID.fromString(created.identificatie))
         assertNotNull(found)
-        assertEquals(created.id, found!!.id)
+        assertEquals(created.identificatie, found!!.identificatie)
         assertEquals("dut", found.taal)
         assertEquals("doc.pdf", found.bestandsnaam)
         assertEquals(1, found.versie)
@@ -59,12 +73,12 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `update should increment version and persist new data`() {
-        val req = CreateEIORequest(taal = "dut", bestandsnaam = "doc.pdf")
+        val req = generateTestDocument()
         val created = service.create(req)
-        val updateReq = CreateEIORequest(taal = "eng", bestandsnaam = "doc2.pdf")
-        val updated = service.update(UUID.fromString(created.id), updateReq)
+        val updateReq = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf")
+        val updated = service.update(UUID.fromString(created.identificatie), updateReq)
         assertNotNull(updated)
-        assertEquals(created.id, updated!!.id)
+        assertEquals(created.identificatie, updated!!.identificatie)
         assertEquals("eng", updated.taal)
         assertEquals("doc2.pdf", updated.bestandsnaam)
         assertEquals(2, updated.versie)
@@ -74,5 +88,78 @@ class EnkelvoudigInformatieObjectServiceTest {
     fun `getById should return null for unknown id`() {
         val found = service.getById(UUID.randomUUID())
         assertNull(found)
+    }
+
+    @Test
+    fun `lock should set lock token and persist in DB`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.identificatie)
+
+        val result = service.lock(id)
+        assertNotNull(result)
+        assertTrue(result is EnkelvoudigInformatieObjectService.LockResult.Success)
+        val token = (result as EnkelvoudigInformatieObjectService.LockResult.Success).payload.lock
+        assertTrue(token.isNotBlank())
+
+        transaction {
+            val rec = EIORecordEntity.findById(id)
+            assertNotNull(rec)
+            assertEquals(token, rec!!.lockToken)
+        }
+    }
+
+    @Test
+    fun `lock should return AlreadyLocked when already locked`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.identificatie)
+
+        val first = service.lock(id)
+        assertTrue(first is EnkelvoudigInformatieObjectService.LockResult.Success)
+
+        val second = service.lock(id)
+        assertTrue(second is EnkelvoudigInformatieObjectService.LockResult.AlreadyLocked)
+    }
+
+    @Test
+    fun `unlock with correct token should clear lock`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.identificatie)
+        val lockRes = service.lock(id) as EnkelvoudigInformatieObjectService.LockResult.Success
+        val token = lockRes.payload.lock
+
+        val unlockRes = service.unlock(id, token)
+        assertTrue(unlockRes is EnkelvoudigInformatieObjectService.UnlockResult.Success)
+
+        transaction {
+            val rec = EIORecordEntity.findById(id)
+            assertNotNull(rec)
+            assertNull(rec!!.lockToken)
+        }
+    }
+
+    @Test
+    fun `unlock when not locked should return NotLocked`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.identificatie)
+
+        val res = service.unlock(id, "some-token")
+        assertTrue(res is EnkelvoudigInformatieObjectService.UnlockResult.NotLocked)
+    }
+
+    @Test
+    fun `unlock with invalid token should return InvalidLock and keep lock`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.identificatie)
+        val lockRes = service.lock(id) as EnkelvoudigInformatieObjectService.LockResult.Success
+        val token = lockRes.payload.lock
+
+        val res = service.unlock(id, token + "-wrong")
+        assertTrue(res is EnkelvoudigInformatieObjectService.UnlockResult.InvalidLock)
+
+        transaction {
+            val rec = EIORecordEntity.findById(id)
+            assertNotNull(rec)
+            assertEquals(token, rec!!.lockToken)
+        }
     }
 }
