@@ -121,6 +121,99 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     }
 
     @Test
+    fun `HEAD enkelvoudiginformatieobjecten returns 200 for existing resource`() = testApplication {
+        application { testModule() }
+
+        // create
+        val created = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument()))
+        }
+        assertEquals(HttpStatusCode.OK, created.status)
+        val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
+
+        // head
+        val resp = client.head("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        assertEquals(HttpStatusCode.OK, resp.status)
+        assertEquals(DOCUMENTEN_API_VERSION, resp.headers["API-version"])
+        // TODO: Add ETag header assertions when ETag generation is implemented
+    }
+
+    @Test
+    fun `HEAD enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
+        application { testModule() }
+
+        val resp = client.head("$API_BASE/enkelvoudiginformatieobjecten/${java.util.UUID.randomUUID()}")
+        assertEquals(HttpStatusCode.NotFound, resp.status)
+    }
+
+    @Test
+    fun `HEAD enkelvoudiginformatieobjecten returns 400 for invalid UUID`() = testApplication {
+        application { testModule() }
+
+        val resp = client.head("$API_BASE/enkelvoudiginformatieobjecten/not-a-uuid")
+        assertEquals(HttpStatusCode.BadRequest, resp.status)
+    }
+
+    @Test
+    fun `DELETE enkelvoudiginformatieobjecten returns 204 and removes resource`() = testApplication {
+        application { testModule() }
+
+        // create
+        val created = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument()))
+        }
+        assertEquals(HttpStatusCode.OK, created.status)
+        val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
+
+        // delete
+        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        assertEquals(HttpStatusCode.NoContent, del.status)
+
+        // verify gone
+        val getResp = client.get("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        assertEquals(HttpStatusCode.NotFound, getResp.status)
+    }
+
+    @Test
+    fun `DELETE enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
+        application { testModule() }
+
+        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${java.util.UUID.randomUUID()}")
+        assertEquals(HttpStatusCode.NotFound, del.status)
+    }
+
+    @Test
+    fun `DELETE enkelvoudiginformatieobjecten returns 400 for invalid UUID`() = testApplication {
+        application { testModule() }
+
+        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/not-a-uuid")
+        assertEquals(HttpStatusCode.BadRequest, del.status)
+    }
+
+    @Test
+    fun `DELETE enkelvoudiginformatieobjecten returns 409 for locked resource`() = testApplication {
+        application { testModule() }
+
+        // create
+        val created = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument()))
+        }
+        val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
+
+        // lock
+        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${body.id}/lock")
+        assertEquals(HttpStatusCode.OK, lockResp.status)
+
+        // attempt delete
+        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        assertEquals(HttpStatusCode.Conflict, del.status)
+        // TODO: Switch to Problem+JSON response body when error contract is implemented
+    }
+
+    @Test
     fun `test GET enkelvoudiginformatieobjecten with valid UUID returns JSON UTF-8`() = testApplication {
         application { testModule() }
 

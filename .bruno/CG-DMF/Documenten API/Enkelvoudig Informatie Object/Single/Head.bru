@@ -1,10 +1,10 @@
 meta {
-  name: Delete
+  name: Head
   type: http
-  seq: 5
+  seq: 2
 }
 
-delete {
+head {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{firstId}}
   body: none
   auth: inherit

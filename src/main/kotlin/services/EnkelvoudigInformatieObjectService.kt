@@ -12,6 +12,7 @@ import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
+import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import kotlinx.datetime.TimeZone
@@ -71,6 +72,12 @@ class EnkelvoudigInformatieObjectService {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
             mapToResponse(record, version)
+        }
+    }
+
+    fun exists(id: UUID): Boolean {
+        return transaction {
+            EIORecordEntity.findById(id) != null
         }
     }
 
@@ -251,6 +258,17 @@ class EnkelvoudigInformatieObjectService {
             }
             record.lockToken = null
             UnlockResult.Success
+        }
+    }
+
+    fun delete(id: UUID): DeleteResult {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
+            if (record.lockToken != null) {
+                return@transaction DeleteResult.Locked
+            }
+            record.delete()
+            DeleteResult.Success
         }
     }
 }

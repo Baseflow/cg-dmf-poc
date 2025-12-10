@@ -6,6 +6,7 @@ import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.EIORecordEntity
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
+import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -150,5 +151,39 @@ class EnkelvoudigInformatieObjectServiceTest {
             assertNotNull(rec)
             assertEquals(token, rec!!.lockToken)
         }
+    }
+
+    @Test
+    fun `exists should return true for existing id and false for random id`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.id)
+        assertTrue(service.exists(id))
+        assertFalse(service.exists(UUID.randomUUID()))
+    }
+
+    @Test
+    fun `delete should return NotFound for unknown id`() {
+        val res = service.delete(UUID.randomUUID())
+        assertTrue(res is DeleteResult.NotFound)
+    }
+
+    @Test
+    fun `delete should return Locked when record has lockToken`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.id)
+        // lock it
+        service.lock(id)
+        val res = service.delete(id)
+        assertTrue(res is DeleteResult.Locked)
+    }
+
+    @Test
+    fun `delete should return Success when record exists and is not locked`() {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.id)
+        val res = service.delete(id)
+        assertTrue(res is DeleteResult.Success)
+        // and now it should not exist
+        assertFalse(service.exists(id))
     }
 }

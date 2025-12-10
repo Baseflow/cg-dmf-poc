@@ -65,6 +65,25 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
     // Single document operations
     route("/{uuid}") {
+        // HEAD - existence check
+        head {
+            val uuidString = call.parameters["uuid"]
+            if (uuidString == null) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "UUID parameter is required"))
+                return@head
+            }
+
+            try {
+                val uuid = UUID.fromString(uuidString)
+                if (service.exists(uuid)) {
+                    call.respond(HttpStatusCode.OK)
+                } else {
+                    call.respond(HttpStatusCode.NotFound)
+                }
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid UUID format"))
+            }
+        }
         // Get single document
         get {
             val uuidString = call.parameters["uuid"]
@@ -101,8 +120,28 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
         // Delete document
         delete {
-            val uuid = call.parameters["uuid"]
-            call.respond(mapOf("message" to "Delete EnkelvoudigInformatieObject $uuid - to be implemented"))
+            val uuidString = call.parameters["uuid"]
+            if (uuidString == null) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "UUID parameter is required"))
+                return@delete
+            }
+
+            try {
+                val uuid = UUID.fromString(uuidString)
+                when (val result = service.delete(uuid)) {
+                    is DeleteResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is DeleteResult.NotFound -> call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "EnkelvoudigInformatieObject not found")
+                    )
+                    is DeleteResult.Locked -> call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "EnkelvoudigInformatieObject is locked")
+                    )
+                }
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid UUID format"))
+            }
         }
 
         // Download document content
