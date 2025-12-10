@@ -6,6 +6,7 @@ import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.EIORecordEntity
 import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -17,19 +18,6 @@ import java.util.UUID
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
 
-    private fun generateTestDocument(
-        taal: String = "dut",
-        bestandsnaam: String = "doc.pdf",
-        titel: String = "test",
-        auteur: String = "auteur"
-    ): CreateEIORequest {
-        return CreateEIORequest(
-            taal = taal,
-            bestandsnaam = bestandsnaam,
-            titel = titel,
-            auteur = auteur
-        )
-    }
     @BeforeTest
     fun setup() {
         Database.connect(
@@ -53,7 +41,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `create should persist and return correct data`() {
-        val req = generateTestDocument()
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
         val resp = service.create(req)
         assertEquals("dut", resp.taal)
         assertEquals("doc.pdf", resp.bestandsnaam)
@@ -63,7 +51,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `getById should return created object`() {
-        val req = generateTestDocument()
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
         val created = service.create(req)
         val found = service.getById(UUID.fromString(created.identificatie))
         assertNotNull(found)

@@ -9,6 +9,7 @@ import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.server.routing.*
@@ -55,25 +56,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
     }
 
-    private fun generateTestDocument(
-        taal: String = "dut",
-        bestandsnaam: String = "test.pdf",
-        titel: String = "test",
-        auteur: String = "auteur"
-    ): CreateEIORequest {
-        return CreateEIORequest(
-            taal = taal,
-            bestandsnaam = bestandsnaam,
-            titel = titel,
-            auteur = auteur
-        )
-    }
-
     @Test
     fun `test POST enkelvoudiginformatieobjecten with taal and bestandsnaam`() = testApplication {
         application { testModule() }
 
-        val request = generateTestDocument();
+        val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf");
         val response = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
@@ -110,7 +97,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `test GET enkelvoudiginformatieobjecten with valid UUID after creation`() = testApplication {
         application { testModule() }
 
-        val request = generateTestDocument()
+        val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
         val postResponse = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
@@ -132,7 +119,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `test GET enkelvoudiginformatieobjecten with valid UUID returns JSON UTF-8`() = testApplication {
         application { testModule() }
 
-        val request = generateTestDocument()
+        val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
         val postResponse = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
