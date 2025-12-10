@@ -44,7 +44,13 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
         install(ContentNegotiation) {
-            json()
+            json(
+                Json {
+                    encodeDefaults = false
+                    explicitNulls = false
+                    ignoreUnknownKeys = true
+                }
+            )
         }
         routing {
             route(API_BASE) {

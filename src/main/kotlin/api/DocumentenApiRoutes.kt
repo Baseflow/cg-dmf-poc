@@ -12,6 +12,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 
 /**
  * Documenten API Routing Module
@@ -34,7 +35,13 @@ import io.ktor.server.routing.*
 fun Application.documentenApiModule() {
     // Configure JSON serialization
     install(ContentNegotiation) {
-        json()
+        json(
+            Json {
+                encodeDefaults = false
+                explicitNulls = false
+                ignoreUnknownKeys = true
+            }
+        )
     }
 
     routing {
