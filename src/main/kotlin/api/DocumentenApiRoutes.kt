@@ -3,6 +3,8 @@
 
 package com.baseflow.api
 
+import com.baseflow.api.middleware.ApiConditionalHeadersProvider
+import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.routes.bestandsDelenRoutes
 import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
 import com.baseflow.api.routes.objectInformatieObjectenRoutes
@@ -10,6 +12,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
@@ -49,6 +52,9 @@ fun Application.documentenApiModule() {
             // API root - provides version info and available endpoints
             route(DOCUMENTEN_API_BASE_PATH) {
                 install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
+                install(ConditionalHeaders) {
+                    version(ApiConditionalHeadersProvider)
+                }
 
                 // Health check endpoint
                 get("/") {

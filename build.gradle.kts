@@ -14,9 +14,11 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation("com.h2database:h2:2.2.224")
+    testImplementation("io.mockk:mockk:1.13.13")
     implementation("io.ktor:ktor-server-core-jvm:3.3.3")
     implementation("io.ktor:ktor-server-netty-jvm:3.3.3")
     implementation("io.ktor:ktor-server-content-negotiation:3.3.3")
+    implementation("io.ktor:ktor-server-conditional-headers:3.3.3")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.3")
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.3.3")
     testImplementation("io.ktor:ktor-client-content-negotiation:3.3.3")

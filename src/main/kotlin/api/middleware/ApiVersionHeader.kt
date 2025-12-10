@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
 
-package com.baseflow.api
+package com.baseflow.api.middleware
 
+import com.baseflow.api.DOCUMENTEN_API_VERSION
 import io.ktor.server.application.*
 
 /**

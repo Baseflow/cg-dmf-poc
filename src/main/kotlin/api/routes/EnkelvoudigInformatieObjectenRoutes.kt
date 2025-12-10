@@ -7,7 +7,8 @@ import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.*
-import com.baseflow.api.ApiVersionHeader
+import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.etagHeaderForJsonText
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.models.UnlockEIORequest
 import io.ktor.http.HttpStatusCode
