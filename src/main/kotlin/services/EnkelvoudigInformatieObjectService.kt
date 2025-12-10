@@ -8,14 +8,18 @@ import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
+import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Integriteit
+import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Ondertekening
+import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.ArrayColumnType
@@ -58,6 +62,22 @@ class EnkelvoudigInformatieObjectService {
                 auteur = request.auteur
                 creatieDatum = request.creatiedatum
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                formaat = request.formaat.orEmpty()
+                bestandsomvang = request.bestandsomvang ?: 0
+                link = request.link.orEmpty()
+                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
+                integriteitWaarde = request.integriteit?.waarde.orEmpty()
+                integriteitsDatum = request.integriteit?.datum?.atTime(0,0,0,0)
+                verschijningsVorm = request.verschijningsvorm.orEmpty()
+                trefwoorden = request.trefwoorden ?: emptyList()
+                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding.orEmpty()
+                status = request.status?.toString().orEmpty()
+                beschrijving = request.beschrijving.orEmpty()
+                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
+                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
+                ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0)
+                identificatie = request.identificatie.orEmpty()
+
             }
             mapToResponse(record, version)
         }
@@ -150,6 +170,25 @@ class EnkelvoudigInformatieObjectService {
         record: EIORecordEntity,
         version: EIOVersionEntity
     ): EnkelvoudigInformatieObjectResponse {
+
+        val integriteit = when {
+            version.integriteitAlgoritme.isNotEmpty() && version.integriteitsDatum != null -> Integriteit(
+                algoritme = IntegriteitAlgoritme.valueOf(version.integriteitAlgoritme),
+                waarde = version.integriteitWaarde,
+                datum = version.integriteitsDatum!!.date
+            )
+            else -> null
+        }
+
+        val ondertekening = when {
+            version.ondertekening_soort.isNotEmpty() && version.ondertekenings_datum != null -> Ondertekening(
+                soort = OndertekeningSoort.valueOf(version.ondertekening_soort),
+                datum = version.ondertekenings_datum!!.date
+            )
+            else -> null
+        }
+
+
         return EnkelvoudigInformatieObjectResponse(
             id = record.id.value.toString(),
             identificatie = version.identificatie,
@@ -158,7 +197,7 @@ class EnkelvoudigInformatieObjectService {
             titel = version.titel,
             vertrouwelijkheidaanduiding = version.vertrouwlijkheidsAanduiding,
             auteur = version.auteur,
-            status = version.status,
+            status = EnkelvoudigInformatieObjectStatus.valueOf(version.status),
             formaat = version.formaat.orEmpty(),
             taal = version.taal,
             bestandsnaam = version.bestandsnaam,
@@ -168,15 +207,8 @@ class EnkelvoudigInformatieObjectService {
             beschrijving = version.beschrijving,
             indicatieGebruiksrecht = version.indicatieGebruiksrecht,
             verschijningsvorm = version.verschijningsVorm,
-            ondertekening = Ondertekening(
-                soort = version.ondertekening_soort,
-                datum = version.ondertekenings_datum?.toString().orEmpty()
-            ),
-            integriteit = Integriteit(
-                algoritme = version.integriteitAlgoritme,
-                waarde = version.integriteitWaarde,
-                datum = version.integriteitsDatum?.toString().orEmpty()
-            ),
+            ondertekening = ondertekening,
+            integriteit = integriteit,
             informatieobjecttype = "EnkelvoudigInformatieObject",
             trefwoorden = version.trefwoorden,
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
@@ -249,10 +281,7 @@ class EnkelvoudigInformatieObjectService {
     fun unlock(id: UUID, lock: String): UnlockResult? {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val current = record.lockToken
-            if (current == null) {
-                return@transaction UnlockResult.NotLocked
-            }
+            val current = record.lockToken ?: return@transaction UnlockResult.NotLocked
             if (current != lock) {
                 return@transaction UnlockResult.InvalidLock
             }

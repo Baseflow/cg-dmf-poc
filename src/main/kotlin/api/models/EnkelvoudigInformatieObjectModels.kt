@@ -3,6 +3,7 @@
 package com.baseflow.api.models
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -16,7 +17,7 @@ data class CreateEIORequest(
     val titel: String,
     val vertrouwelijkheidaanduiding: String? = null,
     val auteur: String,
-    val status: String? = null,
+    val status: EnkelvoudigInformatieObjectStatus? = EnkelvoudigInformatieObjectStatus.CONCEPT,
     val formaat: String? = null,
     val taal: String,
     val bestandsnaam: String? = null,
@@ -32,20 +33,52 @@ data class CreateEIORequest(
     val trefwoorden: List<String>? = null,
     val inhoudIsVervallen: Boolean? = null
 )
+{
+    init {
+        // Required fields
+        require(bronorganisatie.isNotBlank()) { "Bronorganisatie mag niet leeg zijn" }
+        require(titel.isNotBlank()) { "Titel mag niet leeg zijn" }
+        require(auteur.isNotBlank()) { "Auteur mag niet leeg zijn" }
+        require(taal.isNotBlank()) { "Taal mag niet leeg zijn" }
+
+        // Length checks
+        require(identificatie.isNullOrBlank() || identificatie.length <= 40) { "Identificatie mag maximaal 40 karakters lang zijn" }
+        require(bestandsnaam.isNullOrBlank() || bestandsnaam.length <= 255) { "Bestandsnaam mag maximaal 255 karakters lang zijn" }
+        require(titel.length <= 200) { "Titel mag maximaal 200 karakters lang zijn" }
+        require(auteur.length <= 200) { "Auteur mag maximaal 200 karakters lang zijn" }
+        require(beschrijving.isNullOrBlank() || beschrijving.length <= 1000) { "Beschrijving mag maximaal 1000 karakters lang zijn" }
+        require(formaat.isNullOrEmpty() || formaat.length <= 255) { "Formaat mag maximaal 255 karakters lang zijn" }
+        require(link.isNullOrEmpty() || link.length <= 200) { "Link mag maximaal 200 karakters lang zijn" }
+        require(trefwoorden.isNullOrEmpty() || trefwoorden.all { it.length <= 100 }) { "Elk trefwoord mag maximaal 100 karakters lang zijn" }
+
+        // format checks
+        require(taal.matches(Regex("^[a-z]{3}$"))) { "Taal moet conform ISO 639-2/B code zijn" }
+
+        // complex requirements
+        require((status != EnkelvoudigInformatieObjectStatus.IN_BEWERKING &&
+                status != EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING) ||
+                ondertekening == null) { "Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'" }
+    }
+}
 
 
 @Serializable
 data class Ondertekening(
-    val soort: String,
-    val datum: String
+    val soort: OndertekeningSoort,
+    val datum: LocalDate
 )
 
 @Serializable
 data class Integriteit(
-    val algoritme: String,
+    val algoritme: IntegriteitAlgoritme,
     val waarde: String,
-    val datum: String
+    val datum: LocalDate
 )
+{
+    init {
+        require(waarde.isNotBlank()) { "Waarde mag niet leeg zijn" }
+    }
+}
 
 @Serializable
 data class EnkelvoudigInformatieObjectResponse(
@@ -57,7 +90,7 @@ data class EnkelvoudigInformatieObjectResponse(
     val versie: Int,
     val vertrouwelijkheidaanduiding: String,
     val auteur: String,
-    val status: String,
+    val status: EnkelvoudigInformatieObjectStatus,
     val formaat: String,
     val taal: String,
     val bestandsnaam: String,
@@ -68,13 +101,80 @@ data class EnkelvoudigInformatieObjectResponse(
     val beginRegistratie: String,
     val indicatieGebruiksrecht: Boolean,
     val verschijningsvorm: String,
-    val ondertekening: Ondertekening,
-    val integriteit: Integriteit,
+    val ondertekening: Ondertekening?,
+    val integriteit: Integriteit?,
     val informatieobjecttype: String,
     val trefwoorden: List<String>,
     val inhoudIsVervallen: Boolean,
     val locked: Boolean
 )
+
+@Serializable
+enum class EnkelvoudigInformatieObjectStatus {
+    @SerialName("concept")
+    CONCEPT,
+
+    @SerialName("in_bewerking")
+    IN_BEWERKING,
+
+    @SerialName("definitief")
+    DEFINITIEF,
+
+    @SerialName("ter_vaststelling")
+    TER_VASTSTELLING,
+
+    @SerialName("vastgesteld")
+    VASTGESTELD,
+
+    @SerialName("gearchiveerd")
+    GEARCHIVEERD
+}
+
+@Serializable
+enum class IntegriteitAlgoritme {
+    @SerialName("crc_16")
+    CRC_16,
+
+    @SerialName("crc_32")
+    CRC_32,
+
+    @SerialName("crc_64")
+    CRC_64,
+
+    @SerialName("fletcher_4")
+    FLETCHER_4,
+
+    @SerialName("fletcher_8")
+    FLETCHER_8,
+
+    @SerialName("fletcher_16")
+    FLETCHER_16,
+
+    @SerialName("fletcher_32")
+    FLETCHER_32,
+
+    @SerialName("hmac")
+    HMAC,
+
+    @SerialName("md5")
+    MD5,
+
+    @SerialName("sha_1")
+    SHA_1,
+
+    @SerialName("sha_256")
+    SHA_256
+}
+
+@Serializable
+enum class OndertekeningSoort {
+    @SerialName("analoog")
+    ANALOOG,
+    @SerialName("digitaal")
+    DIGITAAL,
+    @SerialName("pki")
+    PKI
+}
 
 @Serializable
 data class UnlockEIORequest(

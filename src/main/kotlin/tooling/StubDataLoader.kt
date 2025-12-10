@@ -107,12 +107,13 @@ private fun loadStubData() {
         EIOVersionEntity.new {
             recordId = record  // Pass the entity, not UUID
             versie = 1
-            taal = "nl"
+            taal = "dut"
             bestandsnaam = "test.pdf"
             formaat = "application/pdf"
             bestandsomvang = 123456789L
             link = "https://example.com/test.pdf"
-            integriteitAlgoritme = "sha256"
+            integriteitAlgoritme = "sha_256"
+            integriteitWaarde = "sha256:abcdef1234567890"
             integriteitsDatum = now
             beginRegistratie = now
             verschijningsVorm = "Inlevering"
@@ -122,7 +123,7 @@ private fun loadStubData() {
             titel = "Test document"
             vertrouwlijkheidsAanduiding = "Niet vertrouwelijk"
             auteur = "Test auteur"
-            status = "in_bewerking"
+            status = "IN_BEWERKING"
             beschrijving = "Test beschrijving"
             indicatieGebruiksrecht = false
             identificatie = "test-document"
