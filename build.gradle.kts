@@ -118,3 +118,10 @@ tasks.register<JavaExec>("generateMigration") {
     }
 }
 
+tasks.register<JavaExec>("addStubData") {
+    group = "database"
+    description = "Load stub/seed data into the database for development and testing"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.baseflow.tooling.StubDataLoaderKt")
+}
+
