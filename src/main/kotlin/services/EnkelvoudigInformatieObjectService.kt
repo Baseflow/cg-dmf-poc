@@ -14,6 +14,8 @@ import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.ArrayColumnType
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.JoinType
@@ -26,6 +28,8 @@ import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Service for handling EnkelvoudigInformatieObject operations
@@ -36,6 +40,7 @@ class EnkelvoudigInformatieObjectService {
      * Create a new EnkelvoudigInformatieObject
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
+    @OptIn(ExperimentalTime::class)
     fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
         return transaction {
             val record = EIORecordEntity.new {
@@ -43,10 +48,14 @@ class EnkelvoudigInformatieObjectService {
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1
+                bronOrganisatie = request.bronorganisatie
+//                informatieobject type = request.informatieobjecttype
                 taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
                 auteur = request.auteur
+                creatieDatum = request.creatiedatum
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
             }
             mapToResponse(record, version)
         }
@@ -108,6 +117,7 @@ class EnkelvoudigInformatieObjectService {
      * Update an EnkelvoudigInformatieObject (creates new version)
      * Increments version and creates new EIOVersion in a transaction
      */
+    @OptIn(ExperimentalTime::class)
     fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
@@ -120,6 +130,8 @@ class EnkelvoudigInformatieObjectService {
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
                 auteur = request.auteur
+                creatieDatum = request.creatiedatum
+                beginRegistratie = latestVersion?.beginRegistratie ?: Clock.System.now().toLocalDateTime(TimeZone.UTC)
             }
             mapToResponse(record, version)
         }
@@ -130,6 +142,7 @@ class EnkelvoudigInformatieObjectService {
         version: EIOVersionEntity
     ): EnkelvoudigInformatieObjectResponse {
         return EnkelvoudigInformatieObjectResponse(
+            id = record.id.value.toString(),
             identificatie = version.identificatie,
             bronorganisatie = version.bronOrganisatie,
             creatiedatum = version.creatieDatum,
@@ -161,7 +174,6 @@ class EnkelvoudigInformatieObjectService {
             locked = record.lockToken != null,
             versie = version.versie,
             beginRegistratie = version.beginRegistratie,
-            id = record.id.value.toString()
         )
     }
 

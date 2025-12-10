@@ -11,10 +11,27 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class CreateEIORequest(
-    val taal: String,
-    val bestandsnaam: String,
+    val identificatie: String? = null,
+    val bronorganisatie: String,
+    val creatiedatum: LocalDate,
     val titel: String,
+    val vertrouwelijkheidaanduiding: String? = null,
     val auteur: String,
+    val status: String? = null,
+    val formaat: String? = null,
+    val taal: String,
+    val bestandsnaam: String? = null,
+    val inhoud: String? = null,
+    val bestandsomvang: Long? = null,
+    val link: String? = null,
+    val beschrijving: String? = null,
+    val indicatieGebruiksrecht: Boolean? = null,
+    val verschijningsvorm: String? = null,
+    val ondertekening: Ondertekening? = null,
+    val integriteit: Integriteit? = null,
+//    val informatieobjecttype: String,
+    val trefwoorden: List<String>? = null,
+    val inhoudIsVervallen: Boolean? = null
 )
 
 
@@ -46,7 +63,7 @@ data class EnkelvoudigInformatieObjectResponse(
     val taal: String,
     val bestandsnaam: String,
     val inhoud: String,
-    val bestandsomvang: Long?,
+    val bestandsomvang: Long? = null,
     val link: String,
     val beschrijving: String,
     val beginRegistratie: LocalDateTime,

@@ -19,8 +19,8 @@ object TestDataFactory {
         titel: String = "test",
         auteur: String = "auteur"
     ): CreateEIORequest = CreateEIORequest(
-//        creatiedatum = LocalDate(2025, 1, 1),
-//        bronorganisatie = "012345678",
+        creatiedatum = LocalDate(2025, 1, 1),
+        bronorganisatie = "012345678",
         taal = taal,
         bestandsnaam = bestandsnaam,
         titel = titel,
