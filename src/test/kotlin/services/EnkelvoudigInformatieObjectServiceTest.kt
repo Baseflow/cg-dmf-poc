@@ -45,16 +45,16 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals("dut", resp.taal)
         assertEquals("doc.pdf", resp.bestandsnaam)
         assertEquals(1, resp.versie)
-        assertTrue(resp.identificatie.isNotEmpty())
+        assertTrue(resp.id.isNotEmpty())
     }
 
     @Test
     fun `getById should return created object`() {
         val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
         val created = service.create(req)
-        val found = service.getById(UUID.fromString(created.identificatie))
+        val found = service.getById(UUID.fromString(created.id))
         assertNotNull(found)
-        assertEquals(created.identificatie, found!!.identificatie)
+        assertEquals(created.id, found!!.id)
         assertEquals("dut", found.taal)
         assertEquals("doc.pdf", found.bestandsnaam)
         assertEquals(1, found.versie)
@@ -65,9 +65,9 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument()
         val created = service.create(req)
         val updateReq = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf")
-        val updated = service.update(UUID.fromString(created.identificatie), updateReq)
+        val updated = service.update(UUID.fromString(created.id), updateReq)
         assertNotNull(updated)
-        assertEquals(created.identificatie, updated!!.identificatie)
+        assertEquals(created.id, updated!!.id)
         assertEquals("eng", updated.taal)
         assertEquals("doc2.pdf", updated.bestandsnaam)
         assertEquals(2, updated.versie)
@@ -82,7 +82,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `lock should set lock token and persist in DB`() {
         val created = service.create(generateTestDocument())
-        val id = UUID.fromString(created.identificatie)
+        val id = UUID.fromString(created.id)
 
         val result = service.lock(id)
         assertNotNull(result)
@@ -100,7 +100,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `lock should return AlreadyLocked when already locked`() {
         val created = service.create(generateTestDocument())
-        val id = UUID.fromString(created.identificatie)
+        val id = UUID.fromString(created.id)
 
         val first = service.lock(id)
         assertTrue(first is LockResult.Success)
@@ -112,7 +112,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `unlock with correct token should clear lock`() {
         val created = service.create(generateTestDocument())
-        val id = UUID.fromString(created.identificatie)
+        val id = UUID.fromString(created.id)
         val lockRes = service.lock(id) as LockResult.Success
         val token = lockRes.payload.lock
 
@@ -129,7 +129,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `unlock when not locked should return NotLocked`() {
         val created = service.create(generateTestDocument())
-        val id = UUID.fromString(created.identificatie)
+        val id = UUID.fromString(created.id)
 
         val res = service.unlock(id, "some-token")
         assertTrue(res is UnlockResult.NotLocked)
@@ -138,7 +138,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `unlock with invalid token should return InvalidLock and keep lock`() {
         val created = service.create(generateTestDocument())
-        val id = UUID.fromString(created.identificatie)
+        val id = UUID.fromString(created.id)
         val lockRes = service.lock(id) as LockResult.Success
         val token = lockRes.payload.lock
 

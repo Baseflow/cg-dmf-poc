@@ -77,7 +77,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals("dut", responseBody.taal)
         assertEquals("test.pdf", responseBody.bestandsnaam)
         assertEquals(1, responseBody.versie)
-        assert(responseBody.identificatie.isNotEmpty()) // UUID should be generated
+        assert(responseBody.id.isNotEmpty()) // UUID should be generated
     }
 
     @Test
@@ -109,12 +109,12 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
         assertEquals(HttpStatusCode.OK, postResponse.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
-        val uuid = created.identificatie
+        val uuid = created.id
 
         val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResponse.bodyAsText())
-        assertEquals(uuid, fetched.identificatie)
+        assertEquals(uuid, fetched.id)
         assertEquals("dut", fetched.taal)
         assertEquals("test.pdf", fetched.bestandsnaam)
         assertEquals(1, fetched.versie)
@@ -131,14 +131,14 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
         assertEquals(HttpStatusCode.OK, postResponse.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
-        val uuid = created.identificatie
+        val uuid = created.id
 
         val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         val contentType = getResponse.headers[HttpHeaders.ContentType]
         assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), contentType)
         val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResponse.bodyAsText())
-        assertEquals(uuid, fetched.identificatie)
+        assertEquals(uuid, fetched.id)
         assertEquals("dut", fetched.taal)
         assertEquals("test.pdf", fetched.bestandsnaam)
         assertEquals(1, fetched.versie)
@@ -158,7 +158,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
 
         // Lock it
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/lock")
+        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
         assertEquals(HttpStatusCode.OK, lockResp.status)
         val lockContentType = lockResp.headers[HttpHeaders.ContentType]
         assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), lockContentType)
@@ -166,7 +166,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assert(payload.lock.isNotBlank())
 
         // Lock again -> Conflict
-        val secondLock = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/lock")
+        val secondLock = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
         assertEquals(HttpStatusCode.Conflict, secondLock.status)
     }
 
@@ -183,12 +183,12 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
 
         // Lock to obtain token
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/lock")
+        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
         val payload = Json.decodeFromString<LockPayload>(lockResp.bodyAsText())
 
         // Unlock with correct token
         val unlockReq = UnlockEIORequest(lock = payload.lock)
-        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/unlock") {
+        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
@@ -197,7 +197,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals(HttpStatusCode.NoContent, unlockResp.status)
 
         // Unlock again -> NotLocked (409)
-        val secondUnlock = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/unlock") {
+        val secondUnlock = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
@@ -215,12 +215,12 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             setBody(Json.encodeToString(createReq))
         }
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/lock")
+        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
         val payload = Json.decodeFromString<LockPayload>(lockResp.bodyAsText())
 
         // Try unlock with wrong token
         val unlockReq = UnlockEIORequest(lock = payload.lock + "-wrong")
-        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.identificatie}/unlock") {
+        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
