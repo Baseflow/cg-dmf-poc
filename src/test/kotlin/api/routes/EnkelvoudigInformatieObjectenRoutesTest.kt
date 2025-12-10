@@ -22,7 +22,9 @@ import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -94,6 +96,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val response = client.get("$API_BASE/enkelvoudiginformatieobjecten/invalid-uuid")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+        val ct = response.headers[HttpHeaders.ContentType]
+        assertEquals("application/problem+json; charset=utf-8", ct)
+        val problem = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals(400, problem["status"]?.jsonPrimitive?.content?.toInt())
+        assertEquals("Bad Request", problem["title"]?.jsonPrimitive?.content.toString())
     }
 
     @Test
@@ -218,7 +225,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         // attempt delete
         val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
         assertEquals(HttpStatusCode.Conflict, del.status)
-        // TODO: Switch to Problem+JSON response body when error contract is implemented
+        val ct = del.headers[HttpHeaders.ContentType]
+        assertEquals("application/problem+json; charset=utf-8", ct)
+        val problem = Json.parseToJsonElement(del.bodyAsText()).jsonObject
+        assertEquals(409, problem["status"]?.jsonPrimitive?.content?.toInt())
+        assertEquals("Conflict", problem["title"]?.jsonPrimitive?.content)
     }
 
     @Test
