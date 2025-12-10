@@ -6,7 +6,6 @@ import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.testutils.TestDataFactory.generateTestDocument

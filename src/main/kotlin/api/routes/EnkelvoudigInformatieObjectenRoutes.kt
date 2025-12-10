@@ -9,6 +9,7 @@ import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.*
 import com.baseflow.api.ApiVersionHeader
 import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.models.UnlockEIORequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -144,7 +145,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
             try {
                 val uuid = UUID.fromString(uuidString)
-                val body = call.receive<com.baseflow.api.models.UnlockEIORequest>()
+                val body = call.receive<UnlockEIORequest>()
                 val result = service.unlock(uuid, body.lock)
                 when (result) {
                     null -> call.respond(HttpStatusCode.NotFound, mapOf("error" to "EnkelvoudigInformatieObject not found"))

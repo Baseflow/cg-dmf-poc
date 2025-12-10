@@ -5,7 +5,6 @@ package com.baseflow.services
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.EIORecordEntity
-import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
@@ -88,7 +87,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val result = service.lock(id)
         assertNotNull(result)
         assertTrue(result is LockResult.Success)
-        val token = (result as LockResult.Success).payload.lock
+        val token = result.payload.lock
         assertTrue(token.isNotBlank())
 
         transaction {
