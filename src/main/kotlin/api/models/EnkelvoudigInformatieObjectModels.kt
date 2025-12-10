@@ -3,7 +3,6 @@
 package com.baseflow.api.models
 
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 
 /**
@@ -66,7 +65,7 @@ data class EnkelvoudigInformatieObjectResponse(
     val bestandsomvang: Long? = null,
     val link: String,
     val beschrijving: String,
-    val beginRegistratie: LocalDateTime,
+    val beginRegistratie: String,
     val indicatieGebruiksrecht: Boolean,
     val verschijningsvorm: String,
     val ondertekening: Ondertekening,

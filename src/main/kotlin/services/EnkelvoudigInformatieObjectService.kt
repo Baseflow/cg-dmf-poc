@@ -15,6 +15,7 @@ import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.ArrayColumnType
 import org.jetbrains.exposed.v1.core.Column
@@ -137,6 +138,7 @@ class EnkelvoudigInformatieObjectService {
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     fun mapToResponse(
         record: EIORecordEntity,
         version: EIOVersionEntity
@@ -173,7 +175,9 @@ class EnkelvoudigInformatieObjectService {
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = record.lockToken != null,
             versie = version.versie,
-            beginRegistratie = version.beginRegistratie,
+            beginRegistratie = version.beginRegistratie
+                .toInstant(TimeZone.UTC)
+                .toString(),
         )
     }
 
