@@ -76,7 +76,7 @@ data class Integriteit(
 )
 {
     init {
-        require(waarde.isNotBlank()) { "Waarde mag niet leeg zijn" }
+        require(waarde.isNotEmpty()) { "Waarde mag niet leeg zijn" }
     }
 }
 

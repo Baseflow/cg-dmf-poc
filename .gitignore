@@ -67,3 +67,9 @@ docker-compose.override.yml
 # Devbox
 devbox.lock
 .devbox
+
+    
+# Node modules
+**/node_modules/
+# npm
+package-lock.json
