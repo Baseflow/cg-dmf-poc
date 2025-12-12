@@ -15,10 +15,18 @@ body:json {
     "bronorganisatie": "012345678",
     "titel": "mijn titel",
     "taal": "dut",
-    "bestandsnaam": "123",
-    "inhoud": "{{file_base64}}",
+    "bestandsnaam": "{{file_name}}",
     "auteur": "DJ",
-    "creatiedatum": "2025-12-10"
+    "creatiedatum": "2025-12-10",
+    "formaat": "application/pfd",
+    "inhoud": "{{file_base64}}",
+    "bestandsomvang": "1",
+    "integriteit": {
+      "algoritme": "sha_256",
+      "waarde": "{{file_sha256}}",
+      "datum": "{{local_date}}"
+    },
+    "beschrijving": "Test document uploaded by Bruno"
   }
 }
 
@@ -27,7 +35,7 @@ vars:pre-request {
   file_sha256: 
   file_size: 
   file_name: 
-  local_time: 
+  local_date: 
 }
 
 script:pre-request {
@@ -74,23 +82,17 @@ script:pre-request {
     // -----------------------------------------------------------------
     // Local timestamp (ISO without trailing 'Z')
     // -----------------------------------------------------------------
-    const now = new Date().toISOString();
+    const today = new Date().toISOString().split('T')[0];
+    console.log(today);
   
     // -----------------------------------------------------------------
     // Store env vars
     // -----------------------------------------------------------------
-    bru.setEnvVar("file_base64", base64Content);
-    bru.setEnvVar("file_sha256", sha256);
-    bru.setEnvVar("file_size", fileSize);
-    bru.setEnvVar("file_name", fileName);
-    bru.setEnvVar("local_time", now);
-  
-    console.log("File encoded and metadata prepared.");
-    console.log(sha256);
-    console.log(fileSize);
-    console.log(fileName);
-    console.log(now);
-    console.log(base64Content);
+    bru.setVar("file_base64", base64Content);
+    bru.setVar("file_sha256", sha256);
+    bru.setVar("file_size", fileSize);
+    bru.setVar("file_name", fileName);
+    bru.setVar("local_date", today);
   }
   
 }
