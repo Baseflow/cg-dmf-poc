@@ -2,17 +2,17 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.MinioConfigProvider
+import com.baseflow.config.MinioConfig
 
 /**
  * StorageService interacts with the MinIO storage backend using the configuration
  * provided by MinioConfigProvider.
  */
 class StorageService {
-    private val endpoint = MinioConfigProvider.endpoint
-    private val accessKey = MinioConfigProvider.accessKey
-    private val secretKey = MinioConfigProvider.secretKey
-    private val bucketName = MinioConfigProvider.bucketName
+    private val endpoint = MinioConfig.endpoint
+    private val accessKey = MinioConfig.accessKey
+    private val secretKey = MinioConfig.secretKey
+    private val bucketName = MinioConfig.bucketName
 
     fun printConfig() {
         println("MinIO Config:")

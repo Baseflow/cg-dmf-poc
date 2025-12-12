@@ -3,6 +3,7 @@
 
 package com.baseflow.tooling
 
+import com.baseflow.config.DatabaseConfig
 import com.baseflow.EIORecordEntity
 import com.baseflow.EIOVersionEntity
 import kotlinx.datetime.TimeZone
@@ -49,17 +50,13 @@ import kotlin.time.ExperimentalTime
  * your Exposed table definitions.
  */
 fun main() {
-    val url = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/documenten"
-    val user = System.getenv("DB_USER") ?: "documenten"
-    val password = System.getenv("DB_PASSWORD") ?: "documenten"
-
-    println("Connecting to database: $url")
+    println("Connecting to database: ${DatabaseConfig.url}")
 
     Database.connect(
-        url = url,
-        driver = "org.postgresql.Driver",
-        user = user,
-        password = password
+        url = DatabaseConfig.url,
+        driver = DatabaseConfig.driver,
+        user = DatabaseConfig.user,
+        password = DatabaseConfig.password
     )
 
     try {

@@ -5,6 +5,7 @@
 
 package com.baseflow.tooling
 
+import com.baseflow.config.DatabaseConfig
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
@@ -34,20 +35,17 @@ fun main(args: Array<String>) {
     }
 
     val scriptName = args[0]
-    val url = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/documenten"
-    val user = System.getenv("DB_USER") ?: "documenten"
-    val password = System.getenv("DB_PASSWORD") ?: "documenten"
 
     // Connect to the database
     val database = Database.connect(
-        url = url,
-        user = user,
-        password = password,
-        driver = "org.postgresql.Driver"
+        url = DatabaseConfig.url,
+        user = DatabaseConfig.user,
+        password = DatabaseConfig.password,
+        driver = DatabaseConfig.driver
     )
 
     println("Generating migration script: $scriptName")
-    println("Comparing with database: $url")
+    println("Comparing with database: ${DatabaseConfig.url}")
     println()
 
     transaction(database) {
@@ -59,7 +57,7 @@ fun main(args: Array<String>) {
             MigrationUtils.generateMigrationScript(
                 *tables.toTypedArray(),
                 scriptDirectory = "src/main/resources/db/migration",
-                scriptName = "${scriptName}",
+                scriptName = scriptName,
             )
             println("✓ Generated migration script $scriptName.sql")
         } catch (e: Exception) {
