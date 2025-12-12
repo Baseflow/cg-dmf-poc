@@ -15,7 +15,11 @@ import com.baseflow.api.models.conflict
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.services.StorageService
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -91,6 +95,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         }
         // Get single document
         get {
+            // TODO add version and registratieOp query parameters support
             val uuidString = call.parameters["uuid"]
             if (uuidString == null) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -151,8 +156,55 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
         // Download document content
         get("/download") {
-            val uuid = call.parameters["uuid"]
-            call.respond(mapOf("message" to "Download EnkelvoudigInformatieObject $uuid - to be implemented"))
+            // TODO add version and registratieOp query parameters support
+            val uuidString = call.parameters["uuid"]
+            if (uuidString == null) {
+                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+                return@get
+            }
+
+            try {
+                val uuid = UUID.fromString(uuidString)
+                val eio = service.getById(uuid)
+                if (eio == null) {
+                    call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("EnkelvoudigInformatieObject not found", call.request.path())
+                    )
+                    return@get
+                }
+
+                // TODO For now we return a fixed file for every download request.
+                val contentText = buildString {
+                    appendLine("DMF-PoC download placeholder")
+                    appendLine("Titel: ${eio.titel}")
+                    appendLine("ID: ${eio.id}")
+                    appendLine("Identificatie: ${eio.identificatie}")
+                    appendLine("Versie: ${eio.versie}")
+                }
+                val bytes = contentText.toByteArray(Charsets.UTF_8)
+
+                // Derive filename and content type when possible;
+                val fileName = eio.bestandsnaam.ifBlank { "document-${eio.id}}" }
+                val contentType = try {
+                    // eio.formaat is expected to be a MIME type; if not, fallback below
+                    ContentType.parse(eio.formaat)
+                } catch (ex: Exception) {
+                    ContentType.Application.OctetStream
+                }
+
+                call.response.headers.append(
+                    HttpHeaders.ContentDisposition,
+                    ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, fileName).toString()
+                )
+                // TODO should use stream
+                // TODO should support Range headers
+                // TODO should set ETag and Last-Modified headers
+                // respondBytes adds content-length header automatically
+                call.respondBytes(bytes, contentType)
+            } catch (e: IllegalArgumentException) {
+                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+            }
         }
 
         // Lock document for editing
