@@ -54,6 +54,23 @@ services:
       postgres:
         condition: service_healthy
 
+  minio:
+    image: minio/minio:latest
+    container_name: dmf-minio
+    # restart: always
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - CONSOLE_ACCESS_KEY=admin
+      - CONSOLE_SECRET_KEY=admin
+    command: server --address ":9000" --console-address ":9001" /data
+    volumes:
+      - minio_data:/data
+
 volumes:
   postgres_data:
+  minio_data:
 

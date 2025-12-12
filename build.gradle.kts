@@ -37,6 +37,9 @@ dependencies {
     implementation("io.ktor:ktor-server-auth:3.3.3")
     implementation("io.ktor:ktor-server-auth-jwt:3.3.3")
     implementation("com.auth0:jwks-rsa:0.22.1")
+    implementation("software.amazon.awssdk:s3:2.32.+")
+    implementation("software.amazon.awssdk:netty-nio-client:2.32.+")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.8.+")
 }
 
 

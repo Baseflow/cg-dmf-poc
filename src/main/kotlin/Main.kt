@@ -27,9 +27,6 @@ fun main() {
     // apply migrations
     Flyway.configure().dataSource(dbUrl, dbUser, dbPassword).load().migrate()
 
-    val storageService = StorageService()
-    storageService.printConfig()
-
     embeddedServer(Netty, port = 8080) {
         authenticationModule()
         helloWorldModule()      // Keep for basic health check at /

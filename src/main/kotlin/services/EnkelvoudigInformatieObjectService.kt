@@ -34,6 +34,7 @@ import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
+import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -42,6 +43,13 @@ import kotlin.time.ExperimentalTime
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
 class EnkelvoudigInformatieObjectService {
+
+    private val storageService : StorageService
+
+    constructor(storageService: StorageService) {
+        this.storageService = storageService
+    }
+
     /**
      * Create a new EnkelvoudigInformatieObject
      * Creates both EIORecord and initial EIOVersion in a transaction
@@ -51,6 +59,18 @@ class EnkelvoudigInformatieObjectService {
         return transaction {
             val record = EIORecordEntity.new {
             }
+
+            if (!request.inhoud.isNullOrEmpty() && request.bestandsomvang ?: 0 > 0 && !request.bestandsnaam.isNullOrEmpty()) {
+                val content = Base64.decode(request.inhoud)
+
+                storageService.uploadFile(
+                    "test",
+                    request.bestandsnaam,
+                    content,
+                    request.formaat ?: "application/octet-stream"
+                )
+            }
+
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1

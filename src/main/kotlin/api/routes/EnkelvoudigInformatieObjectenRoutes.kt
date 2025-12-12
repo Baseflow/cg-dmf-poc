@@ -10,6 +10,7 @@ import com.baseflow.services.models.*
 import com.baseflow.api.ApiVersionHeader
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.services.StorageService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -23,7 +24,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
-    val service = EnkelvoudigInformatieObjectService()
+    val service = EnkelvoudigInformatieObjectService(StorageService())
 
     // List all documents (with optional filters)
     get {

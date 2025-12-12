@@ -58,6 +58,12 @@ data class CreateEIORequest(
         require((status != EnkelvoudigInformatieObjectStatus.IN_BEWERKING &&
                 status != EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING) ||
                 ondertekening == null) { "Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'" }
+
+        if (inhoud != null) {
+            require(bestandsnaam != null) { "Bestandsnaam moet worden opgegeven als inhoud is opgegeven" }
+            require(bestandsomvang != null) { "Bestandsomvang moet worden opgegeven als inhoud is opgegeven" }
+            require(formaat != null) { "Formaat moet worden opgegeven als inhoud is opgegeven" }
+        }
     }
 }
 
