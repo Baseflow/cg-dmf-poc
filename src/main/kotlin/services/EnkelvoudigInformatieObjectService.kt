@@ -64,7 +64,6 @@ class EnkelvoudigInformatieObjectService {
                 val content = Base64.decode(request.inhoud)
 
                 storageService.uploadFile(
-                    "test",
                     request.bestandsnaam,
                     content,
                     request.formaat ?: "application/octet-stream"

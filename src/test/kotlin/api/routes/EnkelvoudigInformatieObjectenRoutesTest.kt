@@ -6,6 +6,7 @@ import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
@@ -17,13 +18,17 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import kotlin.test.assertContains
 
 class EnkelvoudigInformatieObjectenRoutesTest {
     companion object {
@@ -52,6 +57,9 @@ class EnkelvoudigInformatieObjectenRoutesTest {
                 }
             )
         }
+        install(ConditionalHeaders) {
+            version(ApiConditionalHeadersProvider)
+        }
         routing {
             route(API_BASE) {
                 route("/enkelvoudiginformatieobjecten") {
@@ -73,6 +81,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
+        assertContains(response.headers.names(), HttpHeaders.ETag)
         val responseBody = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(response.bodyAsText())
         assertEquals("dut", responseBody.taal)
         assertEquals("test.pdf", responseBody.bestandsnaam)
@@ -87,6 +96,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val response = client.get("$API_BASE/enkelvoudiginformatieobjecten/invalid-uuid")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
+        val ct = response.headers[HttpHeaders.ContentType]
+        assertEquals("application/problem+json; charset=utf-8", ct)
+        val problem = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals(400, problem["status"]?.jsonPrimitive?.content?.toInt())
+        assertEquals("Bad Request", problem["title"]?.jsonPrimitive?.content.toString())
     }
 
     @Test
@@ -113,6 +127,8 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
+        assertEquals(DOCUMENTEN_API_VERSION, getResponse.headers["API-version"])
+        assertContains(getResponse.headers.names(), HttpHeaders.ETag)
         val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResponse.bodyAsText())
         assertEquals(uuid, fetched.id)
         assertEquals("dut", fetched.taal)
@@ -132,10 +148,9 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals(HttpStatusCode.OK, created.status)
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
-        // head
-        val resp = client.head("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
-        assertEquals(HttpStatusCode.OK, resp.status)
-        assertEquals(DOCUMENTEN_API_VERSION, resp.headers["API-version"])
+        val response = client.head("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
         // TODO: Add ETag header assertions when ETag generation is implemented
     }
 
@@ -210,7 +225,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         // attempt delete
         val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
         assertEquals(HttpStatusCode.Conflict, del.status)
-        // TODO: Switch to Problem+JSON response body when error contract is implemented
+        val ct = del.headers[HttpHeaders.ContentType]
+        assertEquals("application/problem+json; charset=utf-8", ct)
+        val problem = Json.parseToJsonElement(del.bodyAsText()).jsonObject
+        assertEquals(409, problem["status"]?.jsonPrimitive?.content?.toInt())
+        assertEquals("Conflict", problem["title"]?.jsonPrimitive?.content)
     }
 
     @Test

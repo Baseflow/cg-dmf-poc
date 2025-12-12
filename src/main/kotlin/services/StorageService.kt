@@ -2,7 +2,7 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.MinioConfigProvider
+import com.baseflow.config.MinioConfig
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.async.AsyncRequestBody
@@ -21,26 +21,18 @@ import java.net.URI
  */
 class StorageService {
 
-    private val bucketName = MinioConfigProvider.bucketName
+    private val bucketName = MinioConfig.bucketName
     private val s3Client = createS3Client()
     init {
         println("Created S3 client for bucket $bucketName")
-        printConfig()
-    }
-    private fun printConfig() {
-        println("MinIO Config:")
-        println("Endpoint: ${MinioConfigProvider.endpoint}")
-        println("Access Key: ${MinioConfigProvider.accessKey}")
-        println("Secret Key: ${MinioConfigProvider.secretKey}")
-        println("Bucket Name: ${MinioConfigProvider.bucketName}")
     }
 
     private fun createS3Client(): S3AsyncClient {
         return S3AsyncClient.builder()
             .region(Region.EU_WEST_1)
-            .endpointOverride(URI.create(MinioConfigProvider.endpoint))
+            .endpointOverride(URI.create(MinioConfig.endpoint))
             .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
-                MinioConfigProvider.accessKey, MinioConfigProvider.secretKey)))
+                MinioConfig.accessKey, MinioConfig.secretKey)))
             .httpClientBuilder(NettyNioAsyncHttpClient.builder())
             .serviceConfiguration(
                 S3Configuration.builder()

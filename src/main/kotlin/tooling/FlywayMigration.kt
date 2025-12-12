@@ -3,6 +3,7 @@
 
 package com.baseflow.tooling
 
+import com.baseflow.config.DatabaseConfig
 import org.flywaydb.core.Flyway
 
 /**
@@ -53,12 +54,8 @@ import org.flywaydb.core.Flyway
  * @see com.baseflow.tooling.MigrationGenerator for generating migrations from Exposed models
  */
 fun main(args: Array<String>) {
-    val url = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/documenten"
-    val user = System.getenv("DB_USER") ?: "documenten"
-    val password = System.getenv("DB_PASSWORD") ?: "documenten"
-
     val flyway = Flyway.configure()
-        .dataSource(url, user, password)
+        .dataSource(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
         .mixed(true)
         .locations("classpath:db/migration")
         .load()
