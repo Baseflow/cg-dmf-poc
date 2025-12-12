@@ -60,14 +60,12 @@ class EnkelvoudigInformatieObjectService {
             val record = EIORecordEntity.new {
             }
 
-            if (!request.inhoud.isNullOrEmpty() && request.bestandsomvang ?: 0 > 0 && !request.bestandsnaam.isNullOrEmpty()) {
+            if (!request.inhoud.isNullOrEmpty() &&
+                (request.bestandsomvang ?: 0) > 0 &&
+                !request.bestandsnaam.isNullOrEmpty()
+            ) {
                 val content = Base64.decode(request.inhoud)
-
-                storageService.uploadFile(
-                    request.bestandsnaam,
-                    content,
-                    request.formaat ?: "application/octet-stream"
-                )
+                storageService.uploadFile(request.bestandsnaam, content)
             }
 
             val version = EIOVersionEntity.new {
