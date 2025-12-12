@@ -5,6 +5,7 @@ package com.baseflow.services
 import com.baseflow.config.MinioConfigProvider
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.net.URI
+
 /**
  * StorageService interacts with the MinIO storage backend using the configuration
  * provided by MinioConfigProvider.
@@ -61,10 +63,7 @@ class StorageService {
             val putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectName).build();
-            val requestBody =
-                software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(
-                    content
-                )
+            val requestBody = AsyncRequestBody.fromBytes(content)
             val putObjectResponse = s3Client.putObject(putObjectRequest, requestBody).join()
             println("Successfully uploaded data to $bucketName/$objectName")
             println("ETag: ${putObjectResponse.eTag()}")
