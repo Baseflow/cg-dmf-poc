@@ -16,11 +16,13 @@ import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
+import io.ktor.client.HttpClient
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
@@ -74,6 +76,13 @@ class EnkelvoudigInformatieObjectService {
                 val content = Base64.decode(request.inhoud)
                 storageService.uploadFile(request.bestandsnaam, content)
             }
+
+            val jwtToken = OpenZaakConfig.generateJwtToken()
+            val httpClient = HttpClient();
+            httpClient.
+            // make http get request to openzaak.endpoint + /catalogi/api/v1/informatieobjecttypen + request.informatieobjecttype
+
+
 
             val version = EIOVersionEntity.new {
                 recordId = record

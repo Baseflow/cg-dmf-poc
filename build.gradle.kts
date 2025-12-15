@@ -20,6 +20,7 @@ dependencies {
     testImplementation("io.mockk:mockk:1.14.7")
     implementation("io.ktor:ktor-server-core-jvm:3.3.3")
     implementation("io.ktor:ktor-server-netty-jvm:3.3.3")
+    implementation("io.ktor:ktor-client-core:3.3.3")
     implementation("io.ktor:ktor-server-content-negotiation:3.3.3")
     implementation("io.ktor:ktor-server-conditional-headers:3.3.3")
     implementation("io.ktor:ktor-server-status-pages:3.3.3")

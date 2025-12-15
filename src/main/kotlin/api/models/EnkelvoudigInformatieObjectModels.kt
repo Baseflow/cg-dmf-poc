@@ -28,7 +28,7 @@ data class CreateEIORequest(
     val verschijningsvorm: String? = null,
     val ondertekening: Ondertekening? = null,
     val integriteit: Integriteit? = null,
-//    val informatieobjecttype: String,
+    val informatieobjecttype: String,
     val trefwoorden: List<String>? = null,
     val inhoudIsVervallen: Boolean? = null
 ) : ApiRequest
