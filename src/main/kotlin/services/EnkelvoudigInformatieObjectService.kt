@@ -210,6 +210,13 @@ class EnkelvoudigInformatieObjectService {
             else -> null
         }
 
+        val inhoudUrl = when {
+            version.bestandsnaam.isNotEmpty() -> {
+                val base = this.applicationConfig.baseUrl()
+                "$base${DOCUMENTEN_API_BASE_PATH}/enkelvoudiginformatieobjecten/${record.id}/download?versie=${version.versie}"
+            }
+            else -> null
+        }
 
         return EnkelvoudigInformatieObjectResponse(
             id = record.id.value.toString(),
@@ -219,11 +226,15 @@ class EnkelvoudigInformatieObjectService {
             titel = version.titel,
             vertrouwelijkheidaanduiding = version.vertrouwlijkheidsAanduiding,
             auteur = version.auteur,
-            status = EnkelvoudigInformatieObjectStatus.valueOf(version.status),
+            // TODO this is to deal with empty string values in the DB, needs cleanup
+            status = when {
+                version.status.isBlank() -> null
+                else -> EnkelvoudigInformatieObjectStatus.valueOf(version.status)
+            },
             formaat = version.formaat.orEmpty(),
             taal = version.taal,
             bestandsnaam = version.bestandsnaam,
-            inhoud = "", // Placeholder for inhoud
+            inhoud = inhoudUrl,
             bestandsomvang = version.bestandsomvang,
             link = version.link,
             beschrijving = version.beschrijving,
