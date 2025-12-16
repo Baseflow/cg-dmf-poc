@@ -35,6 +35,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.OutputStream
 import java.util.UUID
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -160,6 +161,14 @@ class EnkelvoudigInformatieObjectService {
                 mapToResponse(rec, version)
             }
         }
+    }
+
+    /**
+     * TODO this needs cleanup, should not expose this logic
+     * Streams a file by its stored name. Use when you already know the object key.
+     */
+    fun streamByBestandsnaam(bestandsnaam: String, output: OutputStream) {
+        storageService.downloadFileTo(bestandsnaam, output).join()
     }
 
     /**

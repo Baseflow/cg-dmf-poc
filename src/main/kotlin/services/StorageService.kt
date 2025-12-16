@@ -16,6 +16,11 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import java.net.URI
+import java.io.OutputStream
+import java.nio.ByteBuffer
+import java.util.concurrent.CompletableFuture
+import org.reactivestreams.Subscriber
+import org.reactivestreams.Subscription
 
 /**
  * StorageService interacts with the MinIO storage backend using the configuration
@@ -84,6 +89,64 @@ class StorageService {
             .join()
 
         return response.asByteArray()
+    }
+
+    /**
+     * Streams an object directly to the provided OutputStream without loading it fully into memory.
+     */
+    fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
+        println("Streaming download of $objectName from bucket $bucketName")
+        val getObjectRequest = GetObjectRequest.builder()
+            .bucket(bucketName)
+            .key(objectName)
+            .build()
+
+        val result = CompletableFuture<Void>()
+
+        s3Client
+            .getObject(getObjectRequest, AsyncResponseTransformer.toPublisher())
+            .whenComplete { responsePublisher, throwable ->
+                if (throwable != null) {
+                    result.completeExceptionally(throwable)
+                    return@whenComplete
+                }
+
+                responsePublisher.subscribe(object : Subscriber<ByteBuffer> {
+                    private lateinit var subscription: Subscription
+
+                    override fun onSubscribe(s: Subscription) {
+                        subscription = s
+                        s.request(1)
+                    }
+
+                    override fun onNext(buffer: ByteBuffer) {
+                        try {
+                            val bytes = ByteArray(buffer.remaining())
+                            buffer.get(bytes)
+                            output.write(bytes)
+                            // Optionally flush to push data downstream promptly
+                            output.flush()
+                            subscription.request(1)
+                        } catch (e: Exception) {
+                            subscription.cancel()
+                            result.completeExceptionally(e)
+                        }
+                    }
+
+                    override fun onError(t: Throwable) {
+                        result.completeExceptionally(t)
+                    }
+
+                    override fun onComplete() {
+                        try {
+                            output.flush()
+                        } catch (_: Exception) { }
+                        result.complete(null)
+                    }
+                })
+            }
+
+        return result
     }
 
     fun getDownloadUrl(objectName: String): String {

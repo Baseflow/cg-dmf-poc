@@ -155,7 +155,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             }
         }
 
-        // Download document content
+        // Download document content (streamed from storage)
         get("/download") {
             // TODO add version and registratieOp query parameters support
             val uuidString = call.parameters["uuid"]
@@ -175,18 +175,18 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     return@get
                 }
 
-                // TODO For now we return a fixed file for every download request.
-                val contentText = buildString {
-                    appendLine("DMF-PoC download placeholder")
-                    appendLine("Titel: ${eio.titel}")
-                    appendLine("ID: ${eio.id}")
-                    appendLine("Identificatie: ${eio.identificatie}")
-                    appendLine("Versie: ${eio.versie}")
+                // Ensure we have a stored object key to stream
+                val objectKey = eio.bestandsnaam
+                if (objectKey.isNullOrBlank()) {
+                    call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("Document content not available for download", call.request.path())
+                    )
+                    return@get
                 }
-                val bytes = contentText.toByteArray(Charsets.UTF_8)
 
                 // Derive filename and content type when possible;
-                val fileName = eio.bestandsnaam.isNullOrBlank().let{ "document-${eio.id}}" }
+                val fileName = objectKey.ifBlank({ "document-${eio.id}}" } )
                 val contentType = try {
                     // eio.formaat is expected to be a MIME type; if not, fallback below
                     eio.formaat?.let { ContentType.parse(it) }
@@ -194,15 +194,20 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     ContentType.Application.OctetStream
                 }
 
+                // Set headers before starting the stream
                 call.response.headers.append(
                     HttpHeaders.ContentDisposition,
-                    ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, fileName).toString()
+                    ContentDisposition.Attachment
+                        .withParameter(ContentDisposition.Parameters.FileName, fileName)
+                        .toString()
                 )
-                // TODO should use stream
-                // TODO should support Range headers
-                // TODO should set ETag and Last-Modified headers
-                // respondBytes adds content-length header automatically
-                call.respondBytes(bytes, contentType)
+                call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
+                // TODO: support Range requests, ETag, Last-Modified when metadata is available
+
+                // Stream the object from storage directly to the HTTP response
+                call.respondOutputStream {
+                    service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
+                }
             } catch (e: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
