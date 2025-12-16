@@ -29,7 +29,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         transaction {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
-        service = EnkelvoudigInformatieObjectService()
+        service = EnkelvoudigInformatieObjectService(storageService = StorageService())
     }
 
     @AfterTest

@@ -3,6 +3,7 @@
 package com.baseflow.testutils
 
 import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import kotlinx.datetime.LocalDate
 
 /**
@@ -25,6 +26,7 @@ object TestDataFactory {
         bestandsnaam = bestandsnaam,
         titel = titel,
         auteur = auteur,
+        status = EnkelvoudigInformatieObjectStatus.CONCEPT,
 //        informatieobjecttype = "https://IOT.test"
     )
 }

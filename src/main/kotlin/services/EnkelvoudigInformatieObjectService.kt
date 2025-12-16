@@ -176,6 +176,7 @@ class EnkelvoudigInformatieObjectService {
                 titel = request.titel
                 auteur = request.auteur
                 creatieDatum = request.creatiedatum
+                status = request.status?.toString().orEmpty()
                 beginRegistratie = latestVersion?.beginRegistratie ?: Clock.System.now().toLocalDateTime(TimeZone.UTC)
             }
             mapToResponse(record, version)
