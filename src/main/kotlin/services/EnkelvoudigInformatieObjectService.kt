@@ -6,6 +6,7 @@ import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
+import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
@@ -13,6 +14,7 @@ import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
+import com.baseflow.config.ApplicationConfig
 import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.DeleteResult
@@ -45,9 +47,11 @@ import kotlin.time.ExperimentalTime
 class EnkelvoudigInformatieObjectService {
 
     private val storageService : StorageService
+    private val applicationConfig : ApplicationConfig
 
-    constructor(storageService: StorageService) {
+    constructor(storageService: StorageService, applicationConfig: ApplicationConfig) {
         this.storageService = storageService
+        this.applicationConfig = applicationConfig
     }
 
     /**

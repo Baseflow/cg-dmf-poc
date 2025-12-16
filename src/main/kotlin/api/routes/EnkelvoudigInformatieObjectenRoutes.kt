@@ -14,6 +14,7 @@ import com.baseflow.api.models.notFound
 import com.baseflow.api.models.conflict
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.config.ApplicationConfig
 import com.baseflow.services.StorageService
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
@@ -32,7 +33,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
-    val service = EnkelvoudigInformatieObjectService(StorageService())
+    val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig)
 
     // List all documents (with optional filters)
     get {
@@ -185,10 +186,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 val bytes = contentText.toByteArray(Charsets.UTF_8)
 
                 // Derive filename and content type when possible;
-                val fileName = eio.bestandsnaam.ifBlank { "document-${eio.id}}" }
+                val fileName = eio.bestandsnaam.isNullOrBlank().let{ "document-${eio.id}}" }
                 val contentType = try {
                     // eio.formaat is expected to be a MIME type; if not, fallback below
-                    ContentType.parse(eio.formaat)
+                    eio.formaat?.let { ContentType.parse(it) }
                 } catch (ex: Exception) {
                     ContentType.Application.OctetStream
                 }

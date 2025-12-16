@@ -5,6 +5,7 @@ package com.baseflow.services
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.EIORecordEntity
+import com.baseflow.config.ApplicationConfig
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
@@ -29,7 +30,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         transaction {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
-        service = EnkelvoudigInformatieObjectService(storageService = StorageService())
+        service = EnkelvoudigInformatieObjectService(storageService = StorageService(), ApplicationConfig)
     }
 
     @AfterTest

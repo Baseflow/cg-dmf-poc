@@ -2,22 +2,21 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.config
 
-import io.ktor.server.application.ApplicationCall
-
-internal object ApplicationConfig : Config {
+object ApplicationConfig : Config {
     val baseUrl: String? = System.getenv("BASE_URL")
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
     val port: Int = System.getenv("PORT")?.toIntOrNull() ?: 8080
 
     override fun printConfig() {
-        val effective = baseUrl ?: "http://localhost:8080"
+        val effective = baseUrl()
         println("ApplicationConfig:")
         println("  baseUrl: $effective")
         println("  port: $port")
     }
-}
 
-fun ApplicationCall.baseUrl(): String {
-    return ApplicationConfig.baseUrl ?: "http://localhost:8080"
+    fun baseUrl(): String {
+        val effective = this.baseUrl ?: "http://localhost:$port"
+        return effective.trim().removeSuffix("/")
+    }
 }
