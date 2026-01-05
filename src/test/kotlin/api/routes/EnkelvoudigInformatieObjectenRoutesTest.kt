@@ -37,6 +37,7 @@ import kotlin.test.assertNotNull
 class EnkelvoudigInformatieObjectenRoutesTest {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
+        private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
     }
 
     @Serializable
@@ -58,7 +59,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
                     EnkelvoudigInformatieObjectResponse::class,
                     UrlAugmentingSerializer(
                         EnkelvoudigInformatieObjectResponse.serializer(),
-                        resourceSegment = "enkelvoudiginformatieobjecten",
+                        resourceSegment = RESOURCE_SEGMENT,
                         absolute = true
                     )
                 )
@@ -69,7 +70,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
         routing {
             route(API_BASE) {
-                route("/enkelvoudiginformatieobjecten") {
+                route("/$RESOURCE_SEGMENT") {
                     enkelvoudigInformatieObjectenRoutes()
                 }
             }
@@ -81,7 +82,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         application { testModule() }
 
         val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf");
-        val response = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
         }
@@ -97,7 +98,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assert(responseBody.id.isNotEmpty()) // UUID should be generated
         // Verify that the computed `url` field is present and points to this resource
         assertNotNull(responseBody.url)
-        assertContains(responseBody.url, "/enkelvoudiginformatieobjecten/${responseBody.id}")
+        assertContains(responseBody.url, "/$RESOURCE_SEGMENT/${responseBody.id}")
 
         val locationHeader = response.headers[HttpHeaders.Location]
         assertNotNull(locationHeader)
@@ -110,21 +111,21 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         // Create two documents
         val req1 = generateTestDocument(taal = "dut", bestandsnaam = "doc1.pdf")
-        val res1 = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val res1 = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(req1))
         }
         assertEquals(HttpStatusCode.Created, res1.status)
 
         val req2 = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf")
-        val res2 = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val res2 = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(req2))
         }
         assertEquals(HttpStatusCode.Created, res2.status)
 
         // Call GET list
-        val listResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten")
+        val listResponse = client.get("$API_BASE/$RESOURCE_SEGMENT")
         assertEquals(HttpStatusCode.OK, listResponse.status)
 
         // Parse JSON and verify that each result item has a non-null url
@@ -138,7 +139,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             val url = obj["url"]?.jsonPrimitive?.content
             assertNotNull(id)
             assertNotNull(url, "url should be present for item $id")
-            assertContains(url!!, "/enkelvoudiginformatieobjecten/$id")
+            assertContains(url!!, "/$RESOURCE_SEGMENT/$id")
         }
     }
 
@@ -146,7 +147,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `test GET enkelvoudiginformatieobjecten with invalid UUID`() = testApplication {
         application { testModule() }
 
-        val response = client.get("$API_BASE/enkelvoudiginformatieobjecten/invalid-uuid")
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/invalid-uuid")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val ct = response.headers[HttpHeaders.ContentType]
@@ -160,7 +161,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `test GET enkelvoudiginformatieobjecten with missing UUID parameter`() = testApplication {
         application { testModule() }
 
-        val response = client.get("$API_BASE/enkelvoudiginformatieobjecten/")
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/")
 
         assertEquals(HttpStatusCode.NotFound, response.status) // Ktor returns 404 for missing path parameter
     }
@@ -170,7 +171,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         application { testModule() }
 
         val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
-        val postResponse = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val postResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
         }
@@ -178,7 +179,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
         val uuid = created.id
 
-        val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
+        val getResponse = client.get("$API_BASE/$RESOURCE_SEGMENT/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         assertEquals(DOCUMENTEN_API_VERSION, getResponse.headers["API-version"])
         assertContains(getResponse.headers.names(), HttpHeaders.ETag)
@@ -194,14 +195,14 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         application { testModule() }
 
         // create
-        val created = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(generateTestDocument()))
         }
         assertEquals(HttpStatusCode.Created, created.status)
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
-        val response = client.head("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        val response = client.head("$API_BASE/$RESOURCE_SEGMENT/${body.id}")
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
         // TODO: Add ETag header assertions when ETag generation is implemented
@@ -211,7 +212,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `HEAD enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
         application { testModule() }
 
-        val resp = client.head("$API_BASE/enkelvoudiginformatieobjecten/${java.util.UUID.randomUUID()}")
+        val resp = client.head("$API_BASE/$RESOURCE_SEGMENT/${java.util.UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, resp.status)
     }
 
@@ -219,7 +220,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `HEAD enkelvoudiginformatieobjecten returns 400 for invalid UUID`() = testApplication {
         application { testModule() }
 
-        val resp = client.head("$API_BASE/enkelvoudiginformatieobjecten/not-a-uuid")
+        val resp = client.head("$API_BASE/$RESOURCE_SEGMENT/not-a-uuid")
         assertEquals(HttpStatusCode.BadRequest, resp.status)
     }
 
@@ -228,7 +229,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         application { testModule() }
 
         // create
-        val created = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(generateTestDocument()))
         }
@@ -236,11 +237,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
         // delete
-        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/${body.id}")
         assertEquals(HttpStatusCode.NoContent, del.status)
 
         // verify gone
-        val getResp = client.get("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        val getResp = client.get("$API_BASE/$RESOURCE_SEGMENT/${body.id}")
         assertEquals(HttpStatusCode.NotFound, getResp.status)
     }
 
@@ -248,7 +249,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `DELETE enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
         application { testModule() }
 
-        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${java.util.UUID.randomUUID()}")
+        val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/${java.util.UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, del.status)
     }
 
@@ -256,7 +257,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `DELETE enkelvoudiginformatieobjecten returns 400 for invalid UUID`() = testApplication {
         application { testModule() }
 
-        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/not-a-uuid")
+        val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/not-a-uuid")
         assertEquals(HttpStatusCode.BadRequest, del.status)
     }
 
@@ -265,7 +266,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         application { testModule() }
 
         // create
-        val created = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(generateTestDocument()))
         }
@@ -273,11 +274,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
         // lock
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${body.id}/lock")
+        val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${body.id}/lock")
         assertEquals(HttpStatusCode.OK, lockResp.status)
 
         // attempt delete
-        val del = client.delete("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
+        val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/${body.id}")
         assertEquals(HttpStatusCode.Conflict, del.status)
         val ct = del.headers[HttpHeaders.ContentType]
         assertEquals("application/problem+json; charset=utf-8", ct)
@@ -291,7 +292,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         application { testModule() }
 
         val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
-        val postResponse = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val postResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
         }
@@ -299,7 +300,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
         val uuid = created.id
 
-        val getResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten/$uuid")
+        val getResponse = client.get("$API_BASE/$RESOURCE_SEGMENT/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         val contentType = getResponse.headers[HttpHeaders.ContentType]
         assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), contentType)
@@ -316,7 +317,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         // Create an object first
         val createReq = generateTestDocument()
-        val postResp = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val postResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(createReq))
         }
@@ -324,7 +325,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
 
         // Lock it
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
+        val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/lock")
         assertEquals(HttpStatusCode.OK, lockResp.status)
         val lockContentType = lockResp.headers[HttpHeaders.ContentType]
         assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), lockContentType)
@@ -332,7 +333,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assert(payload.lock.isNotBlank())
 
         // Lock again -> Conflict
-        val secondLock = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
+        val secondLock = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/lock")
         assertEquals(HttpStatusCode.Conflict, secondLock.status)
     }
 
@@ -342,19 +343,19 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         // Create
         val createReq = generateTestDocument()
-        val postResp = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val postResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(createReq))
         }
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
 
         // Lock to obtain token
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
+        val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/lock")
         val payload = Json.decodeFromString<LockPayload>(lockResp.bodyAsText())
 
         // Unlock with correct token
         val unlockReq = UnlockEIORequest(lock = payload.lock)
-        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/unlock") {
+        val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
@@ -363,7 +364,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals(HttpStatusCode.NoContent, unlockResp.status)
 
         // Unlock again -> NotLocked (409)
-        val secondUnlock = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/unlock") {
+        val secondUnlock = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
@@ -376,17 +377,17 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         // Create and lock
         val createReq = generateTestDocument()
-        val postResp = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+        val postResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(createReq))
         }
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/lock")
+        val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/lock")
         val payload = Json.decodeFromString<LockPayload>(lockResp.bodyAsText())
 
         // Try unlock with wrong token
         val unlockReq = UnlockEIORequest(lock = payload.lock + "-wrong")
-        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/${created.id}/unlock") {
+        val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
@@ -399,11 +400,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         val unknownId = "00000000-0000-0000-0000-000000000001"
 
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/$unknownId/lock")
+        val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/$unknownId/lock")
         assertEquals(HttpStatusCode.NotFound, lockResp.status)
 
         val unlockReq = UnlockEIORequest(lock = "any")
-        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/$unknownId/unlock") {
+        val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/$unknownId/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
@@ -416,11 +417,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
         val invalidId = "not-a-uuid"
 
-        val lockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/$invalidId/lock")
+        val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/$invalidId/lock")
         assertEquals(HttpStatusCode.BadRequest, lockResp.status)
 
         val unlockReq = UnlockEIORequest(lock = "any")
-        val unlockResp = client.post("$API_BASE/enkelvoudiginformatieobjecten/$invalidId/unlock") {
+        val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/$invalidId/unlock") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(unlockReq))
         }
