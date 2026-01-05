@@ -89,6 +89,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals(HttpStatusCode.Created, response.status)
         assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
         assertContains(response.headers.names(), HttpHeaders.ETag)
+        assertContains(response.headers.names(), HttpHeaders.Location)
         val responseBody = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(response.bodyAsText())
         assertEquals("dut", responseBody.taal)
         assertEquals("test.pdf", responseBody.bestandsnaam)
@@ -97,6 +98,10 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         // Verify that the computed `url` field is present and points to this resource
         assertNotNull(responseBody.url)
         assertContains(responseBody.url, "/enkelvoudiginformatieobjecten/${responseBody.id}")
+
+        val locationHeader = response.headers[HttpHeaders.Location]
+        assertNotNull(locationHeader)
+        assertEquals(responseBody.url, locationHeader)
     }
 
     @Test

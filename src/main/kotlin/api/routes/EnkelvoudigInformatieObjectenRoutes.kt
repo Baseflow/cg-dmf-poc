@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.api.routes
 
+import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EioPaginatedResponse
 import com.baseflow.api.models.UnlockEIORequest
@@ -30,6 +31,9 @@ import java.util.UUID
 /**
  * Routes for EnkelvoudigInformatieObjecten (Single Information Objects).
  */
+
+private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
+
 fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
@@ -66,6 +70,11 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     post {
         val request = call.receive<CreateEIORequest>()
         val response = service.create(request)
+
+        // Location header with the URL of the created resource
+        val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
+        call.response.headers.append(HttpHeaders.Location, locationUrl)
+
         call.respond(HttpStatusCode.Created, response)
     }
 
