@@ -3,24 +3,25 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.models.CreateEIORequest
-import com.baseflow.api.models.PaginatedResponse
-import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.api.models.EioPaginatedResponse
+import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.config.ApplicationConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
-import com.baseflow.services.models.*
+import com.baseflow.services.StorageService
+import com.baseflow.services.models.DeleteResult
+import com.baseflow.services.models.LockResult
+import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.services.models.UnlockResult
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.conflict
 import com.baseflow.api.DOCUMENTEN_API_VERSION
-import com.baseflow.api.models.UnlockEIORequest
-import com.baseflow.config.ApplicationConfig
-import com.baseflow.services.StorageService
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -43,7 +44,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 0
 
-        var filter = QueryEnkelvoudigeInformatieObjectenFilter(
+        val filter = QueryEnkelvoudigeInformatieObjectenFilter(
             bronOrganisatie = bronOrganisatie,
             trefwoorden = trefwoorden,
             identificatie = identificatie,
@@ -52,7 +53,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         )
 
         val items = service.getAll(filter)
-        val response = PaginatedResponse(
+        val response = EioPaginatedResponse(
             count = items.size,
             next = null,
             previous = null,
@@ -90,7 +91,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 } else {
                     call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
         }
@@ -112,7 +113,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 } else {
                     call.respond(HttpStatusCode.OK, result)
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
         }
@@ -139,7 +140,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 
             try {
                 val uuid = UUID.fromString(uuidString)
-                when (val result = service.delete(uuid)) {
+                when (service.delete(uuid)) {
                     is DeleteResult.Success -> call.respond(HttpStatusCode.NoContent)
                     is DeleteResult.NotFound -> call.respondProblem(
                         HttpStatusCode.NotFound,
@@ -150,7 +151,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                         conflict("EnkelvoudigInformatieObject is locked", call.request.path())
                     )
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
         }
@@ -190,7 +191,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 val contentType = try {
                     // eio.formaat is expected to be a MIME type; if not, fallback below
                     eio.formaat?.let { ContentType.parse(it) }
-                } catch (ex: Exception) {
+                } catch (_: Exception) {
                     ContentType.Application.OctetStream
                 }
 
@@ -208,7 +209,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 call.respondOutputStream {
                     service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
         }
@@ -232,7 +233,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                         conflict("EnkelvoudigInformatieObject is already locked", call.request.path())
                     )
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
         }
@@ -248,9 +249,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             try {
                 val uuid = UUID.fromString(uuidString)
                 val body = call.receive<UnlockEIORequest>()
-                val result = service.unlock(uuid, body.lock)
-                when (result) {
-                    null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+                when (service.unlock(uuid, body.lock)) {
                     is UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
                     is UnlockResult.InvalidLock -> call.respondProblem(
                         HttpStatusCode.Conflict,
@@ -260,8 +259,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                         HttpStatusCode.Conflict,
                         conflict("EnkelvoudigInformatieObject is not locked", call.request.path())
                     )
+                    null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
                 }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
             }
         }

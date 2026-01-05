@@ -9,6 +9,7 @@ import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.api.serialization.UrlAugmentingSerializer
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.ktor.http.*
 import io.ktor.server.testing.*
@@ -22,13 +23,16 @@ import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
+import com.baseflow.api.apiJsonConfig
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import kotlin.test.assertContains
+import kotlin.test.assertNotNull
 
 class EnkelvoudigInformatieObjectenRoutesTest {
     companion object {
@@ -49,13 +53,16 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
         install(ContentNegotiation) {
-            json(
-                Json {
-                    encodeDefaults = false
-                    explicitNulls = false
-                    ignoreUnknownKeys = true
-                }
-            )
+            json(apiJsonConfig {
+                contextual(
+                    EnkelvoudigInformatieObjectResponse::class,
+                    UrlAugmentingSerializer(
+                        EnkelvoudigInformatieObjectResponse.serializer(),
+                        resourceSegment = "enkelvoudiginformatieobjecten",
+                        absolute = true
+                    )
+                )
+            })
         }
         install(ConditionalHeaders) {
             version(ApiConditionalHeadersProvider)
@@ -87,6 +94,47 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertEquals("test.pdf", responseBody.bestandsnaam)
         assertEquals(1, responseBody.versie)
         assert(responseBody.id.isNotEmpty()) // UUID should be generated
+        // Verify that the computed `url` field is present and points to this resource
+        assertNotNull(responseBody.url)
+        assertContains(responseBody.url, "/enkelvoudiginformatieobjecten/${responseBody.id}")
+    }
+
+    @Test
+    fun `test GET list includes url in each result`() = testApplication {
+        application { testModule() }
+
+        // Create two documents
+        val req1 = generateTestDocument(taal = "dut", bestandsnaam = "doc1.pdf")
+        val res1 = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(req1))
+        }
+        assertEquals(HttpStatusCode.OK, res1.status)
+
+        val req2 = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf")
+        val res2 = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(req2))
+        }
+        assertEquals(HttpStatusCode.OK, res2.status)
+
+        // Call GET list
+        val listResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten")
+        assertEquals(HttpStatusCode.OK, listResponse.status)
+
+        // Parse JSON and verify that each result item has a non-null url
+        val body = listResponse.bodyAsText()
+        val json = Json.parseToJsonElement(body).jsonObject
+        val results = json["results"]?.jsonArray ?: error("results array missing")
+        assert(results.size >= 2)
+        for (el in results) {
+            val obj = el.jsonObject
+            val id = obj["id"]?.jsonPrimitive?.content
+            val url = obj["url"]?.jsonPrimitive?.content
+            assertNotNull(id)
+            assertNotNull(url, "url should be present for item $id")
+            assertContains(url!!, "/enkelvoudiginformatieobjecten/$id")
+        }
     }
 
     @Test
