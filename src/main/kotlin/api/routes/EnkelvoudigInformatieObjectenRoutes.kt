@@ -66,7 +66,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     post {
         val request = call.receive<CreateEIORequest>()
         val response = service.create(request)
-        call.respond(response)
+        call.respond(HttpStatusCode.Created, response)
     }
 
     // Advanced search endpoint

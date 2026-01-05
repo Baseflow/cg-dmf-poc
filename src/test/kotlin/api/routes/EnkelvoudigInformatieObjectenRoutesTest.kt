@@ -86,7 +86,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             setBody(Json.encodeToString(request))
         }
 
-        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(HttpStatusCode.Created, response.status)
         assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
         assertContains(response.headers.names(), HttpHeaders.ETag)
         val responseBody = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(response.bodyAsText())
@@ -109,14 +109,14 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(req1))
         }
-        assertEquals(HttpStatusCode.OK, res1.status)
+        assertEquals(HttpStatusCode.Created, res1.status)
 
         val req2 = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf")
         val res2 = client.post("$API_BASE/enkelvoudiginformatieobjecten") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(req2))
         }
-        assertEquals(HttpStatusCode.OK, res2.status)
+        assertEquals(HttpStatusCode.Created, res2.status)
 
         // Call GET list
         val listResponse = client.get("$API_BASE/enkelvoudiginformatieobjecten")
@@ -169,7 +169,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
         }
-        assertEquals(HttpStatusCode.OK, postResponse.status)
+        assertEquals(HttpStatusCode.Created, postResponse.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
         val uuid = created.id
 
@@ -193,7 +193,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(generateTestDocument()))
         }
-        assertEquals(HttpStatusCode.OK, created.status)
+        assertEquals(HttpStatusCode.Created, created.status)
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
         val response = client.head("$API_BASE/enkelvoudiginformatieobjecten/${body.id}")
@@ -227,7 +227,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(generateTestDocument()))
         }
-        assertEquals(HttpStatusCode.OK, created.status)
+        assertEquals(HttpStatusCode.Created, created.status)
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
         // delete
@@ -264,6 +264,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(generateTestDocument()))
         }
+        assertEquals(HttpStatusCode.Created, created.status)
         val body = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText())
 
         // lock
@@ -289,7 +290,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
         }
-        assertEquals(HttpStatusCode.OK, postResponse.status)
+        assertEquals(HttpStatusCode.Created, postResponse.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResponse.bodyAsText())
         val uuid = created.id
 
@@ -314,7 +315,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(createReq))
         }
-        assertEquals(HttpStatusCode.OK, postResp.status)
+        assertEquals(HttpStatusCode.Created, postResp.status)
         val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
 
         // Lock it
