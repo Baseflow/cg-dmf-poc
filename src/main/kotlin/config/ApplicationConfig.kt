@@ -2,7 +2,11 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.config
 
+import org.slf4j.LoggerFactory
+
 object ApplicationConfig : Config {
+    private val logger = LoggerFactory.getLogger(ApplicationConfig::class.java)
+
     val baseUrl: String? = System.getenv("BASE_URL")
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
@@ -10,9 +14,7 @@ object ApplicationConfig : Config {
 
     override fun printConfig() {
         val effective = baseUrl()
-        println("ApplicationConfig:")
-        println("  baseUrl: $effective")
-        println("  port: $port")
+        logger.info("ApplicationConfig: baseUrl={}, port={}", effective, port)
     }
 
     fun baseUrl(): String {

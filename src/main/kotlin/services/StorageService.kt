@@ -3,6 +3,7 @@
 package com.baseflow.services
 
 import com.baseflow.config.MinioConfig
+import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.async.AsyncRequestBody
@@ -27,6 +28,8 @@ import org.reactivestreams.Subscription
  * provided by MinioConfigProvider.
  */
 class StorageService {
+
+    private val logger = LoggerFactory.getLogger(StorageService::class.java)
 
     private val bucketName = MinioConfig.bucketName
 
@@ -54,17 +57,17 @@ class StorageService {
         .build()
 
     init {
-        println("Created S3 client for bucket $bucketName")
+        logger.info("Created S3 client for bucket {}", bucketName)
     }
 
     fun uploadFile(objectName: String, content: ByteArray) {
         if (!s3Client.listBuckets().join().buckets().any { it.name() == bucketName }) {
-            println("Bucket $bucketName does not exist, creating it")
+            logger.info("Bucket {} does not exist, creating it", bucketName)
             val createBucketResponse = s3Client.createBucket { it.bucket(bucketName) }.join()
-            println("Bucket created: $createBucketResponse")
+            logger.debug("Bucket created: {}", createBucketResponse)
         }
 
-        println("Uploading file $objectName to bucket $bucketName as $objectName")
+        logger.debug("Uploading file {} to bucket {} (size: {} bytes)", objectName, bucketName, content.size)
         try {
 
             val putObjectRequest = PutObjectRequest.builder()
@@ -72,16 +75,15 @@ class StorageService {
                 .key(objectName).build()
             val requestBody = AsyncRequestBody.fromBytes(content)
             val putObjectResponse = s3Client.putObject(putObjectRequest, requestBody).join()
-            println("Successfully uploaded data to $bucketName/$objectName")
-            println("ETag: ${putObjectResponse.eTag()}")
+            logger.info("Successfully uploaded data to {}/{} (ETag: {})", bucketName, objectName, putObjectResponse.eTag())
         }
         catch (e: Exception) {
-            println("Error uploading file: $e")
+            logger.error("Error uploading file {} to bucket {}", objectName, bucketName, e)
         }
     }
 
     fun downloadFile(objectName: String): ByteArray {
-        println("Downloading file $objectName from bucket $bucketName")
+        logger.debug("Downloading file {} from bucket {}", objectName, bucketName)
         // return byte array of file content
         val getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(objectName).build()
         val response = s3Client
@@ -95,7 +97,7 @@ class StorageService {
      * Streams an object directly to the provided OutputStream without loading it fully into memory.
      */
     fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
-        println("Streaming download of $objectName from bucket $bucketName")
+        logger.debug("Streaming download of {} from bucket {}", objectName, bucketName)
         val getObjectRequest = GetObjectRequest.builder()
             .bucket(bucketName)
             .key(objectName)

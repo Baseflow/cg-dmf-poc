@@ -2,6 +2,7 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.config
 
+import org.slf4j.LoggerFactory
 import java.time.Duration
 
 /**
@@ -9,6 +10,8 @@ import java.time.Duration
  * and provides it to services like StorageService.
  */
 internal object MinioConfig : Config {
+    private val logger = LoggerFactory.getLogger(MinioConfig::class.java)
+
     val urlExpiry: Duration =  Duration.parse(System.getenv("MINIO_URL_EXPIRY") ?: "PT15M")
     val endpoint: String = System.getenv("MINIO_ENDPOINT") ?: "http://localhost:9000"
     val accessKey: String = System.getenv("MINIO_ACCESS_KEY") ?: "minioadmin"
@@ -16,10 +19,8 @@ internal object MinioConfig : Config {
     val bucketName: String = System.getenv("MINIO_BUCKET") ?: "default-bucket"
 
     override fun printConfig() {
-        println("MinioConfig:")
-        println("  endpoint: $endpoint")
-        println("  accessKey: $accessKey")
-        println("  secretKey: $secretKey")
-        println("  bucketName: $bucketName")
+        logger.info("MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}",
+            endpoint, accessKey, bucketName, urlExpiry)
+        logger.debug("MinioConfig: secretKey is set: {}", secretKey.isNotEmpty())
     }
 }
