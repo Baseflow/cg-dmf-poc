@@ -9,7 +9,6 @@ import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
-import com.baseflow.api.serialization.UrlAugmentingSerializer
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.ktor.http.*
 import io.ktor.server.testing.*
@@ -54,16 +53,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
         install(ContentNegotiation) {
-            json(apiJsonConfig {
-                contextual(
-                    EnkelvoudigInformatieObjectResponse::class,
-                    UrlAugmentingSerializer(
-                        EnkelvoudigInformatieObjectResponse.serializer(),
-                        resourceSegment = RESOURCE_SEGMENT,
-                        absolute = true
-                    )
-                )
-            })
+            json(apiJsonConfig())
         }
         install(ConditionalHeaders) {
             version(ApiConditionalHeadersProvider)

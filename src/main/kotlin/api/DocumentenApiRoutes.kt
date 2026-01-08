@@ -5,11 +5,9 @@ package com.baseflow.api
 
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.routes.bestandsDelenRoutes
 import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
 import com.baseflow.api.routes.objectInformatieObjectenRoutes
-import com.baseflow.api.serialization.UrlAugmentingSerializer
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
@@ -39,16 +37,7 @@ import io.ktor.server.routing.*
 fun Application.documentenApiModule() {
     // Configure JSON serialization
     install(ContentNegotiation) {
-        json(apiJsonConfig {
-            contextual(
-                EnkelvoudigInformatieObjectResponse::class,
-                UrlAugmentingSerializer(
-                    EnkelvoudigInformatieObjectResponse.serializer(),
-                    resourceSegment = "enkelvoudiginformatieobjecten",
-                    absolute = true
-                )
-            )
-        })
+        json(apiJsonConfig())
     }
 
     routing {

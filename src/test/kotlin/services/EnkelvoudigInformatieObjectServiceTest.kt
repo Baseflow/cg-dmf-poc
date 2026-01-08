@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
 import com.baseflow.EIORecords
@@ -22,12 +22,13 @@ class EnkelvoudigInformatieObjectServiceTest {
     @BeforeTest
     fun setup() {
         Database.connect(
-            "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;",
+            "jdbc:h2:mem:test_eio;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
             user = "root",
             password = ""
         )
         transaction {
+            // Create in order of dependencies
             SchemaUtils.create(EIORecords, EIOVersions)
         }
         service = EnkelvoudigInformatieObjectService(storageService = StorageService(), ApplicationConfig)
@@ -36,6 +37,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @AfterTest
     fun teardown() {
         transaction {
+            // Drop in reverse order of dependencies
             SchemaUtils.drop(EIOVersions, EIORecords)
         }
     }

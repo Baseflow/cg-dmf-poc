@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.models
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import com.baseflow.api.serialization.UrlAugmentingSerializer
 
 /**
  * Simple EnkelvoudigInformatieObject request model
@@ -88,8 +87,8 @@ data class Integriteit(
 
 @Serializable
 data class EnkelvoudigInformatieObjectResponse(
-    val id: String,
-    val url: String? = null,
+    override val id: String,
+    override val url: String? = null,
     val identificatie: String? = null,
     val bronorganisatie: String,
     val creatiedatum: LocalDate,
@@ -114,7 +113,7 @@ data class EnkelvoudigInformatieObjectResponse(
     val trefwoorden: List<String> = emptyList(),
     val inhoudIsVervallen: Boolean? = null,
     val locked: Boolean,
-)
+) : ApiEntityResponse
 
 @Serializable
 enum class EnkelvoudigInformatieObjectStatus {

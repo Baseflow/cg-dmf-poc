@@ -6,6 +6,7 @@ import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
+import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
@@ -229,6 +230,7 @@ class EnkelvoudigInformatieObjectService {
 
         return EnkelvoudigInformatieObjectResponse(
             id = record.id.value.toString(),
+            url = ApiUrlBuilder.absolute("enkelvoudiginformatieobjecten", record.id.value.toString()),
             identificatie = version.identificatie,
             bronorganisatie = version.bronOrganisatie,
             creatiedatum = version.creatieDatum,
