@@ -57,27 +57,20 @@ fun Route.objectInformatieObjectenRoutes() {
 
     // Create new document-object relation
     post {
-        try {
-            val request = call.receive<CreateOIORequest>()
+        val request = call.receive<CreateOIORequest>()
 
-            when (val result = service.create(request)) {
-                is CreateOIOResult.Success -> {
-                    val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, result.payload.url?.substringAfterLast("/") ?: "")
-                    call.response.headers.append(HttpHeaders.Location, locationUrl)
-                    call.respond(HttpStatusCode.Created, result.payload)
-                }
-                is CreateOIOResult.Conflict -> {
-                    call.respondProblem(
-                        HttpStatusCode.BadRequest,
-                        badRequest(result.message, call.request.path())
-                    )
-                }
+        when (val result = service.create(request)) {
+            is CreateOIOResult.Success -> {
+                val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, result.payload.url?.substringAfterLast("/") ?: "")
+                call.response.headers.append(HttpHeaders.Location, locationUrl)
+                call.respond(HttpStatusCode.Created, result.payload)
             }
-        } catch (e: Exception) {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("Invalid request body: ${e.message}", call.request.path())
-            )
+            is CreateOIOResult.Conflict -> {
+                call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest(result.message, call.request.path())
+                )
+            }
         }
     }
 

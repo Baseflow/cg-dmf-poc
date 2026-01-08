@@ -6,6 +6,7 @@ import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.documentenApiModule
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
@@ -19,6 +20,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
+import io.ktor.server.auth.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
@@ -52,19 +54,8 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         transaction {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
-        install(ContentNegotiation) {
-            json(apiJsonConfig())
-        }
-        install(ConditionalHeaders) {
-            version(ApiConditionalHeadersProvider)
-        }
-        routing {
-            route(API_BASE) {
-                route("/$RESOURCE_SEGMENT") {
-                    enkelvoudigInformatieObjectenRoutes()
-                }
-            }
-        }
+        
+        documentenApiModule(useAuthentication = false)
     }
 
     @Test

@@ -5,9 +5,12 @@ package com.baseflow.api
 
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.routes.bestandsDelenRoutes
 import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
 import com.baseflow.api.routes.objectInformatieObjectenRoutes
+import com.baseflow.api.models.respondProblem
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.authenticate
@@ -34,50 +37,61 @@ import io.ktor.server.routing.*
  * Note: This implementation extends the standard Documenten API to support
  * relations with objects beyond just Zaken (cases).
  */
-fun Application.documentenApiModule() {
+fun Route.documentenApiRoutes() {
+    // API root - provides version info and available endpoints
+    route(DOCUMENTEN_API_BASE_PATH) {
+        install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
+        install(ConditionalHeaders) {
+            version(ApiConditionalHeadersProvider)
+        }
+
+        // Health check endpoint
+        get("/") {
+            call.respond(
+                mapOf(
+                    "service" to "Documenten API",
+                    "version" to DOCUMENTEN_API_VERSION,
+                    "status" to "operational"
+                )
+            )
+        }
+
+        // EnkelvoudigInformatieObject endpoints
+        // These handle the core document CRUD operations
+        route("/enkelvoudiginformatieobjecten") {
+            enkelvoudigInformatieObjectenRoutes()
+        }
+
+        // ObjectInformatieObject endpoints
+        // These handle relations between documents and other objects (Zaken, etc.)
+        route("/objectinformatieobjecten") {
+            objectInformatieObjectenRoutes()
+        }
+
+        // BestandsDeel endpoints
+        // These handle uploads for large files (>4GB support)
+        route("/bestandsdelen") {
+            bestandsDelenRoutes()
+        }
+    }
+}
+
+fun Application.documentenApiModule(useAuthentication: Boolean = true) {
+    // Configure StatusPages for global exception handling
+    configureStatusPages()
+
     // Configure JSON serialization
     install(ContentNegotiation) {
         json(apiJsonConfig())
     }
 
     routing {
-        authenticate("auth-jwt") {
-            // API root - provides version info and available endpoints
-            route(DOCUMENTEN_API_BASE_PATH) {
-                install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
-                install(ConditionalHeaders) {
-                    version(ApiConditionalHeadersProvider)
-                }
-
-                // Health check endpoint
-                get("/") {
-                    call.respond(
-                        mapOf(
-                            "service" to "Documenten API",
-                            "version" to DOCUMENTEN_API_VERSION,
-                            "status" to "operational"
-                        )
-                    )
-                }
-
-                // EnkelvoudigInformatieObject endpoints
-                // These handle the core document CRUD operations
-                route("/enkelvoudiginformatieobjecten") {
-                    enkelvoudigInformatieObjectenRoutes()
-                }
-
-                // ObjectInformatieObject endpoints
-                // These handle relations between documents and other objects (Zaken, etc.)
-                route("/objectinformatieobjecten") {
-                    objectInformatieObjectenRoutes()
-                }
-
-                // BestandsDeel endpoints
-                // These handle uploads for large files (>4GB support)
-                route("/bestandsdelen") {
-                    bestandsDelenRoutes()
-                }
+        if (useAuthentication) {
+            authenticate("auth-jwt") {
+                documentenApiRoutes()
             }
+        } else {
+            documentenApiRoutes()
         }
     }
 }

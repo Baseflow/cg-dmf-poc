@@ -4,6 +4,7 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.documentenApiModule
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ProblemDetailsResponse
@@ -20,6 +21,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.server.auth.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import com.baseflow.api.apiJsonConfig
@@ -70,21 +72,8 @@ class ObjectInformatieObjectenRoutesTest {
             user = "root",
             password = ""
         )
-        install(ContentNegotiation) {
-            json(apiJsonConfig {})
-        }
-        routing {
-            route(API_BASE) {
-                // Add EIO routes for testing
-                route("/enkelvoudiginformatieobjecten") {
-                    enkelvoudigInformatieObjectenRoutes()
-                }
 
-                route("/$RESOURCE_SEGMENT") {
-                    objectInformatieObjectenRoutes()
-                }
-            }
-        }
+        documentenApiModule(useAuthentication = false)
     }
 
     // Helper to create an EIO record using the service
@@ -429,7 +418,10 @@ class ObjectInformatieObjectenRoutesTest {
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
-        assertTrue(response.bodyAsText().contains("Invalid request body"))
+        val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
+        assertEquals(HttpStatusCode.BadRequest.value, body.status)
+        assertEquals("Bad Request", body.title)
+        assertTrue(body.detail?.contains("Invalid request body") == true)
     }
 
     @Test

@@ -22,6 +22,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm:3.3.3")
     implementation("io.ktor:ktor-server-content-negotiation:3.3.3")
     implementation("io.ktor:ktor-server-conditional-headers:3.3.3")
+    implementation("io.ktor:ktor-server-status-pages:3.3.3")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.3")
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.3.3")
     testImplementation("io.ktor:ktor-client-content-negotiation:3.3.3")
