@@ -8,6 +8,7 @@ package com.baseflow.tooling
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersions
+import com.baseflow.entities.OIORecords
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -31,6 +32,7 @@ fun main(args: Array<String>) {
         println("\nAvailable tables to generate migrations for:")
         println("  - EIORecords")
         println("  - EIOVersions")
+        println("  - OIORecords")
         return
     }
 
@@ -51,7 +53,7 @@ fun main(args: Array<String>) {
     transaction(database) {
         // Generate migration for all our tables
         // MigrationUtils will compare current DB state with Table definitions
-        val tables = listOf<Table>(EIORecords, EIOVersions)
+        val tables = listOf<Table>(EIORecords, EIOVersions, OIORecords)
 
         try {
             MigrationUtils.generateMigrationScript(
