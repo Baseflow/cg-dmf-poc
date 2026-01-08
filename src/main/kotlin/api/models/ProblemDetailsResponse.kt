@@ -21,7 +21,7 @@ data class ProblemDetailsResponse(
     val status: Int,
     val detail: String? = null,
     val instance: String? = null
-)
+) : ApiResponse
 
 private val problemJson = Json {
     encodeDefaults = false

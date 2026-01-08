@@ -4,7 +4,7 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.models.CreateEIORequest
-import com.baseflow.api.models.EioPaginatedResponse
+import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
@@ -57,7 +57,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         )
 
         val items = service.getAll(filter)
-        val response = EioPaginatedResponse(
+        val response = PaginatedResponse(
             count = items.size,
             next = null,
             previous = null,

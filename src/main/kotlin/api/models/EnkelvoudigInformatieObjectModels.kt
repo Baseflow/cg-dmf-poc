@@ -31,7 +31,7 @@ data class CreateEIORequest(
 //    val informatieobjecttype: String,
     val trefwoorden: List<String>? = null,
     val inhoudIsVervallen: Boolean? = null
-)
+) : ApiRequest
 {
     init {
         // Required fields
@@ -185,4 +185,4 @@ enum class OndertekeningSoort {
 @Serializable
 data class UnlockEIORequest(
     val lock: String
-)
+) : ApiRequest

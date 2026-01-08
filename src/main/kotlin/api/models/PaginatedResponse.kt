@@ -8,6 +8,6 @@ data class PaginatedResponse<T>(
     val next: String? = null,
     val previous: String? = null,
     val results: List<T>
-)
+): ApiResponse
 
 
