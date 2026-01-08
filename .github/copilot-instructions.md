@@ -74,9 +74,10 @@ It should support additional filtering for new object relations other than Zaken
 When possible, I want new files to have a prefix of:
 ```
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2026 Gemeente Utrecht
 ```
 But use appropriate commenting, and some files may simply not be suited to be prefixed with this.
+If you edit a file and the years in the header are not matching, you can update it to a range of the year that was already there and the year in the example.
 
 ## Deployment
 

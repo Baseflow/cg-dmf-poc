@@ -61,24 +61,23 @@ class StorageService {
     }
 
     fun uploadFile(objectName: String, content: ByteArray) {
-        if (!s3Client.listBuckets().join().buckets().any { it.name() == bucketName }) {
-            logger.info("Bucket {} does not exist, creating it", bucketName)
-            val createBucketResponse = s3Client.createBucket { it.bucket(bucketName) }.join()
-            logger.debug("Bucket created: {}", createBucketResponse)
-        }
-
-        logger.debug("Uploading file {} to bucket {} (size: {} bytes)", objectName, bucketName, content.size)
         try {
+            if (!s3Client.listBuckets().join().buckets().any { it.name() == bucketName }) {
+                logger.info("Bucket {} does not exist, creating it", bucketName)
+                val createBucketResponse = s3Client.createBucket { it.bucket(bucketName) }.join()
+                logger.debug("Bucket created: {}", createBucketResponse)
+            }
 
+            logger.debug("Uploading file {} to bucket {} (size: {} bytes)", objectName, bucketName, content.size)
             val putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectName).build()
             val requestBody = AsyncRequestBody.fromBytes(content)
             val putObjectResponse = s3Client.putObject(putObjectRequest, requestBody).join()
             logger.info("Successfully uploaded data to {}/{} (ETag: {})", bucketName, objectName, putObjectResponse.eTag())
-        }
-        catch (e: Exception) {
-            logger.error("Error uploading file {} to bucket {}", objectName, bucketName, e)
+        } catch (e: Exception) {
+            logger.error("Failed to upload file {} to bucket {}: {}", objectName, bucketName, e.message, e)
+            throw e
         }
     }
 

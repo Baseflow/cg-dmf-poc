@@ -35,6 +35,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.OutputStream
 import java.util.UUID
@@ -138,12 +139,6 @@ class EnkelvoudigInformatieObjectService {
 
             // Base query: Record + Version, filtered and ordered by versie desc
             val query = EIORecords
-                .join(
-                    EIOVersions,
-                    JoinType.INNER,
-                    onColumn = EIORecords.id,
-                    otherColumn = EIOVersions.recordId
-                )
                 .selectAll()
                 .apply {
                     if (condition != Op.TRUE) {
@@ -153,7 +148,9 @@ class EnkelvoudigInformatieObjectService {
                 .offset(offset)
                 .limit(pageSize)
 
-            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(query).toList()
+            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(query)
+                .with(EIORecordEntity::versions)
+                .toList()
 
             // get the latest version for each record
             records.mapNotNull { rec ->

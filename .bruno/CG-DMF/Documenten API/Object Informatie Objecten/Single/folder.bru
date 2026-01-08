@@ -16,11 +16,11 @@ script:pre-request {
   }
   
   const data = response.data;
-  if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     throw new Error("No results returned from Get All");
   }
   
-  const firstId = data.results[0].id;
+  const firstId = data[0].id;
   bru.setVar("firstId", firstId);
   
 }
