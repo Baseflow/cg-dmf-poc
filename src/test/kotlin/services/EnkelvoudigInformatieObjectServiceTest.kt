@@ -2,14 +2,13 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.EIORecords
-import com.baseflow.EIOVersions
 import com.baseflow.EIORecordEntity
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
+import com.baseflow.tooling.AllTables
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -28,8 +27,8 @@ class EnkelvoudigInformatieObjectServiceTest {
             password = ""
         )
         transaction {
-            // Create in order of dependencies
-            SchemaUtils.create(EIORecords, EIOVersions)
+            // Create all tables
+            AllTables.createMissing()
         }
         service = EnkelvoudigInformatieObjectService(storageService = StorageService(), ApplicationConfig)
     }
@@ -38,7 +37,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     fun teardown() {
         transaction {
             // Drop in reverse order of dependencies
-            SchemaUtils.drop(EIOVersions, EIORecords)
+            SchemaUtils.drop(*AllTables.tables.reversedArray())
         }
     }
 

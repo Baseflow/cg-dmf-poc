@@ -26,6 +26,8 @@ with additional filtering for new relations between non-Zaken objects.
 
 The project uses Flyway for managing database schema changes. We use Exposed 1.0.0-rc-4 with migration utilities.
 
+All tables should be listed in `src/main/kotlin/tooling/AllTables.kt`.
+
 ### Quick Commands
 - **Apply migrations:** `./gradlew flywayMigrate`
 - **Check status:** `./gradlew flywayInfo`
@@ -83,6 +85,12 @@ If you edit a file and the years in the header are not matching, you can update 
 
 - Development: Docker Compose
 - Production: Kubernetes manifests provided
+
+## Testing
+
+- Unit tests should be made for business logic
+- Unit tests are located in `src/test/kotlin`
+- Examples to use and test a running server are also desired in the form of Bruno (a Postman like tool). These are stored in the .bruno directory.
 
 ## API Specification
 

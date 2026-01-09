@@ -2,40 +2,49 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.api.routes
 
-import com.baseflow.EIORecords
-import com.baseflow.EIOVersions
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
-import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
+import com.baseflow.tooling.AllTables
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import io.ktor.server.routing.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
-import io.ktor.server.auth.*
 import kotlin.test.Test
+import kotlin.test.BeforeTest
 import kotlin.test.assertEquals
 import kotlinx.serialization.json.Json
-import com.baseflow.api.apiJsonConfig
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import java.util.UUID
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 
 class EnkelvoudigInformatieObjectenRoutesTest {
+    private lateinit var dbName: String
+
+    @BeforeTest
+    fun setup() {
+        dbName = "eio_routes_${UUID.randomUUID()}"
+        Database.connect(
+            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver",
+            user = "root",
+            password = ""
+        )
+        transaction {
+            AllTables.createMissing()
+        }
+    }
+
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
         private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
@@ -46,14 +55,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     private fun Application.testModule() {
         Database.connect(
-            "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;",
+            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
             user = "root",
             password = ""
         )
-        transaction {
-            SchemaUtils.create(EIORecords, EIOVersions)
-        }
         
         documentenApiModule(useAuthentication = false)
     }
@@ -193,7 +199,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `HEAD enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
         application { testModule() }
 
-        val resp = client.head("$API_BASE/$RESOURCE_SEGMENT/${java.util.UUID.randomUUID()}")
+        val resp = client.head("$API_BASE/$RESOURCE_SEGMENT/${UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, resp.status)
     }
 
@@ -230,7 +236,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     fun `DELETE enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
         application { testModule() }
 
-        val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/${java.util.UUID.randomUUID()}")
+        val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/${UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, del.status)
     }
 

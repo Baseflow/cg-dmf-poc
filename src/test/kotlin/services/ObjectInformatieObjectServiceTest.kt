@@ -5,14 +5,13 @@ package com.baseflow.services
 import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
-import com.baseflow.EIOVersions
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.entities.OIORecordEntity
-import com.baseflow.entities.OIORecords
 import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
 import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
+import com.baseflow.tooling.AllTables
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -35,8 +34,8 @@ class ObjectInformatieObjectServiceTest {
             password = ""
         )
         transaction {
-            // Create in correct order of dependency
-            SchemaUtils.create(EIORecords, EIOVersions, OIORecords)
+            // Create all tables
+            AllTables.createMissing()
         }
         service = ObjectInformatieObjectService(resourceSegment = "objectinformatieobjecten")
     }
@@ -44,8 +43,8 @@ class ObjectInformatieObjectServiceTest {
     @AfterTest
     fun teardown() {
         transaction {
-            // Drop in reverse order of dependencies
-            SchemaUtils.drop(OIORecords, EIOVersions, EIORecords)
+            // Drop all tables in reverse order
+            SchemaUtils.drop(*AllTables.tables.reversedArray())
         }
     }
 

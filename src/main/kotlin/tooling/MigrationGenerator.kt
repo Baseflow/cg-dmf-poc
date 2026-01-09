@@ -6,11 +6,7 @@
 package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
-import com.baseflow.EIORecords
-import com.baseflow.EIOVersions
-import com.baseflow.entities.OIORecords
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
-import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
@@ -27,16 +23,14 @@ import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
  */
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("Usage: ./gradlew generateMigration --args='<script_name>'")
+        println("Usage: ./gradlew generateMigration --args='<script_name> [table_name]'")
         println("Example: ./gradlew generateMigration --args='V2__Add_title_column'")
-        println("\nAvailable tables to generate migrations for:")
-        println("  - EIORecords")
-        println("  - EIOVersions")
-        println("  - OIORecords")
+        println("Example: ./gradlew generateMigration --args='V3__Create_bestandsdelen bestandsdelen'")
         return
     }
 
     val scriptName = args[0]
+    val filterTableName = if (args.size > 1) args[1] else null
 
     // Connect to the database
     val database = Database.connect(
@@ -46,18 +40,32 @@ fun main(args: Array<String>) {
         driver = DatabaseConfig.driver
     )
 
-    println("Generating migration script: $scriptName")
+    if (filterTableName != null) {
+        println("Generating migration script: $scriptName (filtered for table: $filterTableName)")
+    } else {
+        println("Generating migration script: $scriptName")
+    }
     println("Comparing with database: ${DatabaseConfig.url}")
     println()
 
     transaction(database) {
-        // Generate migration for all our tables
+        // Generate migration for filtered tables or all tables
         // MigrationUtils will compare current DB state with Table definitions
-        val tables = listOf<Table>(EIORecords, EIOVersions, OIORecords)
+        val allTables = AllTables.tables
+        val tables = if (filterTableName != null) {
+            val filtered = allTables.filter { it.tableName == filterTableName }.toTypedArray()
+            if (filtered.isEmpty()) {
+                println("✗ Error: Table '$filterTableName' not found in AllTables. Available tables: ${allTables.joinToString { it.tableName }}")
+                return@transaction
+            }
+            filtered
+        } else {
+            allTables
+        }
 
         try {
             MigrationUtils.generateMigrationScript(
-                *tables.toTypedArray(),
+                *tables,
                 scriptDirectory = "src/main/resources/db/migration",
                 scriptName = scriptName,
             )

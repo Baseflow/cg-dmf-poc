@@ -9,36 +9,25 @@ import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.SubjectTypeEnum
-import com.baseflow.entities.OIORecords
-import com.baseflow.EIORecords
-import com.baseflow.EIOVersions
 import io.ktor.http.*
-import io.ktor.client.*
 import io.ktor.server.testing.*
-import io.ktor.server.routing.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.server.auth.*
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import com.baseflow.api.apiJsonConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.StorageService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.testutils.TestDataFactory
+import com.baseflow.tooling.AllTables
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.Test
 import kotlin.test.BeforeTest
-import kotlinx.serialization.json.jsonPrimitive
 
 class ObjectInformatieObjectenRoutesTest {
     private lateinit var dbName: String
@@ -53,7 +42,7 @@ class ObjectInformatieObjectenRoutesTest {
             password = ""
         )
         transaction {
-            SchemaUtils.create(EIORecords, EIOVersions, OIORecords)
+            AllTables.createMissing()
         }
     }
 

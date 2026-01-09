@@ -1,0 +1,26 @@
+package com.baseflow.tooling
+
+import com.baseflow.EIORecords
+import com.baseflow.EIOVersions
+import com.baseflow.entities.OIORecords
+import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
+
+@OptIn(ExperimentalDatabaseMigrationApi::class)
+object AllTables {
+    val tables: Array<Table> = arrayOf(
+        EIORecords,
+        EIOVersions,
+        OIORecords
+    )
+
+    fun createMissing() {
+        transaction {
+            MigrationUtils.statementsRequiredForDatabaseMigration(*tables).forEach {
+                exec(it)
+            }
+        }
+    }
+}
