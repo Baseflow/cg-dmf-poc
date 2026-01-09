@@ -86,7 +86,7 @@ class EnkelvoudigInformatieObjectService {
             val httpClient = HttpClient(CIO);
 
             // make http get request to openzaak.endpoint + /catalogi/api/v1/informatieobjecttypen + request.informatieobjecttype
-            val endpoint = OpenZaakConfig.endpoint + "/catalogi/api/v1/informatieobjecttypen" + request.informatieobjecttype
+            val endpoint = OpenZaakConfig.endpoint + "/catalogi/api/v1/informatieobjecttypen/" + request.informatieobjecttype
             println(endpoint)
 
             // construct request and add the jwt token to the bearer authorization header
