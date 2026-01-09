@@ -23,13 +23,15 @@ import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
+import io.ktor.http.headers
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.ArrayColumnType
 import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.QueryParameter
@@ -38,10 +40,13 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.dao.with
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.OutputStream
 import java.util.UUID
 import kotlin.io.encoding.Base64
+import kotlin.text.get
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -64,8 +69,8 @@ class EnkelvoudigInformatieObjectService {
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
-        return transaction {
+    suspend fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
+        return suspendTransaction {
             val record = EIORecordEntity.new {
             }
 
@@ -78,17 +83,27 @@ class EnkelvoudigInformatieObjectService {
             }
 
             val jwtToken = OpenZaakConfig.generateJwtToken()
-            val httpClient = HttpClient();
-            httpClient.
+            val httpClient = HttpClient(CIO);
+
             // make http get request to openzaak.endpoint + /catalogi/api/v1/informatieobjecttypen + request.informatieobjecttype
+            val endpoint = OpenZaakConfig.endpoint + "/catalogi/api/v1/informatieobjecttypen" + request.informatieobjecttype
+            println(endpoint)
 
-
+            // construct request and add the jwt token to the bearer authorization header
+            val response = httpClient.get(endpoint) {
+                headers {
+                    append("Authorization", "Bearer $jwtToken")
+                }
+            }
+            if (response.status.value != 200) {
+                throw Exception("Error fetching information object type from OpenZaak")
+            }
 
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1
                 bronOrganisatie = request.bronorganisatie
-//                informatieobject type = request.informatieobjecttype
+                //informatieobject_type = request.informatieobjecttype
                 taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
