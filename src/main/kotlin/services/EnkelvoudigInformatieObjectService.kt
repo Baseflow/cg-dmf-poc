@@ -111,7 +111,7 @@ class EnkelvoudigInformatieObjectService {
                 identificatie = request.identificatie.orEmpty()
 
             }
-            mapToResponse(record, version)
+            record.toResponse(version)
         }
     }
 
@@ -123,7 +123,7 @@ class EnkelvoudigInformatieObjectService {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
-            mapToResponse(record, version)
+            record.toResponse(version)
         }
     }
 
@@ -166,7 +166,7 @@ class EnkelvoudigInformatieObjectService {
             val results = records.mapNotNull { rec ->
                 val version = rec.versions.maxByOrNull { it.versie }
                     ?: return@mapNotNull null
-                mapToResponse(rec, version)
+                rec.toResponse(version)
             }
 
             results to totalCount
@@ -207,13 +207,12 @@ class EnkelvoudigInformatieObjectService {
                 status = request.status?.toString().orEmpty()
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
             }
-            mapToResponse(record, version)
+            record.toResponse(version)
         }
     }
 
     @OptIn(ExperimentalTime::class)
-    fun mapToResponse(
-        record: EIORecordEntity,
+    private fun EIORecordEntity.toResponse(
         version: EIOVersionEntity
     ): EnkelvoudigInformatieObjectResponse {
 
@@ -236,15 +235,15 @@ class EnkelvoudigInformatieObjectService {
 
         val inhoudUrl = when {
             version.bestandsnaam.isNotEmpty() -> {
-                val base = this.applicationConfig.baseUrl()
-                "$base${DOCUMENTEN_API_BASE_PATH}/enkelvoudiginformatieobjecten/${record.id}/download?versie=${version.versie}"
+                val base = applicationConfig.baseUrl()
+                "$base${DOCUMENTEN_API_BASE_PATH}/enkelvoudiginformatieobjecten/${this.id}/download?versie=${version.versie}"
             }
             else -> null
         }
 
         return EnkelvoudigInformatieObjectResponse(
-            id = record.id.value.toString(),
-            url = ApiUrlBuilder.absolute("enkelvoudiginformatieobjecten", record.id.value.toString()),
+            id = this.id.value.toString(),
+            url = ApiUrlBuilder.absolute("enkelvoudiginformatieobjecten", this.id.value.toString()),
             identificatie = version.identificatie,
             bronorganisatie = version.bronOrganisatie,
             creatiedatum = version.creatieDatum,
@@ -270,7 +269,7 @@ class EnkelvoudigInformatieObjectService {
             informatieobjecttype = version.informatieobject_type,
             trefwoorden = version.trefwoorden,
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
-            locked = record.lockToken != null,
+            locked = this.lockToken != null,
             versie = version.versie,
             beginRegistratie = version.beginRegistratie
                 .toInstant(TimeZone.UTC)

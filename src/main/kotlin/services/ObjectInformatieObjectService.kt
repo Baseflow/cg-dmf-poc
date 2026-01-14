@@ -56,9 +56,7 @@ class ObjectInformatieObjectService(private val resourceSegment: String) {
 
             OIORecordEntity.wrapRows(query)
                 .with(OIORecordEntity::informatieobject)
-                .map { entity ->
-                    entity.toResponse()
-                }
+                .map { it.toResponse() }
         }
     }
 
