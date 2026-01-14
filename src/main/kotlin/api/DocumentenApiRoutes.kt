@@ -9,6 +9,7 @@ import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.routes.bestandsDelenRoutes
 import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
 import com.baseflow.api.routes.objectInformatieObjectenRoutes
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.api.models.respondProblem
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.*
@@ -37,7 +38,7 @@ import io.ktor.server.routing.*
  * Note: This implementation extends the standard Documenten API to support
  * relations with objects beyond just Zaken (cases).
  */
-fun Route.documentenApiRoutes() {
+fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
         install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
@@ -59,7 +60,7 @@ fun Route.documentenApiRoutes() {
         // EnkelvoudigInformatieObject endpoints
         // These handle the core document CRUD operations
         route("/enkelvoudiginformatieobjecten") {
-            enkelvoudigInformatieObjectenRoutes()
+            enkelvoudigInformatieObjectenRoutes(openZaakConfig)
         }
 
         // ObjectInformatieObject endpoints
@@ -76,7 +77,7 @@ fun Route.documentenApiRoutes() {
     }
 }
 
-fun Application.documentenApiModule(useAuthentication: Boolean = true) {
+fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // Configure StatusPages for global exception handling
     configureStatusPages()
 
@@ -88,10 +89,10 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true) {
     routing {
         if (useAuthentication) {
             authenticate("auth-jwt") {
-                documentenApiRoutes()
+                documentenApiRoutes(openZaakConfig)
             }
         } else {
-            documentenApiRoutes()
+            documentenApiRoutes(openZaakConfig)
         }
     }
 }

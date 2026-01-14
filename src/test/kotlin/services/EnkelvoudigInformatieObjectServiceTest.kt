@@ -4,11 +4,13 @@ package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
 import com.baseflow.tooling.AllTables
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -30,7 +32,8 @@ class EnkelvoudigInformatieObjectServiceTest {
             // Create all tables
             AllTables.createMissing()
         }
-        service = EnkelvoudigInformatieObjectService(storageService = StorageService(), ApplicationConfig)
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        service = EnkelvoudigInformatieObjectService(storageService = StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
     }
 
     @AfterTest
@@ -42,17 +45,18 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `create should persist and return correct data`() {
+    fun `create should persist and return correct data`() = runBlocking {
         val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
         val resp = service.create(req)
         assertEquals("dut", resp.taal)
         assertEquals("doc.pdf", resp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, resp.informatieobjecttype)
         assertEquals(1, resp.versie)
         assertTrue(resp.id.isNotEmpty())
     }
 
     @Test
-    fun `getById should return created object`() {
+    fun `getById should return created object`() = runBlocking {
         val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
         val created = service.create(req)
         val found = service.getById(UUID.fromString(created.id))
@@ -64,15 +68,16 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `update should increment version and persist new data`() {
+    fun `update should increment version and persist new data`() = runBlocking {
         val req = generateTestDocument()
         val created = service.create(req)
-        val updateReq = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf")
+        val updateReq = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf", informatieobjecttype = "https://example.com/api/v1/informatieobjecttypen/new-type")
         val updated = service.update(UUID.fromString(created.id), updateReq)
         assertNotNull(updated)
         assertEquals(created.id, updated!!.id)
         assertEquals("eng", updated.taal)
         assertEquals("doc2.pdf", updated.bestandsnaam)
+        assertEquals(updateReq.informatieobjecttype, updated.informatieobjecttype)
         assertEquals(2, updated.versie)
     }
 
@@ -83,7 +88,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `lock should set lock token and persist in DB`() {
+    fun `lock should set lock token and persist in DB`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
 
@@ -101,7 +106,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `lock should return AlreadyLocked when already locked`() {
+    fun `lock should return AlreadyLocked when already locked`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
 
@@ -113,7 +118,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `unlock with correct token should clear lock`() {
+    fun `unlock with correct token should clear lock`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
         val lockRes = service.lock(id) as LockResult.Success
@@ -130,7 +135,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `unlock when not locked should return NotLocked`() {
+    fun `unlock when not locked should return NotLocked`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
 
@@ -139,7 +144,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `unlock with invalid token should return InvalidLock and keep lock`() {
+    fun `unlock with invalid token should return InvalidLock and keep lock`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
         val lockRes = service.lock(id) as LockResult.Success
@@ -156,7 +161,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `exists should return true for existing id and false for random id`() {
+    fun `exists should return true for existing id and false for random id`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
         assertTrue(service.exists(id))
@@ -170,7 +175,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `delete should return Locked when record has lockToken`() {
+    fun `delete should return Locked when record has lockToken`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
         // lock it
@@ -180,12 +185,22 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `delete should return Success when record exists and is not locked`() {
+    fun `delete should return Success when record exists and is not locked`() = runBlocking {
         val created = service.create(generateTestDocument())
         val id = UUID.fromString(created.id)
         val res = service.delete(id)
         assertTrue(res is DeleteResult.Success)
         // and now it should not exist
         assertFalse(service.exists(id))
+    }
+
+    @Test
+    fun `create should fail when informatieobjecttype exceeds 200 characters`() = runBlocking {
+        val longUrl = "https://example.com/" + "a".repeat(181) // 20 + 181 = 201 chars
+
+        val exception = assertFailsWith<IllegalArgumentException> {
+            generateTestDocument(informatieobjecttype = longUrl)
+        }
+        assertEquals("Informatieobjecttype mag maximaal 200 karakters lang zijn", exception.message)
     }
 }

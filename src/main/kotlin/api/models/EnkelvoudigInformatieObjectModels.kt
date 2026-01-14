@@ -28,7 +28,7 @@ data class CreateEIORequest(
     val verschijningsvorm: String? = null,
     val ondertekening: Ondertekening? = null,
     val integriteit: Integriteit? = null,
-//    val informatieobjecttype: String,
+    val informatieobjecttype: String,
     val trefwoorden: List<String>? = null,
     val inhoudIsVervallen: Boolean? = null
 ) : ApiRequest
@@ -48,6 +48,7 @@ data class CreateEIORequest(
         require(beschrijving.isNullOrBlank() || beschrijving.length <= 1000) { "Beschrijving mag maximaal 1000 karakters lang zijn" }
         require(formaat.isNullOrEmpty() || formaat.length <= 255) { "Formaat mag maximaal 255 karakters lang zijn" }
         require(link.isNullOrEmpty() || link.length <= 200) { "Link mag maximaal 200 karakters lang zijn" }
+        require(informatieobjecttype.length <= 200) { "Informatieobjecttype mag maximaal 200 karakters lang zijn" }
         require(trefwoorden.isNullOrEmpty() || trefwoorden.all { it.length <= 100 }) { "Elk trefwoord mag maximaal 100 karakters lang zijn" }
 
         // format checks

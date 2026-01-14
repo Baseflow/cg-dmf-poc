@@ -7,7 +7,7 @@
     ".git"
   ],
   "scripts": {
-    "moduleWhitelist": ["fs", "path"],
+    "moduleWhitelist": ["fs", "path", "jsonwebtoken"],
     "filesystemAccess": {
       "allow": true
     }

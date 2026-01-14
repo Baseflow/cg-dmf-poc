@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
 import com.baseflow.api.ApiUrlBuilder
@@ -7,7 +7,9 @@ import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
@@ -34,11 +36,12 @@ import java.util.UUID
 
 private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
 
-fun Route.enkelvoudigInformatieObjectenRoutes() {
+fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
-    val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig)
+    val openZaakService = OpenZaakService(openZaakConfig)
+    val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, openZaakService)
 
     // List all documents (with optional filters)
     get {

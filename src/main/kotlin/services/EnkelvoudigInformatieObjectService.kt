@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
@@ -27,7 +27,6 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.ArrayColumnType
 import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.QueryParameter
@@ -36,7 +35,9 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.dao.with
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.io.OutputStream
 import java.util.UUID
 import kotlin.io.encoding.Base64
@@ -49,12 +50,15 @@ import kotlin.time.ExperimentalTime
  */
 class EnkelvoudigInformatieObjectService {
 
+    private val logger = LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
     private val storageService : StorageService
     private val applicationConfig : ApplicationConfig
+    private val openZaakService : OpenZaakService
 
-    constructor(storageService: StorageService, applicationConfig: ApplicationConfig) {
+    constructor(storageService: StorageService, applicationConfig: ApplicationConfig, openZaakService: OpenZaakService) {
         this.storageService = storageService
         this.applicationConfig = applicationConfig
+        this.openZaakService = openZaakService
     }
 
     /**
@@ -62,8 +66,8 @@ class EnkelvoudigInformatieObjectService {
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
-        return transaction {
+    suspend fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
+        return suspendTransaction {
             val record = EIORecordEntity.new {
             }
 
@@ -75,11 +79,14 @@ class EnkelvoudigInformatieObjectService {
                 storageService.uploadFile(request.bestandsnaam, content)
             }
 
+            // Validate informatieobjecttype against OpenZaak
+            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1
                 bronOrganisatie = request.bronorganisatie
-//                informatieobject type = request.informatieobjecttype
+                informatieobject_type = request.informatieobjecttype
                 taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
@@ -174,14 +181,19 @@ class EnkelvoudigInformatieObjectService {
      * Increments version and creates new EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
-        return transaction {
-            val record = EIORecordEntity.findById(id) ?: return@transaction null
+    suspend fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
+        return suspendTransaction {
+            val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
+
+            // Validate informatieobjecttype against OpenZaak
+            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+
             val latestVersion = record.versions.maxByOrNull { it.versie }
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
+                informatieobject_type = request.informatieobjecttype
                 taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
@@ -250,7 +262,7 @@ class EnkelvoudigInformatieObjectService {
             verschijningsvorm = version.verschijningsVorm,
             ondertekening = ondertekening,
             integriteit = integriteit,
-            informatieobjecttype = "EnkelvoudigInformatieObject",
+            informatieobjecttype = version.informatieobject_type,
             trefwoorden = version.trefwoorden,
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = record.lockToken != null,

@@ -10,6 +10,7 @@
     "init_hook": [
       "echo 'Welcome to devbox!' > /dev/null",
       "alias idea=\"~/.local/bin/idea-launch.sh > /dev/null 2>&1 &\"",
+      "alias bru=\"bruno > /dev/null 2>&1 &\"",
     ],
     "scripts": {
       "test": [

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
@@ -61,7 +62,8 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             password = ""
         )
         
-        documentenApiModule(useAuthentication = false)
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
     }
 
     @Test
