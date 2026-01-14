@@ -13,11 +13,14 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.ktor.server.application.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.tooling.AllTables
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -62,16 +65,16 @@ class ObjectInformatieObjectenRoutesTest {
             password = ""
         )
 
-        documentenApiModule(useAuthentication = false)
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
     }
 
     // Helper to create an EIO record using the service
-    private fun createTestEIO(): String {
-        val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig)
+    private fun createTestEIO(): String = runBlocking {
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
         val request = TestDataFactory.generateTestDocument(taal = "nld")
-        return transaction {
-            service.create(request).id
-        }
+        return@runBlocking service.create(request).id
     }
 
     @Test

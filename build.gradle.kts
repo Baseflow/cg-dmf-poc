@@ -18,6 +18,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("com.h2database:h2:2.4.240")
     testImplementation("io.mockk:mockk:1.14.7")
+    testImplementation("io.ktor:ktor-client-mock:3.3.3")
     implementation("io.ktor:ktor-server-core-jvm:3.3.3")
     implementation("io.ktor:ktor-server-netty-jvm:3.3.3")
     implementation("io.ktor:ktor-client-core:3.3.3")

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
@@ -16,16 +16,11 @@ import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.config.ApplicationConfig
-import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.get
-import io.ktor.http.headers
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
@@ -40,13 +35,12 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.dao.with
-import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.io.OutputStream
 import java.util.UUID
 import kotlin.io.encoding.Base64
-import kotlin.text.get
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -56,12 +50,15 @@ import kotlin.time.ExperimentalTime
  */
 class EnkelvoudigInformatieObjectService {
 
+    private val logger = LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
     private val storageService : StorageService
     private val applicationConfig : ApplicationConfig
+    private val openZaakService : OpenZaakService
 
-    constructor(storageService: StorageService, applicationConfig: ApplicationConfig) {
+    constructor(storageService: StorageService, applicationConfig: ApplicationConfig, openZaakService: OpenZaakService) {
         this.storageService = storageService
         this.applicationConfig = applicationConfig
+        this.openZaakService = openZaakService
     }
 
     /**
@@ -82,28 +79,14 @@ class EnkelvoudigInformatieObjectService {
                 storageService.uploadFile(request.bestandsnaam, content)
             }
 
-            val jwtToken = OpenZaakConfig.generateJwtToken()
-            val httpClient = HttpClient(CIO);
-
-            // make http get request to openzaak.endpoint + /catalogi/api/v1/informatieobjecttypen + request.informatieobjecttype
-            val endpoint = OpenZaakConfig.endpoint + "/catalogi/api/v1/informatieobjecttypen/" + request.informatieobjecttype
-            println(endpoint)
-
-            // construct request and add the jwt token to the bearer authorization header
-            val response = httpClient.get(endpoint) {
-                headers {
-                    append("Authorization", "Bearer $jwtToken")
-                }
-            }
-            if (response.status.value != 200) {
-                throw Exception("Error fetching information object type from OpenZaak")
-            }
+            // Validate informatieobjecttype against OpenZaak
+            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
 
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = 1
                 bronOrganisatie = request.bronorganisatie
-                //informatieobject_type = request.informatieobjecttype
+                informatieobject_type = request.informatieobjecttype
                 taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
@@ -198,14 +181,19 @@ class EnkelvoudigInformatieObjectService {
      * Increments version and creates new EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
-        return transaction {
-            val record = EIORecordEntity.findById(id) ?: return@transaction null
+    suspend fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
+        return suspendTransaction {
+            val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
+
+            // Validate informatieobjecttype against OpenZaak
+            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+
             val latestVersion = record.versions.maxByOrNull { it.versie }
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
+                informatieobject_type = request.informatieobjecttype
                 taal = request.taal
                 bestandsnaam = request.bestandsnaam.orEmpty()
                 titel = request.titel
@@ -274,7 +262,7 @@ class EnkelvoudigInformatieObjectService {
             verschijningsvorm = version.verschijningsVorm,
             ondertekening = ondertekening,
             integriteit = integriteit,
-            informatieobjecttype = "EnkelvoudigInformatieObject",
+            informatieobjecttype = version.informatieobject_type,
             trefwoorden = version.trefwoorden,
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = record.lockToken != null,
