@@ -3,14 +3,24 @@
 package com.baseflow.api
 
 import com.baseflow.config.ApplicationConfig
+import io.ktor.http.*
 
 /**
  * Helper to construct relative and absolute API URLs for resources.
  */
 object ApiUrlBuilder {
-    fun path(segment: String, id: String): String =
-        "$DOCUMENTEN_API_BASE_PATH/$segment/$id"
+    fun path(vararg segments: String): String {
+        return URLBuilder().apply {
+            path(DOCUMENTEN_API_BASE_PATH, *segments)
+        }.build().encodedPath
+    }
 
-    fun absolute(segment: String, id: String): String =
-        ApplicationConfig.baseUrl() + path(segment, id)
+    fun absolute(vararg segments: String, queryParameters: Map<String, String> = emptyMap()): String {
+        return URLBuilder(ApplicationConfig.baseUrl()).apply {
+            path(DOCUMENTEN_API_BASE_PATH, *segments)
+            queryParameters.forEach { (key, value) ->
+                parameters.append(key, value)
+            }
+        }.buildString()
+    }
 }

@@ -27,8 +27,10 @@ object TestDataFactory {
         bestandsnaam: String = "test.pdf",
         titel: String = "test",
         auteur: String = "auteur",
-        informatieobjecttype: String = VALID_INFORMATIEOBJECTTYPE_URL
+        informatieobjecttype: String = VALID_INFORMATIEOBJECTTYPE_URL,
+        identificatie: String? = null
     ): CreateEIORequest = CreateEIORequest(
+        identificatie = identificatie,
         creatiedatum = LocalDate(2025, 1, 1),
         bronorganisatie = "012345678",
         taal = taal,

@@ -187,3 +187,10 @@ enum class OndertekeningSoort {
 data class UnlockEIORequest(
     val lock: String
 ) : ApiRequest
+
+@Serializable
+data class EIOZoekRequest(
+    @SerialName("uuid_In")
+    val uuidIn: List<String>,
+    val expand: String? = null
+) : ApiRequest

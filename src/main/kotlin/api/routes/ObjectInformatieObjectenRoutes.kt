@@ -45,6 +45,12 @@ fun Route.objectInformatieObjectenRoutes() {
         val subjectObject = call.request.queryParameters["object"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
 
+        /**
+         * Note: ObjectInformatieObjecten are not paginated in the service yet.
+         * Default pageSize of 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
+         */
+        val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
+
         val filter = QueryObjectInformatieObjectenFilter(
             informatieobject = informatieobject,
             subjectObject = subjectObject,
@@ -52,6 +58,9 @@ fun Route.objectInformatieObjectenRoutes() {
         )
 
         val items = service.getAll(filter)
+        // Note: ObjectInformatieObjecten are not paginated in the service,
+        // it probably should be, but this requires API changes.
+        // We will propose these changes at a later time.
         call.respond(HttpStatusCode.OK, items)
     }
 

@@ -6,6 +6,7 @@ import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.api.models.EIOZoekRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
@@ -416,4 +417,207 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         }
         assertEquals(HttpStatusCode.BadRequest, unlockResp.status)
     }
+    @Test
+    fun `test zoek endpoint with uuid_In`() = testApplication {
+        application { testModule() }
+
+        // Create two documents
+        val req1 = generateTestDocument(identificatie = "DOC-001")
+        val res1 = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(req1))
+        }
+        val doc1 = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(res1.bodyAsText())
+
+        val req2 = generateTestDocument(identificatie = "DOC-002")
+        val res2 = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(req2))
+        }
+        val doc2 = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(res2.bodyAsText())
+
+        val req3 = generateTestDocument(identificatie = "DOC-003")
+        val res3 = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(req3))
+        }
+        val doc3 = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(res3.bodyAsText())
+
+        // Search for doc1 and doc2
+        val zoekReq = EIOZoekRequest(uuidIn = listOf(doc1.id, doc2.id))
+        val zoekResponse = client.post("$API_BASE/$RESOURCE_SEGMENT/_zoek") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(zoekReq))
+        }
+
+        assertEquals(HttpStatusCode.OK, zoekResponse.status)
+        val body = zoekResponse.bodyAsText()
+        val json = Json.parseToJsonElement(body).jsonObject
+        val results = json["results"]?.jsonArray ?: error("results array missing")
+
+        assertEquals(2, results.size)
+        val ids = results.map { it.jsonObject["id"]?.jsonPrimitive?.content }
+        assertContains(ids, doc1.id)
+        assertContains(ids, doc2.id)
+        assert(!ids.contains(doc3.id))
+    }
+
+    @Test
+    fun `test GET list paging`() = testApplication {
+        application { testModule() }
+
+        // Create 12 documents
+        for (i in 1..12) {
+            val req = generateTestDocument(identificatie = "DOC-%03d".format(i))
+            client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(req))
+            }
+        }
+
+        // Page 1
+        val resp1 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=1&pageSize=10")
+        assertEquals(HttpStatusCode.OK, resp1.status)
+        val body1 = Json.parseToJsonElement(resp1.bodyAsText()).jsonObject
+        assertEquals(12, body1["count"]?.jsonPrimitive?.content?.toInt())
+        val results1 = body1["results"]?.jsonArray ?: error("results missing")
+        assertEquals(10, results1.size)
+        val next = body1["next"]?.jsonPrimitive?.content
+        assertNotNull(next)
+        assertContains(next, "page=2")
+        assertContains(next, "pageSize=10")
+
+        // Page 2
+        val resp2 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=2&pageSize=10")
+        assertEquals(HttpStatusCode.OK, resp2.status)
+        val body2 = Json.parseToJsonElement(resp2.bodyAsText()).jsonObject
+        val results2 = body2["results"]?.jsonArray ?: error("results missing")
+        assertEquals(2, results2.size)
+        val previous = body2["previous"]?.jsonPrimitive?.content
+        assertNotNull(previous)
+        assertContains(previous, "page=1")
+        assertContains(previous, "pageSize=10")
+
+        // Verify different results
+        val ids1 = results1.map { it.jsonObject["id"]?.jsonPrimitive?.content }.toSet()
+        val ids2 = results2.map { it.jsonObject["id"]?.jsonPrimitive?.content }.toSet()
+        val intersect = ids1.intersect(ids2)
+        assertEquals(0, intersect.size, "Pages should not overlap")
+    }
+
+    @Test
+    fun `test zoek endpoint paging`() = testApplication {
+        application { testModule() }
+
+        val createdIds = mutableListOf<String>()
+        // Create 12 documents
+        for (i in 1..12) {
+            val req = generateTestDocument(identificatie = "ZOEK-%03d".format(i))
+            val res = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(req))
+            }
+            val doc = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(res.bodyAsText())
+            createdIds.add(doc.id)
+        }
+
+        // Search for all 12
+        val zoekReq = EIOZoekRequest(uuidIn = createdIds)
+
+        // Page 1
+        val resp1 = client.post("$API_BASE/$RESOURCE_SEGMENT/_zoek?page=1&pageSize=10") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(zoekReq))
+        }
+        assertEquals(HttpStatusCode.OK, resp1.status)
+        val body1 = Json.parseToJsonElement(resp1.bodyAsText()).jsonObject
+        assertEquals(12, body1["count"]?.jsonPrimitive?.content?.toInt())
+        val results1 = body1["results"]?.jsonArray ?: error("results missing")
+        assertEquals(10, results1.size)
+        // Next link should be present
+        val next = body1["next"]?.jsonPrimitive?.content
+        assertNotNull(next)
+        assertContains(next, "page=2")
+        assertContains(next, "pageSize=10")
+
+        // Page 2
+        val resp2 = client.post("$API_BASE/$RESOURCE_SEGMENT/_zoek?page=2&pageSize=10") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(zoekReq))
+        }
+        assertEquals(HttpStatusCode.OK, resp2.status)
+        val body2 = Json.parseToJsonElement(resp2.bodyAsText()).jsonObject
+        val results2 = body2["results"]?.jsonArray ?: error("results missing")
+        assertEquals(2, results2.size)
+        // Previous link should be present
+        val previous = body2["previous"]?.jsonPrimitive?.content
+        assertNotNull(previous)
+        assertContains(previous, "page=1")
+        assertContains(previous, "pageSize=10")
+    }
+
+    @Test
+    fun `test GET list paging with custom pageSize`() = testApplication {
+        application { testModule() }
+
+        // Create 12 documents
+        for (i in 1..12) {
+            val req = generateTestDocument(identificatie = "PAGE-%03d".format(i))
+            client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(req))
+            }
+        }
+
+        // Page 1 with pageSize 5
+        val resp1 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=1&pageSize=5")
+        assertEquals(HttpStatusCode.OK, resp1.status)
+        val body1 = Json.parseToJsonElement(resp1.bodyAsText()).jsonObject
+        assertEquals(12, body1["count"]?.jsonPrimitive?.content?.toInt())
+        val results1 = body1["results"]?.jsonArray ?: error("results missing")
+        assertEquals(5, results1.size)
+        val next = body1["next"]?.jsonPrimitive?.content
+        assertNotNull(next)
+        assertContains(next, "page=2")
+        assertContains(next, "pageSize=5")
+
+        // Page 3 (should have 2 items: 12 - 2*5 = 2)
+        val resp3 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=3&pageSize=5")
+        assertEquals(HttpStatusCode.OK, resp3.status)
+        val body3 = Json.parseToJsonElement(resp3.bodyAsText()).jsonObject
+        val results3 = body3["results"]?.jsonArray ?: error("results missing")
+        assertEquals(2, results3.size)
+        val previous = body3["previous"]?.jsonPrimitive?.content
+        assertNotNull(previous)
+        assertContains(previous, "page=2")
+        assertContains(previous, "pageSize=5")
+    }
+
+    @Test
+    fun `test GET list paging preserves filters`() = testApplication {
+        application { testModule() }
+
+        val bronOrganisatie = "999999999"
+        // Create 12 documents with specific bronorganisatie
+        for (i in 1..12) {
+            val req = generateTestDocument(identificatie = "FILTER-%03d".format(i))
+            val reqWithBron = req.copy(bronorganisatie = bronOrganisatie)
+            client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(reqWithBron))
+            }
+        }
+
+        // Page 1 with bronorganisatie filter
+        val resp = client.get("$API_BASE/$RESOURCE_SEGMENT?page=1&pageSize=5&bronorganisatie=$bronOrganisatie")
+        assertEquals(HttpStatusCode.OK, resp.status)
+        val body = Json.parseToJsonElement(resp.bodyAsText()).jsonObject
+        assertEquals(12, body["count"]?.jsonPrimitive?.content?.toInt())
+        val next = body["next"]?.jsonPrimitive?.content
+        assertNotNull(next)
+        assertContains(next, "page=2")
+        assertContains(next, "pageSize=5")
+        assertContains(next, "bronorganisatie=$bronOrganisatie")
+    }
+
 }

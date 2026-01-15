@@ -32,6 +32,7 @@ import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.QueryParameter
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.dao.with
@@ -136,35 +137,39 @@ class EnkelvoudigInformatieObjectService {
      * Gets all EnkelvoudigInformatieObjects with their latest versions
      * Returns the latest versions of all records
      */
-    fun getAll(filters: QueryEnkelvoudigeInformatieObjectenFilter): List<EnkelvoudigInformatieObjectResponse> {
+    fun getAll(filters: QueryEnkelvoudigeInformatieObjectenFilter): Pair<List<EnkelvoudigInformatieObjectResponse>, Long> {
         return transaction {
             val condition = buildFilterOp(filters)
 
-            val pageSize = 10
+            val pageSize = filters.pageSize
             val page = if (filters.page > 0) filters.page else 1
             val offset = (page - 1L) * pageSize
 
             // Base query: Record + Version, filtered and ordered by versie desc
-            val query = EIORecords
+            val query = EIORecords.innerJoin(EIOVersions)
                 .selectAll()
                 .apply {
                     if (condition != Op.TRUE) {
                         andWhere { condition }
                     }
                 }
-                .offset(offset)
-                .limit(pageSize)
 
-            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(query)
+            val totalCount = query.count()
+
+            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(
+                query.limit(pageSize).offset(offset)
+            )
                 .with(EIORecordEntity::versions)
                 .toList()
 
             // get the latest version for each record
-            records.mapNotNull { rec ->
+            val results = records.mapNotNull { rec ->
                 val version = rec.versions.maxByOrNull { it.versie }
                     ?: return@mapNotNull null
                 mapToResponse(rec, version)
             }
+
+            results to totalCount
         }
     }
 
@@ -286,6 +291,19 @@ class EnkelvoudigInformatieObjectService {
 
         if (filters.trefwoorden.isNotEmpty()) {
             op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
+        }
+
+        if (filters.uuids.isNotEmpty()) {
+            val uuids = filters.uuids.mapNotNull {
+                try {
+                    UUID.fromString(it)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            if (uuids.isNotEmpty()) {
+                op = op and (EIORecords.id inList uuids)
+            }
         }
 
         return op

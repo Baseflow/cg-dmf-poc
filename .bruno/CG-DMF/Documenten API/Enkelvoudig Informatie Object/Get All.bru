@@ -10,6 +10,14 @@ get {
   auth: inherit
 }
 
+query {
+  ~identificatie: DOC-001
+  ~bronorganisatie: 012345678
+  ~page: 1
+  ~pageSize: 100
+  ~trefwoorden: trefwoord1,trefwoord2
+}
+
 settings {
   encodeUrl: true
   timeout: 0

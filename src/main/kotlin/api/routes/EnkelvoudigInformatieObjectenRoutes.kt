@@ -5,6 +5,7 @@ package com.baseflow.api.routes
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.PaginatedResponse
+import com.baseflow.api.models.EIOZoekRequest
 import com.baseflow.api.models.UnlockEIORequest
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
@@ -49,24 +50,21 @@ fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = O
         val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
         val identificatie = call.request.queryParameters["identificatie"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 0
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+        // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
+        val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
         val filter = QueryEnkelvoudigeInformatieObjectenFilter(
             bronOrganisatie = bronOrganisatie,
             trefwoorden = trefwoorden,
             identificatie = identificatie,
             expand = expand,
-            page = page
+            page = page,
+            pageSize = pageSize
         )
 
-        val items = service.getAll(filter)
-        val response = PaginatedResponse(
-            count = items.size,
-            next = null,
-            previous = null,
-            results = items
-        )
-        call.respond(response)
+        val (items, totalCount) = service.getAll(filter)
+        call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
     }
 
     // Create new document
@@ -83,7 +81,23 @@ fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = O
 
     // Advanced search endpoint
     post("/_zoek") {
-        call.respond(mapOf("message" to "Search EnkelvoudigInformatieObject - to be implemented"))
+        val request = call.receive<EIOZoekRequest>()
+        val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+        // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
+        val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
+
+        val filter = QueryEnkelvoudigeInformatieObjectenFilter(
+            uuids = request.uuidIn,
+            expand = expand,
+            page = page,
+            pageSize = pageSize
+        )
+
+        val (items, totalCount) = service.getAll(filter)
+        val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
+
+        call.respond(response)
     }
 
     // Single document operations

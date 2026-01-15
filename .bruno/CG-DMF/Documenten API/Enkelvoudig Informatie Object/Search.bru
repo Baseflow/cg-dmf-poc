@@ -10,6 +10,19 @@ post {
   auth: inherit
 }
 
+query {
+  ~page: 1
+  ~pageSize: 100
+}
+
+body:json {
+  {
+    "uuid_In": [
+      "00000000-0000-0000-0000-000000000000"
+    ]
+  }
+}
+
 settings {
   encodeUrl: true
   timeout: 0
