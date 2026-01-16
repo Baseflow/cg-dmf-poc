@@ -9,6 +9,7 @@ data class QueryObjectInformatieObjectenFilter(
     val informatieobject: String? = null,
     val subjectObject: String? = null,
     val expand: List<String> = emptyList(),
+    val page: Int = 1,
     /**
      * Default pageSize set to 100 to align with Open Zaak (DRF) default behavior.
      * NOTE: pageSize is not yet defined in the Documenten API 1.5.0 specification.

@@ -1,0 +1,194 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+
+package com.baseflow.api.routes
+
+import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.documentenApiModule
+import com.baseflow.api.models.*
+import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.OpenZaakService
+import com.baseflow.services.StorageService
+import com.baseflow.testutils.TestDataFactory
+import com.baseflow.tooling.AllTables
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.testing.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.*
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.*
+import kotlin.test.*
+
+class SubjectInformatieObjectenRoutesTest {
+    private lateinit var dbName: String
+
+    @BeforeTest
+    fun setup() {
+        dbName = "subject_oio_routes_${UUID.randomUUID()}"
+        Database.connect(
+            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver",
+            user = "root",
+            password = ""
+        )
+        transaction {
+            AllTables.createMissing()
+        }
+    }
+
+    companion object {
+        private const val API_BASE = DOCUMENTEN_API_BASE_PATH
+        private const val RESOURCE_SEGMENT = "subjectinformatieobjecten"
+    }
+
+    private fun Application.testModule() {
+        Database.connect(
+            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver",
+            user = "root",
+            password = ""
+        )
+
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
+    }
+
+    private fun createTestEIO(): String = runBlocking {
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
+        val request = TestDataFactory.generateTestDocument(taal = "nld")
+        return@runBlocking service.create(request).id
+    }
+
+    @Test
+    fun `test list empty subjectinformatieobjecten returns paginated empty results`() = testApplication {
+        application { testModule() }
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
+
+        val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals(0, body["count"]?.jsonPrimitive?.content?.toInt())
+        val results = body["results"]?.jsonArray
+        assertNotNull(results)
+        assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `test create subjectinformatieobject returns 201 with location header`() = testApplication {
+        application { testModule() }
+        val eioId = createTestEIO()
+
+        val request = CreateOIORequest(
+            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            subjectObject = "https://example.com/subjects/123",
+            subjectType = SubjectTypeEnum.ZAAK
+        )
+
+        val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertTrue(response.headers.contains(HttpHeaders.Location))
+
+        val body = Json.decodeFromString<ObjectInformatieObjectResponse>(response.bodyAsText())
+        assertNotNull(body.url)
+        assertTrue(body.url!!.contains(RESOURCE_SEGMENT))
+    }
+
+    @Test
+    fun `test subjectinformatieobjecten list paging`() = testApplication {
+        application { testModule() }
+        val eioId = createTestEIO()
+
+        // Create 12 relations
+        for (i in 1..12) {
+            val request = CreateOIORequest(
+                informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+                subjectObject = "https://example.com/subjects/$i",
+                subjectType = SubjectTypeEnum.ZAAK
+            )
+            client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+            }
+        }
+
+        // Page 1 with pageSize 5
+        val resp1 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=1&pageSize=5")
+        assertEquals(HttpStatusCode.OK, resp1.status)
+        val body1 = Json.parseToJsonElement(resp1.bodyAsText()).jsonObject
+        assertEquals(12, body1["count"]?.jsonPrimitive?.content?.toInt())
+        val results1 = body1["results"]?.jsonArray ?: error("results missing")
+        assertEquals(5, results1.size)
+        val next = body1["next"]?.jsonPrimitive?.content
+        assertNotNull(next)
+        assertContains(next, "page=2")
+        assertContains(next, "pageSize=5")
+
+        // Page 3
+        val resp3 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=3&pageSize=5")
+        assertEquals(HttpStatusCode.OK, resp3.status)
+        val body3 = Json.parseToJsonElement(resp3.bodyAsText()).jsonObject
+        val results3 = body3["results"]?.jsonArray ?: error("results missing")
+        assertEquals(2, results3.size)
+    }
+
+    @Test
+    fun `test get subjectinformatieobject by id`() = testApplication {
+        application { testModule() }
+        val eioId = createTestEIO()
+        val request = CreateOIORequest(
+            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            subjectObject = "https://example.com/subjects/test",
+            subjectType = SubjectTypeEnum.ZAAK
+        )
+
+        val createResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+        }
+        val created = Json.decodeFromString<ObjectInformatieObjectResponse>(createResp.bodyAsText())
+        val id = created.id
+
+        val getResp = client.get("$API_BASE/$RESOURCE_SEGMENT/$id")
+        assertEquals(HttpStatusCode.OK, getResp.status)
+        val fetched = Json.decodeFromString<ObjectInformatieObjectResponse>(getResp.bodyAsText())
+        assertEquals(id, fetched.id)
+    }
+
+    @Test
+    fun `test delete subjectinformatieobject`() = testApplication {
+        application { testModule() }
+        val eioId = createTestEIO()
+        val request = CreateOIORequest(
+            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            subjectObject = "https://example.com/subjects/delete",
+            subjectType = SubjectTypeEnum.ZAAK
+        )
+
+        val createResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+        }
+        val created = Json.decodeFromString<ObjectInformatieObjectResponse>(createResp.bodyAsText())
+        val id = created.id
+
+        val delResp = client.delete("$API_BASE/$RESOURCE_SEGMENT/$id")
+        assertEquals(HttpStatusCode.NoContent, delResp.status)
+
+        val getResp = client.get("$API_BASE/$RESOURCE_SEGMENT/$id")
+        assertEquals(HttpStatusCode.NotFound, getResp.status)
+    }
+}

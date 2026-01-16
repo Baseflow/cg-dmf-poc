@@ -45,251 +45,273 @@ fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = O
     val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, openZaakService)
 
     // List all documents (with optional filters)
-    get {
-        val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
-        val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
-        val identificatie = call.request.queryParameters["identificatie"]
-        val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-        // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-        val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
-
-        val filter = QueryEnkelvoudigeInformatieObjectenFilter(
-            bronOrganisatie = bronOrganisatie,
-            trefwoorden = trefwoorden,
-            identificatie = identificatie,
-            expand = expand,
-            page = page,
-            pageSize = pageSize
-        )
-
-        val (items, totalCount) = service.getAll(filter)
-        call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
-    }
+    get { list(this.call, service) }
 
     // Create new document
-    post {
-        val request = call.receive<CreateEIORequest>()
-        val response = service.create(request)
-
-        // Location header with the URL of the created resource
-        val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
-        call.response.headers.append(HttpHeaders.Location, locationUrl)
-
-        call.respond(HttpStatusCode.Created, response)
-    }
+    post { create(this.call, service) }
 
     // Advanced search endpoint
-    post("/_zoek") {
-        val request = call.receive<EIOZoekRequest>()
-        val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
-        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-        // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-        val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
-
-        val filter = QueryEnkelvoudigeInformatieObjectenFilter(
-            uuids = request.uuidIn,
-            expand = expand,
-            page = page,
-            pageSize = pageSize
-        )
-
-        val (items, totalCount) = service.getAll(filter)
-        val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
-
-        call.respond(response)
-    }
+    post("/_zoek") { zoek(this.call, service) }
 
     // Single document operations
     route("/{uuid}") {
         // HEAD - existence check
-        head {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@head
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                if (service.exists(uuid)) {
-                    call.respond(HttpStatusCode.OK)
-                } else {
-                    call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
-        }
+        head { head(this.call, service) }
         // Get single document
-        get {
-            // TODO add version and registratieOp query parameters support
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@get
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                val result = service.getById(uuid)
-
-                if (result == null) {
-                    call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
-                } else {
-                    call.respond(HttpStatusCode.OK, result)
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
-        }
+        get { get(this.call, service) }
 
         // Update document (full)
-        put {
-            val uuid = call.parameters["uuid"]
-            call.respond(mapOf("message" to "Update EnkelvoudigInformatieObject $uuid - to be implemented"))
-        }
+        put { put(this.call) }
 
         // Partial update
-        patch {
-            val uuid = call.parameters["uuid"]
-            call.respond(mapOf("message" to "Partial update EnkelvoudigInformatieObject $uuid - to be implemented"))
-        }
+        patch { patch(this.call) }
 
         // Delete document
-        delete {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@delete
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                when (service.delete(uuid)) {
-                    is DeleteResult.Success -> call.respond(HttpStatusCode.NoContent)
-                    is DeleteResult.NotFound -> call.respondProblem(
-                        HttpStatusCode.NotFound,
-                        notFound("EnkelvoudigInformatieObject not found", call.request.path())
-                    )
-                    is DeleteResult.Locked -> call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict("EnkelvoudigInformatieObject is locked", call.request.path())
-                    )
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
-        }
+        delete { delete(this.call, service) }
 
         // Download document content (streamed from storage)
-        get("/download") {
-            // TODO add version and registratieOp query parameters support
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@get
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                val eio = service.getById(uuid)
-                if (eio == null) {
-                    call.respondProblem(
-                        HttpStatusCode.NotFound,
-                        notFound("EnkelvoudigInformatieObject not found", call.request.path())
-                    )
-                    return@get
-                }
-
-                // Ensure we have a stored object key to stream
-                val objectKey = eio.bestandsnaam
-                if (objectKey.isNullOrBlank()) {
-                    call.respondProblem(
-                        HttpStatusCode.NotFound,
-                        notFound("Document content not available for download", call.request.path())
-                    )
-                    return@get
-                }
-
-                // Derive filename and content type when possible;
-                val fileName = objectKey.ifBlank({ "document-${eio.id}}" } )
-                val contentType = try {
-                    // eio.formaat is expected to be a MIME type; if not, fallback below
-                    eio.formaat?.let { ContentType.parse(it) }
-                } catch (_: Exception) {
-                    ContentType.Application.OctetStream
-                }
-
-                // Set headers before starting the stream
-                call.response.headers.append(
-                    HttpHeaders.ContentDisposition,
-                    ContentDisposition.Attachment
-                        .withParameter(ContentDisposition.Parameters.FileName, fileName)
-                        .toString()
-                )
-                call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
-                // TODO: support Range requests, ETag, Last-Modified when metadata is available
-
-                // Stream the object from storage directly to the HTTP response
-                call.respondOutputStream {
-                    service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
-        }
+        get("/download") { download(this.call, service) }
 
         // Lock document for editing
-        post("/lock") {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@post
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                val result = service.lock(uuid)
-                when (result) {
-                    null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
-                    is LockResult.Success -> call.respond(result.payload)
-                    is LockResult.AlreadyLocked -> call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict("EnkelvoudigInformatieObject is already locked", call.request.path())
-                    )
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
-        }
+        post("/lock") { lock(this.call, service) }
 
         // Unlock document
-        post("/unlock") {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@post
-            }
+        post("/unlock") { unlock(this.call, service) }
+    }
+}
 
-            try {
-                val uuid = UUID.fromString(uuidString)
-                val body = call.receive<UnlockEIORequest>()
-                when (service.unlock(uuid, body.lock)) {
-                    is UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
-                    is UnlockResult.InvalidLock -> call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict("Invalid lock token for unlock", call.request.path())
-                    )
-                    is UnlockResult.NotLocked -> call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict("EnkelvoudigInformatieObject is not locked", call.request.path())
-                    )
-                    null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
+private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
+    val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
+    val identificatie = call.request.queryParameters["identificatie"]
+    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+    // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
+    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
+
+    val filter = QueryEnkelvoudigeInformatieObjectenFilter(
+        bronOrganisatie = bronOrganisatie,
+        trefwoorden = trefwoorden,
+        identificatie = identificatie,
+        expand = expand,
+        page = page,
+        pageSize = pageSize
+    )
+
+    val (items, totalCount) = service.getAll(filter)
+    call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
+}
+
+private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val request = call.receive<CreateEIORequest>()
+    val response = service.create(request)
+
+    // Location header with the URL of the created resource
+    val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
+    call.response.headers.append(HttpHeaders.Location, locationUrl)
+
+    call.respond(HttpStatusCode.Created, response)
+}
+
+private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val request = call.receive<EIOZoekRequest>()
+    val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
+    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+    // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
+    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
+
+    val filter = QueryEnkelvoudigeInformatieObjectenFilter(
+        uuids = request.uuidIn,
+        expand = expand,
+        page = page,
+        pageSize = pageSize
+    )
+
+    val (items, totalCount) = service.getAll(filter)
+    val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
+
+    call.respond(response)
+}
+
+private suspend fun head(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        if (service.exists(uuid)) {
+            call.respond(HttpStatusCode.OK)
+        } else {
+            call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
         }
+    } catch (_: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    }
+}
+
+private suspend fun get(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    // TODO add version and registratieOp query parameters support
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val result = service.getById(uuid)
+
+        if (result == null) {
+            call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+        } else {
+            call.respond(HttpStatusCode.OK, result)
+        }
+    } catch (_: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    }
+}
+
+private suspend fun put(call: RoutingCall) {
+    val uuid = call.parameters["uuid"]
+    call.respond(mapOf("message" to "Update EnkelvoudigInformatieObject $uuid - to be implemented"))
+}
+
+private suspend fun patch(call: RoutingCall) {
+    val uuid = call.parameters["uuid"]
+    call.respond(mapOf("message" to "Partial update EnkelvoudigInformatieObject $uuid - to be implemented"))
+}
+
+private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        when (service.delete(uuid)) {
+            is DeleteResult.Success -> call.respond(HttpStatusCode.NoContent)
+            is DeleteResult.NotFound -> call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path())
+            )
+            is DeleteResult.Locked -> call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("EnkelvoudigInformatieObject is locked", call.request.path())
+            )
+        }
+    } catch (_: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    }
+}
+
+private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    // TODO add version and registratieOp query parameters support
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val eio = service.getById(uuid)
+        if (eio == null) {
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path())
+            )
+            return
+        }
+
+        // Ensure we have a stored object key to stream
+        val objectKey = eio.bestandsnaam
+        if (objectKey.isNullOrBlank()) {
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("Document content not available for download", call.request.path())
+            )
+            return
+        }
+
+        // Derive filename and content type when possible;
+        val fileName = objectKey.ifBlank({ "document-${eio.id}}" } )
+        val contentType = try {
+            // eio.formaat is expected to be a MIME type; if not, fallback below
+            eio.formaat?.let { ContentType.parse(it) }
+        } catch (_: Exception) {
+            ContentType.Application.OctetStream
+        }
+
+        // Set headers before starting the stream
+        call.response.headers.append(
+            HttpHeaders.ContentDisposition,
+            ContentDisposition.Attachment
+                .withParameter(ContentDisposition.Parameters.FileName, fileName)
+                .toString()
+        )
+        call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
+        // TODO: support Range requests, ETag, Last-Modified when metadata is available
+
+        // Stream the object from storage directly to the HTTP response
+        call.respondOutputStream {
+            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
+        }
+    } catch (_: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    }
+}
+
+private suspend fun lock(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val result = service.lock(uuid)
+        when (result) {
+            null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+            is LockResult.Success -> call.respond(result.payload)
+            is LockResult.AlreadyLocked -> call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("EnkelvoudigInformatieObject is already locked", call.request.path())
+            )
+        }
+    } catch (_: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    }
+}
+
+private suspend fun unlock(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val body = call.receive<UnlockEIORequest>()
+        when (service.unlock(uuid, body.lock)) {
+            is UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
+            is UnlockResult.InvalidLock -> call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("Invalid lock token for unlock", call.request.path())
+            )
+            is UnlockResult.NotLocked -> call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("EnkelvoudigInformatieObject is not locked", call.request.path())
+            )
+            null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+        }
+    } catch (_: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
     }
 }

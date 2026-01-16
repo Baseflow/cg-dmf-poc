@@ -275,7 +275,7 @@ class ObjectInformatieObjectServiceTest {
         service.create(req2)
 
         val filter = QueryObjectInformatieObjectenFilter()
-        val results = service.getAll(filter)
+        val results = service.getAll(filter).first
 
         assertEquals(2, results.size)
     }
@@ -299,7 +299,7 @@ class ObjectInformatieObjectServiceTest {
         // Use the informatieobject URL from the response for filtering
         val filterUrl = result1.payload.informatieobject
         val filter = QueryObjectInformatieObjectenFilter(informatieobject = filterUrl)
-        val results = service.getAll(filter)
+        val (results, _) = service.getAll(filter)
 
         assertEquals(2, results.size)
         assertTrue(results.all { it.informatieobject == filterUrl })
@@ -322,7 +322,7 @@ class ObjectInformatieObjectServiceTest {
         service.create(req3)
 
         val filter = QueryObjectInformatieObjectenFilter(subjectObject = subjectObject)
-        val results = service.getAll(filter)
+        val (results, _) = service.getAll(filter)
 
         assertEquals(2, results.size)
         assertTrue(results.all { it.subjectObject == subjectObject })
@@ -347,7 +347,7 @@ class ObjectInformatieObjectServiceTest {
         // Use the informatieobject URL from the response for filtering
         val filterUrl = result1.payload.informatieobject
         val filter = QueryObjectInformatieObjectenFilter(informatieobject = filterUrl, subjectObject = subjectObject)
-        val results = service.getAll(filter)
+        val (results, _) = service.getAll(filter)
 
         assertEquals(1, results.size)
         assertEquals(filterUrl, results[0].informatieobject)
@@ -406,7 +406,7 @@ class ObjectInformatieObjectServiceTest {
 
         // Filter with invalid URL
         val filter = QueryObjectInformatieObjectenFilter(informatieobject = "invalid-url")
-        val results = service.getAll(filter)
+        val (results, _) = service.getAll(filter)
 
         assertTrue(results.isEmpty())
     }

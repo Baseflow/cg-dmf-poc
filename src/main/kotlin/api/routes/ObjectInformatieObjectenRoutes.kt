@@ -31,46 +31,71 @@ import java.util.UUID
  * This PoC extends the standard to support additional object types beyond Zaken.
  */
 
-private const val RESOURCE_SEGMENT = "objectinformatieobjecten"
+/**
+ * Common implementation for ObjectInformatieObject routes.
+ * Used by both ObjectInformatieObjecten and SubjectInformatieObjecten.
+ */
+open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, private val experimental: Boolean = false) {
+    fun register(route: Route) {
+        with(route) {
+            // Ensure API-version header is added for all responses
+            install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
 
-fun Route.objectInformatieObjectenRoutes() {
-    // Ensure API-version header is added for all responses
-    install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
+            val service = ObjectInformatieObjectService(resourceSegment)
 
-    val service = ObjectInformatieObjectService(RESOURCE_SEGMENT)
+            // List all document-object relations (with optional filters)
+            get { list(this.call, service) }
 
-    // List all document-object relations (with optional filters)
-    get {
+            // Create new document-object relation
+            post { create(this.call, service) }
+
+            // Single relation operations
+            route("/{uuid}") {
+                val resourceTitle = if (resourceSegment == "subjectinformatieobjecten") "SubjectInformatieObject" else "ObjectInformatieObject"
+                // HEAD - existence check
+                head { head(this.call, service, resourceTitle) }
+
+                // Get single relation
+                get { get(this.call, service, resourceTitle) }
+
+                // Delete relation
+                delete { delete(this.call, service, resourceTitle) }
+            }
+        }
+    }
+
+    private suspend fun list(call: RoutingCall, service: ObjectInformatieObjectService) {
         val informatieobject = call.request.queryParameters["informatieobject"]
         val subjectObject = call.request.queryParameters["object"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-
-        /**
-         * Note: ObjectInformatieObjecten are not paginated in the service yet.
-         * Default pageSize of 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-         */
+        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
         val filter = QueryObjectInformatieObjectenFilter(
             informatieobject = informatieobject,
             subjectObject = subjectObject,
-            expand = expand
+            expand = expand,
+            page = page,
+            pageSize = pageSize
         )
 
-        val items = service.getAll(filter)
-        // Note: ObjectInformatieObjecten are not paginated in the service,
-        // it probably should be, but this requires API changes.
-        // We will propose these changes at a later time.
-        call.respond(HttpStatusCode.OK, items)
+        val (items, totalCount) = service.getAll(filter)
+
+        if (experimental) {
+            call.respond(PaginatedResponse.from(call, resourceSegment, items, totalCount, page, pageSize))
+        } else {
+            // Note: ObjectInformatieObjecten are not paginated in the specification,
+            // Changing this is a breaking API change.
+            call.respond(HttpStatusCode.OK, items)
+        }
     }
 
-    // Create new document-object relation
-    post {
+    private suspend fun create(call: RoutingCall, service: ObjectInformatieObjectService) {
         val request = call.receive<CreateOIORequest>()
 
         when (val result = service.create(request)) {
             is CreateOIOResult.Success -> {
-                val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, result.payload.url?.substringAfterLast("/") ?: "")
+                val locationUrl = ApiUrlBuilder.absolute(resourceSegment, result.payload.url?.substringAfterLast("/") ?: "")
                 call.response.headers.append(HttpHeaders.Location, locationUrl)
                 call.respond(HttpStatusCode.Created, result.payload)
             }
@@ -83,70 +108,74 @@ fun Route.objectInformatieObjectenRoutes() {
         }
     }
 
-    // Single relation operations
-    route("/{uuid}") {
-        // HEAD - existence check
-        head {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@head
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                if (service.exists(uuid)) {
-                    call.respond(HttpStatusCode.OK)
-                } else {
-                    call.respondProblem(HttpStatusCode.NotFound, notFound("ObjectInformatieObject not found", call.request.path()))
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
+    private suspend fun head(call: RoutingCall, service: ObjectInformatieObjectService, resourceTitle: String) {
+        val uuidString = call.parameters["uuid"]
+        if (uuidString == null) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+            return
         }
 
-        // Get single relation
-        get {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@get
+        try {
+            val uuid = UUID.fromString(uuidString)
+            if (service.exists(uuid)) {
+                call.respond(HttpStatusCode.OK)
+            } else {
+                call.respondProblem(
+                    HttpStatusCode.NotFound,
+                    notFound("$resourceTitle not found", call.request.path())
+                )
             }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                val result = service.getById(uuid)
-
-                if (result == null) {
-                    call.respondProblem(HttpStatusCode.NotFound, notFound("ObjectInformatieObject not found", call.request.path()))
-                } else {
-                    call.respond(HttpStatusCode.OK, result)
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
-        }
-
-        // Delete relation
-        delete {
-            val uuidString = call.parameters["uuid"]
-            if (uuidString == null) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-                return@delete
-            }
-
-            try {
-                val uuid = UUID.fromString(uuidString)
-                when (service.delete(uuid)) {
-                    is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
-                    is DeleteOIOResult.NotFound -> call.respondProblem(
-                        HttpStatusCode.NotFound,
-                        notFound("ObjectInformatieObject not found", call.request.path())
-                    )
-                }
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-            }
+        } catch (_: IllegalArgumentException) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
         }
     }
+
+    private suspend fun get(call: RoutingCall, service: ObjectInformatieObjectService, resourceTitle: String) {
+        val uuidString = call.parameters["uuid"]
+        if (uuidString == null) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+            return
+        }
+
+        try {
+            val uuid = UUID.fromString(uuidString)
+            val result = service.getById(uuid)
+
+            if (result == null) {
+                call.respondProblem(
+                    HttpStatusCode.NotFound,
+                    notFound("$resourceTitle not found", call.request.path())
+                )
+            } else {
+                call.respond(HttpStatusCode.OK, result)
+            }
+        } catch (_: IllegalArgumentException) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+        }
+    }
+
+    private suspend fun delete(call: RoutingCall, service: ObjectInformatieObjectService, resourceTitle: String) {
+        val uuidString = call.parameters["uuid"]
+        if (uuidString == null) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+            return
+        }
+
+        try {
+            val uuid = UUID.fromString(uuidString)
+            when (service.delete(uuid)) {
+                is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
+                is DeleteOIOResult.NotFound -> call.respondProblem(
+                    HttpStatusCode.NotFound,
+                    notFound("$resourceTitle not found", call.request.path())
+                )
+            }
+        } catch (_: IllegalArgumentException) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+        }
+    }
+}
+
+fun Route.objectInformatieObjectenRoutes() {
+    ObjectInformatieObjectenRoutes("objectinformatieobjecten", experimental = false).register(this)
 }

@@ -9,6 +9,7 @@ import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.routes.bestandsDelenRoutes
 import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
 import com.baseflow.api.routes.objectInformatieObjectenRoutes
+import com.baseflow.api.routes.subjectInformatieObjectenRoutes
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.api.models.respondProblem
 import io.ktor.http.HttpStatusCode
@@ -67,6 +68,12 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
         // These handle relations between documents and other objects (Zaken, etc.)
         route("/objectinformatieobjecten") {
             objectInformatieObjectenRoutes()
+        }
+
+        // EXPERIMENTAL: SubjectInformatieObject endpoints
+        // These handle relations between documents and subject objects
+        route("/subjectinformatieobjecten") {
+            subjectInformatieObjectenRoutes()
         }
 
         // BestandsDeel endpoints

@@ -34,9 +34,9 @@ class ObjectInformatieObjectService(private val resourceSegment: String) {
     private val logger = LoggerFactory.getLogger(ObjectInformatieObjectService::class.java)
 
     /**
-     * Get all ObjectInformatieObjecten with optional filtering
+     * Get all ObjectInformatieObjecten with optional filtering and pagination
      */
-    fun getAll(filter: QueryObjectInformatieObjectenFilter): List<ObjectInformatieObjectResponse> {
+    fun getAll(filter: QueryObjectInformatieObjectenFilter): Pair<List<ObjectInformatieObjectResponse>, Long> {
         return transaction {
             val query = OIORecords.selectAll()
 
@@ -46,7 +46,7 @@ class ObjectInformatieObjectService(private val resourceSegment: String) {
                     query.andWhere { OIORecords.informatieobject eq filterUuid }
                 } else {
                     // If URL is invalid, we should probably return empty results for this filter
-                    return@transaction emptyList()
+                    return@transaction emptyList<ObjectInformatieObjectResponse>() to 0L
                 }
             }
 
@@ -54,9 +54,16 @@ class ObjectInformatieObjectService(private val resourceSegment: String) {
                 query.andWhere { OIORecords.subjectObject eq objUrl }
             }
 
-            OIORecordEntity.wrapRows(query)
+            val totalCount = query.count()
+            val pageSize = filter.pageSize
+            val page = if (filter.page > 0) filter.page else 1
+            val offset = (page - 1L) * pageSize
+
+            val items = OIORecordEntity.wrapRows(query.limit(pageSize).offset(offset))
                 .with(OIORecordEntity::informatieobject)
                 .map { it.toResponse() }
+
+            items to totalCount
         }
     }
 
