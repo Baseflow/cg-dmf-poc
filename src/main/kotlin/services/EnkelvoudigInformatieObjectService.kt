@@ -72,6 +72,9 @@ class EnkelvoudigInformatieObjectService {
             val record = EIORecordEntity.new {
             }
 
+            // Validate informatieobjecttype against OpenZaak
+            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+
             if (!request.inhoud.isNullOrEmpty() &&
                 (request.bestandsomvang ?: 0) > 0 &&
                 !request.bestandsnaam.isNullOrEmpty()
@@ -79,9 +82,6 @@ class EnkelvoudigInformatieObjectService {
                 val content = Base64.decode(request.inhoud)
                 storageService.uploadFile(request.bestandsnaam, content)
             }
-
-            // Validate informatieobjecttype against OpenZaak
-            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
 
             val version = EIOVersionEntity.new {
                 recordId = record
