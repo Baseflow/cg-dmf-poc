@@ -202,6 +202,43 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
+    fun `create should derive bestandsomvang from content if not provided`() = runBlocking {
+        val content = "Hello World"
+        val base64Content = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
+        val req = generateTestDocument().copy(
+            inhoud = base64Content,
+            bestandsomvang = null,
+            formaat = "text/plain"
+        )
+        val resp = service.create(req)
+        assertEquals(content.length.toLong(), resp.bestandsomvang)
+    }
+
+    @Test
+    fun `create should use provided bestandsomvang even if content is present`() = runBlocking {
+        val content = "Hello World"
+        val base64Content = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
+        val req = generateTestDocument().copy(
+            inhoud = base64Content,
+            bestandsomvang = 100L, // Intentionally different from content size
+            formaat = "text/plain"
+        )
+        val resp = service.create(req)
+        assertEquals(100L, resp.bestandsomvang)
+    }
+
+    @Test
+    fun `create should default bestandsomvang to 0 if not provided and no content`() = runBlocking {
+        val req = generateTestDocument().copy(
+            inhoud = null,
+            bestandsomvang = null,
+            link = "https://example.com/file"
+        )
+        val resp = service.create(req)
+        assertEquals(0L, resp.bestandsomvang)
+    }
+
+    @Test
     fun `create should inherit vertrouwelijkheidaanduiding from informatieobjecttype if not provided`() = runBlocking {
         // We need a custom service with a mocked OpenZaakService for this
         val mockOpenZaakService = mockk<OpenZaakService>()

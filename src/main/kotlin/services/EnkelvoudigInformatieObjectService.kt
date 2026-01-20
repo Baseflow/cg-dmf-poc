@@ -76,13 +76,20 @@ class EnkelvoudigInformatieObjectService {
             // Validate informatieobjecttype against catalogus
             val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
 
-            if (!request.inhoud.isNullOrEmpty() &&
-                (request.bestandsomvang ?: 0) > 0 &&
-                !request.bestandsnaam.isNullOrEmpty()
-            ) {
-                val content = Base64.decode(request.inhoud)
+            val content = if (!request.inhoud.isNullOrEmpty()) {
+                Base64.decode(request.inhoud)
+            } else {
+                null
+            }
+
+            if (content != null && !request.bestandsnaam.isNullOrEmpty()) {
                 storageService.uploadFile(request.bestandsnaam, content)
             }
+
+            // Derive bestandsomvang if not provided
+            val bestandsomvang = request.bestandsomvang
+                ?: content?.size?.toLong()
+                ?: 0L // Default to 0 if neither provided nor derived from content (e.g. for link or bestandsdelen)
 
             val version = EIOVersionEntity.new {
                 recordId = record
@@ -96,7 +103,7 @@ class EnkelvoudigInformatieObjectService {
                 creatieDatum = request.creatiedatum
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = request.formaat.orEmpty()
-                bestandsomvang = request.bestandsomvang ?: 0
+                this.bestandsomvang = bestandsomvang
                 link = request.link.orEmpty()
                 integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
                 integriteitWaarde = request.integriteit?.waarde.orEmpty()
