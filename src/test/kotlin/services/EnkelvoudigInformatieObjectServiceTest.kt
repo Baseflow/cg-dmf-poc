@@ -9,11 +9,13 @@ import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
+import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.tooling.AllTables
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import io.mockk.*
 import kotlin.test.*
 import java.util.UUID
 
@@ -33,7 +35,9 @@ class EnkelvoudigInformatieObjectServiceTest {
             AllTables.createMissing()
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        service = EnkelvoudigInformatieObjectService(storageService = StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
+        val mockStorageService = mockk<StorageService>()
+        every { mockStorageService.uploadFile(any(), any()) } returns Unit
+        service = EnkelvoudigInformatieObjectService(storageService = mockStorageService, ApplicationConfig, OpenZaakService(openZaakConfig))
     }
 
     @AfterTest
@@ -46,11 +50,14 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `create should persist and return correct data`() = runBlocking {
-        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf").copy(
+            vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.INTERN
+        )
         val resp = service.create(req)
         assertEquals("dut", resp.taal)
         assertEquals("doc.pdf", resp.bestandsnaam)
         assertEquals(req.informatieobjecttype, resp.informatieobjecttype)
+        assertEquals(Vertrouwelijkheidaanduiding.INTERN, resp.vertrouwelijkheidaanduiding)
         assertEquals(1, resp.versie)
         assertTrue(resp.id.isNotEmpty())
     }
@@ -192,6 +199,25 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertTrue(res is DeleteResult.Success)
         // and now it should not exist
         assertFalse(service.exists(id))
+    }
+
+    @Test
+    fun `create should inherit vertrouwelijkheidaanduiding from informatieobjecttype if not provided`() = runBlocking {
+        // We need a custom service with a mocked OpenZaakService for this
+        val mockOpenZaakService = mockk<OpenZaakService>()
+        coEvery { mockOpenZaakService.validateInformatieobjecttype(any()) } returns InformatieObjectType(
+            url = "https://example.com/api/v1/informatieobjecttypen/1",
+            omschrijving = "Mock Type",
+            vertrouwelijkheidaanduiding = "geheim"
+        )
+
+        val customService = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, mockOpenZaakService)
+
+        val req = generateTestDocument().copy(vertrouwelijkheidaanduiding = null)
+        val resp = customService.create(req)
+
+        assertEquals(Vertrouwelijkheidaanduiding.GEHEIM, resp.vertrouwelijkheidaanduiding)
+        coVerify { mockOpenZaakService.validateInformatieobjecttype(any()) }
     }
 
     @Test

@@ -14,7 +14,7 @@ data class CreateEIORequest(
     val bronorganisatie: String,
     val creatiedatum: LocalDate,
     val titel: String,
-    val vertrouwelijkheidaanduiding: String? = null,
+    val vertrouwelijkheidaanduiding: Vertrouwelijkheidaanduiding? = null,
     val auteur: String,
     val status: EnkelvoudigInformatieObjectStatus? = EnkelvoudigInformatieObjectStatus.CONCEPT,
     val formaat: String? = null,
@@ -95,7 +95,7 @@ data class EnkelvoudigInformatieObjectResponse(
     val creatiedatum: LocalDate,
     val titel: String,
     val versie: Int,
-    val vertrouwelijkheidaanduiding: String? = null,
+    val vertrouwelijkheidaanduiding: Vertrouwelijkheidaanduiding? = null,
     val auteur: String,
     val status: EnkelvoudigInformatieObjectStatus? = null,
     val formaat: String? = null,
@@ -135,6 +135,38 @@ enum class EnkelvoudigInformatieObjectStatus {
 
     @SerialName("gearchiveerd")
     GEARCHIVEERD
+}
+
+@Serializable
+enum class Vertrouwelijkheidaanduiding {
+    // TODO this is BlankEnum from the spec.
+    // if we have more of these, we should probably factor this out
+    @SerialName("")
+    BLANK,
+
+    @SerialName("openbaar")
+    OPENBAAR,
+
+    @SerialName("beperkt_openbaar")
+    BEPERKT_OPENBAAR,
+
+    @SerialName("intern")
+    INTERN,
+
+    @SerialName("zaakvertrouwelijk")
+    ZAAKVERTROUWELIJK,
+
+    @SerialName("vertrouwelijk")
+    VERTROUWELIJK,
+
+    @SerialName("confidentieel")
+    CONFIDENTIEEL,
+
+    @SerialName("geheim")
+    GEHEIM,
+
+    @SerialName("zeer_geheim")
+    ZEER_GEHEIM
 }
 
 @Serializable

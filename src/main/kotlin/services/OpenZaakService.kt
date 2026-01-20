@@ -10,9 +10,18 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+
+@Serializable
+data class InformatieObjectType(
+    val url: String,
+    val omschrijving: String,
+    val vertrouwelijkheidaanduiding: String,
+)
 
 /**
  * Service for interacting with OpenZaak
@@ -21,17 +30,19 @@ import kotlin.time.ExperimentalTime
  */
 class OpenZaakService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
     private val logger = LoggerFactory.getLogger(OpenZaakService::class.java)
+    private val json = Json { ignoreUnknownKeys = true }
 
     /**
      * Validates if the given informatieobjecttype URL exists in OpenZaak
      *
      * @param url The full URL to the informatieobjecttype in OpenZaak
+     * @return The InformatieObjectType if found, null otherwise
      * @throws Exception if validation fails and validation is enabled in config
      */
-    suspend fun validateInformatieobjecttype(url: String) {
+    suspend fun validateInformatieobjecttype(url: String): InformatieObjectType? {
         if (!config.validationEnabled) {
             logger.debug("Informatieobjecttype validation is disabled, skipping validation for: {}", url)
-            return
+            return null
         }
 
         val jwtToken = generateJwtToken()
@@ -55,7 +66,9 @@ class OpenZaakService(private val config: OpenZaakConfig, private val httpClient
                 throw Exception(errorMessage)
             }
 
+            val body = response.bodyAsText()
             logger.debug("Successfully validated informatieobjecttype: {}", url)
+            return json.decodeFromString<InformatieObjectType>(body)
         } catch (e: Exception) {
             if (e.message?.contains("Error fetching information object type") == true) {
                 throw e

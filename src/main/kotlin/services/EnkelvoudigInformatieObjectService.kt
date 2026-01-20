@@ -11,6 +11,7 @@ import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Ondertekening
@@ -72,8 +73,8 @@ class EnkelvoudigInformatieObjectService {
             val record = EIORecordEntity.new {
             }
 
-            // Validate informatieobjecttype against OpenZaak
-            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+            // Validate informatieobjecttype against catalogus
+            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
 
             if (!request.inhoud.isNullOrEmpty() &&
                 (request.bestandsomvang ?: 0) > 0 &&
@@ -102,7 +103,9 @@ class EnkelvoudigInformatieObjectService {
                 integriteitsDatum = request.integriteit?.datum?.atTime(0,0,0,0)
                 verschijningsVorm = request.verschijningsvorm.orEmpty()
                 trefwoorden = request.trefwoorden ?: emptyList()
-                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding.orEmpty()
+                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
+                    ?: ioType?.vertrouwelijkheidaanduiding
+                    ?: ""
                 status = request.status?.toString().orEmpty()
                 beschrijving = request.beschrijving.orEmpty()
                 indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
@@ -191,7 +194,7 @@ class EnkelvoudigInformatieObjectService {
             val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
 
             // Validate informatieobjecttype against OpenZaak
-            openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
 
             val latestVersion = record.versions.maxByOrNull { it.versie }
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
@@ -205,6 +208,9 @@ class EnkelvoudigInformatieObjectService {
                 auteur = request.auteur
                 creatieDatum = request.creatiedatum
                 status = request.status?.toString().orEmpty()
+                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
+                    ?: ioType?.vertrouwelijkheidaanduiding
+                    ?: ""
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
             }
             record.toResponse(version)
@@ -248,7 +254,10 @@ class EnkelvoudigInformatieObjectService {
             bronorganisatie = version.bronOrganisatie,
             creatiedatum = version.creatieDatum,
             titel = version.titel,
-            vertrouwelijkheidaanduiding = version.vertrouwlijkheidsAanduiding,
+            vertrouwelijkheidaanduiding = when {
+                version.vertrouwlijkheidsAanduiding.isBlank() -> null
+                else -> Vertrouwelijkheidaanduiding.valueOf(version.vertrouwlijkheidsAanduiding.uppercase())
+            },
             auteur = version.auteur,
             // TODO this is to deal with empty string values in the DB, needs cleanup
             status = when {

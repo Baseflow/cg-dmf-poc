@@ -48,10 +48,17 @@ class OpenZaakServiceTest {
         val service = createMockService { request ->
             assertEquals(url, request.url.toString())
             assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
+            val jsonResponse = """
+{
+    "url": "$url",
+    "omschrijving": "Test Type",
+    "vertrouwelijkheidaanduiding": "openbaar"
+}
+            """
             respond(
-                content = ByteReadChannel("OK"),
+                content = ByteReadChannel(jsonResponse),
                 status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "text/plain")
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
 
