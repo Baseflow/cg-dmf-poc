@@ -76,25 +76,20 @@ class EnkelvoudigInformatieObjectService {
 
             // Validate informatieobjecttype against catalogus
             val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+            val version = 1;
 
-            val content = if (!request.inhoud.isNullOrEmpty()) {
-                Base64.decode(request.inhoud)
-            } else {
-                null
-            }
+            val locatie = (!request.inhoud.isNullOrEmpty() &&
+                            request.bestandsomvang != null &&
+                            request.bestandsomvang > 0 &&
+                            request.bestandsnaam != null).let {
+                "${record.id.value}/$version/${request.bestandsnaam}"
+            } ?: ""
 
-            if (content != null && !request.bestandsnaam.isNullOrEmpty()) {
-                storageService.uploadFile(request.bestandsnaam, content)
-            }
+            storeFileVersion(request, locatie)
 
-            // Derive bestandsomvang if not provided
-            val bestandsomvang = request.bestandsomvang
-                ?: content?.size?.toLong()
-                ?: 0L // Default to 0 if neither provided nor derived from content (e.g. for link or bestandsdelen)
-
-            val version = EIOVersionEntity.new {
+            val eioVersion = EIOVersionEntity.new {
                 recordId = record
-                versie = 1
+                versie = version
                 bronOrganisatie = request.bronorganisatie
                 informatieobject_type = request.informatieobjecttype
                 taal = request.taal
@@ -104,7 +99,7 @@ class EnkelvoudigInformatieObjectService {
                 creatieDatum = request.creatiedatum
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = request.formaat.orEmpty()
-                this.bestandsomvang = bestandsomvang
+                bestandsomvang = request.bestandsomvang ?: 0
                 link = request.link.orEmpty()
                 integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
                 integriteitWaarde = request.integriteit?.waarde.orEmpty()
@@ -120,9 +115,20 @@ class EnkelvoudigInformatieObjectService {
                 ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
                 ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = request.identificatie.orEmpty()
-
+                bestandsLocatie = locatie
             }
-            record.toResponse(version)
+            record.toResponse(eioVersion)
+        }
+    }
+
+    private fun storeFileVersion(
+        request: CreateEIORequest,
+        bestandsLocatie: String,
+    ) {
+        if (!request.inhoud.isNullOrEmpty() &&
+            (request.bestandsomvang ?: 0) > 0) {
+            val content = Base64.decode(request.inhoud)
+            storageService.uploadFile(bestandsLocatie, content)
         }
     }
 
@@ -212,20 +218,47 @@ class EnkelvoudigInformatieObjectService {
 
             val latestVersion = record.versions.maxByOrNull { it.versie }
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
+
+            // if we have new content, upload with new version number, otherwise use previous location
+            val locatie = ( !request.inhoud.isNullOrEmpty() &&
+                            request.bestandsomvang != null &&
+                            request.bestandsomvang > 0 &&
+                            request.bestandsnaam != null).let {
+                latestVersion?.bestandsLocatie.orEmpty()
+            } ?:"${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
+
+            storeFileVersion(request, locatie)
+
+            // create a new version. If values in the request are empty, use existing values from latest version
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                informatieobject_type = request.informatieobjecttype
-                taal = request.taal
-                bestandsnaam = request.bestandsnaam.orEmpty()
-                titel = request.titel
-                auteur = request.auteur
+                bronOrganisatie = request.bronorganisatie.ifEmpty { latestVersion?.bronOrganisatie.orEmpty() }
+                informatieobject_type = request.informatieobjecttype.ifEmpty { latestVersion?.informatieobject_type.orEmpty() }
+                taal = request.taal.ifEmpty { latestVersion?.taal.orEmpty() }
+                bestandsnaam = request.bestandsnaam.orEmpty().ifEmpty { latestVersion?.bestandsnaam.orEmpty() }
+                titel = request.titel.ifEmpty { latestVersion?.titel.orEmpty() }
+                auteur = request.auteur.ifEmpty { latestVersion?.auteur.orEmpty() }
+                bestandsLocatie = locatie
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                link = request.link.orEmpty()
                 creatieDatum = request.creatiedatum
-                status = request.status?.toString().orEmpty()
+                formaat = request.formaat.orEmpty().ifEmpty { latestVersion?.formaat.orEmpty() }
+                bestandsomvang = request.bestandsomvang ?: latestVersion?.bestandsomvang ?: 0
+                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty().ifEmpty { latestVersion?.integriteitAlgoritme.orEmpty() }
+                integriteitWaarde = request.integriteit?.waarde.orEmpty().ifEmpty { latestVersion?.integriteitWaarde.orEmpty() }
+                integriteitsDatum = request.integriteit?.datum?.atTime(0,0,0,0) ?: latestVersion?.integriteitsDatum
+                verschijningsVorm = request.verschijningsvorm.orEmpty().ifEmpty { latestVersion?.verschijningsVorm.orEmpty() }
+                trefwoorden = request.trefwoorden ?: latestVersion?.trefwoorden ?: emptyList()
                 vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
                     ?: ioType?.vertrouwelijkheidaanduiding
-                    ?: ""
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                            ?: ""
+                status = request.status?.toString().orEmpty().ifEmpty { latestVersion?.status.orEmpty() }
+                beschrijving = request.beschrijving.orEmpty().ifEmpty { latestVersion?.beschrijving.orEmpty() }
+                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: latestVersion?.indicatieGebruiksrecht ?: false
+                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty().ifEmpty { latestVersion?.ondertekening_soort.orEmpty() }
+                ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0) ?: latestVersion?.ondertekenings_datum
+                identificatie = request.identificatie.orEmpty().ifEmpty { latestVersion?.identificatie.orEmpty() }
             }
             record.toResponse(version)
         }
