@@ -4,7 +4,13 @@ package com.baseflow.testutils
 
 import com.baseflow.api.models.CreateEIORequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.Integriteit
+import com.baseflow.api.models.IntegriteitAlgoritme
+import com.baseflow.api.models.Ondertekening
+import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import kotlinx.datetime.LocalDate
+import kotlin.String
+import kotlin.collections.listOf
 
 /**
  * Centralized factory for creating common test data objects.
@@ -16,7 +22,7 @@ object TestDataFactory {
      * Source: https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/
      * The informatieobjecttype should be provided as a complete URL to the informatieobjecttype resource.
      */
-    private const val VALID_INFORMATIEOBJECTTYPE_URL = "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d"
+    const val VALID_INFORMATIEOBJECTTYPE_URL = "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d"
 
     /**
      * Generates a minimal valid CreateEIORequest for tests.
@@ -38,6 +44,18 @@ object TestDataFactory {
         titel = titel,
         auteur = auteur,
         status = EnkelvoudigInformatieObjectStatus.CONCEPT,
-        informatieobjecttype = informatieobjecttype
+        informatieobjecttype = informatieobjecttype,
+        formaat = "application/pdf",
+        bestandsomvang = 123456789L,
+        link = "https://example.com/test.pdf",
+        integriteit = Integriteit(
+            algoritme = IntegriteitAlgoritme.SHA_256,
+            waarde = "sha256:abcdef1234567890",
+            datum = LocalDate(2025, 1, 1),
+        ),
+        trefwoorden = listOf("test", "example"),
+        vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR,
+        beschrijving = "Test beschrijving",
+        indicatieGebruiksrecht = true,
     )
 }

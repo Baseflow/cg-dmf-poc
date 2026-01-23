@@ -209,7 +209,7 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
     }
     val uuid = UUID.fromString(uuidString)
     val request = call.receive<CreateEIORequest>()
-    service.update(uuid, request)
+    service.update(uuid, request, true)
 
     call.respond(HttpStatusCode.OK)
 }

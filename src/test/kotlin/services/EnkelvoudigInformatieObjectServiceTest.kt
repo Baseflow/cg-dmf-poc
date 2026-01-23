@@ -3,13 +3,16 @@
 package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
+import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.testutils.TestDataFactory
 import com.baseflow.tooling.AllTables
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -266,5 +269,97 @@ class EnkelvoudigInformatieObjectServiceTest {
             generateTestDocument(informatieobjecttype = longUrl)
         }
         assertEquals("Informatieobjecttype mag maximaal 200 karakters lang zijn", exception.message)
+    }
+
+
+    @Test
+    fun `patch should update only provided properties`() = runBlocking {
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
+        val resp = service.create(req)
+        assertEquals("dut", resp.taal)
+        assertEquals("doc.pdf", resp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, resp.informatieobjecttype)
+        assertEquals(1, resp.versie)
+        assertTrue(resp.id.isNotEmpty())
+
+        val uuid = UUID.fromString(resp.id)
+        val patchReq = CreateEIORequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
+            creatiedatum = resp.creatiedatum,
+            titel = resp.titel,
+            auteur = resp.auteur,
+        );
+
+        val patchedResp = service.update(uuid, patchReq, true)
+        assertNotNull(patchedResp)
+        assertEquals("eng", patchedResp.taal)
+        assertEquals("doc2.pdf", patchedResp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, patchedResp.informatieobjecttype)
+        assertEquals(req.bronorganisatie, patchedResp.bronorganisatie)
+        assertEquals(req.creatiedatum, patchedResp.creatiedatum)
+        assertEquals(req.titel, patchedResp.titel)
+        assertEquals(req.auteur, patchedResp.auteur)
+        assertEquals(2, patchedResp.versie)
+        assertTrue(patchedResp.id.isNotEmpty())
+        // Version was changed though
+        assertNotEquals(resp.inhoud, patchedResp.inhoud)
+        // check remaining properties equal to non-patched response
+        assertEquals(resp.id, patchedResp.id)
+        assertEquals(resp.formaat, patchedResp.formaat)
+        assertEquals(resp.integriteit, patchedResp.integriteit)
+        assertEquals(resp.status, patchedResp.status)
+        assertEquals(resp.ondertekening, patchedResp.ondertekening)
+        assertEquals(resp.indicatieGebruiksrecht, patchedResp.indicatieGebruiksrecht)
+        assertEquals(resp.verschijningsvorm, patchedResp.verschijningsvorm)
+        assertEquals(resp.trefwoorden, patchedResp.trefwoorden)
+        assertEquals(resp.inhoudIsVervallen, patchedResp.inhoudIsVervallen)
+    }
+
+    @Test
+    fun `patch should update all properties`() = runBlocking {
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
+        val resp = service.create(req)
+        assertEquals("dut", resp.taal)
+        assertEquals("doc.pdf", resp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, resp.informatieobjecttype)
+        assertEquals(1, resp.versie)
+        assertTrue(resp.id.isNotEmpty())
+
+        val uuid = UUID.fromString(resp.id)
+        val patchReq = CreateEIORequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
+            creatiedatum = resp.creatiedatum,
+            titel = resp.titel,
+            auteur = resp.auteur,
+        );
+
+        val patchedResp = service.update(uuid, patchReq)
+        assertNotNull(patchedResp)
+        assertEquals("eng", patchedResp.taal)
+        assertEquals("doc2.pdf", patchedResp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, patchedResp.informatieobjecttype)
+        assertEquals(req.bronorganisatie, patchedResp.bronorganisatie)
+        assertEquals(req.creatiedatum, patchedResp.creatiedatum)
+        assertEquals(req.titel, patchedResp.titel)
+        assertEquals(req.auteur, patchedResp.auteur)
+        assertEquals(2, patchedResp.versie)
+        assertTrue(patchedResp.id.isNotEmpty())
+        // Version was changed though
+        assertNotEquals(resp.inhoud, patchedResp.inhoud)
+        // check remaining properties are cleared
+        assertEquals("", patchedResp.formaat)
+        assertNull(patchedResp.integriteit)
+        assertEquals(EnkelvoudigInformatieObjectStatus.CONCEPT, patchedResp.status)
+        assertNull(patchedResp.ondertekening)
+        assertEquals(false, patchedResp.indicatieGebruiksrecht)
+        assertEquals("", patchedResp.verschijningsvorm)
+        assertEquals(emptyList<String>(), patchedResp.trefwoorden)
+        assertEquals(false, patchedResp.inhoudIsVervallen)
     }
 }

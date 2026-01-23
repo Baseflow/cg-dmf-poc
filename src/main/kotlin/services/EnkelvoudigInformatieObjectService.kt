@@ -209,7 +209,7 @@ class EnkelvoudigInformatieObjectService {
      * Increments version and creates new EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
+    suspend fun update(id: UUID, request: CreateEIORequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
         return suspendTransaction {
             val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
 
@@ -229,36 +229,35 @@ class EnkelvoudigInformatieObjectService {
 
             storeFileVersion(request, locatie)
 
-            // create a new version. If values in the request are empty, use existing values from latest version
+            // create a new version. If values in the request are empty,
+            // use existing values from latest version but only if the update is not partial
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                bronOrganisatie = request.bronorganisatie.ifEmpty { latestVersion?.bronOrganisatie.orEmpty() }
-                informatieobject_type = request.informatieobjecttype.ifEmpty { latestVersion?.informatieobject_type.orEmpty() }
-                taal = request.taal.ifEmpty { latestVersion?.taal.orEmpty() }
-                bestandsnaam = request.bestandsnaam.orEmpty().ifEmpty { latestVersion?.bestandsnaam.orEmpty() }
-                titel = request.titel.ifEmpty { latestVersion?.titel.orEmpty() }
-                auteur = request.auteur.ifEmpty { latestVersion?.auteur.orEmpty() }
+                bronOrganisatie = if (partial && request.bronorganisatie.isEmpty()) latestVersion?.bronOrganisatie.orEmpty() else request.bronorganisatie
+                informatieobject_type = if (partial && request.informatieobjecttype.isEmpty()) latestVersion?.informatieobject_type.orEmpty() else request.informatieobjecttype
+                taal = if (partial && request.taal.isEmpty()) latestVersion?.taal.orEmpty() else request.taal
+                bestandsnaam = if (partial && request.bestandsnaam.isNullOrEmpty()) latestVersion?.bestandsnaam.orEmpty() else request.bestandsnaam.orEmpty()
+                titel = if (partial && request.titel.isEmpty()) latestVersion?.titel.orEmpty() else request.titel
+                auteur = if (partial && request.auteur.isEmpty()) latestVersion?.auteur.orEmpty() else request.auteur
                 bestandsLocatie = locatie
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                link = request.link.orEmpty()
-                creatieDatum = request.creatiedatum
-                formaat = request.formaat.orEmpty().ifEmpty { latestVersion?.formaat.orEmpty() }
-                bestandsomvang = request.bestandsomvang ?: latestVersion?.bestandsomvang ?: 0
-                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty().ifEmpty { latestVersion?.integriteitAlgoritme.orEmpty() }
-                integriteitWaarde = request.integriteit?.waarde.orEmpty().ifEmpty { latestVersion?.integriteitWaarde.orEmpty() }
-                integriteitsDatum = request.integriteit?.datum?.atTime(0,0,0,0) ?: latestVersion?.integriteitsDatum
-                verschijningsVorm = request.verschijningsvorm.orEmpty().ifEmpty { latestVersion?.verschijningsVorm.orEmpty() }
-                trefwoorden = request.trefwoorden ?: latestVersion?.trefwoorden ?: emptyList()
-                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
-                    ?: ioType?.vertrouwelijkheidaanduiding
-                            ?: ""
-                status = request.status?.toString().orEmpty().ifEmpty { latestVersion?.status.orEmpty() }
-                beschrijving = request.beschrijving.orEmpty().ifEmpty { latestVersion?.beschrijving.orEmpty() }
-                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: latestVersion?.indicatieGebruiksrecht ?: false
-                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty().ifEmpty { latestVersion?.ondertekening_soort.orEmpty() }
-                ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0) ?: latestVersion?.ondertekenings_datum
-                identificatie = request.identificatie.orEmpty().ifEmpty { latestVersion?.identificatie.orEmpty() }
+                link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
+                creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum
+                formaat = if (partial && request.formaat.isNullOrEmpty()) latestVersion?.formaat.orEmpty() else request.formaat.orEmpty()
+                bestandsomvang = if (partial && request.bestandsomvang == null) latestVersion?.bestandsomvang ?: 0 else request.bestandsomvang ?: 0
+                integriteitAlgoritme = if (partial && request.integriteit?.algoritme == null) latestVersion?.integriteitAlgoritme.orEmpty() else request.integriteit?.algoritme?.toString().orEmpty()
+                integriteitWaarde = if (partial && request.integriteit?.waarde.isNullOrEmpty()) latestVersion?.integriteitWaarde.orEmpty() else request.integriteit?.waarde.orEmpty()
+                integriteitsDatum = if (partial && request.integriteit?.datum == null) latestVersion?.integriteitsDatum else request.integriteit?.datum?.atTime(0,0,0,0)
+                verschijningsVorm = if (partial && request.verschijningsvorm.isNullOrEmpty()) latestVersion?.verschijningsVorm.orEmpty() else request.verschijningsvorm.orEmpty()
+                trefwoorden = if (partial && (request.trefwoorden == null || request.trefwoorden!!.isEmpty())) latestVersion?.trefwoorden ?: emptyList() else request.trefwoorden ?: emptyList()
+                vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding.orEmpty() else ioType?.vertrouwelijkheidaanduiding ?: ""
+                status = if (partial && request.status == null) latestVersion?.status.orEmpty() else request.status?.toString().orEmpty()
+                beschrijving = if (partial && request.beschrijving.isNullOrEmpty()) latestVersion?.beschrijving.orEmpty() else request.beschrijving.orEmpty()
+                indicatieGebruiksrecht = if (partial && request.indicatieGebruiksrecht == null) latestVersion?.indicatieGebruiksrecht ?: false else request.indicatieGebruiksrecht ?: false
+                ondertekening_soort = if (partial && request.ondertekening?.soort == null) latestVersion?.ondertekening_soort.orEmpty() else request.ondertekening?.soort?.toString().orEmpty()
+                ondertekenings_datum = if (partial && request.ondertekening?.datum == null) latestVersion?.ondertekenings_datum else request.ondertekening?.datum?.atTime(0,0,0,0)
+                identificatie = if (partial && request.identificatie.isNullOrEmpty()) latestVersion?.identificatie.orEmpty() else request.identificatie.orEmpty()
             }
             record.toResponse(version)
         }
