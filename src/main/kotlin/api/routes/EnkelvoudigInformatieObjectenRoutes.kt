@@ -29,6 +29,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -196,9 +197,14 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     }
     val uuid = UUID.fromString(uuidString)
     val request = call.receive<CreateEIORequest>()
-    service.update(uuid, request)
+    val response = service.update(uuid, request)
 
-    call.respond(HttpStatusCode.OK)
+    if (response == null) {
+        call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
+    }
+    else {
+        call.respond(HttpStatusCode.OK, message = response)
+    }
 }
 
 private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
@@ -209,9 +215,13 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
     }
     val uuid = UUID.fromString(uuidString)
     val request = call.receive<CreateEIORequest>()
-    service.update(uuid, request, true)
-
-    call.respond(HttpStatusCode.OK)
+    val response = service.update(uuid, request, true)
+    if (response == null) {
+        call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
+    }
+    else {
+        call.respond(HttpStatusCode.Created, response)
+    }
 }
 
 private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
