@@ -89,13 +89,19 @@ private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObject
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
     val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
+    // EXPERIMENTEEL filters
+    val objectUrl = call.request.queryParameters["objectinformatieobjecten__object"]
+    val objectType = call.request.queryParameters["objectinformatieobjecten__objectType"]
+
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         bronOrganisatie = bronOrganisatie,
         trefwoorden = trefwoorden,
         identificatie = identificatie,
         expand = expand,
         page = page,
-        pageSize = pageSize
+        pageSize = pageSize,
+        objectUrl = objectUrl,
+        objectType = objectType
     )
 
     val (items, totalCount) = service.getAll(filter)
@@ -120,11 +126,17 @@ private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObject
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
     val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
+    // EXPERIMENTEEL filters
+    val objectUrl = call.request.queryParameters["objectinformatieobjecten__object"]
+    val objectType = call.request.queryParameters["objectinformatieobjecten__objectType"]
+
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = request.uuidIn,
         expand = expand,
         page = page,
-        pageSize = pageSize
+        pageSize = pageSize,
+        objectUrl = objectUrl,
+        objectType = objectType
     )
 
     val (items, totalCount) = service.getAll(filter)

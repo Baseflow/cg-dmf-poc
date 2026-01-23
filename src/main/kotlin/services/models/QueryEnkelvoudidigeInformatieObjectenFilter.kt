@@ -12,5 +12,9 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
      * This parameter is an extension used for pagination control and might require filing a ticket for the official spec.
      */
     val pageSize: Int = 100,
-    val uuids: List<String> = emptyList()
+    val uuids: List<String> = emptyList(),
+    /** EXPERIMENTEEL: URL-referentie naar de gerelateerde OBJECT */
+    val objectUrl: String? = null,
+    /** EXPERIMENTEEL: Het type van het gerelateerde OBJECT */
+    val objectType: String? = null
 )

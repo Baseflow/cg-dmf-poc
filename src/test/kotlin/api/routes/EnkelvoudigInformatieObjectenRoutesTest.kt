@@ -9,6 +9,8 @@ import com.baseflow.config.OpenZaakConfig
 import com.baseflow.api.models.EIOZoekRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.api.models.CreateOIORequest
+import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.tooling.AllTables
 import io.ktor.http.*
@@ -618,6 +620,83 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         assertContains(next, "page=2")
         assertContains(next, "pageSize=5")
         assertContains(next, "bronorganisatie=$bronOrganisatie")
+    }
+
+    @Test
+    fun `test GET list with experimental object filters`() = testApplication {
+        application { testModule() }
+
+        // Create an EIO
+        val resEio = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(identificatie = "EIO-OIO-1")))
+        }
+        val eio = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(resEio.bodyAsText())
+
+        // Create another EIO (not linked)
+        client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(identificatie = "EIO-OIO-2")))
+        }
+
+        // Link first EIO to an object
+        val objectUrl = "https://example.com/zaken/api/v1/zaken/12345"
+        val oioReq = CreateOIORequest(
+            informatieobject = eio.url!!,
+            subjectObject = objectUrl,
+            subjectType = SubjectTypeEnum.ZAAK
+        )
+        client.post("$API_BASE/objectinformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(oioReq))
+        }
+
+        // Filter EIOs by object
+        val filterResp = client.get("$API_BASE/$RESOURCE_SEGMENT?objectinformatieobjecten__object=${objectUrl.encodeURLParameter()}&objectinformatieobjecten__objectType=zaak")
+        assertEquals(HttpStatusCode.OK, filterResp.status)
+        val body = Json.parseToJsonElement(filterResp.bodyAsText()).jsonObject
+        val results = body["results"]?.jsonArray ?: error("results missing")
+
+        assertEquals(1, results.size)
+        assertEquals(eio.id, results[0].jsonObject["id"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `test POST zoek with experimental object filters`() = testApplication {
+        application { testModule() }
+
+        // Create an EIO
+        val resEio = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(identificatie = "EIO-ZOEK-OIO-1")))
+        }
+        val eio = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(resEio.bodyAsText())
+
+        // Link EIO to an object
+        val objectUrl = "https://example.com/zaken/api/v1/zaken/67890"
+        val oioReq = CreateOIORequest(
+            informatieobject = eio.url!!,
+            subjectObject = objectUrl,
+            subjectType = SubjectTypeEnum.ZAAK
+        )
+        client.post("$API_BASE/objectinformatieobjecten") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(oioReq))
+        }
+
+        // Search EIOs by UUID and filter by object (via query params)
+        val zoekReq = EIOZoekRequest(uuidIn = listOf(eio.id))
+        val filterResp = client.post("$API_BASE/$RESOURCE_SEGMENT/_zoek?objectinformatieobjecten__object=${objectUrl.encodeURLParameter()}") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(zoekReq))
+        }
+
+        assertEquals(HttpStatusCode.OK, filterResp.status)
+        val body = Json.parseToJsonElement(filterResp.bodyAsText()).jsonObject
+        val results = body["results"]?.jsonArray ?: error("results missing")
+
+        assertEquals(1, results.size)
+        assertEquals(eio.id, results[0].jsonObject["id"]?.jsonPrimitive?.content)
     }
 
 }

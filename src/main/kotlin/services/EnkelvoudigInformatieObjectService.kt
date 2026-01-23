@@ -6,6 +6,7 @@ import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
+import com.baseflow.entities.OIORecords
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.CreateEIORequest
@@ -156,9 +157,15 @@ class EnkelvoudigInformatieObjectService {
             val offset = (page - 1L) * pageSize
 
             // Base query: Record + Version, filtered and ordered by versie desc
-            val query = EIORecords.innerJoin(EIOVersions)
+            var query = EIORecords.innerJoin(EIOVersions)
                 .selectAll()
-                .apply {
+
+            if (filters.objectUrl != null || filters.objectType != null) {
+                query = EIORecords.innerJoin(EIOVersions).innerJoin(OIORecords)
+                    .selectAll()
+            }
+
+            query.apply {
                     if (condition != Op.TRUE) {
                         andWhere { condition }
                     }
@@ -319,6 +326,14 @@ class EnkelvoudigInformatieObjectService {
             if (uuids.isNotEmpty()) {
                 op = op and (EIORecords.id inList uuids)
             }
+        }
+
+        filters.objectUrl?.let { objUrl ->
+            op = op and (OIORecords.subjectObject eq objUrl)
+        }
+
+        filters.objectType?.let { objType ->
+            op = op and (OIORecords.subjectType eq objType.lowercase())
         }
 
         return op
