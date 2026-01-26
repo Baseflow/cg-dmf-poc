@@ -232,10 +232,10 @@ class EnkelvoudigInformatieObjectService {
 
             if (!request.informatieobjecttype.isNullOrEmpty()) {
                 openZaakService.validateInformatieobjecttype(
-                    request.informatieobjecttype);
+                    request.informatieobjecttype)
             }
 
-            var locatie = latestVersion?.bestandsLocatie.orEmpty();
+            var locatie = latestVersion?.bestandsLocatie.orEmpty()
             if ( !request.inhoud.isNullOrEmpty() &&
                             request.bestandsomvang != null &&
                             request.bestandsomvang > 0 &&
