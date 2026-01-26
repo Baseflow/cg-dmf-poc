@@ -297,7 +297,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             creatiedatum = resp.creatiedatum,
             titel = resp.titel,
             auteur = resp.auteur,
-        );
+        )
 
         val patchedResp = service.update(uuid, patchReq, true)
         assertNotNull(patchedResp)
@@ -343,7 +343,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             creatiedatum = resp.creatiedatum,
             titel = resp.titel,
             auteur = resp.auteur,
-        );
+        )
 
         val patchedResp = service.update(uuid, patchReq)
         assertNotNull(patchedResp)
@@ -377,7 +377,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             bronorganisatie = "012345678",
             creatiedatum =  LocalDate(2025, 1, 1),
             auteur = "auteur",
-        );
+        )
 
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
@@ -400,7 +400,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             creatiedatum =  LocalDate(2025, 1, 1),
             auteur = "auteur",
             titel = "titel"
-        );
+        )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
         }
@@ -420,7 +420,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             auteur = "auteur",
             titel = "titel",
             informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
-        );
+        )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
         }
@@ -440,7 +440,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             auteur = "auteur",
             titel = "titel",
             informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
-        );
+        )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
         }
@@ -460,7 +460,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             creatiedatum =  LocalDate(2025, 1, 1),
             titel = "titel",
             informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
-        );
+        )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
         }
@@ -480,7 +480,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             auteur = "auteur",
             titel = "titel",
             informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
-        );
+        )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
         }
