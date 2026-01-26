@@ -570,8 +570,8 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `trefwoorden mogen niet langer dan 1000 karakters zijn`() = runBlocking {
-        val lonId = "a".repeat(1001)
+    fun `trefwoorden mogen niet langer dan 100 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(101)
         val trefwoorden = listOf(lonId, "Hello world")
         val createException = assertFailsWith<IllegalArgumentException> {
             EnkelvoudigInformatieObjectRequest(trefwoorden = trefwoorden)
