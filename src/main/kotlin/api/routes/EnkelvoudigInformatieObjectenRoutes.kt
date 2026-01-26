@@ -205,7 +205,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     try {
         val response = service.update(uuid, request)
         if (response == null) {
-            call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
+            call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
         }
         call.respond(HttpStatusCode.OK, message = response)
