@@ -325,7 +325,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `patch should update all properties`() = runBlocking {
+    fun `put should update all properties`() = runBlocking {
         val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
         val resp = service.create(req)
         assertEquals("dut", resp.taal)

@@ -252,7 +252,7 @@ class EnkelvoudigInformatieObjectService {
                 recordId = record
                 versie = newVersionNumber
                 bronOrganisatie = if (partial && request.bronorganisatie.isNullOrEmpty()) latestVersion?.bronOrganisatie.orEmpty() else request.bronorganisatie!!
-                informatieobject_type = if (partial && !request.informatieobjecttype.isNullOrEmpty()) latestVersion?.informatieobject_type.orEmpty() else request.informatieobjecttype!!
+                informatieobject_type = if (partial && request.informatieobjecttype.isNullOrEmpty()) latestVersion?.informatieobject_type.orEmpty() else request.informatieobjecttype!!
                 taal = if (partial && request.taal.isNullOrEmpty()) latestVersion?.taal.orEmpty() else request.taal!!
                 bestandsnaam = if (partial && request.bestandsnaam.isNullOrEmpty()) latestVersion?.bestandsnaam.orEmpty() else request.bestandsnaam.orEmpty()
                 titel = if (partial && request.titel.isNullOrEmpty()) latestVersion?.titel.orEmpty() else request.titel!!
@@ -267,7 +267,7 @@ class EnkelvoudigInformatieObjectService {
                 integriteitWaarde = if (partial && request.integriteit?.waarde.isNullOrEmpty()) latestVersion?.integriteitWaarde.orEmpty() else request.integriteit?.waarde.orEmpty()
                 integriteitsDatum = if (partial && request.integriteit?.datum == null) latestVersion?.integriteitsDatum else request.integriteit?.datum?.atTime(0,0,0,0)
                 verschijningsVorm = if (partial && request.verschijningsvorm.isNullOrEmpty()) latestVersion?.verschijningsVorm.orEmpty() else request.verschijningsvorm.orEmpty()
-                trefwoorden = if (partial && (request.trefwoorden == null || request.trefwoorden!!.isEmpty())) latestVersion?.trefwoorden ?: emptyList() else request.trefwoorden ?: emptyList()
+                trefwoorden = if (partial && request.trefwoorden.isNullOrEmpty()) latestVersion?.trefwoorden ?: emptyList() else request.trefwoorden ?: emptyList()
                 vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding.toString() else request.vertrouwelijkheidaanduiding?.toString().orEmpty();
                 status = if (partial && request.status == null) latestVersion?.status.orEmpty() else request.status?.toString().orEmpty()
                 beschrijving = if (partial && request.beschrijving.isNullOrEmpty()) latestVersion?.beschrijving.orEmpty() else request.beschrijving.orEmpty()
