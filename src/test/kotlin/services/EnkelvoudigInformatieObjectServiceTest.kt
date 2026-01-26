@@ -572,9 +572,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `trefwoorden mogen niet langer dan 1000 karakters zijn`() = runBlocking {
         val lonId = "a".repeat(1001)
-        var trefwoorden = mutableListOf<String>()
-        trefwoorden.add(lonId)
-        trefwoorden.add("Hello world")
+        val trefwoorden = listOf(lonId, "Hello world")
         val createException = assertFailsWith<IllegalArgumentException> {
             EnkelvoudigInformatieObjectRequest(trefwoorden = trefwoorden)
         }
