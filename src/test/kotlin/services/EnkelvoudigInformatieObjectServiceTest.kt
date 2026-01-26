@@ -581,13 +581,13 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'`() = runBlocking {
-        val inBewewerkingException = assertFailsWith<IllegalArgumentException> {
+        val inBewerkingException = assertFailsWith<IllegalArgumentException> {
             EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
                 soort = OndertekeningSoort.DIGITAAL,
                 datum = LocalDate(2025, 1, 1),
             ), status = EnkelvoudigInformatieObjectStatus.IN_BEWERKING)
         }
-        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", inBewewerkingException.message)
+        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", inBewerkingException.message)
 
         var terVastStellingException = assertFailsWith<IllegalArgumentException> {
             EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
