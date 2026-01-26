@@ -271,7 +271,7 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
         val eio = transaction {
             val record =
                 EIORecordEntity.findById(uuid) ?: return@transaction null;
-            val eio = record!!.versions.maxByOrNull { it.versie };
+            val eio = record.versions.maxByOrNull { it.versie };
             return@transaction eio
         }
 
