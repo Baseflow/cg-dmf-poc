@@ -9,7 +9,7 @@ import com.baseflow.EIOVersions
 import com.baseflow.entities.OIORecords
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
@@ -69,13 +69,15 @@ class EnkelvoudigInformatieObjectService {
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse {
         return suspendTransaction {
+            request.controleerVerplichteVelden()
+
             val record = EIORecordEntity.new {
             }
 
             // Validate informatieobjecttype against catalogus
-            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
             val version = 1;
 
             val locatie = (!request.inhoud.isNullOrEmpty() &&
@@ -90,13 +92,13 @@ class EnkelvoudigInformatieObjectService {
             val eioVersion = EIOVersionEntity.new {
                 recordId = record
                 versie = version
-                bronOrganisatie = request.bronorganisatie
+                bronOrganisatie = request.bronorganisatie!!
                 informatieobject_type = request.informatieobjecttype
-                taal = request.taal
+                taal = request.taal!!
                 bestandsnaam = request.bestandsnaam.orEmpty()
-                titel = request.titel
-                auteur = request.auteur
-                creatieDatum = request.creatiedatum
+                titel = request.titel!!
+                auteur = request.auteur!!
+                creatieDatum = request.creatiedatum!!
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = request.formaat.orEmpty()
                 bestandsomvang = request.bestandsomvang ?: 0
@@ -122,7 +124,7 @@ class EnkelvoudigInformatieObjectService {
     }
 
     private fun storeFileVersion(
-        request: CreateEIORequest,
+        request: EnkelvoudigInformatieObjectRequest,
         bestandsLocatie: String,
     ) {
         if (!request.inhoud.isNullOrEmpty() &&
@@ -207,17 +209,30 @@ class EnkelvoudigInformatieObjectService {
     /**
      * Update an EnkelvoudigInformatieObject (creates new version)
      * Increments version and creates new EIOVersion in a transaction
+     *
+     * If `partial` is true, only non-empty fields in the request will be updated;
+     * otherwise, all fields will be updated.
+     *
+     * If no new content is provided, the existing file location will be reused.
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun update(id: UUID, request: CreateEIORequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
+    suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
         return suspendTransaction {
+
+            if (!partial) {
+                request.controleerVerplichteVelden()
+            }
+
             val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
 
             // Validate informatieobjecttype against OpenZaak
-            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
-
             val latestVersion = record.versions.maxByOrNull { it.versie }
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
+
+            if (!request.informatieobjecttype.isNullOrEmpty()) {
+                openZaakService.validateInformatieobjecttype(
+                    request.informatieobjecttype);
+            }
 
             // if we have new content, upload with new version number, otherwise use previous location
             val locatie = ( !request.inhoud.isNullOrEmpty() &&
@@ -234,16 +249,16 @@ class EnkelvoudigInformatieObjectService {
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                bronOrganisatie = if (partial && request.bronorganisatie.isEmpty()) latestVersion?.bronOrganisatie.orEmpty() else request.bronorganisatie
-                informatieobject_type = if (partial && request.informatieobjecttype.isEmpty()) latestVersion?.informatieobject_type.orEmpty() else request.informatieobjecttype
-                taal = if (partial && request.taal.isEmpty()) latestVersion?.taal.orEmpty() else request.taal
+                bronOrganisatie = if (partial && request.bronorganisatie.isNullOrEmpty()) latestVersion?.bronOrganisatie.orEmpty() else request.bronorganisatie!!
+                informatieobject_type = if (partial && !request.informatieobjecttype.isNullOrEmpty()) latestVersion?.informatieobject_type.orEmpty() else request.informatieobjecttype!!
+                taal = if (partial && request.taal.isNullOrEmpty()) latestVersion?.taal.orEmpty() else request.taal!!
                 bestandsnaam = if (partial && request.bestandsnaam.isNullOrEmpty()) latestVersion?.bestandsnaam.orEmpty() else request.bestandsnaam.orEmpty()
-                titel = if (partial && request.titel.isEmpty()) latestVersion?.titel.orEmpty() else request.titel
-                auteur = if (partial && request.auteur.isEmpty()) latestVersion?.auteur.orEmpty() else request.auteur
+                titel = if (partial && request.titel.isNullOrEmpty()) latestVersion?.titel.orEmpty() else request.titel!!
+                auteur = if (partial && request.auteur.isNullOrEmpty()) latestVersion?.auteur.orEmpty() else request.auteur!!
                 bestandsLocatie = locatie
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
-                creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum
+                creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum!!
                 formaat = if (partial && request.formaat.isNullOrEmpty()) latestVersion?.formaat.orEmpty() else request.formaat.orEmpty()
                 bestandsomvang = if (partial && request.bestandsomvang == null) latestVersion?.bestandsomvang ?: 0 else request.bestandsomvang ?: 0
                 integriteitAlgoritme = if (partial && request.integriteit?.algoritme == null) latestVersion?.integriteitAlgoritme.orEmpty() else request.integriteit?.algoritme?.toString().orEmpty()
@@ -251,7 +266,7 @@ class EnkelvoudigInformatieObjectService {
                 integriteitsDatum = if (partial && request.integriteit?.datum == null) latestVersion?.integriteitsDatum else request.integriteit?.datum?.atTime(0,0,0,0)
                 verschijningsVorm = if (partial && request.verschijningsvorm.isNullOrEmpty()) latestVersion?.verschijningsVorm.orEmpty() else request.verschijningsvorm.orEmpty()
                 trefwoorden = if (partial && (request.trefwoorden == null || request.trefwoorden!!.isEmpty())) latestVersion?.trefwoorden ?: emptyList() else request.trefwoorden ?: emptyList()
-                vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding.orEmpty() else ioType?.vertrouwelijkheidaanduiding ?: ""
+                vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding.toString() else request.vertrouwelijkheidaanduiding?.toString().orEmpty();
                 status = if (partial && request.status == null) latestVersion?.status.orEmpty() else request.status?.toString().orEmpty()
                 beschrijving = if (partial && request.beschrijving.isNullOrEmpty()) latestVersion?.beschrijving.orEmpty() else request.beschrijving.orEmpty()
                 indicatieGebruiksrecht = if (partial && request.indicatieGebruiksrecht == null) latestVersion?.indicatieGebruiksrecht ?: false else request.indicatieGebruiksrecht ?: false

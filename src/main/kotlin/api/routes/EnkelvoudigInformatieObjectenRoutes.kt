@@ -4,7 +4,7 @@ package com.baseflow.api.routes
 
 import com.baseflow.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
-import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.api.models.EIOZoekRequest
 import com.baseflow.api.models.UnlockEIORequest
@@ -112,14 +112,18 @@ private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObject
 }
 
 private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
-    val request = call.receive<CreateEIORequest>()
-    val response = service.create(request)
+    val request = call.receive<EnkelvoudigInformatieObjectRequest>()
+    try {
+        val response = service.create(request)
+        // Location header with the URL of the created resource
+        val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
+        call.response.headers.append(HttpHeaders.Location, locationUrl)
 
-    // Location header with the URL of the created resource
-    val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
-    call.response.headers.append(HttpHeaders.Location, locationUrl)
-
-    call.respond(HttpStatusCode.Created, response)
+        call.respond(HttpStatusCode.Created, response)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Validation failed", call.request.path()))
+        return
+    }
 }
 
 private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
@@ -196,14 +200,18 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
         return
     }
     val uuid = UUID.fromString(uuidString)
-    val request = call.receive<CreateEIORequest>()
-    val response = service.update(uuid, request)
+    val request = call.receive<EnkelvoudigInformatieObjectRequest>()
 
-    if (response == null) {
-        call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
-    }
-    else {
+    try {
+        val response = service.update(uuid, request)
+        if (response == null) {
+            call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
+            return
+        }
         call.respond(HttpStatusCode.OK, message = response)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Validation failed", call.request.path()))
+        return
     }
 }
 
@@ -214,14 +222,14 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
         return
     }
     val uuid = UUID.fromString(uuidString)
-    val request = call.receive<CreateEIORequest>()
+    val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     val response = service.update(uuid, request, true)
     if (response == null) {
         call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
+        return
     }
-    else {
-        call.respond(HttpStatusCode.Created, response)
-    }
+    call.respond(HttpStatusCode.OK, response)
+
 }
 
 private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {

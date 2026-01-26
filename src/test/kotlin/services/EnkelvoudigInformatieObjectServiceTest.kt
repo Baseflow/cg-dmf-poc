@@ -3,9 +3,11 @@
 package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
-import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.api.models.Ondertekening
+import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
@@ -15,6 +17,7 @@ import com.baseflow.services.models.UnlockResult
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.tooling.AllTables
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -283,7 +286,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertTrue(resp.id.isNotEmpty())
 
         val uuid = UUID.fromString(resp.id)
-        val patchReq = CreateEIORequest(
+        val patchReq = EnkelvoudigInformatieObjectRequest(
             taal = "eng",
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
@@ -329,7 +332,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertTrue(resp.id.isNotEmpty())
 
         val uuid = UUID.fromString(resp.id)
-        val patchReq = CreateEIORequest(
+        val patchReq = EnkelvoudigInformatieObjectRequest(
             taal = "eng",
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
@@ -355,11 +358,286 @@ class EnkelvoudigInformatieObjectServiceTest {
         // check remaining properties are cleared
         assertEquals("", patchedResp.formaat)
         assertNull(patchedResp.integriteit)
-        assertEquals(EnkelvoudigInformatieObjectStatus.CONCEPT, patchedResp.status)
+        assertEquals(null, patchedResp.status)
         assertNull(patchedResp.ondertekening)
         assertEquals(false, patchedResp.indicatieGebruiksrecht)
         assertEquals("", patchedResp.verschijningsvorm)
         assertEquals(emptyList<String>(), patchedResp.trefwoorden)
         assertEquals(false, patchedResp.inhoudIsVervallen)
+    }
+
+    @Test
+    fun `create and patch should check for required title`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+        );
+
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Titel mag niet leeg zijn", createException.message)
+
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Titel mag niet leeg zijn", putException.message)
+
+    }
+
+    @Test
+    fun `create and patch should check for required informatieobjecttype`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+            titel = "titel"
+        );
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Informatieobjecttype mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Informatieobjecttype mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for required bronorganisatie`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        );
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Bronorganisatie mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Bronorganisatie mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for required creatiedatum`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            auteur = "auteur",
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        );
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Creatiedatum mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Creatiedatum mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for required auteur`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        );
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Auteur mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Auteur mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for valid taal`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        );
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Taal mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Taal mag niet leeg zijn", putException.message)
+
+        // create invalid taal
+        val invalidCreateException = assertFailsWith<IllegalArgumentException> {
+            req.copy(taal = "invalid")
+        }
+        assertEquals("Taal moet conform ISO 639-2/B code zijn", invalidCreateException.message)
+    }
+
+    @Test
+    fun `identificatie mag niet langer dan 40 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(41)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(identificatie = lonId)
+        }
+        assertEquals("Identificatie mag maximaal 40 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `bestandsnaam mag niet langer dan 255 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(256)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(bestandsnaam = lonId)
+        }
+        assertEquals("Bestandsnaam mag maximaal 255 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `titel mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(titel = lonId)
+        }
+        assertEquals("Titel mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `auteur mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(auteur = lonId)
+        }
+        assertEquals("Auteur mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `beschrijving mag niet langer dan 1000 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(1001)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(beschrijving = lonId)
+        }
+        assertEquals("Beschrijving mag maximaal 1000 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `formaat mag niet langer dan 255 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(256)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(formaat = lonId)
+        }
+        assertEquals("Formaat mag maximaal 255 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `link mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(link = lonId)
+        }
+        assertEquals("Link mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `informatieobjecttype mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(informatieobjecttype = lonId)
+        }
+        assertEquals("Informatieobjecttype mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `trefwoorden mogen niet langer dan 1000 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(1001)
+        var trefwoorden = mutableListOf<String>()
+        trefwoorden.add(lonId)
+        trefwoorden.add("Hello world")
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(trefwoorden = trefwoorden)
+        }
+        assertEquals("Elk trefwoord mag maximaal 100 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'`() = runBlocking {
+        val inBewewerkingException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
+                soort = OndertekeningSoort.DIGITAAL,
+                datum = LocalDate(2025, 1, 1),
+            ), status = EnkelvoudigInformatieObjectStatus.IN_BEWERKING)
+        }
+        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", inBewewerkingException.message)
+
+        var terVastStellingException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
+                soort = OndertekeningSoort.PKI,
+                datum = LocalDate(2025, 1, 1),
+            ), status = EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING)
+        }
+        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", terVastStellingException.message)
+
+        // check successful with another state
+        val succesfulRequest = EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
+            soort = OndertekeningSoort.PKI,
+            datum = LocalDate(2025, 1, 1),
+        ), status = EnkelvoudigInformatieObjectStatus.DEFINITIEF)
+
+        //assertNotNull(succesfulRequest)
+    }
+
+    @Test
+    fun `bestandsnaam moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(
+                bestandsomvang = 123456L,
+                formaat = "application/pdf",
+                inhoud = "inhoud",
+            )
+        }
+        assertEquals("Bestandsnaam moet worden opgegeven als inhoud is opgegeven", createException.message)
+    }
+
+    @Test
+    fun `bestandsomvang moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(
+                bestandsnaam = "doc.pdf",
+                formaat = "application/pdf",
+                inhoud = "inhoud",
+            )
+        }
+        assertEquals("Bestandsomvang moet worden opgegeven als inhoud is opgegeven", createException.message)
+    }
+
+    @Test
+    fun `formaat moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(
+                bestandsnaam = "doc.pdf",
+                bestandsomvang = 123456L,
+                inhoud = "inhoud",
+            )
+        }
+        assertEquals("Formaat moet worden opgegeven als inhoud is opgegeven", createException.message)
     }
 }

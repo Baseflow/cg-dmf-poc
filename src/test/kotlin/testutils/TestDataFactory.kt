@@ -2,11 +2,10 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.testutils
 
-import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.IntegriteitAlgoritme
-import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import kotlinx.datetime.LocalDate
 import kotlin.String
@@ -35,7 +34,7 @@ object TestDataFactory {
         auteur: String = "auteur",
         informatieobjecttype: String = VALID_INFORMATIEOBJECTTYPE_URL,
         identificatie: String? = null
-    ): CreateEIORequest = CreateEIORequest(
+    ): EnkelvoudigInformatieObjectRequest = EnkelvoudigInformatieObjectRequest(
         identificatie = identificatie,
         creatiedatum = LocalDate(2025, 1, 1),
         bronorganisatie = "012345678",
