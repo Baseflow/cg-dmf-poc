@@ -28,6 +28,9 @@ import java.util.UUID
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
 
+    private val PDF_CONTENT = "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlIC9DYXRhbG9nCi9QYWdlcyAyIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFJdCi9Db3VudCAxCj4+CmVuZG9iagozIDAgb2JqCjw8L1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA1OTUgODQyXQovQ29udGVudHMgNSAwIFIKL1Jlc291cmNlcyA8PC9Qcm9jU2V0IFsvUERGIC9UZXh0XQovRm9udCA8PC9GMSA0IDAgUj4+Cj4+Cj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9GMQovQmFzZUZvbnQgL0hlbHZldGljYQovRW5jb2RpbmcgL01hY1JvbWFuRW5jb2RpbmcKPj4KZW5kb2JqCjUgMCBvYmoKPDwvTGVuZ3RoIDUzCj4+CnN0cmVhbQpCVAovRjEgMjAgVGYKMjIwIDQwMCBUZAooRHVtbXkgUERGKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZgowMDAwMDAwMDA5IDAwMDAwIG4KMDAwMDAwMDA2MyAwMDAwMCBuCjAwMDAwMDAxMjQgMDAwMDAgbgowMDAwMDAwMjc3IDAwMDAwIG4KMDAwMDAwMDM5MiAwMDAwMCBuCnRyYWlsZXIKPDwvU2l6ZSA2Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgo0OTUKJSVFT0YK"
+    private val PDF_CONTENT_ALT = "JVBERi0xLjEKJcKlwrHDqwoKMSAwIG9iagogIDw8IC9UeXBlIC9DYXRhbG9nCiAgICAgL1BhZ2VzIDIgMCBSCiAgPj4KZW5kb2JqCgoyIDAgb2JqCiAgPDwgL1R5cGUgL1BhZ2VzCiAgICAgL0tpZHMgWzMgMCBSXQogICAgIC9Db3VudCAxCiAgICAgL01lZGlhQm94IFswIDAgMzAwIDE0NF0KICA+PgplbmRvYmoKCjMgMCBvYmoKICA8PCAgL1R5cGUgL1BhZ2UKICAgICAgL1BhcmVudCAyIDAgUgogICAgICAvUmVzb3VyY2VzCiAgICAgICA8PCAvRm9udAogICAgICAgICAgIDw8IC9GMQogICAgICAgICAgICAgICA8PCAvVHlwZSAvRm9udAogICAgICAgICAgICAgICAgICAvU3VidHlwZSAvVHlwZTEKICAgICAgICAgICAgICAgICAgL0Jhc2VGb250IC9UaW1lcy1Sb21hbgogICAgICAgICAgICAgICA+PgogICAgICAgICAgID4+CiAgICAgICA+PgogICAgICAvQ29udGVudHMgNCAwIFIKICA+PgplbmRvYmoKCjQgMCBvYmoKICA8PCAvTGVuZ3RoIDU1ID4+CnN0cmVhbQogIEJUCiAgICAvRjEgMTggVGYKICAgIDAgMCBUZAogICAgKEhlbGxvIFdvcmxkKSBUagogIEVUCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxOCAwMDAwMCBuIAowMDAwMDAwMDc3IDAwMDAwIG4gCjAwMDAwMDAxNzggMDAwMDAgbiAKMDAwMDAwMDQ1NyAwMDAwMCBuIAp0cmFpbGVyCiAgPDwgIC9Sb290IDEgMCBSCiAgICAgIC9TaXplIDUKICA+PgpzdGFydHhyZWYKNTY1CiUlRU9GCg=="
+
     @BeforeTest
     fun setup() {
         Database.connect(
@@ -639,5 +642,50 @@ class EnkelvoudigInformatieObjectServiceTest {
             )
         }
         assertEquals("Formaat moet worden opgegeven als inhoud is opgegeven", createException.message)
+    }
+
+
+    @Test fun `update file location is content has changed`() = runBlocking {
+        val req = generateTestDocument(bestandsnaam = "doc.pdf")
+        val reqWithContent = req.copy(inhoud = PDF_CONTENT, formaat = "application/pdf", bestandsomvang = 595L)
+        val resp = service.create(reqWithContent)
+
+        // get entity from database
+        var eio = transaction {
+            val record = EIORecordEntity.findById(UUID.fromString(resp.id)) ?: return@transaction null
+            record.versions.maxByOrNull { it.versie } ?: return@transaction null
+        }
+
+        assertNotNull(eio)
+        assertEquals(eio.versie, 1)
+        assertEquals("${resp.id}/1/${req.bestandsnaam}", eio.bestandsLocatie)
+
+
+        val requestWithUpdatedContent = req.copy(inhoud = PDF_CONTENT_ALT, formaat = "application/pdf", bestandsomvang = 620L)
+        val patchedResp = service.update(UUID.fromString(resp.id), requestWithUpdatedContent, false)
+        assertNotNull(patchedResp)
+        assertEquals("doc.pdf", patchedResp.bestandsnaam)
+
+        eio = transaction {
+            val record = EIORecordEntity.findById(UUID.fromString(resp.id)) ?: return@transaction null
+            record.versions.maxByOrNull { it.versie } ?: return@transaction null
+        }
+
+        assertNotNull(eio)
+        assertEquals(eio.versie, 2)
+        assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
+
+        // perform a patch without content and check that the file location is not updated
+        val patchedResp2 = service.update(UUID.fromString(resp.id), requestWithUpdatedContent.copy(inhoud = ""), false)
+        assertNotNull(patchedResp2)
+        assertEquals("doc.pdf", patchedResp2.bestandsnaam)
+        eio = transaction {
+            val record = EIORecordEntity.findById(UUID.fromString(resp.id)) ?: return@transaction null
+            record.versions.maxByOrNull { it.versie } ?: return@transaction null
+        }
+
+        assertNotNull(eio)
+        assertEquals(eio.versie, 3)
+        assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
     }
 }

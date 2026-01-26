@@ -80,12 +80,13 @@ class EnkelvoudigInformatieObjectService {
             val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
             val version = 1;
 
-            val locatie = (!request.inhoud.isNullOrEmpty() &&
+            var locatie = ""
+            if (!request.inhoud.isNullOrEmpty() &&
                             request.bestandsomvang != null &&
                             request.bestandsomvang > 0 &&
-                            request.bestandsnaam != null).let {
-                "${record.id.value}/$version/${request.bestandsnaam}"
-            } ?: ""
+                            request.bestandsnaam != null) {
+                locatie = "${record.id.value}/$version/${request.bestandsnaam}"
+            }
 
             storeFileVersion(request, locatie)
 
@@ -234,13 +235,14 @@ class EnkelvoudigInformatieObjectService {
                     request.informatieobjecttype);
             }
 
-            // if we have new content, upload with new version number, otherwise use previous location
-            val locatie = ( !request.inhoud.isNullOrEmpty() &&
+            var locatie = latestVersion?.bestandsLocatie.orEmpty();
+            if ( !request.inhoud.isNullOrEmpty() &&
                             request.bestandsomvang != null &&
                             request.bestandsomvang > 0 &&
-                            request.bestandsnaam != null).let {
-                latestVersion?.bestandsLocatie.orEmpty()
-            } ?:"${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
+                            request.bestandsnaam != null) {
+                // if we have new content, upload with new version number, otherwise use previous location
+                locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
+            }
 
             storeFileVersion(request, locatie)
 
