@@ -3,15 +3,21 @@
 package com.baseflow.services
 
 import com.baseflow.EIORecordEntity
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.api.models.Ondertekening
+import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.testutils.TestDataFactory
 import com.baseflow.tooling.AllTables
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -21,6 +27,9 @@ import java.util.UUID
 
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
+
+    private val PDF_CONTENT = "JVBERi0xLjQKMSAwIG9iago8PC9UeXBlIC9DYXRhbG9nCi9QYWdlcyAyIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcwovS2lkcyBbMyAwIFJdCi9Db3VudCAxCj4+CmVuZG9iagozIDAgb2JqCjw8L1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovTWVkaWFCb3ggWzAgMCA1OTUgODQyXQovQ29udGVudHMgNSAwIFIKL1Jlc291cmNlcyA8PC9Qcm9jU2V0IFsvUERGIC9UZXh0XQovRm9udCA8PC9GMSA0IDAgUj4+Cj4+Cj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL0ZvbnQKL1N1YnR5cGUgL1R5cGUxCi9OYW1lIC9GMQovQmFzZUZvbnQgL0hlbHZldGljYQovRW5jb2RpbmcgL01hY1JvbWFuRW5jb2RpbmcKPj4KZW5kb2JqCjUgMCBvYmoKPDwvTGVuZ3RoIDUzCj4+CnN0cmVhbQpCVAovRjEgMjAgVGYKMjIwIDQwMCBUZAooRHVtbXkgUERGKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZgowMDAwMDAwMDA5IDAwMDAwIG4KMDAwMDAwMDA2MyAwMDAwMCBuCjAwMDAwMDAxMjQgMDAwMDAgbgowMDAwMDAwMjc3IDAwMDAwIG4KMDAwMDAwMDM5MiAwMDAwMCBuCnRyYWlsZXIKPDwvU2l6ZSA2Ci9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgo0OTUKJSVFT0YK"
+    private val PDF_CONTENT_ALT = "JVBERi0xLjEKJcKlwrHDqwoKMSAwIG9iagogIDw8IC9UeXBlIC9DYXRhbG9nCiAgICAgL1BhZ2VzIDIgMCBSCiAgPj4KZW5kb2JqCgoyIDAgb2JqCiAgPDwgL1R5cGUgL1BhZ2VzCiAgICAgL0tpZHMgWzMgMCBSXQogICAgIC9Db3VudCAxCiAgICAgL01lZGlhQm94IFswIDAgMzAwIDE0NF0KICA+PgplbmRvYmoKCjMgMCBvYmoKICA8PCAgL1R5cGUgL1BhZ2UKICAgICAgL1BhcmVudCAyIDAgUgogICAgICAvUmVzb3VyY2VzCiAgICAgICA8PCAvRm9udAogICAgICAgICAgIDw8IC9GMQogICAgICAgICAgICAgICA8PCAvVHlwZSAvRm9udAogICAgICAgICAgICAgICAgICAvU3VidHlwZSAvVHlwZTEKICAgICAgICAgICAgICAgICAgL0Jhc2VGb250IC9UaW1lcy1Sb21hbgogICAgICAgICAgICAgICA+PgogICAgICAgICAgID4+CiAgICAgICA+PgogICAgICAvQ29udGVudHMgNCAwIFIKICA+PgplbmRvYmoKCjQgMCBvYmoKICA8PCAvTGVuZ3RoIDU1ID4+CnN0cmVhbQogIEJUCiAgICAvRjEgMTggVGYKICAgIDAgMCBUZAogICAgKEhlbGxvIFdvcmxkKSBUagogIEVUCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA1CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxOCAwMDAwMCBuIAowMDAwMDAwMDc3IDAwMDAwIG4gCjAwMDAwMDAxNzggMDAwMDAgbiAKMDAwMDAwMDQ1NyAwMDAwMCBuIAp0cmFpbGVyCiAgPDwgIC9Sb290IDEgMCBSCiAgICAgIC9TaXplIDUKICA+PgpzdGFydHhyZWYKNTY1CiUlRU9GCg=="
 
     @BeforeTest
     fun setup() {
@@ -265,5 +274,406 @@ class EnkelvoudigInformatieObjectServiceTest {
             generateTestDocument(informatieobjecttype = longUrl)
         }
         assertEquals("Informatieobjecttype mag maximaal 200 karakters lang zijn", exception.message)
+    }
+
+
+    @Test
+    fun `patch should update only provided properties`() = runBlocking {
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
+        val resp = service.create(req)
+        assertEquals("dut", resp.taal)
+        assertEquals("doc.pdf", resp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, resp.informatieobjecttype)
+        assertEquals(1, resp.versie)
+        assertTrue(resp.id.isNotEmpty())
+
+        val uuid = UUID.fromString(resp.id)
+        val patchReq = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
+            creatiedatum = resp.creatiedatum,
+            titel = resp.titel,
+            auteur = resp.auteur,
+        )
+
+        val patchedResp = service.update(uuid, patchReq, true)
+        assertNotNull(patchedResp)
+        assertEquals("eng", patchedResp.taal)
+        assertEquals("doc2.pdf", patchedResp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, patchedResp.informatieobjecttype)
+        assertEquals(req.bronorganisatie, patchedResp.bronorganisatie)
+        assertEquals(req.creatiedatum, patchedResp.creatiedatum)
+        assertEquals(req.titel, patchedResp.titel)
+        assertEquals(req.auteur, patchedResp.auteur)
+        assertEquals(2, patchedResp.versie)
+        assertTrue(patchedResp.id.isNotEmpty())
+        // Version was changed though
+        assertNotEquals(resp.inhoud, patchedResp.inhoud)
+        // check remaining properties equal to non-patched response
+        assertEquals(resp.id, patchedResp.id)
+        assertEquals(resp.formaat, patchedResp.formaat)
+        assertEquals(resp.integriteit, patchedResp.integriteit)
+        assertEquals(resp.status, patchedResp.status)
+        assertEquals(resp.ondertekening, patchedResp.ondertekening)
+        assertEquals(resp.indicatieGebruiksrecht, patchedResp.indicatieGebruiksrecht)
+        assertEquals(resp.verschijningsvorm, patchedResp.verschijningsvorm)
+        assertEquals(resp.trefwoorden, patchedResp.trefwoorden)
+        assertEquals(resp.inhoudIsVervallen, patchedResp.inhoudIsVervallen)
+    }
+
+    @Test
+    fun `put should update all properties`() = runBlocking {
+        val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf")
+        val resp = service.create(req)
+        assertEquals("dut", resp.taal)
+        assertEquals("doc.pdf", resp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, resp.informatieobjecttype)
+        assertEquals(1, resp.versie)
+        assertTrue(resp.id.isNotEmpty())
+
+        val uuid = UUID.fromString(resp.id)
+        val putReq = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
+            creatiedatum = resp.creatiedatum,
+            titel = resp.titel,
+            auteur = resp.auteur,
+        )
+
+        val putResp = service.update(uuid, putReq)
+        assertNotNull(putResp)
+        assertEquals("eng", putResp.taal)
+        assertEquals("doc2.pdf", putResp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, putResp.informatieobjecttype)
+        assertEquals(req.bronorganisatie, putResp.bronorganisatie)
+        assertEquals(req.creatiedatum, putResp.creatiedatum)
+        assertEquals(req.titel, putResp.titel)
+        assertEquals(req.auteur, putResp.auteur)
+        assertEquals(2, putResp.versie)
+        assertTrue(putResp.id.isNotEmpty())
+        // Version was changed though
+        assertNotEquals(resp.inhoud, putResp.inhoud)
+        // check remaining properties are cleared
+        assertEquals("", putResp.formaat)
+        assertNull(putResp.integriteit)
+        assertEquals(null, putResp.status)
+        assertNull(putResp.ondertekening)
+        assertEquals(false, putResp.indicatieGebruiksrecht)
+        assertEquals("", putResp.verschijningsvorm)
+        assertEquals(emptyList<String>(), putResp.trefwoorden)
+        assertEquals(false, putResp.inhoudIsVervallen)
+    }
+
+    @Test
+    fun `create and patch should check for required title`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+        )
+
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Titel mag niet leeg zijn", createException.message)
+
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Titel mag niet leeg zijn", putException.message)
+
+    }
+
+    @Test
+    fun `create and patch should check for required informatieobjecttype`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+            titel = "titel"
+        )
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Informatieobjecttype mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Informatieobjecttype mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for required bronorganisatie`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        )
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Bronorganisatie mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Bronorganisatie mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for required creatiedatum`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            auteur = "auteur",
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        )
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Creatiedatum mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Creatiedatum mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for required auteur`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            taal = "eng",
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        )
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Auteur mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Auteur mag niet leeg zijn", putException.message)
+    }
+
+    @Test
+    fun `create and patch should check for valid taal`() = runBlocking {
+        val req = EnkelvoudigInformatieObjectRequest(
+            bestandsnaam = "doc2.pdf",
+            bronorganisatie = "012345678",
+            creatiedatum =  LocalDate(2025, 1, 1),
+            auteur = "auteur",
+            titel = "titel",
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+        )
+        val createException = assertFailsWith<IllegalArgumentException> {
+            service.create(req)
+        }
+        assertEquals("Taal mag niet leeg zijn", createException.message)
+        val putException = assertFailsWith<IllegalArgumentException> {
+            service.update(UUID.randomUUID(), req, false)
+        }
+        assertEquals("Taal mag niet leeg zijn", putException.message)
+
+        // create invalid taal
+        val invalidCreateException = assertFailsWith<IllegalArgumentException> {
+            req.copy(taal = "invalid")
+        }
+        assertEquals("Taal moet conform ISO 639-2/B code zijn", invalidCreateException.message)
+    }
+
+    @Test
+    fun `identificatie mag niet langer dan 40 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(41)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(identificatie = lonId)
+        }
+        assertEquals("Identificatie mag maximaal 40 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `bestandsnaam mag niet langer dan 255 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(256)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(bestandsnaam = lonId)
+        }
+        assertEquals("Bestandsnaam mag maximaal 255 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `titel mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(titel = lonId)
+        }
+        assertEquals("Titel mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `auteur mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(auteur = lonId)
+        }
+        assertEquals("Auteur mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `beschrijving mag niet langer dan 1000 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(1001)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(beschrijving = lonId)
+        }
+        assertEquals("Beschrijving mag maximaal 1000 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `formaat mag niet langer dan 255 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(256)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(formaat = lonId)
+        }
+        assertEquals("Formaat mag maximaal 255 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `link mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(link = lonId)
+        }
+        assertEquals("Link mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `informatieobjecttype mag niet langer dan 200 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(201)
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(informatieobjecttype = lonId)
+        }
+        assertEquals("Informatieobjecttype mag maximaal 200 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `trefwoorden mogen niet langer dan 100 karakters zijn`() = runBlocking {
+        val lonId = "a".repeat(101)
+        val trefwoorden = listOf(lonId, "Hello world")
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(trefwoorden = trefwoorden)
+        }
+        assertEquals("Elk trefwoord mag maximaal 100 karakters lang zijn", createException.message)
+    }
+
+    @Test
+    fun `ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'`() = runBlocking {
+        val inBewerkingException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
+                soort = OndertekeningSoort.DIGITAAL,
+                datum = LocalDate(2025, 1, 1),
+            ), status = EnkelvoudigInformatieObjectStatus.IN_BEWERKING)
+        }
+        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", inBewerkingException.message)
+
+        val terVastStellingException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
+                soort = OndertekeningSoort.PKI,
+                datum = LocalDate(2025, 1, 1),
+            ), status = EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING)
+        }
+        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", terVastStellingException.message)
+
+        // check successful with another state
+        val successfulRequest = EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
+            soort = OndertekeningSoort.PKI,
+            datum = LocalDate(2025, 1, 1),
+        ), status = EnkelvoudigInformatieObjectStatus.DEFINITIEF)
+
+        assertNotNull(successfulRequest)
+
+        // assertNotNull doesn't return a Unit type...hence we need this extra implicit return...
+        Unit
+    }
+
+    @Test
+    fun `bestandsnaam moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(
+                bestandsomvang = 123456L,
+                formaat = "application/pdf",
+                inhoud = "inhoud",
+            )
+        }
+        assertEquals("Bestandsnaam moet worden opgegeven als inhoud is opgegeven", createException.message)
+    }
+
+    @Test
+    fun `formaat moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
+        val createException = assertFailsWith<IllegalArgumentException> {
+            EnkelvoudigInformatieObjectRequest(
+                bestandsnaam = "doc.pdf",
+                bestandsomvang = 123456L,
+                inhoud = "inhoud",
+            )
+        }
+        assertEquals("Formaat moet worden opgegeven als inhoud is opgegeven", createException.message)
+    }
+
+
+    @Test fun `update file location if content has changed`() = runBlocking {
+        val req = generateTestDocument(bestandsnaam = "doc.pdf")
+        val reqWithContent = req.copy(inhoud = PDF_CONTENT, formaat = "application/pdf", bestandsomvang = 595L)
+        val resp = service.create(reqWithContent)
+
+        // get entity from database
+        var eio = transaction {
+            val record = EIORecordEntity.findById(UUID.fromString(resp.id)) ?: return@transaction null
+            record.versions.maxByOrNull { it.versie } ?: return@transaction null
+        }
+
+        assertNotNull(eio)
+        assertEquals(eio.versie, 1)
+        assertEquals("${resp.id}/1/${req.bestandsnaam}", eio.bestandsLocatie)
+
+
+        val requestWithUpdatedContent = req.copy(inhoud = PDF_CONTENT_ALT, formaat = "application/pdf", bestandsomvang = 620L)
+        val patchedResp = service.update(UUID.fromString(resp.id), requestWithUpdatedContent, false)
+        assertNotNull(patchedResp)
+        assertEquals("doc.pdf", patchedResp.bestandsnaam)
+
+        eio = transaction {
+            val record = EIORecordEntity.findById(UUID.fromString(resp.id)) ?: return@transaction null
+            record.versions.maxByOrNull { it.versie } ?: return@transaction null
+        }
+
+        assertNotNull(eio)
+        assertEquals(eio.versie, 2)
+        assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
+
+        // perform a patch without content and check that the file location is not updated
+        val patchedResp2 = service.update(UUID.fromString(resp.id), requestWithUpdatedContent.copy(inhoud = ""), false)
+        assertNotNull(patchedResp2)
+        assertEquals("doc.pdf", patchedResp2.bestandsnaam)
+        eio = transaction {
+            val record = EIORecordEntity.findById(UUID.fromString(resp.id)) ?: return@transaction null
+            record.versions.maxByOrNull { it.versie } ?: return@transaction null
+        }
+
+        assertNotNull(eio)
+        assertEquals(eio.versie, 3)
+        assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
     }
 }

@@ -6,8 +6,20 @@ meta {
 
 patch {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{firstId}}
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "bronorganisatie": "012345678",
+    "titel": "mijn titel updated via patch",
+    "taal": "dut",
+    "auteur": "Thomas Luijken",
+    "creatiedatum": "2026-01-24",
+    "beschrijving": "Test document uploaded by Bruno",
+    "informatieobjecttype": "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d"
+  }
 }
 
 settings {

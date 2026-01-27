@@ -9,7 +9,7 @@ import com.baseflow.EIOVersions
 import com.baseflow.entities.OIORecords
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
@@ -69,42 +69,41 @@ class EnkelvoudigInformatieObjectService {
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: CreateEIORequest): EnkelvoudigInformatieObjectResponse {
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse {
         return suspendTransaction {
+            request.controleerVerplichteVelden()
+
             val record = EIORecordEntity.new {
             }
 
             // Validate informatieobjecttype against catalogus
-            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
+            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
+            val version = 1
 
-            val content = if (!request.inhoud.isNullOrEmpty()) {
-                Base64.decode(request.inhoud)
-            } else {
-                null
+            var locatie = ""
+            if (!request.inhoud.isNullOrEmpty() &&
+                            request.bestandsomvang != null &&
+                            request.bestandsomvang > 0 &&
+                            request.bestandsnaam != null) {
+                locatie = "${record.id.value}/$version/${request.bestandsnaam}"
             }
 
-            if (content != null && !request.bestandsnaam.isNullOrEmpty()) {
-                storageService.uploadFile(request.bestandsnaam, content)
-            }
+            val berekendeBestandsOmvang = storeFileVersion(request, locatie)
+            val bestandsOmvang = request.bestandsomvang ?: berekendeBestandsOmvang ?: 0
 
-            // Derive bestandsomvang if not provided
-            val bestandsomvang = request.bestandsomvang
-                ?: content?.size?.toLong()
-                ?: 0L // Default to 0 if neither provided nor derived from content (e.g. for link or bestandsdelen)
-
-            val version = EIOVersionEntity.new {
+            val eioVersion = EIOVersionEntity.new {
                 recordId = record
-                versie = 1
-                bronOrganisatie = request.bronorganisatie
+                versie = version
+                bronOrganisatie = request.bronorganisatie!!
                 informatieobject_type = request.informatieobjecttype
-                taal = request.taal
+                taal = request.taal!!
                 bestandsnaam = request.bestandsnaam.orEmpty()
-                titel = request.titel
-                auteur = request.auteur
-                creatieDatum = request.creatiedatum
+                titel = request.titel!!
+                auteur = request.auteur!!
+                creatieDatum = request.creatiedatum!!
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = request.formaat.orEmpty()
-                this.bestandsomvang = bestandsomvang
+                bestandsomvang = bestandsOmvang
                 link = request.link.orEmpty()
                 integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
                 integriteitWaarde = request.integriteit?.waarde.orEmpty()
@@ -120,10 +119,22 @@ class EnkelvoudigInformatieObjectService {
                 ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
                 ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = request.identificatie.orEmpty()
-
+                bestandsLocatie = locatie
             }
-            record.toResponse(version)
+            record.toResponse(eioVersion)
         }
+    }
+
+    private fun storeFileVersion(
+        request: EnkelvoudigInformatieObjectRequest,
+        bestandsLocatie: String,
+    ): Long? {
+        if (!request.inhoud.isNullOrEmpty()) {
+            val content = Base64.decode(request.inhoud)
+            storageService.uploadFile(bestandsLocatie, content)
+            return content.size.toLong()
+        }
+        return null
     }
 
     /**
@@ -201,31 +212,72 @@ class EnkelvoudigInformatieObjectService {
     /**
      * Update an EnkelvoudigInformatieObject (creates new version)
      * Increments version and creates new EIOVersion in a transaction
+     *
+     * If `partial` is true, only non-empty fields in the request will be updated;
+     * otherwise, all fields will be updated.
+     *
+     * If no new content is provided, the existing file location will be reused.
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun update(id: UUID, request: CreateEIORequest): EnkelvoudigInformatieObjectResponse? {
+    suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
         return suspendTransaction {
+
+            if (!partial) {
+                request.controleerVerplichteVelden()
+            }
+
             val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
 
             // Validate informatieobjecttype against OpenZaak
-            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype)
-
             val latestVersion = record.versions.maxByOrNull { it.versie }
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
+
+            if (!request.informatieobjecttype.isNullOrEmpty()) {
+                openZaakService.validateInformatieobjecttype(
+                    request.informatieobjecttype)
+            }
+
+            var locatie = latestVersion?.bestandsLocatie.orEmpty()
+            if ( !request.inhoud.isNullOrEmpty() &&
+                            request.bestandsomvang != null &&
+                            request.bestandsomvang > 0 &&
+                            request.bestandsnaam != null) {
+                // if we have new content, upload with new version number, otherwise use previous location
+                locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
+            }
+
+            val berekendeBestandsOmvang = storeFileVersion(request, locatie)
+            val bestandsOmvang = request.bestandsomvang ?: berekendeBestandsOmvang ?: 0
+
+            // create a new version. If values in the request are empty,
+            // use existing values from latest version but only if the update is not partial
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                informatieobject_type = request.informatieobjecttype
-                taal = request.taal
-                bestandsnaam = request.bestandsnaam.orEmpty()
-                titel = request.titel
-                auteur = request.auteur
-                creatieDatum = request.creatiedatum
-                status = request.status?.toString().orEmpty()
-                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
-                    ?: ioType?.vertrouwelijkheidaanduiding
-                    ?: ""
+                bronOrganisatie = if (partial && request.bronorganisatie.isNullOrEmpty()) latestVersion?.bronOrganisatie.orEmpty() else request.bronorganisatie!!
+                informatieobject_type = if (partial && request.informatieobjecttype.isNullOrEmpty()) latestVersion?.informatieobject_type.orEmpty() else request.informatieobjecttype!!
+                taal = if (partial && request.taal.isNullOrEmpty()) latestVersion?.taal.orEmpty() else request.taal!!
+                bestandsnaam = if (partial && request.bestandsnaam.isNullOrEmpty()) latestVersion?.bestandsnaam.orEmpty() else request.bestandsnaam.orEmpty()
+                titel = if (partial && request.titel.isNullOrEmpty()) latestVersion?.titel.orEmpty() else request.titel!!
+                auteur = if (partial && request.auteur.isNullOrEmpty()) latestVersion?.auteur.orEmpty() else request.auteur!!
+                bestandsLocatie = locatie
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
+                creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum!!
+                formaat = if (partial && request.formaat.isNullOrEmpty()) latestVersion?.formaat.orEmpty() else request.formaat.orEmpty()
+                bestandsomvang = if (partial && request.bestandsomvang == null) latestVersion?.bestandsomvang ?: 0 else bestandsOmvang
+                integriteitAlgoritme = if (partial && request.integriteit?.algoritme == null) latestVersion?.integriteitAlgoritme.orEmpty() else request.integriteit?.algoritme?.toString().orEmpty()
+                integriteitWaarde = if (partial && request.integriteit?.waarde.isNullOrEmpty()) latestVersion?.integriteitWaarde.orEmpty() else request.integriteit?.waarde.orEmpty()
+                integriteitsDatum = if (partial && request.integriteit?.datum == null) latestVersion?.integriteitsDatum else request.integriteit?.datum?.atTime(0,0,0,0)
+                verschijningsVorm = if (partial && request.verschijningsvorm.isNullOrEmpty()) latestVersion?.verschijningsVorm.orEmpty() else request.verschijningsvorm.orEmpty()
+                trefwoorden = if (partial && request.trefwoorden.isNullOrEmpty()) latestVersion?.trefwoorden ?: emptyList() else request.trefwoorden ?: emptyList()
+                vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding ?: "" else request.vertrouwelijkheidaanduiding?.toString() ?: ""
+                status = if (partial && request.status == null) latestVersion?.status.orEmpty() else request.status?.toString().orEmpty()
+                beschrijving = if (partial && request.beschrijving.isNullOrEmpty()) latestVersion?.beschrijving.orEmpty() else request.beschrijving.orEmpty()
+                indicatieGebruiksrecht = if (partial && request.indicatieGebruiksrecht == null) latestVersion?.indicatieGebruiksrecht ?: false else request.indicatieGebruiksrecht ?: false
+                ondertekening_soort = if (partial && request.ondertekening?.soort == null) latestVersion?.ondertekening_soort.orEmpty() else request.ondertekening?.soort?.toString().orEmpty()
+                ondertekenings_datum = if (partial && request.ondertekening?.datum == null) latestVersion?.ondertekenings_datum else request.ondertekening?.datum?.atTime(0,0,0,0)
+                identificatie = if (partial && request.identificatie.isNullOrEmpty()) latestVersion?.identificatie.orEmpty() else request.identificatie.orEmpty()
             }
             record.toResponse(version)
         }

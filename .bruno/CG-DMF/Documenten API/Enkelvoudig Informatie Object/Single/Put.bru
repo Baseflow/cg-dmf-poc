@@ -6,8 +6,96 @@ meta {
 
 put {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{firstId}}
-  body: none
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "bronorganisatie": "012345678",
+    "titel": "mijn titel updated",
+    "taal": "dut",
+    "bestandsnaam": "{{file_name}}",
+    "auteur": "Thomas Luijken",
+    "creatiedatum": "2026-01-23",
+    "formaat": "application/pfd",
+    "inhoud": "{{file_base64}}",
+    "bestandsomvang": "{{file_size}}",
+    "integriteit": {
+      "algoritme": "sha_256",
+      "waarde": "{{file_sha256}}",
+      "datum": "{{local_date}}"
+    },
+    "beschrijving": "Test document uploaded by Bruno",
+    "informatieobjecttype": "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d"
+  }
+}
+
+vars:pre-request {
+  file_base64: 
+  file_sha256: 
+  file_size: 
+  file_name: 
+  local_date: 
+}
+
+script:pre-request {
+  const fs = require("fs");
+  const path = require("path");
+  const CryptoJS = require("crypto-js");
+  
+  const fileName = "Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf";
+  const filePath = path.resolve(process.cwd(), ".bruno/data", fileName);
+  
+  let fileBuffer;
+  
+  try {
+    fileBuffer = fs.readFileSync(filePath);
+  } catch (err) {
+    console.error("Failed to read file:", filePath, err.message);
+  
+    bru.setEnvVar("file_error", `Failed to read file: ${err.message}`);
+  
+    // Optional: abort request if the file is required
+    if (typeof onFail === "function") {
+      onFail("Pre-request failed: cannot read file: " + filePath);
+    }
+  }
+  
+  // Only proceed if file read succeeded
+  if (fileBuffer) {
+    // -----------------------------------------------------------------
+    // Base64
+    // -----------------------------------------------------------------
+    const base64Content = fileBuffer.toString("base64");
+  
+    // -----------------------------------------------------------------
+    // SHA-256 using crypto-js
+    // -----------------------------------------------------------------
+    const wordArray = CryptoJS.lib.WordArray.create(fileBuffer);
+    const sha256 = CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
+  
+    // -----------------------------------------------------------------
+    // File size
+    // -----------------------------------------------------------------
+    const fileSize = fileBuffer.length;
+  
+    // -----------------------------------------------------------------
+    // Local timestamp (ISO without trailing 'Z')
+    // -----------------------------------------------------------------
+    const today = new Date().toISOString().split('T')[0];
+    console.log(today);
+  
+    // -----------------------------------------------------------------
+    // Store env vars
+    // -----------------------------------------------------------------
+    bru.setVar("file_base64", base64Content);
+    bru.setVar("file_sha256", sha256);
+    bru.setVar("file_size", fileSize);
+    bru.setVar("file_name", fileName);
+    bru.setVar("local_date", today);
+  }
+  
 }
 
 settings {

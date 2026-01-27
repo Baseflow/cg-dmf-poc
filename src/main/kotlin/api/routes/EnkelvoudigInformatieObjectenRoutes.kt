@@ -2,8 +2,9 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
+import com.baseflow.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
-import com.baseflow.api.models.CreateEIORequest
+import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.api.models.EIOZoekRequest
 import com.baseflow.api.models.UnlockEIORequest
@@ -28,7 +29,9 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
 /**
@@ -61,10 +64,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = O
         get { get(this.call, service) }
 
         // Update document (full)
-        put { put(this.call) }
+        put { put(this.call, service) }
 
         // Partial update
-        patch { patch(this.call) }
+        patch { patch(this.call, service) }
 
         // Delete document
         delete { delete(this.call, service) }
@@ -109,14 +112,18 @@ private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObject
 }
 
 private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
-    val request = call.receive<CreateEIORequest>()
-    val response = service.create(request)
+    val request = call.receive<EnkelvoudigInformatieObjectRequest>()
+    try {
+        val response = service.create(request)
+        // Location header with the URL of the created resource
+        val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
+        call.response.headers.append(HttpHeaders.Location, locationUrl)
 
-    // Location header with the URL of the created resource
-    val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
-    call.response.headers.append(HttpHeaders.Location, locationUrl)
-
-    call.respond(HttpStatusCode.Created, response)
+        call.respond(HttpStatusCode.Created, response)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Validation failed", call.request.path()))
+        return
+    }
 }
 
 private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
@@ -186,14 +193,47 @@ private suspend fun get(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     }
 }
 
-private suspend fun put(call: RoutingCall) {
-    val uuid = call.parameters["uuid"]
-    call.respond(mapOf("message" to "Update EnkelvoudigInformatieObject $uuid - to be implemented"))
+private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val request = call.receive<EnkelvoudigInformatieObjectRequest>()
+        val response = service.update(uuid, request)
+        if (response == null) {
+            call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
+            return
+        }
+        call.respond(HttpStatusCode.OK, response)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
+        return
+    }
 }
 
-private suspend fun patch(call: RoutingCall) {
-    val uuid = call.parameters["uuid"]
-    call.respond(mapOf("message" to "Partial update EnkelvoudigInformatieObject $uuid - to be implemented"))
+private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+    val uuidString = call.parameters["uuid"]
+    if (uuidString == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val request = call.receive<EnkelvoudigInformatieObjectRequest>()
+        val response = service.update(uuid, request, true)
+        if (response == null) {
+            call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
+            return
+        }
+        call.respond(HttpStatusCode.OK, response)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
+    }
+
 }
 
 private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
@@ -231,7 +271,15 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
 
     try {
         val uuid = UUID.fromString(uuidString)
-        val eio = service.getById(uuid)
+
+        val eio = transaction {
+            val record =
+                EIORecordEntity.findById(uuid) ?: return@transaction null;
+            val eio = record.versions.maxByOrNull { it.versie };
+            return@transaction eio
+        }
+
+
         if (eio == null) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
@@ -241,8 +289,8 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
         }
 
         // Ensure we have a stored object key to stream
-        val objectKey = eio.bestandsnaam
-        if (objectKey.isNullOrBlank()) {
+        val objectKey = eio.bestandsLocatie
+        if (objectKey.isBlank()) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
                 notFound("Document content not available for download", call.request.path())

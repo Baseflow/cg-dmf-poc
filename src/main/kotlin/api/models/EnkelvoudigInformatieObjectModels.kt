@@ -6,19 +6,23 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Simple EnkelvoudigInformatieObject request model
+ * EnkelvoudigInformatieObject request model.
+ * Dit model kan voor create, patch en put gebruikt worden.
+ * Bij patch en put zijn bronorganisatie, titel, auteur, taal creatiedatum en informatieobjecttype,
+ * verplicht en * dient de `controleerVerplichteVelden` methode te worden aangeroepen om te
+ * controleren of deze velden wel zijn opgegeven.
  */
 @Serializable
-data class CreateEIORequest(
+data class EnkelvoudigInformatieObjectRequest(
     val identificatie: String? = null,
-    val bronorganisatie: String,
-    val creatiedatum: LocalDate,
-    val titel: String,
+    val bronorganisatie: String? = null,
+    val creatiedatum: LocalDate? = null,
+    val titel: String? = null,
     val vertrouwelijkheidaanduiding: Vertrouwelijkheidaanduiding? = null,
-    val auteur: String,
-    val status: EnkelvoudigInformatieObjectStatus? = EnkelvoudigInformatieObjectStatus.CONCEPT,
+    val auteur: String? = null,
+    val status: EnkelvoudigInformatieObjectStatus? = null,
     val formaat: String? = null,
-    val taal: String,
+    val taal: String? = null,
     val bestandsnaam: String? = null,
     val inhoud: String? = null,
     val bestandsomvang: Long? = null,
@@ -28,31 +32,26 @@ data class CreateEIORequest(
     val verschijningsvorm: String? = null,
     val ondertekening: Ondertekening? = null,
     val integriteit: Integriteit? = null,
-    val informatieobjecttype: String,
+    val informatieobjecttype: String? = null,
     val trefwoorden: List<String>? = null,
     val inhoudIsVervallen: Boolean? = null
 ) : ApiRequest
 {
     init {
-        // Required fields
-        require(bronorganisatie.isNotBlank()) { "Bronorganisatie mag niet leeg zijn" }
-        require(titel.isNotBlank()) { "Titel mag niet leeg zijn" }
-        require(auteur.isNotBlank()) { "Auteur mag niet leeg zijn" }
-        require(taal.isNotBlank()) { "Taal mag niet leeg zijn" }
 
         // Length checks
         require(identificatie.isNullOrBlank() || identificatie.length <= 40) { "Identificatie mag maximaal 40 karakters lang zijn" }
         require(bestandsnaam.isNullOrBlank() || bestandsnaam.length <= 255) { "Bestandsnaam mag maximaal 255 karakters lang zijn" }
-        require(titel.length <= 200) { "Titel mag maximaal 200 karakters lang zijn" }
-        require(auteur.length <= 200) { "Auteur mag maximaal 200 karakters lang zijn" }
+        require(titel.orEmpty().length <= 200) { "Titel mag maximaal 200 karakters lang zijn" }
+        require(auteur.orEmpty().length <= 200) { "Auteur mag maximaal 200 karakters lang zijn" }
         require(beschrijving.isNullOrBlank() || beschrijving.length <= 1000) { "Beschrijving mag maximaal 1000 karakters lang zijn" }
         require(formaat.isNullOrEmpty() || formaat.length <= 255) { "Formaat mag maximaal 255 karakters lang zijn" }
         require(link.isNullOrEmpty() || link.length <= 200) { "Link mag maximaal 200 karakters lang zijn" }
-        require(informatieobjecttype.length <= 200) { "Informatieobjecttype mag maximaal 200 karakters lang zijn" }
+        require(informatieobjecttype.isNullOrBlank() || informatieobjecttype.length <= 200) { "Informatieobjecttype mag maximaal 200 karakters lang zijn" }
         require(trefwoorden.isNullOrEmpty() || trefwoorden.all { it.length <= 100 }) { "Elk trefwoord mag maximaal 100 karakters lang zijn" }
 
         // format checks
-        require(taal.matches(Regex("^[a-z]{3}$"))) { "Taal moet conform ISO 639-2/B code zijn" }
+        require(taal.isNullOrBlank() || taal.matches(Regex("^[a-z]{3}$"))) { "Taal moet conform ISO 639-2/B code zijn" }
 
         // complex requirements
         require((status != EnkelvoudigInformatieObjectStatus.IN_BEWERKING &&
@@ -64,8 +63,20 @@ data class CreateEIORequest(
             require(formaat != null) { "Formaat moet worden opgegeven als inhoud is opgegeven" }
         }
     }
-}
 
+    /*
+     * Controleer of alle verplichte velden zijn opgegeven.
+     */
+    fun controleerVerplichteVelden() {
+        // Required fields
+        require(!bronorganisatie.isNullOrBlank()) { "Bronorganisatie mag niet leeg zijn" }
+        require(!titel.isNullOrBlank()) { "Titel mag niet leeg zijn" }
+        require(!auteur.isNullOrBlank()) { "Auteur mag niet leeg zijn" }
+        require(!taal.isNullOrBlank()) { "Taal mag niet leeg zijn" }
+        require(!informatieobjecttype.isNullOrBlank()) { "Informatieobjecttype mag niet leeg zijn" }
+        require(creatiedatum != null) { "Creatiedatum mag niet leeg zijn" }
+    }
+}
 
 @Serializable
 data class Ondertekening(
