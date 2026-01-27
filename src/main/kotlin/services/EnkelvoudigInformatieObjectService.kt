@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
+import api.models.UploadResultaat
 import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
@@ -88,8 +89,9 @@ class EnkelvoudigInformatieObjectService {
                 locatie = "${record.id.value}/$version/${request.bestandsnaam}"
             }
 
-            val berekendeBestandsOmvang = storeFileVersion(request, locatie)
-            val bestandsOmvang = request.bestandsomvang ?: berekendeBestandsOmvang ?: 0
+            val uploadResultaat = storeFileVersion(request, locatie)
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
+            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat.orEmpty()
 
             val eioVersion = EIOVersionEntity.new {
                 recordId = record
@@ -102,7 +104,7 @@ class EnkelvoudigInformatieObjectService {
                 auteur = request.auteur!!
                 creatieDatum = request.creatiedatum!!
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                formaat = request.formaat.orEmpty()
+                formaat = bestandsFormaat
                 bestandsomvang = bestandsOmvang
                 link = request.link.orEmpty()
                 integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
@@ -128,11 +130,15 @@ class EnkelvoudigInformatieObjectService {
     private fun storeFileVersion(
         request: EnkelvoudigInformatieObjectRequest,
         bestandsLocatie: String,
-    ): Long? {
+    ): UploadResultaat? {
         if (!request.inhoud.isNullOrEmpty()) {
             val content = Base64.decode(request.inhoud)
+            val fileType = StorageService.detectFileFormat(content);
             storageService.uploadFile(bestandsLocatie, content)
-            return content.size.toLong()
+            UploadResultaat(
+                bestandsFormaat = fileType,
+                bestandsOmvang = content.size.toLong()
+            )
         }
         return null
     }
@@ -246,8 +252,9 @@ class EnkelvoudigInformatieObjectService {
                 locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
             }
 
-            val berekendeBestandsOmvang = storeFileVersion(request, locatie)
-            val bestandsOmvang = request.bestandsomvang ?: berekendeBestandsOmvang ?: 0
+            val uploadResultaat = storeFileVersion(request, locatie)
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
+            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat.orEmpty()
 
             // create a new version. If values in the request are empty,
             // use existing values from latest version but only if the update is not partial
@@ -264,7 +271,7 @@ class EnkelvoudigInformatieObjectService {
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
                 creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum!!
-                formaat = if (partial && request.formaat.isNullOrEmpty()) latestVersion?.formaat.orEmpty() else request.formaat.orEmpty()
+                formaat = bestandsFormaat
                 bestandsomvang = if (partial && request.bestandsomvang == null) latestVersion?.bestandsomvang ?: 0 else bestandsOmvang
                 integriteitAlgoritme = if (partial && request.integriteit?.algoritme == null) latestVersion?.integriteitAlgoritme.orEmpty() else request.integriteit?.algoritme?.toString().orEmpty()
                 integriteitWaarde = if (partial && request.integriteit?.waarde.isNullOrEmpty()) latestVersion?.integriteitWaarde.orEmpty() else request.integriteit?.waarde.orEmpty()
