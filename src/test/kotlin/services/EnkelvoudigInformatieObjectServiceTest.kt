@@ -588,7 +588,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", inBewerkingException.message)
 
-        var terVastStellingException = assertFailsWith<IllegalArgumentException> {
+        val terVastStellingException = assertFailsWith<IllegalArgumentException> {
             EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
                 soort = OndertekeningSoort.PKI,
                 datum = LocalDate(2025, 1, 1),
