@@ -225,7 +225,7 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     val response = service.update(uuid, request, true)
     if (response == null) {
-        call.respondProblem(HttpStatusCode.InternalServerError, badRequest("Failed to update EnkelvoudigInformatieObject", call.request.path()))
+        call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
         return
     }
     call.respond(HttpStatusCode.OK, response)

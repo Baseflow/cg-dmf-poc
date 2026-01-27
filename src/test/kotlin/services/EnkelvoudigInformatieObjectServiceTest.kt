@@ -334,7 +334,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertTrue(resp.id.isNotEmpty())
 
         val uuid = UUID.fromString(resp.id)
-        val patchReq = EnkelvoudigInformatieObjectRequest(
+        val putReq = EnkelvoudigInformatieObjectRequest(
             taal = "eng",
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
@@ -344,28 +344,28 @@ class EnkelvoudigInformatieObjectServiceTest {
             auteur = resp.auteur,
         )
 
-        val patchedResp = service.update(uuid, patchReq)
-        assertNotNull(patchedResp)
-        assertEquals("eng", patchedResp.taal)
-        assertEquals("doc2.pdf", patchedResp.bestandsnaam)
-        assertEquals(req.informatieobjecttype, patchedResp.informatieobjecttype)
-        assertEquals(req.bronorganisatie, patchedResp.bronorganisatie)
-        assertEquals(req.creatiedatum, patchedResp.creatiedatum)
-        assertEquals(req.titel, patchedResp.titel)
-        assertEquals(req.auteur, patchedResp.auteur)
-        assertEquals(2, patchedResp.versie)
-        assertTrue(patchedResp.id.isNotEmpty())
+        val putResp = service.update(uuid, putReq)
+        assertNotNull(putResp)
+        assertEquals("eng", putResp.taal)
+        assertEquals("doc2.pdf", putResp.bestandsnaam)
+        assertEquals(req.informatieobjecttype, putResp.informatieobjecttype)
+        assertEquals(req.bronorganisatie, putResp.bronorganisatie)
+        assertEquals(req.creatiedatum, putResp.creatiedatum)
+        assertEquals(req.titel, putResp.titel)
+        assertEquals(req.auteur, putResp.auteur)
+        assertEquals(2, putResp.versie)
+        assertTrue(putResp.id.isNotEmpty())
         // Version was changed though
-        assertNotEquals(resp.inhoud, patchedResp.inhoud)
+        assertNotEquals(resp.inhoud, putResp.inhoud)
         // check remaining properties are cleared
-        assertEquals("", patchedResp.formaat)
-        assertNull(patchedResp.integriteit)
-        assertEquals(null, patchedResp.status)
-        assertNull(patchedResp.ondertekening)
-        assertEquals(false, patchedResp.indicatieGebruiksrecht)
-        assertEquals("", patchedResp.verschijningsvorm)
-        assertEquals(emptyList<String>(), patchedResp.trefwoorden)
-        assertEquals(false, patchedResp.inhoudIsVervallen)
+        assertEquals("", putResp.formaat)
+        assertNull(putResp.integriteit)
+        assertEquals(null, putResp.status)
+        assertNull(putResp.ondertekening)
+        assertEquals(false, putResp.indicatieGebruiksrecht)
+        assertEquals("", putResp.verschijningsvorm)
+        assertEquals(emptyList<String>(), putResp.trefwoorden)
+        assertEquals(false, putResp.inhoudIsVervallen)
     }
 
     @Test
@@ -602,7 +602,10 @@ class EnkelvoudigInformatieObjectServiceTest {
             datum = LocalDate(2025, 1, 1),
         ), status = EnkelvoudigInformatieObjectStatus.DEFINITIEF)
 
-        //assertNotNull(successfulRequest)
+        assertNotNull(successfulRequest)
+
+        // assertNotNull doesn't return a Unit type...hence we need this extra implicit return...
+        Unit
     }
 
     @Test
