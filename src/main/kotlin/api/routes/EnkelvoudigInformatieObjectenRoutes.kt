@@ -208,7 +208,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
         }
-        call.respond(HttpStatusCode.OK, message = response)
+        call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Validation failed", call.request.path()))
         return
