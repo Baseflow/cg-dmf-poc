@@ -271,7 +271,7 @@ class EnkelvoudigInformatieObjectService {
                 integriteitsDatum = if (partial && request.integriteit?.datum == null) latestVersion?.integriteitsDatum else request.integriteit?.datum?.atTime(0,0,0,0)
                 verschijningsVorm = if (partial && request.verschijningsvorm.isNullOrEmpty()) latestVersion?.verschijningsVorm.orEmpty() else request.verschijningsvorm.orEmpty()
                 trefwoorden = if (partial && request.trefwoorden.isNullOrEmpty()) latestVersion?.trefwoorden ?: emptyList() else request.trefwoorden ?: emptyList()
-                vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding.toString() else request.vertrouwelijkheidaanduiding?.toString().orEmpty()
+                vertrouwlijkheidsAanduiding = if (partial && request.vertrouwelijkheidaanduiding == null) latestVersion?.vertrouwlijkheidsAanduiding ?: "" else request.vertrouwelijkheidaanduiding?.toString() ?: ""
                 status = if (partial && request.status == null) latestVersion?.status.orEmpty() else request.status?.toString().orEmpty()
                 beschrijving = if (partial && request.beschrijving.isNullOrEmpty()) latestVersion?.beschrijving.orEmpty() else request.beschrijving.orEmpty()
                 indicatieGebruiksrecht = if (partial && request.indicatieGebruiksrecht == null) latestVersion?.indicatieGebruiksrecht ?: false else request.indicatieGebruiksrecht ?: false
