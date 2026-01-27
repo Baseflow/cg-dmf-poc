@@ -199,10 +199,10 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
         return
     }
-    val uuid = UUID.fromString(uuidString)
-    val request = call.receive<EnkelvoudigInformatieObjectRequest>()
 
     try {
+        val uuid = UUID.fromString(uuidString)
+        val request = call.receive<EnkelvoudigInformatieObjectRequest>()
         val response = service.update(uuid, request)
         if (response == null) {
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
@@ -210,7 +210,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
         }
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Validation failed", call.request.path()))
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
         return
     }
 }
@@ -221,14 +221,18 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
         return
     }
-    val uuid = UUID.fromString(uuidString)
-    val request = call.receive<EnkelvoudigInformatieObjectRequest>()
-    val response = service.update(uuid, request, true)
-    if (response == null) {
-        call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
-        return
+    try {
+        val uuid = UUID.fromString(uuidString)
+        val request = call.receive<EnkelvoudigInformatieObjectRequest>()
+        val response = service.update(uuid, request, true)
+        if (response == null) {
+            call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
+            return
+        }
+        call.respond(HttpStatusCode.OK, response)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
     }
-    call.respond(HttpStatusCode.OK, response)
 
 }
 
@@ -286,7 +290,7 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
 
         // Ensure we have a stored object key to stream
         val objectKey = eio.bestandsLocatie
-        if (objectKey.isNullOrBlank()) {
+        if (objectKey.isBlank()) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
                 notFound("Document content not available for download", call.request.path())
