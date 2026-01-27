@@ -78,7 +78,7 @@ class EnkelvoudigInformatieObjectService {
 
             // Validate informatieobjecttype against catalogus
             val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
-            val version = 1;
+            val version = 1
 
             var locatie = ""
             if (!request.inhoud.isNullOrEmpty() &&
