@@ -210,19 +210,18 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertFalse(service.exists(id))
     }
 
-// TODO: temp disabled
-//    @Test
-//    fun `create should derive bestandsomvang from content if not provided`() = runBlocking {
-//        val content = "Hello World"
-//        val base64Content = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
-//        val req = generateTestDocument().copy(
-//            inhoud = base64Content,
-//            bestandsomvang = null,
-//            formaat = "text/plain"
-//        )
-//        val resp = service.create(req)
-//        assertEquals(content.length.toLong(), resp.bestandsomvang)
-//    }
+    @Test
+    fun `create should derive bestandsomvang from content if not provided`() = runBlocking {
+        val content = "Hello World"
+        val base64Content = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
+        val req = generateTestDocument().copy(
+            inhoud = base64Content,
+            bestandsomvang = null,
+            formaat = "text/plain"
+        )
+        val resp = service.create(req)
+        assertEquals(content.length.toLong(), resp.bestandsomvang)
+    }
 
     @Test
     fun `create should use provided bestandsomvang even if content is present`() = runBlocking {
@@ -616,18 +615,6 @@ class EnkelvoudigInformatieObjectServiceTest {
             )
         }
         assertEquals("Bestandsnaam moet worden opgegeven als inhoud is opgegeven", createException.message)
-    }
-
-    @Test
-    fun `bestandsomvang moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
-        val createException = assertFailsWith<IllegalArgumentException> {
-            EnkelvoudigInformatieObjectRequest(
-                bestandsnaam = "doc.pdf",
-                formaat = "application/pdf",
-                inhoud = "inhoud",
-            )
-        }
-        assertEquals("Bestandsomvang moet worden opgegeven als inhoud is opgegeven", createException.message)
     }
 
     @Test

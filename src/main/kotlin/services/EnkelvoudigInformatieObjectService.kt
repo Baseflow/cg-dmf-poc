@@ -88,7 +88,8 @@ class EnkelvoudigInformatieObjectService {
                 locatie = "${record.id.value}/$version/${request.bestandsnaam}"
             }
 
-            storeFileVersion(request, locatie)
+            val berekendeBestandsOmvang = storeFileVersion(request, locatie)
+            val bestandsOmvang = request.bestandsomvang ?: berekendeBestandsOmvang ?: 0
 
             val eioVersion = EIOVersionEntity.new {
                 recordId = record
@@ -102,7 +103,7 @@ class EnkelvoudigInformatieObjectService {
                 creatieDatum = request.creatiedatum!!
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = request.formaat.orEmpty()
-                bestandsomvang = request.bestandsomvang ?: 0
+                bestandsomvang = bestandsOmvang
                 link = request.link.orEmpty()
                 integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
                 integriteitWaarde = request.integriteit?.waarde.orEmpty()
@@ -127,12 +128,13 @@ class EnkelvoudigInformatieObjectService {
     private fun storeFileVersion(
         request: EnkelvoudigInformatieObjectRequest,
         bestandsLocatie: String,
-    ) {
-        if (!request.inhoud.isNullOrEmpty() &&
-            (request.bestandsomvang ?: 0) > 0) {
+    ): Long? {
+        if (!request.inhoud.isNullOrEmpty()) {
             val content = Base64.decode(request.inhoud)
             storageService.uploadFile(bestandsLocatie, content)
+            return content.size.toLong()
         }
+        return null
     }
 
     /**
@@ -244,7 +246,8 @@ class EnkelvoudigInformatieObjectService {
                 locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
             }
 
-            storeFileVersion(request, locatie)
+            val berekendeBestandsOmvang = storeFileVersion(request, locatie)
+            val bestandsOmvang = request.bestandsomvang ?: berekendeBestandsOmvang ?: 0
 
             // create a new version. If values in the request are empty,
             // use existing values from latest version but only if the update is not partial
@@ -262,7 +265,7 @@ class EnkelvoudigInformatieObjectService {
                 link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
                 creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum!!
                 formaat = if (partial && request.formaat.isNullOrEmpty()) latestVersion?.formaat.orEmpty() else request.formaat.orEmpty()
-                bestandsomvang = if (partial && request.bestandsomvang == null) latestVersion?.bestandsomvang ?: 0 else request.bestandsomvang ?: 0
+                bestandsomvang = if (partial && request.bestandsomvang == null) latestVersion?.bestandsomvang ?: 0 else bestandsOmvang
                 integriteitAlgoritme = if (partial && request.integriteit?.algoritme == null) latestVersion?.integriteitAlgoritme.orEmpty() else request.integriteit?.algoritme?.toString().orEmpty()
                 integriteitWaarde = if (partial && request.integriteit?.waarde.isNullOrEmpty()) latestVersion?.integriteitWaarde.orEmpty() else request.integriteit?.waarde.orEmpty()
                 integriteitsDatum = if (partial && request.integriteit?.datum == null) latestVersion?.integriteitsDatum else request.integriteit?.datum?.atTime(0,0,0,0)
