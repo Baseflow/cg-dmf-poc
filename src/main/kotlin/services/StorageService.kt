@@ -65,29 +65,55 @@ class StorageService {
 
     fun uploadFile(objectName: String, content: ByteArray) {
         try {
-            if (!s3Client.listBuckets().join().buckets().any { it.name() == bucketName }) {
+            if (!s3Client.listBuckets().join().buckets()
+                    .any { it.name() == bucketName }
+            ) {
                 logger.info("Bucket {} does not exist, creating it", bucketName)
-                val createBucketResponse = s3Client.createBucket { it.bucket(bucketName) }.join()
+                val createBucketResponse =
+                    s3Client.createBucket { it.bucket(bucketName) }.join()
                 logger.debug("Bucket created: {}", createBucketResponse)
             }
 
-            logger.debug("Uploading file {} to bucket {} (size: {} bytes)", objectName, bucketName, content.size)
+            logger.debug(
+                "Uploading file {} to bucket {} (size: {} bytes)",
+                objectName,
+                bucketName,
+                content.size
+            )
             val putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectName).build()
             val requestBody = AsyncRequestBody.fromBytes(content)
-            val putObjectResponse = s3Client.putObject(putObjectRequest, requestBody).join()
-            logger.info("Successfully uploaded data to {}/{} (ETag: {})", bucketName, objectName, putObjectResponse.eTag())
+            val putObjectResponse =
+                s3Client.putObject(putObjectRequest, requestBody).join()
+            logger.info(
+                "Successfully uploaded data to {}/{} (ETag: {})",
+                bucketName,
+                objectName,
+                putObjectResponse.eTag()
+            )
         } catch (e: Exception) {
-            logger.error("Failed to upload file {} to bucket {}: {}", objectName, bucketName, e.message, e)
+            logger.error(
+                "Failed to upload file {} to bucket {}: {}",
+                objectName,
+                bucketName,
+                e.message,
+                e
+            )
             throw e
         }
     }
 
     fun downloadFile(objectName: String): ByteArray {
-        logger.debug("Downloading file {} from bucket {}", objectName, bucketName)
+        logger.debug(
+            "Downloading file {} from bucket {}",
+            objectName,
+            bucketName
+        )
         // return byte array of file content
-        val getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(objectName).build()
+        val getObjectRequest =
+            GetObjectRequest.builder().bucket(bucketName).key(objectName)
+                .build()
         val response = s3Client
             .getObject(getObjectRequest, AsyncResponseTransformer.toBytes())
             .join()
@@ -98,8 +124,15 @@ class StorageService {
     /**
      * Streams an object directly to the provided OutputStream without loading it fully into memory.
      */
-    fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
-        logger.debug("Streaming download of {} from bucket {}", objectName, bucketName)
+    fun downloadFileTo(
+        objectName: String,
+        output: OutputStream
+    ): CompletableFuture<Void> {
+        logger.debug(
+            "Streaming download of {} from bucket {}",
+            objectName,
+            bucketName
+        )
         val getObjectRequest = GetObjectRequest.builder()
             .bucket(bucketName)
             .key(objectName)
@@ -144,7 +177,8 @@ class StorageService {
                     override fun onComplete() {
                         try {
                             output.flush()
-                        } catch (_: Exception) { }
+                        } catch (_: Exception) {
+                        }
                         result.complete(null)
                     }
                 })
@@ -177,17 +211,28 @@ class StorageService {
         internal fun detectFileFormat(bytes: ByteArray): String? = when {
             bytes.isEmpty() -> null
             bytes.hasPrefix(0x25, 0x50, 0x44, 0x46) -> "application/pdf"
-            // Legacy .doc files
+            // Legacy .office files
             bytes.hasPrefix(
                 0xD0,
                 0xCF,
                 0x11,
                 0xE0
             ) -> "application/vnd.ms-office"
-            // docx files
-            bytes.hasPrefix(0x50,0x4B,0x03,0x04) && bytes.isDocxPackage() ->
+            // modern office files
+            // word
+            bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) && bytes.isDocxPackage() ->
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-
+            // powerpoint
+            bytes.hasPrefix(
+                0x50,
+                0x4B,
+                0x03,
+                0x04
+            ) && bytes.isOpcPackageWithEntry("ppt/presentation.xml") ->
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            // excel
+            bytes.hasPrefix(0x50,0x4B,0x03,0x04) && bytes.isOpcPackageWithEntry("xl/workbook.xml") ->
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
             bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) -> "application/zip"
             bytes.hasPrefix(
@@ -265,6 +310,16 @@ class StorageService {
             bytes.hasRiffType("WAVE") -> "audio/wav"
 
             bytes.hasTarMagic() -> "application/x-tar"
+
+            bytes.hasPrefix(0x41, 0x43, 0x31, 0x30) -> "application/acad"
+            bytes.startsWithAscii("0\nsection") -> "application/dxf"
+            bytes.hasPrefix(
+                0xD0,
+                0xCF,
+                0x11,
+                0xE0
+            ) && bytes.containsAscii("PowerPoint Document") ->
+                "application/vnd.ms-powerpoint"
             else -> null
         }
 
@@ -366,5 +421,41 @@ class StorageService {
         } catch (_: Exception) {
             false
         }
+
+
+        /*
+        Controleert of de gegeven bytes een ASCII-tekst bevat met het opgegeven voorvoegsel.
+        Zoeken wordt beperkt tot de eerste 1024 bytes voor efficiëntie.
+         */
+        private fun ByteArray.containsAscii(search: String, limit: Int = 1024): Boolean {
+            val needle = search.toByteArray()
+            if (needle.isEmpty() || this.isEmpty()) return false
+
+            val max = minOf(this.size, limit)
+            if (needle.size > max) return false
+
+            // naive scan; fast enough for small limits
+            for (i in 0..(max - needle.size)) {
+                var j = 0
+                while (j < needle.size && this[i + j] == needle[j]) j++
+                if (j == needle.size) return true
+            }
+            return false
+        }
+
+        private fun ByteArray.isOpcPackageWithEntry(requiredEntry: String): Boolean =
+            try {
+                ZipInputStream(ByteArrayInputStream(this)).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        if (entry.name.equals(requiredEntry, ignoreCase = true))
+                            return true
+                        entry = zip.nextEntry
+                    }
+                    false
+                }
+            } catch (_: Exception) {
+                false
+            }
     }
 }
