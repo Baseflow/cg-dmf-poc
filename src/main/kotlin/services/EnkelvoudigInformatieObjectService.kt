@@ -135,7 +135,7 @@ class EnkelvoudigInformatieObjectService {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content);
             storageService.uploadFile(bestandsLocatie, content)
-            UploadResultaat(
+            return UploadResultaat(
                 bestandsFormaat = fileType,
                 bestandsOmvang = content.size.toLong()
             )
@@ -253,8 +253,8 @@ class EnkelvoudigInformatieObjectService {
             }
 
             val uploadResultaat = storeFileVersion(request, locatie)
-            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
-            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat.orEmpty()
+            val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat?.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
+            val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat else request.formaat
 
             // create a new version. If values in the request are empty,
             // use existing values from latest version but only if the update is not partial
