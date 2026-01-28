@@ -26,6 +26,7 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import io.mockk.*
 import kotlin.test.*
 import java.util.UUID
+import kotlin.io.encoding.Base64
 
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
@@ -620,15 +621,22 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `formaat moet opgegeven zijn als inhoud is opgegeven`() = runBlocking {
-        val createException = assertFailsWith<IllegalArgumentException> {
-            EnkelvoudigInformatieObjectRequest(
+    fun `formaat moet worden bepaald zijn als inhoud is opgegeven`() = runBlocking {
+
+        val inputFileName = "/testdata/pdf_sample.pdf"
+        val resource = requireNotNull(javaClass.getResource(inputFileName)) {
+            "Missing test resource: ${inputFileName}"
+        }
+        val bytes = resource.readBytes()
+        val pdfContent = Base64.encode(bytes)
+        var request = generateTestDocument();
+        request = request.copy(
                 bestandsnaam = "doc.pdf",
                 bestandsomvang = 123456L,
-                inhoud = "inhoud",
+                inhoud = pdfContent
             )
-        }
-        assertEquals("Formaat moet worden opgegeven als inhoud is opgegeven", createException.message)
+        val resp = service.create(request)
+        assertEquals("application/pdf", resp.formaat)
     }
 
 

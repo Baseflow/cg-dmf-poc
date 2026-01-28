@@ -60,7 +60,6 @@ data class EnkelvoudigInformatieObjectRequest(
 
         if (inhoud != null) {
             require(bestandsnaam != null) { "Bestandsnaam moet worden opgegeven als inhoud is opgegeven" }
-            require(formaat != null) { "Formaat moet worden opgegeven als inhoud is opgegeven" }
         }
     }
 
