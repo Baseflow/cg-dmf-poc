@@ -91,7 +91,11 @@ class EnkelvoudigInformatieObjectService {
 
             val uploadResultaat = storeFileVersion(request, locatie)
             val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
-            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat.orEmpty()
+            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat
+
+            if (!request.inhoud.isNullOrEmpty()) {
+                require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
+            }
 
             val eioVersion = EIOVersionEntity.new {
                 recordId = record
@@ -255,6 +259,10 @@ class EnkelvoudigInformatieObjectService {
             val uploadResultaat = storeFileVersion(request, locatie)
             val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat?.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
             val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat else request.formaat
+
+            if (!partial && !request.inhoud.isNullOrEmpty()) {
+                require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
+            }
 
             // create a new version. If values in the request are empty,
             // use existing values from latest version but only if the update is not partial

@@ -639,6 +639,16 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals("application/pdf", resp.formaat)
     }
 
+    @Test
+    fun `formaat moet opgegeven zijn als het formaat niet bepaald kan worden`() = runBlocking{
+        var request = generateTestDocument()
+        request = request.copy(inhoud = "dGVzdA==", formaat = null)
+        val exception = assertFailsWith<IllegalArgumentException> {
+            service.create(request)
+        }
+        assertEquals("Unable to determine file format from content. Please specify the 'formaat' field in the request.", exception.message)
+    }
+
 
     @Test fun `update file location if content has changed`() = runBlocking {
         val req = generateTestDocument(bestandsnaam = "doc.pdf")
