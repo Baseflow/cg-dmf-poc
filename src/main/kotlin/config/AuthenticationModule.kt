@@ -12,8 +12,7 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 
 fun Application.authenticationModule() {
-
-    val issuer = System.getenv("OIDC_ISSUER") ?: "http://localhost:8081/realms/cg-dmf"
+    val issuer = AuthenticationConfig.issuer
 
     // Configure JWK provider to fetch signing keys from Keycloak which are served at issuer's certs endpoint
     val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
