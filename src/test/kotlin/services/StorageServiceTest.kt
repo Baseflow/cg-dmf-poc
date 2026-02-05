@@ -2,16 +2,19 @@ package com.baseflow.services
 
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class StorageServiceTest {
 
     private fun validateFileFormat(inputFileName: String, expectedFormat: String) = runBlocking {
-        val resource = requireNotNull(javaClass.getResource(inputFileName)) {
-            "Missing test resource: ${inputFileName}"
-        }
+        val resource = javaClass.getResource(inputFileName)
+        assertNotNull(resource, "Missing test resource: ${inputFileName}")
         val bytes = resource.readBytes()
         val result = StorageService.detectFileFormat(bytes)
-        assert(result == expectedFormat)
+        assertEquals(expectedFormat, result, "Unexpected format for $inputFileName")
     }
 
     // documents
@@ -54,4 +57,18 @@ class StorageServiceTest {
     @Test fun `Validate mkv video file`() = validateFileFormat("/testdata/mkv_sample.mkv", "video/x-matroska")
     @Test fun `Validate mp4 video file`() = validateFileFormat("/testdata/mp4_sample.mp4", "video/mp4")
     @Test fun `Validate avi video file`() = validateFileFormat("/testdata/avi_sample.avi", "video/x-msvideo")
+
+    @Test
+    fun `Validate missing zip resource fails`() = runBlocking {
+        val missing = "/testdata/zip_sample.zip"
+        val ex = assertFailsWith<AssertionError> {
+            validateFileFormat(missing, "application/zip")
+        }
+        assertTrue(ex.message?.contains("Missing test resource") == true)
+    }
+
+    @Test
+    fun `Intentionally failing test to verify CI 2`() {
+        kotlin.test.fail("This test should fail on CI")
+    }
 }
