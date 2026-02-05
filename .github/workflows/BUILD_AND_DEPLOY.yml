@@ -1,4 +1,4 @@
-name: "Build docker container image"
+name: 'Build docker container image'
 
 on:
   workflow_dispatch:
@@ -34,13 +34,16 @@ jobs:
           version=$(grep '^version' build.gradle.kts | head -n 1 | cut -d '"' -f2)
           echo "version=$version" >> $GITHUB_OUTPUT
 
+      - name: Run unit tests
+        run: |
+          ./gradlew test
+
       - uses: Baseflow/github-actions/docker@main
         name: Build docker image
         with:
           username: ${{ secrets.CG_ACR_USERNAME }}
           password: ${{ secrets.CG_ACR_PASSWORD }}
-          registry: "commongroundacr.azurecr.io"
+          registry: 'commongroundacr.azurecr.io'
           push: ${{ github.event_name != 'pull_request' }}
           vulnerability_scan: false #eme${{ github.event_name != 'pull_request' }}
           version: ${{ steps.get_version.outputs.version }}
-
