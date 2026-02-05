@@ -19,10 +19,12 @@ on:
       - '.github/workflows/BUILD_AND_DEPLOY.yml'
 
 jobs:
-  # validate that the docker image is built.
-  # will only scan for vulnerabilities and push to acr on push events
+  test:
+    uses: ./.github/workflows/TEST.yml
+
   docker-build:
     name: Build docker image
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,10 +36,6 @@ jobs:
           version=$(grep '^version' build.gradle.kts | head -n 1 | cut -d '"' -f2)
           echo "version=$version" >> $GITHUB_OUTPUT
 
-      - name: Run unit tests
-        run: |
-          ./gradlew test
-
       - uses: Baseflow/github-actions/docker@main
         name: Build docker image
         with:
@@ -45,5 +43,5 @@ jobs:
           password: ${{ secrets.CG_ACR_PASSWORD }}
           registry: 'commongroundacr.azurecr.io'
           push: ${{ github.event_name != 'pull_request' }}
-          vulnerability_scan: false #eme${{ github.event_name != 'pull_request' }}
+          vulnerability_scan: false
           version: ${{ steps.get_version.outputs.version }}
