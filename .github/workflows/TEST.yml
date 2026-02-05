@@ -1,16 +1,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 # Copyright (C) 2026 Gemeente Utrecht
-name: 'Test run for pull requests'
-run-name: "Building '${{ github.ref_name}}' by '${{ github.actor }}'"
+name: 'Run Tests'
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-  pull_request:
-    branches:
-      - '**'
+  workflow_call:
 
 jobs:
   test:
