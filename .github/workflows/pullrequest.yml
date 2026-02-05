@@ -6,6 +6,7 @@ run-name: "Building '${{ github.ref_name}}' by '${{ github.actor }}'"
 on:
   push:
     branches:
+      - develop
       - main
   pull_request:
     branches:
