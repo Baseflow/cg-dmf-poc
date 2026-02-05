@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
+import AuditTrailEntity
 import api.models.UploadResultaat
 import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
@@ -127,6 +128,7 @@ class EnkelvoudigInformatieObjectService {
                 identificatie = request.identificatie.orEmpty()
                 bestandsLocatie = locatie
             }
+
             record.toResponse(eioVersion)
         }
     }
@@ -229,7 +231,7 @@ class EnkelvoudigInformatieObjectService {
      * If no new content is provided, the existing file location will be reused.
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
+        suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
         return suspendTransaction {
 
             if (!partial) {
@@ -262,6 +264,16 @@ class EnkelvoudigInformatieObjectService {
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
+            }
+
+            AuditTrailEntity.new {
+                this.bron = "EnkelvoudigInformatieObjectService"
+                this.actie = "UPDATE"
+                this.hoofdObject = record.id.value.toString()
+                this.resource = "enkelvoudiginformatieobjecten"
+                this.resourceUrl = ApiUrlBuilder.absolute("enkelvoudiginformatieobjecten", record.id.value.toString())
+                this.resultaat = 200
+                this.wijzigingen = "Updated to version $newVersionNumber"
             }
 
             // create a new version. If values in the request are empty,

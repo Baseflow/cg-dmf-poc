@@ -23,6 +23,7 @@ import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.conflict
 import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.services.createAuditTrail
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -38,7 +39,7 @@ import java.util.UUID
  * Routes for EnkelvoudigInformatieObjecten (Single Information Objects).
  */
 
-private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
+const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
 
 fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // Ensure API-version header is added for all responses under this subtree,
@@ -118,6 +119,8 @@ private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObje
         // Location header with the URL of the created resource
         val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
         call.response.headers.append(HttpHeaders.Location, locationUrl)
+
+        createAuditTrail(call, response)
 
         call.respond(HttpStatusCode.Created, response)
     } catch (e: IllegalArgumentException) {

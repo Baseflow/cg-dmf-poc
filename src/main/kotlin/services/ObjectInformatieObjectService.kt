@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import AuditTrailEntity
 import com.baseflow.EIORecordEntity
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
