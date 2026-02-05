@@ -4,13 +4,11 @@ package com.baseflow.config
 
 import org.slf4j.LoggerFactory
 
-object ApplicationConfig : Config {
+object ApplicationConfig : Config() {
     private val logger = LoggerFactory.getLogger(ApplicationConfig::class.java)
 
-    val baseUrl: String? = System.getenv("BASE_URL")
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
     val port: Int = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    val baseUrl: String = envOrSystem("BASE_URL", "http://localhost:$port")
 
     override fun printConfig() {
         val effective = baseUrl()
@@ -18,7 +16,7 @@ object ApplicationConfig : Config {
     }
 
     fun baseUrl(): String {
-        val effective = this.baseUrl ?: "http://localhost:$port"
+        val effective = this.baseUrl
         return effective.trim().removeSuffix("/")
     }
 }

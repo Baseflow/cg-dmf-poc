@@ -4,13 +4,13 @@ package com.baseflow.config
 
 import org.slf4j.LoggerFactory
 
-internal object DatabaseConfig : Config {
+internal object DatabaseConfig : Config() {
     private val logger = LoggerFactory.getLogger(DatabaseConfig::class.java)
 
-    val url: String = System.getenv("DB_URL") ?: "jdbc:postgresql://localhost:5432/documenten"
-    val user: String = System.getenv("DB_USER") ?: "documenten"
-    val password: String = System.getenv("DB_PASSWORD") ?: "documenten"
-    val driver: String = System.getenv("DB_DRIVER") ?: "org.postgresql.Driver"
+    val url: String = envOrSystem("DB_URL", "jdbc:postgresql://localhost:5432/documenten")
+    val user: String = envOrSystem("DB_USER", "documenten")
+    val password: String = envOrSystem("DB_PASSWORD", "documenten")
+    val driver: String = envOrSystem("DB_DRIVER", "org.postgresql.Driver")
 
     override fun printConfig() {
         logger.info("DatabaseConfig: url={}, user={}, driver={}", url, user, driver)
