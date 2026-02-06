@@ -132,13 +132,14 @@ private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObje
 private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
     val request = call.receive<EIOZoekRequest>()
     val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
-    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+    val queryParameters = call.request.queryParameters
+    val page = queryParameters["page"]?.toIntOrNull() ?: 1
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
+    val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
     // EXPERIMENTEEL filters
-    val objectUrl = call.request.queryParameters["objectinformatieobjecten__object"]
-    val objectType = call.request.queryParameters["objectinformatieobjecten__objectType"]
+    val objectUrl = queryParameters["objectinformatieobjecten__object"]
+    val objectType = queryParameters["objectinformatieobjecten__objectType"]
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = request.uuidIn,
@@ -277,8 +278,8 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
 
         val eio = transaction {
             val record =
-                EIORecordEntity.findById(uuid) ?: return@transaction null;
-            val eio = record.versions.maxByOrNull { it.versie };
+                EIORecordEntity.findById(uuid) ?: return@transaction null
+            val eio = record.versions.maxByOrNull { it.versie }
             return@transaction eio
         }
 
@@ -302,7 +303,7 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
         }
 
         // Derive filename and content type when possible;
-        val fileName = objectKey.ifBlank({ "document-${eio.id}}" } )
+        val fileName = objectKey.ifBlank { "document-${eio.id}}" }
         val contentType = try {
             // eio.formaat is expected to be a MIME type; if not, fallback below
             eio.formaat?.let { ContentType.parse(it) }
@@ -338,8 +339,7 @@ private suspend fun lock(call: RoutingCall, service: EnkelvoudigInformatieObject
 
     try {
         val uuid = UUID.fromString(uuidString)
-        val result = service.lock(uuid)
-        when (result) {
+        when (val result = service.lock(uuid)) {
             null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
             is LockResult.Success -> call.respond(result.payload)
             is LockResult.AlreadyLocked -> call.respondProblem(

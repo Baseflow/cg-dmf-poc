@@ -29,7 +29,7 @@ private fun getUserId(call: RoutingCall): String? {
     return getUserFromJwt(call)?.payload?.subject
 }
 
-private fun getUserClaim(call: RoutingCall, claimName: String): String? {
+private fun getUserClaim(call: RoutingCall, claimName: String = "username"): String? {
     return getUserFromJwt(call)?.payload?.getClaim(claimName)?.asString()
 }
 
@@ -56,7 +56,7 @@ data class Wijzigingen(
 fun createAuditTrail(call: RoutingCall, eio: EnkelvoudigInformatieObjectResponse) {
 
     val userId = getUserId(call) ?: "unknown"
-    val username = getUserClaim(call, "username") ?: "unknown"
+    val username = getUserClaim(call) ?: "unknown"
     val toelichting = getAuditToelichting(call)
     val action = call.request.httpMethod.value
     val actieWeergave = httpMethodToDescriptionMap[call.request.httpMethod] ?: "Onbekende actie"

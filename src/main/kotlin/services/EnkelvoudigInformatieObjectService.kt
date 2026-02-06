@@ -54,8 +54,6 @@ import kotlin.time.ExperimentalTime
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
 class EnkelvoudigInformatieObjectService {
-
-    private val logger = LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
     private val storageService : StorageService
     private val applicationConfig : ApplicationConfig
     private val openZaakService : OpenZaakService
@@ -139,7 +137,7 @@ class EnkelvoudigInformatieObjectService {
     ): UploadResultaat? {
         if (!request.inhoud.isNullOrEmpty()) {
             val content = Base64.decode(request.inhoud)
-            val fileType = StorageService.detectFileFormat(content);
+            val fileType = StorageService.detectFileFormat(content)
             storageService.uploadFile(bestandsLocatie, content)
             return UploadResultaat(
                 bestandsFormaat = fileType,
@@ -398,7 +396,7 @@ class EnkelvoudigInformatieObjectService {
             val uuids = filters.uuids.mapNotNull {
                 try {
                     UUID.fromString(it)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             }
