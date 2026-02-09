@@ -8,43 +8,24 @@ import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
-import com.baseflow.entities.OIORecords
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
-import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.api.models.Integriteit
-import com.baseflow.api.models.IntegriteitAlgoritme
-import com.baseflow.api.models.Ondertekening
-import com.baseflow.api.models.OndertekeningSoort
+import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
-import com.baseflow.services.models.LockPayload
-import com.baseflow.services.models.LockResult
-import com.baseflow.services.models.DeleteResult
-import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
-import com.baseflow.services.models.UnlockResult
+import com.baseflow.entities.OIORecords
+import com.baseflow.services.models.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.v1.core.ArrayColumnType
-import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.Op
-import org.jetbrains.exposed.v1.core.QueryBuilder
-import org.jetbrains.exposed.v1.core.QueryParameter
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.slf4j.LoggerFactory
 import java.io.OutputStream
-import java.util.UUID
+import java.util.*
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -80,15 +61,7 @@ class EnkelvoudigInformatieObjectService {
             val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
             val version = 1
 
-            var locatie = ""
-            if (!request.inhoud.isNullOrEmpty() &&
-                            request.bestandsomvang != null &&
-                            request.bestandsomvang > 0 &&
-                            request.bestandsnaam != null) {
-                locatie = "${record.id.value}/$version/${request.bestandsnaam}"
-            }
-
-            val uploadResultaat = storeFileVersion(request, locatie)
+            val uploadResultaat = getUploadResultaat(request, record, version)
             val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
             val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat
 
@@ -124,11 +97,29 @@ class EnkelvoudigInformatieObjectService {
                 ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
                 ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = request.identificatie.orEmpty()
-                bestandsLocatie = locatie
+                bestandsLocatie = uploadResultaat?.bestandsLocatie.orEmpty()
             }
 
             record.toResponse(eioVersion)
         }
+    }
+
+    private fun getUploadResultaat(
+        request: EnkelvoudigInformatieObjectRequest,
+        record: EIORecordEntity,
+        version: Int = 1,
+        locatie: String = ""
+    ): UploadResultaat? {
+        var loc = locatie
+        if (!request.inhoud.isNullOrEmpty() &&
+            request.bestandsomvang != null &&
+            request.bestandsomvang > 0 &&
+            request.bestandsnaam != null
+        ) {
+            loc = "${record.id.value}/$version/${request.bestandsnaam}"
+        }
+
+        return storeFileVersion(request, loc)
     }
 
     private fun storeFileVersion(
@@ -141,7 +132,8 @@ class EnkelvoudigInformatieObjectService {
             storageService.uploadFile(bestandsLocatie, content)
             return UploadResultaat(
                 bestandsFormaat = fileType,
-                bestandsOmvang = content.size.toLong()
+                bestandsOmvang = content.size.toLong(),
+                bestandsLocatie = bestandsLocatie
             )
         }
         return null
@@ -256,7 +248,7 @@ class EnkelvoudigInformatieObjectService {
                 locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
             }
 
-            val uploadResultaat = storeFileVersion(request, locatie)
+            val uploadResultaat = getUploadResultaat(request, record, newVersionNumber, locatie)
             val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat?.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
             val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat else request.formaat
 

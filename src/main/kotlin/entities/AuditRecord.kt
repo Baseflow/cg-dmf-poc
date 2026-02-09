@@ -8,9 +8,9 @@ import org.jetbrains.exposed.v1.core.dao.id.UUIDTable as UUIDTableCore
 import java.util.UUID
 
 @Serializable
-data class Wijzigingen(
-    val oud: Map<String, String?> = emptyMap(),
-    val nieuw: Map<String, String?> = emptyMap()
+data class Wijzigingen<T>(
+    val oud: T? = null,
+    val nieuw: T? = null
 )
 
 object AuditTrails : UUIDTableCore("audit_trails") {

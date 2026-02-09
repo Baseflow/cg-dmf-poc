@@ -4,36 +4,25 @@ package com.baseflow.api.routes
 
 import com.baseflow.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
-import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
-import com.baseflow.api.models.PaginatedResponse
-import com.baseflow.api.models.EIOZoekRequest
-import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
+import com.baseflow.services.createAuditTrail
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
-import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.models.respondProblem
-import com.baseflow.api.models.badRequest
-import com.baseflow.api.models.notFound
-import com.baseflow.api.models.conflict
-import com.baseflow.api.DOCUMENTEN_API_VERSION
-import com.baseflow.services.createAuditTrail
-import io.ktor.http.ContentDisposition
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.UUID
+import java.util.*
 
 /**
  * Routes for EnkelvoudigInformatieObjecten (Single Information Objects).
@@ -212,6 +201,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
         }
+        createAuditTrail(call, response)
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
@@ -233,6 +223,7 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
         }
+        createAuditTrail(call, response)
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
@@ -250,7 +241,10 @@ private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObje
     try {
         val uuid = UUID.fromString(uuidString)
         when (service.delete(uuid)) {
-            is DeleteResult.Success -> call.respond(HttpStatusCode.NoContent)
+            is DeleteResult.Success -> {
+                createAuditTrail(call)
+                call.respond(HttpStatusCode.NoContent)
+            }
             is DeleteResult.NotFound -> call.respondProblem(
                 HttpStatusCode.NotFound,
                 notFound("EnkelvoudigInformatieObject not found", call.request.path())
