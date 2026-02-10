@@ -21,6 +21,8 @@ script:pre-request {
   }
   
   const firstId = data.results[0].id;
+  const lastId = data.results[data.results.length - 1].id;
   bru.setVar("firstId", firstId);
+  bru.setVar("lastId", lastId);
   
 }

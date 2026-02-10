@@ -6,13 +6,14 @@ import com.baseflow.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.AuditTrailPlugin
+import com.baseflow.api.middleware.auditContext
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
-import com.baseflow.services.createAuditTrail
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
@@ -34,42 +35,45 @@ fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = O
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
+    install(AuditTrailPlugin)
+
     val openZaakService = OpenZaakService(openZaakConfig)
-    val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, openZaakService)
+
+    fun getService(call: RoutingCall) = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, openZaakService, call.auditContext())
 
     // List all documents (with optional filters)
-    get { list(this.call, service) }
+    get { list(this.call, getService(this.call)) }
 
     // Create new document
-    post { create(this.call, service) }
+    post { create(this.call, getService(this.call)) }
 
     // Advanced search endpoint
-    post("/_zoek") { zoek(this.call, service) }
+    post("/_zoek") { zoek(this.call, getService(this.call)) }
 
     // Single document operations
     route("/{uuid}") {
         // HEAD - existence check
-        head { head(this.call, service) }
+        head { head(this.call, getService(this.call)) }
         // Get single document
-        get { get(this.call, service) }
+        get { get(this.call, getService(this.call)) }
 
         // Update document (full)
-        put { put(this.call, service) }
+        put { put(this.call, getService(this.call)) }
 
         // Partial update
-        patch { patch(this.call, service) }
+        patch { patch(this.call, getService(this.call)) }
 
         // Delete document
-        delete { delete(this.call, service) }
+        delete { delete(this.call, getService(this.call)) }
 
         // Download document content (streamed from storage)
-        get("/download") { download(this.call, service) }
+        get("/download") { download(this.call, getService(this.call)) }
 
         // Lock document for editing
-        post("/lock") { lock(this.call, service) }
+        post("/lock") { lock(this.call, getService(this.call)) }
 
         // Unlock document
-        post("/unlock") { unlock(this.call, service) }
+        post("/unlock") { unlock(this.call, getService(this.call)) }
     }
 }
 
@@ -108,8 +112,6 @@ private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObje
         // Location header with the URL of the created resource
         val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
         call.response.headers.append(HttpHeaders.Location, locationUrl)
-
-        createAuditTrail(call, response)
 
         call.respond(HttpStatusCode.Created, response)
     } catch (e: IllegalArgumentException) {
@@ -201,7 +203,6 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
         }
-        createAuditTrail(call, response)
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
@@ -223,7 +224,6 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
         }
-        createAuditTrail(call, response)
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
@@ -242,7 +242,6 @@ private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObje
         val uuid = UUID.fromString(uuidString)
         when (service.delete(uuid)) {
             is DeleteResult.Success -> {
-                createAuditTrail(call)
                 call.respond(HttpStatusCode.NoContent)
             }
             is DeleteResult.NotFound -> call.respondProblem(

@@ -2,7 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import AuditTrailEntity
+import api.middleware.AuditContext
 import api.models.UploadResultaat
 import com.baseflow.EIORecordEntity
 import com.baseflow.EIORecords
@@ -38,11 +38,18 @@ class EnkelvoudigInformatieObjectService {
     private val storageService : StorageService
     private val applicationConfig : ApplicationConfig
     private val openZaakService : OpenZaakService
+    private val auditContext: AuditContext
 
-    constructor(storageService: StorageService, applicationConfig: ApplicationConfig, openZaakService: OpenZaakService) {
+    constructor(
+        storageService: StorageService,
+        applicationConfig: ApplicationConfig,
+        openZaakService: OpenZaakService,
+        auditContext: AuditContext
+    ) {
         this.storageService = storageService
         this.applicationConfig = applicationConfig
         this.openZaakService = openZaakService
+        this.auditContext = auditContext
     }
 
     /**
@@ -100,7 +107,10 @@ class EnkelvoudigInformatieObjectService {
                 bestandsLocatie = uploadResultaat?.bestandsLocatie.orEmpty()
             }
 
-            record.toResponse(eioVersion)
+
+            val response = record.toResponse(eioVersion)
+            auditContext.captureNew(response, "${eioVersion.bronOrganisatie} - ${eioVersion.identificatie}")
+            response as EnkelvoudigInformatieObjectResponse
         }
     }
 
@@ -232,6 +242,7 @@ class EnkelvoudigInformatieObjectService {
 
             // Validate informatieobjecttype against OpenZaak
             val latestVersion = record.versions.maxByOrNull { it.versie }
+            auditContext.captureOld(record.toResponse(latestVersion))
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
 
             if (!request.informatieobjecttype.isNullOrEmpty()) {
@@ -254,16 +265,6 @@ class EnkelvoudigInformatieObjectService {
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
-            }
-
-            AuditTrailEntity.new {
-                this.bron = "EnkelvoudigInformatieObjectService"
-                this.actie = "UPDATE"
-                this.hoofdObject = record.id.value.toString()
-                this.resource = "enkelvoudiginformatieobjecten"
-                this.resourceUrl = ApiUrlBuilder.absolute("enkelvoudiginformatieobjecten", record.id.value.toString())
-                this.resultaat = 200
-                this.wijzigingen = "Updated to version $newVersionNumber"
             }
 
             // create a new version. If values in the request are empty,
@@ -296,14 +297,17 @@ class EnkelvoudigInformatieObjectService {
                 ondertekenings_datum = if (partial && request.ondertekening?.datum == null) latestVersion?.ondertekenings_datum else request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = if (partial && request.identificatie.isNullOrEmpty()) latestVersion?.identificatie.orEmpty() else request.identificatie.orEmpty()
             }
-            record.toResponse(version)
+            val response = record.toResponse(version)
+            auditContext.captureNew(response, "${version.bronOrganisatie} - ${version.identificatie}")
+            response
         }
     }
 
     @OptIn(ExperimentalTime::class)
     private fun EIORecordEntity.toResponse(
-        version: EIOVersionEntity
-    ): EnkelvoudigInformatieObjectResponse {
+        version: EIOVersionEntity?
+    ): EnkelvoudigInformatieObjectResponse? {
+        if (version == null) return null
 
         val integriteit = when {
             version.integriteitAlgoritme.isNotEmpty() && version.integriteitsDatum != null -> Integriteit(
@@ -463,6 +467,8 @@ class EnkelvoudigInformatieObjectService {
     fun delete(id: UUID): DeleteResult {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
+            val version = record.versions.maxByOrNull { it.versie }
+            auditContext.captureOld(record.toResponse(version))
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked
             }

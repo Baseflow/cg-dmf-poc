@@ -9,6 +9,7 @@ import com.baseflow.api.documentenApiModule
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
+import api.middleware.AuditContext
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
@@ -62,7 +63,12 @@ class SubjectInformatieObjectenRoutesTest {
 
     private fun createTestEIO(): String = runBlocking {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
+        val service = EnkelvoudigInformatieObjectService(
+            StorageService(),
+            ApplicationConfig,
+            OpenZaakService(openZaakConfig),
+            AuditContext()
+        )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
     }
@@ -104,7 +110,7 @@ class SubjectInformatieObjectenRoutesTest {
 
         val body = Json.decodeFromString<ObjectInformatieObjectResponse>(response.bodyAsText())
         assertNotNull(body.url)
-        assertTrue(body.url!!.contains(RESOURCE_SEGMENT))
+        assertTrue(body.url.contains(RESOURCE_SEGMENT))
     }
 
     @Test

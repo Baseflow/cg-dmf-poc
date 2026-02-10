@@ -21,6 +21,7 @@ import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
+import api.middleware.AuditContext
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.tooling.AllTables
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -72,7 +73,12 @@ class ObjectInformatieObjectenRoutesTest {
     // Helper to create an EIO record using the service
     private fun createTestEIO(): String = runBlocking {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
+        val service = EnkelvoudigInformatieObjectService(
+            StorageService(),
+            ApplicationConfig,
+            OpenZaakService(openZaakConfig),
+            AuditContext()
+        )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
     }
@@ -413,7 +419,7 @@ class ObjectInformatieObjectenRoutesTest {
         val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
         assertEquals(HttpStatusCode.BadRequest.value, body.status)
         assertEquals("Bad Request", body.title)
-        assertTrue(body.detail?.contains("Invalid request body") == true)
+        assertEquals(body.detail?.contains("Invalid request body"), true)
     }
 
     @Test

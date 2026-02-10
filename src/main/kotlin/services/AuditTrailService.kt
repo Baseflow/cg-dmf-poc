@@ -4,16 +4,15 @@ package com.baseflow.services
 
 import AuditTrailEntity
 import Wijzigingen
+import api.middleware.AuditContext
 import com.baseflow.api.ApiUrlBuilder
-import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
+import com.baseflow.api.models.ApiEntityResponse
 import com.baseflow.api.routes.RESOURCE_SEGMENT
-import com.baseflow.config.ApplicationConfig
 import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
-import io.ktor.server.routing.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
@@ -21,19 +20,19 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-private fun getUserFromJwt(call: RoutingCall): JWTPrincipal? {
+private fun getUserFromJwt(call: PipelineCall): JWTPrincipal? {
     return call.principal<JWTPrincipal>()
 }
 
-private fun getUserId(call: RoutingCall): String? {
+private fun getUserId(call: PipelineCall): String? {
     return getUserFromJwt(call)?.payload?.subject
 }
 
-private fun getUserClaim(call: RoutingCall, claimName: String = "username"): String? {
+private fun getUserClaim(call: PipelineCall, claimName: String = "username"): String? {
     return getUserFromJwt(call)?.payload?.getClaim(claimName)?.asString()
 }
 
-private fun getAuditToelichting(call: RoutingCall): String? {
+private fun getAuditToelichting(call: PipelineCall): String? {
     return call.request.headers["X-Audit-Toelichting"]
 }
 
@@ -47,40 +46,48 @@ val httpMethodToDescriptionMap = mapOf(
 )
 
 @OptIn(ExperimentalTime::class)
-fun createAuditTrail(call: RoutingCall, eio: EnkelvoudigInformatieObjectResponse? = null) {
-    if (eio == null) {
-        return // Als er geen EIO is, kunnen we geen zinvolle audit trail makenw
-    }
+fun createAuditTrail(call: PipelineCall, context: AuditContext) {
+    val before = context.oldValue
+    val after = context.newValue
+    if (before == null && after == null) return
+
     val userId = getUserId(call) ?: "unknown"
     val username = getUserClaim(call) ?: "unknown"
     val toelichting = getAuditToelichting(call)
+    val appId = call.request.headers["X-NLX-Request-Application-Id"]
     val action = call.request.httpMethod
     val actieWeergave = httpMethodToDescriptionMap[call.request.httpMethod] ?: "Onbekende actie"
-    var wijzigingen: Wijzigingen<EnkelvoudigInformatieObjectResponse>? = null
-    if (action == HttpMethod.Post) {
-        wijzigingen = Wijzigingen(
-            oud = null, // Voor een POST-aanroep is er geen oud object
-            nieuw = eio
-        )
-    } else if (action == HttpMethod.Patch || action == HttpMethod.Put) {
-        wijzigingen = Wijzigingen(
-            oud = null, // Voor een PATCH-aanroep zou je hier het oude object moeten ophalen voordat je de wijzigingen toepast
-            nieuw = eio
-        )
-    } else if (action == HttpMethod.Delete) {
-        wijzigingen = Wijzigingen(
-            oud = eio, // Voor een DELETE-aanroep is het oude object het verwijderde object
-            nieuw = null
-        )
+    var wijzigingen: Wijzigingen<ApiEntityResponse>? = null
+    when (action) {
+        HttpMethod.Post -> {
+            wijzigingen = Wijzigingen(
+                oud = null, // Voor een POST-aanroep is er geen oud object
+                nieuw = after
+            )
+        }
+        HttpMethod.Patch, HttpMethod.Put -> {
+            wijzigingen = Wijzigingen(
+                oud = before,
+                nieuw = after
+            )
+        }
+        HttpMethod.Delete -> {
+            wijzigingen = Wijzigingen(
+                oud = before,
+                nieuw = null
+            )
+        }
     }
-    val resourceUrl = ApiUrlBuilder.absolute(ApplicationConfig.baseUrl(),  DOCUMENTEN_API_BASE_PATH, RESOURCE_SEGMENT, eio.id)
+    val resourceUrl = ApiUrlBuilder.absolute( RESOURCE_SEGMENT, (before ?: after)?.id.toString())
     transaction {
         AuditTrailEntity.new {
+            this.applicatieId = appId
+            this.applicatieWeergave = applicatieId
             this.bron = "Documenten API"
             this.hoofdObject = resourceUrl
             this.resource = "enkelvoudiginformatieobjecten"
             this.resourceUrl = resourceUrl
-            this.resourceWeergave = "${eio.bronorganisatie} - ${eio.identificatie}"
+            this.resourceWeergave = context.customId
             this.actie = action.value
             this.gebruikersId = userId
             this.gebruikersWeergave = username

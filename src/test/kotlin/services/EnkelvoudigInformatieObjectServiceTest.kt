@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
+@file:Suppress("UnusedDataClassCopyResult")
+
 package com.baseflow.services
 
+import api.middleware.AuditContext
 import com.baseflow.EIORecordEntity
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
@@ -46,7 +49,12 @@ class EnkelvoudigInformatieObjectServiceTest {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any(), any()) } returns Unit
-        service = EnkelvoudigInformatieObjectService(storageService = mockStorageService, ApplicationConfig, OpenZaakService(openZaakConfig))
+        service = EnkelvoudigInformatieObjectService(
+            storageService = mockStorageService,
+            ApplicationConfig,
+            OpenZaakService(openZaakConfig),
+            AuditContext()
+        )
     }
 
     @AfterTest
@@ -77,7 +85,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val created = service.create(req)
         val found = service.getById(UUID.fromString(created.id))
         assertNotNull(found)
-        assertEquals(created.id, found!!.id)
+        assertEquals(created.id, found.id)
         assertEquals("dut", found.taal)
         assertEquals("doc.pdf", found.bestandsnaam)
         assertEquals(1, found.versie)
@@ -90,7 +98,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val updateReq = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf", informatieobjecttype = "https://example.com/api/v1/informatieobjecttypen/new-type")
         val updated = service.update(UUID.fromString(created.id), updateReq)
         assertNotNull(updated)
-        assertEquals(created.id, updated!!.id)
+        assertEquals(created.id, updated.id)
         assertEquals("eng", updated.taal)
         assertEquals("doc2.pdf", updated.bestandsnaam)
         assertEquals(updateReq.informatieobjecttype, updated.informatieobjecttype)
@@ -117,7 +125,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         transaction {
             val rec = EIORecordEntity.findById(id)
             assertNotNull(rec)
-            assertEquals(token, rec!!.lockToken)
+            assertEquals(token, rec.lockToken)
         }
     }
 
@@ -146,7 +154,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         transaction {
             val rec = EIORecordEntity.findById(id)
             assertNotNull(rec)
-            assertNull(rec!!.lockToken)
+            assertNull(rec.lockToken)
         }
     }
 
@@ -166,13 +174,13 @@ class EnkelvoudigInformatieObjectServiceTest {
         val lockRes = service.lock(id) as LockResult.Success
         val token = lockRes.payload.lock
 
-        val res = service.unlock(id, token + "-wrong")
+        val res = service.unlock(id, "$token-wrong")
         assertTrue(res is UnlockResult.InvalidLock)
 
         transaction {
             val rec = EIORecordEntity.findById(id)
             assertNotNull(rec)
-            assertEquals(token, rec!!.lockToken)
+            assertEquals(token, rec.lockToken)
         }
     }
 
@@ -257,7 +265,12 @@ class EnkelvoudigInformatieObjectServiceTest {
             vertrouwelijkheidaanduiding = "geheim"
         )
 
-        val customService = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, mockOpenZaakService)
+        val customService = EnkelvoudigInformatieObjectService(
+            StorageService(),
+            ApplicationConfig,
+            mockOpenZaakService,
+            AuditContext()
+        )
 
         val req = generateTestDocument().copy(vertrouwelijkheidaanduiding = null)
         val resp = customService.create(req)
@@ -364,7 +377,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertNull(putResp.ondertekening)
         assertEquals(false, putResp.indicatieGebruiksrecht)
         assertEquals("", putResp.verschijningsvorm)
-        assertEquals(emptyList<String>(), putResp.trefwoorden)
+        assertEquals(emptyList(), putResp.trefwoorden)
         assertEquals(false, putResp.inhoudIsVervallen)
     }
 
@@ -625,11 +638,11 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val inputFileName = "/testdata/pdf_sample.pdf"
         val resource = requireNotNull(javaClass.getResource(inputFileName)) {
-            "Missing test resource: ${inputFileName}"
+            "Missing test resource: $inputFileName"
         }
         val bytes = resource.readBytes()
         val pdfContent = Base64.encode(bytes)
-        var request = generateTestDocument();
+        var request = generateTestDocument()
         request = request.copy(
                 bestandsnaam = "doc.pdf",
                 bestandsomvang = 123456L,
