@@ -139,6 +139,9 @@ class EnkelvoudigInformatieObjectService {
         if (!request.inhoud.isNullOrEmpty()) {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content)
+            require(bestandsLocatie.isNotBlank()) {
+                "bestandsLocatie must not be blank when inhoud is present"
+            }
             storageService.uploadFile(bestandsLocatie, content)
             return UploadResultaat(
                 bestandsFormaat = fileType,
