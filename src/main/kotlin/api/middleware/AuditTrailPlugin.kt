@@ -3,7 +3,6 @@
 
 package com.baseflow.api.middleware
 
-import api.middleware.AuditContext
 import com.baseflow.services.createAuditTrail
 import io.ktor.server.application.*
 import io.ktor.server.routing.*

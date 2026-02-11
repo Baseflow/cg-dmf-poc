@@ -75,6 +75,11 @@ data class EnkelvoudigInformatieObjectRequest(
         require(!informatieobjecttype.isNullOrBlank()) { "Informatieobjecttype mag niet leeg zijn" }
         require(creatiedatum != null) { "Creatiedatum mag niet leeg zijn" }
     }
+
+    fun isFileEmpty(): Boolean {
+        return inhoud.isNullOrEmpty() || bestandsnaam == null
+    }
+
 }
 
 @Serializable

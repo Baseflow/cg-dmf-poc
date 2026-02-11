@@ -4,8 +4,7 @@ package com.baseflow.api.models
 
 import kotlinx.serialization.Serializable
 
-interface ApiResponse {
-}
+sealed interface ApiResponse
 
 @Serializable
 sealed interface ApiEntityResponse : ApiResponse {

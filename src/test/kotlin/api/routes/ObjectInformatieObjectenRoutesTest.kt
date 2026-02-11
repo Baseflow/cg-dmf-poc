@@ -5,6 +5,7 @@ package com.baseflow.api.routes
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ProblemDetailsResponse
@@ -21,7 +22,6 @@ import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
-import api.middleware.AuditContext
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.tooling.AllTables
 import org.jetbrains.exposed.v1.jdbc.Database

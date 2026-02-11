@@ -4,8 +4,8 @@ package com.baseflow.services
 
 import com.baseflow.entities.AuditTrailEntity
 import com.baseflow.entities.Wijzigingen
-import api.middleware.AuditContext
 import com.baseflow.api.ApiUrlBuilder
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.ApiEntityResponse
 import com.baseflow.api.routes.RESOURCE_SEGMENT
 import io.ktor.http.*
@@ -36,13 +36,36 @@ private fun getAuditToelichting(call: PipelineCall): String? {
     return call.request.headers["X-Audit-Toelichting"]
 }
 
-val httpMethodToDescriptionMap = mapOf(
-    HttpMethod.Get to "Object opgevraagd",
-    HttpMethod.Post to "Object aangemaakt",
-    HttpMethod.Patch to "Object gewijzigd",
-    HttpMethod.Delete to "Object verwijderd",
-    HttpMethod.Put to "Object geüpdate",
-    HttpMethod.Head to "Object opgevraagd (HEAD)",
+enum class AuditSource(val weergave: String) {
+    AC("ac"),
+    NRC("nrc"),
+    ZRC("zrc"),
+    ZTC("ztc"),
+    DRC("drc"),
+    BRC("brc"),
+    CMC("cmc"),
+    KC("kc"),
+    VRC("vrc")
+}
+
+enum class AuditAction(val value: String, val weergave: String) {
+    RETRIEVE("retrieve", "Object opgehaald"),
+    LIST("list", "Lijst van objecten opgehaald"),
+    CREATE("create", "Object aangemaakt"),
+    PARTIAL_UPDATE("partial_update", "Object deels bijgewerkt"),
+    DESTROY("destroy", "Object verwijderd"),
+    UPDATE("update", "Object bijgewerkt"),
+    HEAD("head", "Object opgevraagd (HEAD)"),
+    UNKNOWN("unknown", "Onbekende actie")
+}
+
+val httpMethodToAction = mapOf(
+    HttpMethod.Get to AuditAction.RETRIEVE,
+    HttpMethod.Post to AuditAction.CREATE,
+    HttpMethod.Patch to AuditAction.PARTIAL_UPDATE,
+    HttpMethod.Delete to AuditAction.DESTROY,
+    HttpMethod.Put to AuditAction.UPDATE,
+    HttpMethod.Head to AuditAction.HEAD,
 )
 
 private val json = Json {
@@ -60,37 +83,42 @@ fun createAuditTrail(call: PipelineCall, context: AuditContext) {
     val username = getUserClaim(call) ?: "unknown"
     val toelichting = getAuditToelichting(call)
     val appId = call.request.headers["X-NLX-Request-Application-Id"]
-    val action = call.request.httpMethod
-    val actieWeergave = httpMethodToDescriptionMap[call.request.httpMethod] ?: "Onbekende actie"
-    var wijzigingen: Wijzigingen<ApiEntityResponse>? = null
-    when (action) {
+
+    val method = call.request.httpMethod
+    var action = httpMethodToAction[method] ?: AuditAction.UNKNOWN
+    if (method == HttpMethod.Get && before is List<*>) {
+        action = AuditAction.LIST
+    }
+    val actieWeergave = action.weergave
+    var wijzigingen = Wijzigingen()
+
+    when (method) {
         HttpMethod.Post -> {
-            wijzigingen = Wijzigingen(
+            wijzigingen = Wijzigingen.of(
                 oud = null, // Voor een POST-aanroep is er geen oud object
                 nieuw = after
             )
         }
         HttpMethod.Patch, HttpMethod.Put -> {
-            wijzigingen = Wijzigingen(
+            wijzigingen = Wijzigingen.of(
                 oud = before,
                 nieuw = after
             )
         }
         HttpMethod.Delete -> {
-            wijzigingen = Wijzigingen(
+            wijzigingen = Wijzigingen.of(
                 oud = before,
                 nieuw = null
             )
         }
     }
-    val wijzigingenStr = if (wijzigingen != null) json.encodeToString(Wijzigingen.serializer(ApiEntityResponse.serializer()), wijzigingen) else "{}"
     val resourceUrl = ApiUrlBuilder.absolute( RESOURCE_SEGMENT, (before ?: after)?.id.toString())
     transaction {
         AuditTrailEntity.new {
             this.applicatieId = appId
-            this.applicatieWeergave = applicatieId
-            this.bron = "Documenten API"
-            this.hoofdObject = resourceUrl
+            this.applicatieWeergave = applicatieId // Human readable name can be added later based on the appId, TODO: implement mapping from appId to human readable name
+            this.bron = AuditSource.DRC.weergave
+            this.hoofdObject = resourceUrl // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
             this.resource = "enkelvoudiginformatieobjecten"
             this.resourceUrl = resourceUrl
             this.resourceWeergave = context.customId
@@ -100,7 +128,7 @@ fun createAuditTrail(call: PipelineCall, context: AuditContext) {
             this.actieWeergave = actieWeergave
             this.resultaat = call.response.status()?.value
             this.toelichting = toelichting
-            this.wijzigingen = wijzigingenStr
+            this.wijzigingen = wijzigingen
             this.aanmaakdatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }
     }

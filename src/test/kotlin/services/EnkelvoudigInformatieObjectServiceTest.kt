@@ -4,7 +4,7 @@
 
 package com.baseflow.services
 
-import api.middleware.AuditContext
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
@@ -245,14 +245,14 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `create should default bestandsomvang to 0 if not provided and no content`() = runBlocking {
+    fun `create should null bestandsomvang if not provided and no content`() = runBlocking {
         val req = generateTestDocument().copy(
             inhoud = null,
             bestandsomvang = null,
             link = "https://example.com/file"
         )
         val resp = service.create(req)
-        assertEquals(0L, resp.bestandsomvang)
+        assertEquals(null, resp.bestandsomvang)
     }
 
     @Test

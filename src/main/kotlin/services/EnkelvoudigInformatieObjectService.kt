@@ -69,8 +69,8 @@ class EnkelvoudigInformatieObjectService {
             val version = 1
 
             val uploadResultaat = getUploadResultaat(request, record, version)
-            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
-            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
 
             if (!request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
@@ -104,7 +104,7 @@ class EnkelvoudigInformatieObjectService {
                 ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
                 ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = request.identificatie.orEmpty()
-                bestandsLocatie = uploadResultaat?.bestandsLocatie.orEmpty()
+                bestandsLocatie = uploadResultaat.bestandsLocatie
             }
 
 
@@ -119,24 +119,19 @@ class EnkelvoudigInformatieObjectService {
         record: EIORecordEntity,
         version: Int = 1,
         locatie: String = ""
-    ): UploadResultaat? {
+    ): UploadResultaat {
         var loc = locatie
-        if (!request.inhoud.isNullOrEmpty() &&
-            request.bestandsomvang != null &&
-            request.bestandsomvang > 0 &&
-            request.bestandsnaam != null
-        ) {
+        if (!request.isFileEmpty()) {
             loc = "${record.id.value}/$version/${request.bestandsnaam}"
-            return storeFileVersion(request, loc)
         }
-        return null
+        return storeFileVersion(request, loc)
     }
 
     private fun storeFileVersion(
         request: EnkelvoudigInformatieObjectRequest,
         bestandsLocatie: String,
-    ): UploadResultaat? {
-        if (!request.inhoud.isNullOrEmpty()) {
+    ): UploadResultaat {
+        if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content)
             require(bestandsLocatie.isNotBlank()) {
@@ -149,7 +144,7 @@ class EnkelvoudigInformatieObjectService {
                 bestandsLocatie = bestandsLocatie
             )
         }
-        return null
+        return UploadResultaat(bestandsLocatie = bestandsLocatie)
     }
 
     /**
@@ -253,10 +248,9 @@ class EnkelvoudigInformatieObjectService {
                     request.informatieobjecttype)
             }
 
-            val locatie = latestVersion?.bestandsLocatie.orEmpty()
-            val uploadResultaat = getUploadResultaat(request, record, newVersionNumber, locatie)
-            val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat?.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
-            val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat else request.formaat
+            val uploadResultaat = getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
+            val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
+            val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat.bestandsFormaat ?: latestVersion?.formaat else request.formaat
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
@@ -273,7 +267,7 @@ class EnkelvoudigInformatieObjectService {
                 bestandsnaam = if (partial && request.bestandsnaam.isNullOrEmpty()) latestVersion?.bestandsnaam.orEmpty() else request.bestandsnaam.orEmpty()
                 titel = if (partial && request.titel.isNullOrEmpty()) latestVersion?.titel.orEmpty() else request.titel!!
                 auteur = if (partial && request.auteur.isNullOrEmpty()) latestVersion?.auteur.orEmpty() else request.auteur!!
-                bestandsLocatie = locatie
+                bestandsLocatie = uploadResultaat.bestandsLocatie
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
                 creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum!!

@@ -9,12 +9,26 @@ import org.jetbrains.exposed.v1.datetime.datetime
 import org.jetbrains.exposed.v1.core.dao.id.UUIDTable as UUIDTableCore
 import java.util.UUID
 import com.baseflow.api.models.AuditTrailResponse
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
+import org.jetbrains.exposed.v1.json.json
 
 @Serializable
-data class Wijzigingen<T>(
-    val oud: T? = null,
-    val nieuw: T? = null
-)
+data class Wijzigingen(
+    val oud: JsonElement? = null,
+    val nieuw: JsonElement? = null
+) {
+    companion object {
+        inline fun <reified T> of(oud: T? = null, nieuw: T? = null): Wijzigingen {
+            return Wijzigingen(
+                oud = oud?.let { Json.encodeToJsonElement(it) },
+                nieuw = nieuw?.let { Json.encodeToJsonElement(it) }
+            )
+        }
+    }
+}
 
 object AuditTrails : UUIDTableCore("audit_trails") {
     val bron = varchar("bron", 50)
@@ -31,7 +45,7 @@ object AuditTrails : UUIDTableCore("audit_trails") {
     val toelichting = text("toelichting").nullable()
     val resourceWeergave = varchar("resource_weergave", 200).nullable()
     val aanmaakdatum = datetime("aanmaakdatum").defaultExpression(CurrentDateTime)
-    val wijzigingen = text("wijzigingen").default("{}")
+    val wijzigingen = json<Wijzigingen>("wijzigingen", Json.Default).default(Wijzigingen())
 }
 
 class AuditTrailEntity(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -70,7 +84,7 @@ fun AuditTrailEntity.toResponse(): AuditTrailResponse {
         resourceUrl = this.resourceUrl,
         resourceWeergave = this.resourceWeergave,
         toelichting = this.toelichting,
-        wijzigingen = this.wijzigingen,
+        wijzigingen = wijzigingen,
         aanmaakdatum = this.aanmaakdatum
     )
 }

@@ -3,6 +3,7 @@
 
 package com.baseflow.api.models
 
+import com.baseflow.entities.Wijzigingen
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 
@@ -22,6 +23,6 @@ data class AuditTrailResponse(
     val resourceUrl: String?,
     val resourceWeergave: String?,
     val toelichting: String?,
-    val wijzigingen: String?,
+    val wijzigingen: Wijzigingen,
     val aanmaakdatum: LocalDateTime?
-)
+) : ApiResponse
