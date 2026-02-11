@@ -2,8 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.EIORecordEntity
-import com.baseflow.EIORecords
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.EIOVersionEntity
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.SubjectTypeEnum
@@ -91,7 +90,7 @@ class ObjectInformatieObjectServiceTest {
         val result = service.create(req)
 
         assertTrue(result is CreateOIOResult.Success)
-        val response = (result as CreateOIOResult.Success).payload
+        val response = result.payload
 
         assertNotNull(response.url)
         // Verify the informatieobject URL contains the correct EIO UUID
@@ -384,9 +383,9 @@ class ObjectInformatieObjectServiceTest {
         assertTrue(besluitResult is CreateOIOResult.Success)
         assertTrue(verzoekResult is CreateOIOResult.Success)
 
-        assertEquals(SubjectTypeEnum.ZAAK, (zaakResult as CreateOIOResult.Success).payload.subjectType)
-        assertEquals(SubjectTypeEnum.BESLUIT, (besluitResult as CreateOIOResult.Success).payload.subjectType)
-        assertEquals(SubjectTypeEnum.VERZOEK, (verzoekResult as CreateOIOResult.Success).payload.subjectType)
+        assertEquals(SubjectTypeEnum.ZAAK, zaakResult.payload.subjectType)
+        assertEquals(SubjectTypeEnum.BESLUIT, besluitResult.payload.subjectType)
+        assertEquals(SubjectTypeEnum.VERZOEK, verzoekResult.payload.subjectType)
     }
     @Test
     fun `create should return conflict for invalid informatieobject URL`() {
@@ -394,7 +393,7 @@ class ObjectInformatieObjectServiceTest {
         val result = service.create(req)
 
         assertTrue(result is CreateOIOResult.Conflict)
-        assertEquals("Invalid informatieobject URL", (result as CreateOIOResult.Conflict).message)
+        assertEquals("Invalid informatieobject URL", result.message)
     }
 
     @Test

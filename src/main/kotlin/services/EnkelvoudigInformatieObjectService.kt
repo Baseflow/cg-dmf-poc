@@ -4,8 +4,8 @@ package com.baseflow.services
 
 import api.middleware.AuditContext
 import api.models.UploadResultaat
-import com.baseflow.EIORecordEntity
-import com.baseflow.EIORecords
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIORecords
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
 import com.baseflow.api.ApiUrlBuilder

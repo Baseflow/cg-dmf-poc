@@ -99,6 +99,11 @@ script:pre-request {
   
 }
 
+script:post-response {
+  const createdId = res.body.id;
+  bru.setVar("createdId", createdId);
+}
+
 settings {
   encodeUrl: true
   timeout: 0

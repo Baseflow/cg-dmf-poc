@@ -4,7 +4,7 @@
 package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
-import com.baseflow.EIORecordEntity
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.EIOVersionEntity
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

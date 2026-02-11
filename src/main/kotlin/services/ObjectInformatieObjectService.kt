@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.EIORecordEntity
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
 import com.baseflow.api.ApiUrlBuilder

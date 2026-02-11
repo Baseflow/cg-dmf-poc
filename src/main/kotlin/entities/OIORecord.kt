@@ -2,8 +2,6 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.entities
 
-import com.baseflow.EIORecordEntity
-import com.baseflow.EIORecords
 import com.baseflow.EIOVersionEntity
 import com.baseflow.EIOVersions
 import org.jetbrains.exposed.v1.core.ReferenceOption

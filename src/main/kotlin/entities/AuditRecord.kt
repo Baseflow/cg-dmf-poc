@@ -1,3 +1,5 @@
+package com.baseflow.entities
+
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.UUIDEntity
@@ -6,6 +8,7 @@ import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 import org.jetbrains.exposed.v1.core.dao.id.UUIDTable as UUIDTableCore
 import java.util.UUID
+import com.baseflow.api.models.AuditTrailResponse
 
 @Serializable
 data class Wijzigingen<T>(
@@ -49,4 +52,25 @@ class AuditTrailEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var resourceWeergave by AuditTrails.resourceWeergave
     var aanmaakdatum by AuditTrails.aanmaakdatum
     var wijzigingen by AuditTrails.wijzigingen
+}
+
+fun AuditTrailEntity.toResponse(): AuditTrailResponse {
+    return AuditTrailResponse(
+        uuid = this.id.value.toString(),
+        bron = this.bron,
+        applicatieId = this.applicatieId,
+        applicatieWeergave = this.applicatieWeergave,
+        gebruikersId = this.gebruikersId,
+        gebruikersWeergave = this.gebruikersWeergave,
+        actie = this.actie,
+        actieWeergave = this.actieWeergave,
+        resultaat = this.resultaat,
+        hoofdObject = this.hoofdObject,
+        resource = this.resource,
+        resourceUrl = this.resourceUrl,
+        resourceWeergave = this.resourceWeergave,
+        toelichting = this.toelichting,
+        wijzigingen = this.wijzigingen,
+        aanmaakdatum = this.aanmaakdatum
+    )
 }

@@ -6,18 +6,13 @@ package com.baseflow.api
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.configureStatusPages
-import com.baseflow.api.routes.bestandsDelenRoutes
-import com.baseflow.api.routes.enkelvoudigInformatieObjectenRoutes
-import com.baseflow.api.routes.objectInformatieObjectenRoutes
-import com.baseflow.api.routes.subjectInformatieObjectenRoutes
+import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
-import com.baseflow.api.models.respondProblem
-import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.authenticate
-import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.auth.*
 import io.ktor.server.plugins.conditionalheaders.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -62,6 +57,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
         // These handle the core document CRUD operations
         route("/enkelvoudiginformatieobjecten") {
             enkelvoudigInformatieObjectenRoutes(openZaakConfig)
+            auditTrailRoutes()
         }
 
         // ObjectInformatieObject endpoints

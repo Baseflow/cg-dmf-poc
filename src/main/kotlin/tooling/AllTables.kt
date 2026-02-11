@@ -1,7 +1,7 @@
 package com.baseflow.tooling
 
-import AuditTrails
-import com.baseflow.EIORecords
+import com.baseflow.entities.AuditTrails
+import com.baseflow.entities.EIORecords
 import com.baseflow.EIOVersions
 import com.baseflow.entities.OIORecords
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi

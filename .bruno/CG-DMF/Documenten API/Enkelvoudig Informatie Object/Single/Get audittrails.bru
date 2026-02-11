@@ -1,0 +1,21 @@
+meta {
+  name: Get audittrails
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}/audittrail
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const firstAudit = res.body[0].uuid;
+  bru.setVar("firstAudit", firstAudit);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

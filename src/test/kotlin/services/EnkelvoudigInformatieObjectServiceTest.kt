@@ -5,7 +5,7 @@
 package com.baseflow.services
 
 import api.middleware.AuditContext
-import com.baseflow.EIORecordEntity
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
