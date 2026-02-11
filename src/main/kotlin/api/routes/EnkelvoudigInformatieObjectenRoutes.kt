@@ -296,7 +296,7 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
         }
 
         // Derive filename and content type when possible;
-        val fileName = objectKey.ifBlank { "document-${eio.id}}" }
+        val fileName = objectKey.ifBlank { "document-${eio.id}" }
         val contentType = try {
             // eio.formaat is expected to be a MIME type; if not, fallback below
             eio.formaat?.let { ContentType.parse(it) }
