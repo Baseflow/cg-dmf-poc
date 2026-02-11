@@ -9,8 +9,8 @@ This repository is a Proof of Concept (PoC) for a new Document Registration Comp
 | -------- | -------- | -------- | ---------- |  --------------- |
 | / | GET  | Get a list of enkelvoudiginformatieobjecten based on the given query parameters | $${\color{green}Done}$$ | | 
 | / | POST | Create a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
-| /{UUID}/audittrail | GET | Get all audittrail records for a enkelvoudiginformatieobject | $${\color{orange}In review}$$ | |
-| /{UUID}/audittrail/{at_UUID} | GET | Get a single audittrail record based on | enkelvoudiginformatieobject-id and audittrail-id | $${\color{orange}In review}$$ | | 
+| /{UUID}/audittrail | GET | Get all audittrail records for a enkelvoudiginformatieobject | $${\color{orange}In \space review}$$ | |
+| /{UUID}/audittrail/{at_UUID} | GET | Get a single audittrail record based on enkelvoudiginformatieobject-id and audittrail-id | $${\color{orange}In \space review}$$ | | 
 | /{UUID} | GET | Get a single enkelvoudigInformatieObject | $${\color{green}Done}$$ | | 
 | /{UUID} | PUT | Fully updates a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
 | /{UUID} | PATCH | Partially updates a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
@@ -24,13 +24,13 @@ This repository is a Proof of Concept (PoC) for a new Document Registration Comp
 ### gebruiksrechten 
 | Endpoint | Method | Description | Status | Remarks|
 | -------- | -------- | -------- | ---------- |  --------------- |
-| / | GET  | Get a list of gebruiksrechten based on the given query parameters | $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| / | POST  | Create gebruiksrechten | $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | GET | Get a single gebruiksrechten instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | PUT | Completely updates a a single gebruiksrechten instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | PATCH | Partually updates a a single gebruiksrechten instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | DELETE | Deletes a single gebruiksrechten instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | HEAD | Gets the headers for a single gebruiksrechten instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
+| / | GET  | Get a list of gebruiksrechten based on the given query parameters | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| / | POST  | Create gebruiksrechten | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | GET | Get a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PUT | Completely updates a a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PATCH | Partually updates a a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | DELETE | Deletes a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | HEAD | Gets the headers for a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 
 ### objectinformatieobject 
 | Endpoint | Method | Description | Status | Remarks|
@@ -44,18 +44,18 @@ This repository is a Proof of Concept (PoC) for a new Document Registration Comp
 ### verzendingen 
 | Endpoint | Method | Description | Status | Remarks|
 | -------- | -------- | -------- | ---------- |  --------------- |
-| / | GET  | Get a list of verzendingen based on the given query parameters | $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| / | POST  | Create verzending | $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | GET | Get a single verzending instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | PUT | Completely updates a a single verzending instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | PATCH | Partually updates a a single verzending instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | DELETE | Deletes a single verzending instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID} | HEAD | Gets the headers for a single verzending instance based on Id| $${\color{red}Not implemented}$$ | Out of scope for our PoC so far | 
+| / | GET  | Get a list of verzendingen based on the given query parameters | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| / | POST  | Create verzending | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | GET | Get a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PUT | Completely updates a a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PATCH | Partually updates a a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | DELETE | Deletes a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | HEAD | Gets the headers for a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 
 ### bestandsdelen 
 | Endpoint | Method | Description | Status | Remarks|
 | -------- | -------- | -------- | ---------- |  --------------- |
-| /{UUID} | PUT | Upload a bestandsdeel | $${\color{red}Not implemented}$$ | | 
+| /{UUID} | PUT | Upload a bestandsdeel | $${\color{red}Not \space implemented}$$ | | 
 
 ## Prerequisites
 
