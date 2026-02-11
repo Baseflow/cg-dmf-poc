@@ -56,7 +56,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
         // EnkelvoudigInformatieObject endpoints
         // These handle the core document CRUD operations
         route("/enkelvoudiginformatieobjecten") {
-            enkelvoudigInformatieObjectenRoutes(openZaakConfig)
+            enkelvoudigInformatieObjectenRoutes()
             auditTrailRoutes()
         }
 

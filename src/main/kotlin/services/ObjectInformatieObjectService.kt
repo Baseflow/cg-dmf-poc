@@ -3,8 +3,8 @@
 package com.baseflow.services
 
 import com.baseflow.entities.EIORecordEntity
-import com.baseflow.EIOVersionEntity
-import com.baseflow.EIOVersions
+import com.baseflow.entities.EIOVersionEntity
+import com.baseflow.entities.EIOVersions
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.ResourceUuidParser
 import com.baseflow.api.models.CreateOIORequest

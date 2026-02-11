@@ -31,51 +31,55 @@ import java.util.*
 
 const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
 
-fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+object StorageServiceInstance : StorageService()
+
+object OpenZaakServiceInstance : OpenZaakService(OpenZaakConfig.fromEnv())
+
+fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
     install(AuditTrailPlugin)
 
-    val openZaakService = OpenZaakService(openZaakConfig)
-
-    fun getService(call: RoutingCall) = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, openZaakService, call.auditContext())
-
     // List all documents (with optional filters)
-    get { list(this.call, getService(this.call)) }
+    get { list(this.call, service()) }
 
     // Create new document
-    post { create(this.call, getService(this.call)) }
+    post { create(this.call, service()) }
 
     // Advanced search endpoint
-    post("/_zoek") { zoek(this.call, getService(this.call)) }
+    post("/_zoek") { zoek(this.call, service()) }
 
     // Single document operations
     route("/{uuid}") {
         // HEAD - existence check
-        head { head(this.call, getService(this.call)) }
+        head { head(this.call, service()) }
         // Get single document
-        get { get(this.call, getService(this.call)) }
+        get { get(this.call, service()) }
 
         // Update document (full)
-        put { put(this.call, getService(this.call)) }
+        put { put(this.call, service()) }
 
         // Partial update
-        patch { patch(this.call, getService(this.call)) }
+        patch { patch(this.call, service()) }
 
         // Delete document
-        delete { delete(this.call, getService(this.call)) }
+        delete { delete(this.call, service()) }
 
         // Download document content (streamed from storage)
-        get("/download") { download(this.call, getService(this.call)) }
+        get("/download") { download(this.call, service()) }
 
         // Lock document for editing
-        post("/lock") { lock(this.call, getService(this.call)) }
+        post("/lock") { lock(this.call, service()) }
 
         // Unlock document
-        post("/unlock") { unlock(this.call, getService(this.call)) }
+        post("/unlock") { unlock(this.call, service()) }
     }
 }
+
+fun RoutingContext.service() = EnkelvoudigInformatieObjectService(
+    StorageServiceInstance, ApplicationConfig, OpenZaakServiceInstance, call.auditContext()
+)
 
 private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
     val bronOrganisatie = call.request.queryParameters["bronorganisatie"]

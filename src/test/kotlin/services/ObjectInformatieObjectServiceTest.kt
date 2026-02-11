@@ -3,7 +3,7 @@
 package com.baseflow.services
 
 import com.baseflow.entities.EIORecordEntity
-import com.baseflow.EIOVersionEntity
+import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.entities.OIORecordEntity

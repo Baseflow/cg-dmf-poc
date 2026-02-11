@@ -29,7 +29,7 @@ import java.util.zip.ZipInputStream
  * StorageService interacts with the MinIO storage backend using the configuration
  * provided by MinioConfigProvider.
  */
-class StorageService {
+open class StorageService {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
 

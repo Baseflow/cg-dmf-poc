@@ -3,7 +3,7 @@ package com.baseflow.api.routes
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
 import com.baseflow.entities.EIORecords
-import com.baseflow.EIOVersions
+import com.baseflow.entities.EIOVersions
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*

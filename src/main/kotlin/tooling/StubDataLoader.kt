@@ -5,7 +5,7 @@ package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.entities.EIORecordEntity
-import com.baseflow.EIOVersionEntity
+import com.baseflow.entities.EIOVersionEntity
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database

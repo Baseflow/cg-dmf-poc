@@ -2,7 +2,7 @@ package com.baseflow.tooling
 
 import com.baseflow.entities.AuditTrails
 import com.baseflow.entities.EIORecords
-import com.baseflow.EIOVersions
+import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecords
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table

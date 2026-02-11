@@ -2,14 +2,14 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import api.middleware.AuditContext
 import api.models.UploadResultaat
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIORecords
-import com.baseflow.EIOVersionEntity
-import com.baseflow.EIOVersions
+import com.baseflow.entities.EIOVersionEntity
+import com.baseflow.entities.EIOVersions
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.entities.OIORecords
@@ -127,9 +127,9 @@ class EnkelvoudigInformatieObjectService {
             request.bestandsnaam != null
         ) {
             loc = "${record.id.value}/$version/${request.bestandsnaam}"
+            return storeFileVersion(request, loc)
         }
-
-        return storeFileVersion(request, loc)
+        return null
     }
 
     private fun storeFileVersion(
@@ -234,7 +234,7 @@ class EnkelvoudigInformatieObjectService {
      * If no new content is provided, the existing file location will be reused.
      */
     @OptIn(ExperimentalTime::class)
-        suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
+    suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
         return suspendTransaction {
 
             if (!partial) {
@@ -253,15 +253,7 @@ class EnkelvoudigInformatieObjectService {
                     request.informatieobjecttype)
             }
 
-            var locatie = latestVersion?.bestandsLocatie.orEmpty()
-            if ( !request.inhoud.isNullOrEmpty() &&
-                            request.bestandsomvang != null &&
-                            request.bestandsomvang > 0 &&
-                            request.bestandsnaam != null) {
-                // if we have new content, upload with new version number, otherwise use previous location
-                locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
-            }
-
+            val locatie = latestVersion?.bestandsLocatie.orEmpty()
             val uploadResultaat = getUploadResultaat(request, record, newVersionNumber, locatie)
             val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat?.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
             val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat else request.formaat

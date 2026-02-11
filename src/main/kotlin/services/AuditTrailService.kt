@@ -45,6 +45,11 @@ val httpMethodToDescriptionMap = mapOf(
     HttpMethod.Head to "Object opgevraagd (HEAD)",
 )
 
+private val json = Json {
+    encodeDefaults = true
+    prettyPrint = false
+}
+
 @OptIn(ExperimentalTime::class)
 fun createAuditTrail(call: PipelineCall, context: AuditContext) {
     val before = context.oldValue
@@ -78,6 +83,7 @@ fun createAuditTrail(call: PipelineCall, context: AuditContext) {
             )
         }
     }
+    val wijzigingenStr = if (wijzigingen != null) json.encodeToString(Wijzigingen.serializer(ApiEntityResponse.serializer()), wijzigingen) else "{}"
     val resourceUrl = ApiUrlBuilder.absolute( RESOURCE_SEGMENT, (before ?: after)?.id.toString())
     transaction {
         AuditTrailEntity.new {
@@ -92,9 +98,9 @@ fun createAuditTrail(call: PipelineCall, context: AuditContext) {
             this.gebruikersId = userId
             this.gebruikersWeergave = username
             this.actieWeergave = actieWeergave
-            this.resultaat = 201
+            this.resultaat = call.response.status()?.value
             this.toelichting = toelichting
-            this.wijzigingen = Json.encodeToString(wijzigingen)
+            this.wijzigingen = wijzigingenStr
             this.aanmaakdatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }
     }
