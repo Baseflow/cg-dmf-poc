@@ -11,6 +11,7 @@ import com.baseflow.api.middleware.auditContext
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
@@ -34,6 +35,8 @@ const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
 object StorageServiceInstance : StorageService()
 
 object OpenZaakServiceInstance : OpenZaakService(OpenZaakConfig.fromEnv())
+
+object AuditTrailServiceInstance : AuditTrailService()
 
 fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
@@ -78,7 +81,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
 }
 
 fun RoutingContext.service() = EnkelvoudigInformatieObjectService(
-    StorageServiceInstance, ApplicationConfig, OpenZaakServiceInstance, call.auditContext()
+    StorageServiceInstance, ApplicationConfig, OpenZaakServiceInstance, AuditTrailServiceInstance, call.auditContext()
 )
 
 private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {

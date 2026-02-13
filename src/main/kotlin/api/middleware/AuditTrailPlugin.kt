@@ -3,12 +3,14 @@
 
 package com.baseflow.api.middleware
 
-import com.baseflow.services.createAuditTrail
+import com.baseflow.services.AuditTrailService
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 
 val AuditContextKey = AttributeKey<AuditContext>("AuditContext")
+
+object AtsInstance: AuditTrailService()
 
 val AuditTrailPlugin = createRouteScopedPlugin("AuditTrail") {
     onCall { call ->
@@ -18,7 +20,7 @@ val AuditTrailPlugin = createRouteScopedPlugin("AuditTrail") {
     onCallRespond { call, _ ->
         val context = call.attributes.getOrNull(AuditContextKey) ?: return@onCallRespond
         if (context.hasChanges()) {
-            createAuditTrail(call, context)
+            AtsInstance.create(call, context)
         }
     }
 }

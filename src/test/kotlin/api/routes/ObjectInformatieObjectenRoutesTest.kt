@@ -77,6 +77,7 @@ class ObjectInformatieObjectenRoutesTest {
             StorageService(),
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
+            AuditTrailServiceInstance,
             AuditContext()
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")

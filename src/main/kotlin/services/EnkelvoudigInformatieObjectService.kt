@@ -3,16 +3,12 @@
 package com.baseflow.services
 
 import api.models.UploadResultaat
-import com.baseflow.entities.EIORecordEntity
-import com.baseflow.entities.EIORecords
-import com.baseflow.entities.EIOVersionEntity
-import com.baseflow.entities.EIOVersions
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
-import com.baseflow.entities.OIORecords
+import com.baseflow.entities.*
 import com.baseflow.services.models.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
@@ -38,17 +34,20 @@ class EnkelvoudigInformatieObjectService {
     private val storageService : StorageService
     private val applicationConfig : ApplicationConfig
     private val openZaakService : OpenZaakService
+    private val auditTrailService: AuditTrailService
     private val auditContext: AuditContext
 
     constructor(
         storageService: StorageService,
         applicationConfig: ApplicationConfig,
         openZaakService: OpenZaakService,
+        auditTrailService: AuditTrailService,
         auditContext: AuditContext
     ) {
         this.storageService = storageService
         this.applicationConfig = applicationConfig
         this.openZaakService = openZaakService
+        this.auditTrailService = auditTrailService
         this.auditContext = auditContext
     }
 
@@ -456,8 +455,7 @@ class EnkelvoudigInformatieObjectService {
     fun delete(id: UUID): DeleteResult {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
-            val version = record.versions.maxByOrNull { it.versie }
-            auditContext.captureOld(record.toResponse(version))
+            auditTrailService.removeAuditTrailsForResource(id)
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked
             }

@@ -53,6 +53,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             storageService = mockStorageService,
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
+            AuditTrailService(),
             AuditContext()
         )
     }
@@ -269,6 +270,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             StorageService(),
             ApplicationConfig,
             mockOpenZaakService,
+            AuditTrailService(),
             AuditContext()
         )
 

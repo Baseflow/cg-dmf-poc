@@ -2,12 +2,14 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.entities.AuditTrailEntity
-import com.baseflow.entities.Wijzigingen
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.ApiEntityResponse
+import com.baseflow.api.models.AuditTrailResponse
 import com.baseflow.api.routes.RESOURCE_SEGMENT
+import com.baseflow.entities.AuditTrailEntity
+import com.baseflow.entities.AuditTrails
+import com.baseflow.entities.Wijzigingen
+import com.baseflow.entities.toResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -16,7 +18,9 @@ import io.ktor.server.request.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -74,62 +78,94 @@ private val json = Json {
 }
 
 @OptIn(ExperimentalTime::class)
-fun createAuditTrail(call: PipelineCall, context: AuditContext) {
-    val before = context.oldValue
-    val after = context.newValue
-    if (before == null && after == null) return
+open class AuditTrailService {
+    fun create(call: PipelineCall, context: AuditContext) {
+        val before = context.oldValue
+        val after = context.newValue
+        if (before == null && after == null) return
 
-    val userId = getUserId(call) ?: "unknown"
-    val username = getUserClaim(call) ?: "unknown"
-    val toelichting = getAuditToelichting(call)
-    val appId = call.request.headers["X-NLX-Request-Application-Id"]
+        val userId = getUserId(call) ?: "unknown"
+        val username = getUserClaim(call) ?: "unknown"
+        val toelichting = getAuditToelichting(call)
+        val appId = call.request.headers["X-NLX-Request-Application-Id"]
 
-    val method = call.request.httpMethod
-    var action = httpMethodToAction[method] ?: AuditAction.UNKNOWN
-    if (method == HttpMethod.Get && before is List<*>) {
-        action = AuditAction.LIST
+        val method = call.request.httpMethod
+        var action = httpMethodToAction[method] ?: AuditAction.UNKNOWN
+        if (method == HttpMethod.Get && before is List<*>) {
+            action = AuditAction.LIST
+        }
+        val actieWeergave = action.weergave
+        var wijzigingen = Wijzigingen()
+
+        when (method) {
+            HttpMethod.Post -> {
+                wijzigingen = Wijzigingen.of(
+                    oud = null, // Voor een POST-aanroep is er geen oud object
+                    nieuw = after
+                )
+            }
+
+            HttpMethod.Patch, HttpMethod.Put -> {
+                wijzigingen = Wijzigingen.of(
+                    oud = before,
+                    nieuw = after
+                )
+            }
+
+            HttpMethod.Delete -> {
+                wijzigingen = Wijzigingen.of(
+                    oud = before,
+                    nieuw = null
+                )
+            }
+        }
+        val resourceUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, (before ?: after)?.id.toString())
+        transaction {
+            AuditTrailEntity.new {
+                this.applicatieId = appId
+                this.applicatieWeergave =
+                    applicatieId // Human readable name can be added later based on the appId, TODO: implement mapping from appId to human readable name
+                this.bron = AuditSource.DRC.weergave
+                this.hoofdObject =
+                    resourceUrl // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
+                this.resource = "enkelvoudiginformatieobjecten"
+                this.resourceUrl = resourceUrl
+                this.resourceWeergave = context.customId
+                this.actie = action.value
+                this.gebruikersId = userId
+                this.gebruikersWeergave = username
+                this.actieWeergave = actieWeergave
+                this.resultaat = call.response.status()?.value
+                this.toelichting = toelichting
+                this.wijzigingen = wijzigingen
+                this.aanmaakdatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            }
+        }
     }
-    val actieWeergave = action.weergave
-    var wijzigingen = Wijzigingen()
 
-    when (method) {
-        HttpMethod.Post -> {
-            wijzigingen = Wijzigingen.of(
-                oud = null, // Voor een POST-aanroep is er geen oud object
-                nieuw = after
-            )
-        }
-        HttpMethod.Patch, HttpMethod.Put -> {
-            wijzigingen = Wijzigingen.of(
-                oud = before,
-                nieuw = after
-            )
-        }
-        HttpMethod.Delete -> {
-            wijzigingen = Wijzigingen.of(
-                oud = before,
-                nieuw = null
-            )
+    fun listByResource(resourceUuid: UUID): List<AuditTrailResponse> {
+        return transaction {
+            AuditTrailEntity.find {
+                AuditTrails.resourceUrl like "%/$resourceUuid"
+            }.map { it.toResponse() }
         }
     }
-    val resourceUrl = ApiUrlBuilder.absolute( RESOURCE_SEGMENT, (before ?: after)?.id.toString())
-    transaction {
-        AuditTrailEntity.new {
-            this.applicatieId = appId
-            this.applicatieWeergave = applicatieId // Human readable name can be added later based on the appId, TODO: implement mapping from appId to human readable name
-            this.bron = AuditSource.DRC.weergave
-            this.hoofdObject = resourceUrl // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
-            this.resource = "enkelvoudiginformatieobjecten"
-            this.resourceUrl = resourceUrl
-            this.resourceWeergave = context.customId
-            this.actie = action.value
-            this.gebruikersId = userId
-            this.gebruikersWeergave = username
-            this.actieWeergave = actieWeergave
-            this.resultaat = call.response.status()?.value
-            this.toelichting = toelichting
-            this.wijzigingen = wijzigingen
-            this.aanmaakdatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+
+    fun getByUuid(resourceUuid: UUID, auditTrailUuid: UUID): AuditTrailResponse? {
+        return transaction {
+            val entity = AuditTrailEntity.findById(auditTrailUuid)
+            if (entity != null && entity.resourceUrl.endsWith("/$resourceUuid")) {
+                entity.toResponse()
+            } else {
+                null
+            }
+        }
+    }
+
+    fun removeAuditTrailsForResource(resourceUuid: UUID) {
+        transaction {
+            AuditTrailEntity.find { AuditTrails.resourceUrl like "%/$resourceUuid" }.forEach { it.delete() }
         }
     }
 }
+

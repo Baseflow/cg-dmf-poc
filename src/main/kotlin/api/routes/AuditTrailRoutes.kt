@@ -3,14 +3,14 @@
 
 package com.baseflow.api.routes
 
-import com.baseflow.services.AuditTrailRetrievalService
+import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.util.UUID
 
 fun Route.auditTrailRoutes() {
-    val service = AuditTrailRetrievalService()
+    val service = AuditTrailService()
 
     route("/{uuid}/audittrail/{auditTrailUuid}") {
         get {
