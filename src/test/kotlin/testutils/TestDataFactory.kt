@@ -2,11 +2,14 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.testutils
 
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
+import io.ktor.server.application.*
+import io.mockk.mockk
 import kotlinx.datetime.LocalDate
 
 /**
@@ -57,4 +60,12 @@ object TestDataFactory {
         beschrijving = "Test beschrijving",
         indicatieGebruiksrecht = true,
     )
+
+    /**
+     * Creates a mock AuditContext for testing purposes
+     */
+    fun createMockAuditContext(): AuditContext {
+        val mockCall = mockk<ApplicationCall>(relaxed = true)
+        return AuditContext(mockCall)
+    }
 }

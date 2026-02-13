@@ -78,7 +78,7 @@ class ObjectInformatieObjectenRoutesTest {
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
             AuditTrailServiceInstance,
-            AuditContext()
+            TestDataFactory.createMockAuditContext()
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id

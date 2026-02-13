@@ -4,8 +4,9 @@
 package com.baseflow.api.middleware
 
 import com.baseflow.api.models.ApiEntityResponse
+import io.ktor.server.application.*
 
-class AuditContext {
+class AuditContext(val call: ApplicationCall) {
     var oldValue: ApiEntityResponse? = null
         private set
     var newValue: ApiEntityResponse? = null
@@ -24,3 +25,4 @@ class AuditContext {
 
     fun hasChanges(): Boolean = oldValue != null || newValue != null
 }
+

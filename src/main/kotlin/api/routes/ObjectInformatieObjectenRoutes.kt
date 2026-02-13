@@ -16,6 +16,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 import java.util.UUID
 
 /**
@@ -41,7 +42,8 @@ open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, p
             // Ensure API-version header is added for all responses
             install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
 
-            val service = ObjectInformatieObjectService(resourceSegment)
+            // Inject service with resourceSegment parameter
+            val service: ObjectInformatieObjectService by inject { org.koin.core.parameter.parametersOf(resourceSegment) }
 
             // List all document-object relations (with optional filters)
             get { list(this.call, service) }

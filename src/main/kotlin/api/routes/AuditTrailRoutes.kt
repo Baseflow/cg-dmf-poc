@@ -7,10 +7,11 @@ import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 import java.util.UUID
 
 fun Route.auditTrailRoutes() {
-    val service = AuditTrailService()
+    val service: AuditTrailService by inject()
 
     route("/{uuid}/audittrail/{auditTrailUuid}") {
         get {

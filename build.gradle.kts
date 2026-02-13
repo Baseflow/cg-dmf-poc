@@ -52,6 +52,10 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.23.0")
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     implementation("org.jetbrains.exposed:exposed-json:1.0.0-rc-4")
+    // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
+    implementation("io.insert-koin:koin-core:4.1.0")
+    implementation("io.insert-koin:koin-ktor3:4.1.0-Beta8")
+    implementation("io.insert-koin:koin-logger-slf4j:4.1.0")
 }
 
 

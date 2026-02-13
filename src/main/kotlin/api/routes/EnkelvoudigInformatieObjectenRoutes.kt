@@ -7,14 +7,8 @@ import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.AuditTrailPlugin
-import com.baseflow.api.middleware.auditContext
 import com.baseflow.api.models.*
-import com.baseflow.config.ApplicationConfig
-import com.baseflow.config.OpenZaakConfig
-import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
-import com.baseflow.services.OpenZaakService
-import com.baseflow.services.StorageService
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
@@ -24,6 +18,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.core.parameter.parametersOf
+import org.koin.ktor.ext.inject
 import java.util.*
 
 /**
@@ -32,12 +28,6 @@ import java.util.*
 
 const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
 
-object StorageServiceInstance : StorageService()
-
-object OpenZaakServiceInstance : OpenZaakService(OpenZaakConfig.fromEnv())
-
-object AuditTrailServiceInstance : AuditTrailService()
-
 fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
@@ -45,44 +35,73 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     install(AuditTrailPlugin)
 
     // List all documents (with optional filters)
-    get { list(this.call, service()) }
+    get {
+        val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+        list(call, service)
+    }
 
     // Create new document
-    post { create(this.call, service()) }
+    post {
+        val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+        create(call, service)
+    }
 
     // Advanced search endpoint
-    post("/_zoek") { zoek(this.call, service()) }
+    post("/_zoek") {
+        val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+        zoek(call, service)
+    }
 
     // Single document operations
     route("/{uuid}") {
         // HEAD - existence check
-        head { head(this.call, service()) }
+        head {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            head(call, service)
+        }
         // Get single document
-        get { get(this.call, service()) }
+        get {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            get(call, service)
+        }
 
         // Update document (full)
-        put { put(this.call, service()) }
+        put {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            put(call, service)
+        }
 
         // Partial update
-        patch { patch(this.call, service()) }
+        patch {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            patch(call, service)
+        }
 
         // Delete document
-        delete { delete(this.call, service()) }
+        delete {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            delete(call, service)
+        }
 
         // Download document content (streamed from storage)
-        get("/download") { download(this.call, service()) }
+        get("/download") {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            download(call, service)
+        }
 
         // Lock document for editing
-        post("/lock") { lock(this.call, service()) }
+        post("/lock") {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            lock(call, service)
+        }
 
         // Unlock document
-        post("/unlock") { unlock(this.call, service()) }
+        post("/unlock") {
+            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
+            unlock(call, service)
+        }
     }
 }
-
-fun RoutingContext.service() = EnkelvoudigInformatieObjectService(
-    StorageServiceInstance, ApplicationConfig, OpenZaakServiceInstance, AuditTrailServiceInstance, call.auditContext()
-)
 
 private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
     val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
