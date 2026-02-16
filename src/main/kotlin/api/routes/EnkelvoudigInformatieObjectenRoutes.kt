@@ -2,14 +2,16 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
-import com.baseflow.EIORecordEntity
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
-import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
-import com.baseflow.api.models.PaginatedResponse
-import com.baseflow.api.models.EIOZoekRequest
-import com.baseflow.api.models.UnlockEIORequest
+import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.AuditTrailPlugin
+import com.baseflow.api.middleware.auditContext
+import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
@@ -17,71 +19,70 @@ import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
-import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.models.respondProblem
-import com.baseflow.api.models.badRequest
-import com.baseflow.api.models.notFound
-import com.baseflow.api.models.conflict
-import com.baseflow.api.DOCUMENTEN_API_VERSION
-import io.ktor.http.ContentDisposition
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.UUID
+import java.util.*
 
 /**
  * Routes for EnkelvoudigInformatieObjecten (Single Information Objects).
  */
 
-private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
+const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
 
-fun Route.enkelvoudigInformatieObjectenRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+object StorageServiceInstance : StorageService()
+
+object OpenZaakServiceInstance : OpenZaakService(OpenZaakConfig.fromEnv())
+
+object AuditTrailServiceInstance : AuditTrailService()
+
+fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
-    val openZaakService = OpenZaakService(openZaakConfig)
-    val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, openZaakService)
+    install(AuditTrailPlugin)
 
     // List all documents (with optional filters)
-    get { list(this.call, service) }
+    get { list(this.call, service()) }
 
     // Create new document
-    post { create(this.call, service) }
+    post { create(this.call, service()) }
 
     // Advanced search endpoint
-    post("/_zoek") { zoek(this.call, service) }
+    post("/_zoek") { zoek(this.call, service()) }
 
     // Single document operations
     route("/{uuid}") {
         // HEAD - existence check
-        head { head(this.call, service) }
+        head { head(this.call, service()) }
         // Get single document
-        get { get(this.call, service) }
+        get { get(this.call, service()) }
 
         // Update document (full)
-        put { put(this.call, service) }
+        put { put(this.call, service()) }
 
         // Partial update
-        patch { patch(this.call, service) }
+        patch { patch(this.call, service()) }
 
         // Delete document
-        delete { delete(this.call, service) }
+        delete { delete(this.call, service()) }
 
         // Download document content (streamed from storage)
-        get("/download") { download(this.call, service) }
+        get("/download") { download(this.call, service()) }
 
         // Lock document for editing
-        post("/lock") { lock(this.call, service) }
+        post("/lock") { lock(this.call, service()) }
 
         // Unlock document
-        post("/unlock") { unlock(this.call, service) }
+        post("/unlock") { unlock(this.call, service()) }
     }
 }
+
+fun RoutingContext.service() = EnkelvoudigInformatieObjectService(
+    StorageServiceInstance, ApplicationConfig, OpenZaakServiceInstance, AuditTrailServiceInstance, call.auditContext()
+)
 
 private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
     val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
@@ -129,13 +130,14 @@ private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObje
 private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
     val request = call.receive<EIOZoekRequest>()
     val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
-    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+    val queryParameters = call.request.queryParameters
+    val page = queryParameters["page"]?.toIntOrNull() ?: 1
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
+    val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
     // EXPERIMENTEEL filters
-    val objectUrl = call.request.queryParameters["objectinformatieobjecten__object"]
-    val objectType = call.request.queryParameters["objectinformatieobjecten__objectType"]
+    val objectUrl = queryParameters["objectinformatieobjecten__object"]
+    val objectType = queryParameters["objectinformatieobjecten__objectType"]
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = request.uuidIn,
@@ -246,7 +248,9 @@ private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObje
     try {
         val uuid = UUID.fromString(uuidString)
         when (service.delete(uuid)) {
-            is DeleteResult.Success -> call.respond(HttpStatusCode.NoContent)
+            is DeleteResult.Success -> {
+                call.respond(HttpStatusCode.NoContent)
+            }
             is DeleteResult.NotFound -> call.respondProblem(
                 HttpStatusCode.NotFound,
                 notFound("EnkelvoudigInformatieObject not found", call.request.path())
@@ -274,8 +278,8 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
 
         val eio = transaction {
             val record =
-                EIORecordEntity.findById(uuid) ?: return@transaction null;
-            val eio = record.versions.maxByOrNull { it.versie };
+                EIORecordEntity.findById(uuid) ?: return@transaction null
+            val eio = record.versions.maxByOrNull { it.versie }
             return@transaction eio
         }
 
@@ -299,7 +303,7 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
         }
 
         // Derive filename and content type when possible;
-        val fileName = objectKey.ifBlank({ "document-${eio.id}}" } )
+        val fileName = objectKey.ifBlank { "document-${eio.id}" }
         val contentType = try {
             // eio.formaat is expected to be a MIME type; if not, fallback below
             eio.formaat?.let { ContentType.parse(it) }
@@ -335,8 +339,7 @@ private suspend fun lock(call: RoutingCall, service: EnkelvoudigInformatieObject
 
     try {
         val uuid = UUID.fromString(uuidString)
-        val result = service.lock(uuid)
-        when (result) {
+        when (val result = service.lock(uuid)) {
             null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
             is LockResult.Success -> call.respond(result.payload)
             is LockResult.AlreadyLocked -> call.respondProblem(

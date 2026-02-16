@@ -2,6 +2,61 @@
 
 This repository is a Proof of Concept (PoC) for a new Document Registration Component (DRC) in the Common Ground landscape. It implements a minimal, functional version of the Documenten API, with additional filtering for new relations between non-Zaken objects.
 
+## Document API implementation progress.
+
+### enkelvoudiginformatieobjecten
+| Endpoint | Method | Description | Status | Remarks|
+| -------- | -------- | -------- | ---------- |  --------------- |
+| / | GET  | Get a list of enkelvoudiginformatieobjecten based on the given query parameters | $${\color{green}Done}$$ | | 
+| / | POST | Create a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID}/audittrail | GET | Get all audittrail records for a enkelvoudiginformatieobject | $${\color{orange}In \space review}$$ | |
+| /{UUID}/audittrail/{at_UUID} | GET | Get a single audittrail record based on enkelvoudiginformatieobject-id and audittrail-id | $${\color{orange}In \space review}$$ | | 
+| /{UUID} | GET | Get a single enkelvoudigInformatieObject | $${\color{green}Done}$$ | | 
+| /{UUID} | PUT | Fully updates a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID} | PATCH | Partially updates a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID} | DELETE | Deletes a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID} | HEAD | Retrieves headers for a specific enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID}/download | GET | Download the binary data from the enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID}/lock | POST | Locks a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID}/unlock | POST | Unlocks enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
+| /{UUID}/_zoek| POST | Searches for enkelvoudiginformatieobject records, based on the search body of the request| $${\color{green}Done}$$ | | 
+
+### gebruiksrechten 
+| Endpoint | Method | Description | Status | Remarks|
+| -------- | -------- | -------- | ---------- |  --------------- |
+| / | GET  | Get a list of gebruiksrechten based on the given query parameters | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| / | POST  | Create gebruiksrechten | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | GET | Get a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PUT | Completely updates a a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PATCH | Partually updates a a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | DELETE | Deletes a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | HEAD | Gets the headers for a single gebruiksrechten instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+
+### objectinformatieobject 
+| Endpoint | Method | Description | Status | Remarks|
+| -------- | -------- | -------- | ---------- |  --------------- |
+| / | GET  | Get a list of objectinformatieobject records based on the given query parameters | $${\color{green}Done}$$ |  | 
+| / | POST  | Create objectinformatieobject relation | $${\color{green}Done}$$ | | 
+| /{UUID} | GET | Get a single objectinformatieobject relation based on Id | $${\color{green}Done}$$ | | 
+| /{UUID} | DELETE | Deletes a single objectinformatieobject relation based on Id | $${\color{green}Done}$$ | | 
+| /{UUID} | HEAD | Gets the headers for a single objectinformatieobject relation based on Id | $${\color{green}Done}$$ | | 
+
+### verzendingen 
+| Endpoint | Method | Description | Status | Remarks|
+| -------- | -------- | -------- | ---------- |  --------------- |
+| / | GET  | Get a list of verzendingen based on the given query parameters | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| / | POST  | Create verzending | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | GET | Get a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PUT | Completely updates a a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | PATCH | Partually updates a a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | DELETE | Deletes a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID} | HEAD | Gets the headers for a single verzending instance based on Id| $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+
+### bestandsdelen 
+| Endpoint | Method | Description | Status | Remarks|
+| -------- | -------- | -------- | ---------- |  --------------- |
+| /{UUID} | PUT | Upload a bestandsdeel | $${\color{red}Not \space implemented}$$ | | 
+
 ## Prerequisites
 
 ### macOS

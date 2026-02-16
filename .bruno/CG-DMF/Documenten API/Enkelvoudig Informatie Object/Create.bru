@@ -12,7 +12,8 @@ post {
 
 body:json {
   {
-    "bronorganisatie": "012345678",
+    "bronorganisatie": "623058911",
+    "identificatie": "stringd",
     "titel": "mijn titel",
     "taal": "dut",
     "bestandsnaam": "{{file_name}}",
@@ -96,6 +97,11 @@ script:pre-request {
     bru.setVar("local_date", today);
   }
   
+}
+
+script:post-response {
+  const createdId = res.body.id;
+  bru.setVar("createdId", createdId);
 }
 
 settings {

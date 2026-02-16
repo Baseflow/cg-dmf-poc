@@ -3,47 +3,25 @@
 package com.baseflow.services
 
 import api.models.UploadResultaat
-import com.baseflow.EIORecordEntity
-import com.baseflow.EIORecords
-import com.baseflow.EIOVersionEntity
-import com.baseflow.EIOVersions
-import com.baseflow.entities.OIORecords
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
-import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.api.models.Integriteit
-import com.baseflow.api.models.IntegriteitAlgoritme
-import com.baseflow.api.models.Ondertekening
-import com.baseflow.api.models.OndertekeningSoort
+import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
-import com.baseflow.services.models.LockPayload
-import com.baseflow.services.models.LockResult
-import com.baseflow.services.models.DeleteResult
-import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
-import com.baseflow.services.models.UnlockResult
+import com.baseflow.entities.*
+import com.baseflow.services.models.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.v1.core.ArrayColumnType
-import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.Op
-import org.jetbrains.exposed.v1.core.QueryBuilder
-import org.jetbrains.exposed.v1.core.QueryParameter
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.slf4j.LoggerFactory
 import java.io.OutputStream
-import java.util.UUID
+import java.util.*
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -53,16 +31,24 @@ import kotlin.time.ExperimentalTime
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
 class EnkelvoudigInformatieObjectService {
-
-    private val logger = LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
     private val storageService : StorageService
     private val applicationConfig : ApplicationConfig
     private val openZaakService : OpenZaakService
+    private val auditTrailService: AuditTrailService
+    private val auditContext: AuditContext
 
-    constructor(storageService: StorageService, applicationConfig: ApplicationConfig, openZaakService: OpenZaakService) {
+    constructor(
+        storageService: StorageService,
+        applicationConfig: ApplicationConfig,
+        openZaakService: OpenZaakService,
+        auditTrailService: AuditTrailService,
+        auditContext: AuditContext
+    ) {
         this.storageService = storageService
         this.applicationConfig = applicationConfig
         this.openZaakService = openZaakService
+        this.auditTrailService = auditTrailService
+        this.auditContext = auditContext
     }
 
     /**
@@ -81,17 +67,9 @@ class EnkelvoudigInformatieObjectService {
             val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
             val version = 1
 
-            var locatie = ""
-            if (!request.inhoud.isNullOrEmpty() &&
-                            request.bestandsomvang != null &&
-                            request.bestandsomvang > 0 &&
-                            request.bestandsnaam != null) {
-                locatie = "${record.id.value}/$version/${request.bestandsnaam}"
-            }
-
-            val uploadResultaat = storeFileVersion(request, locatie)
-            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat?.bestandsOmvang ?: 0
-            val bestandsFormaat = request.formaat ?: uploadResultaat?.bestandsFormaat
+            val uploadResultaat = getUploadResultaat(request, record, version)
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
 
             if (!request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
@@ -125,26 +103,47 @@ class EnkelvoudigInformatieObjectService {
                 ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
                 ondertekenings_datum = request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = request.identificatie.orEmpty()
-                bestandsLocatie = locatie
+                bestandsLocatie = uploadResultaat.bestandsLocatie
             }
-            record.toResponse(eioVersion)
+
+
+            val response = record.toResponse(eioVersion)
+            auditContext.captureNew(response, "${eioVersion.bronOrganisatie} - ${eioVersion.identificatie}")
+            response as EnkelvoudigInformatieObjectResponse
         }
+    }
+
+    private fun getUploadResultaat(
+        request: EnkelvoudigInformatieObjectRequest,
+        record: EIORecordEntity,
+        version: Int = 1,
+        locatie: String = ""
+    ): UploadResultaat {
+        var loc = locatie
+        if (!request.isFileEmpty()) {
+            loc = "${record.id.value}/$version/${request.bestandsnaam}"
+        }
+        return storeFileVersion(request, loc)
     }
 
     private fun storeFileVersion(
         request: EnkelvoudigInformatieObjectRequest,
         bestandsLocatie: String,
-    ): UploadResultaat? {
-        if (!request.inhoud.isNullOrEmpty()) {
+    ): UploadResultaat {
+        if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
-            val fileType = StorageService.detectFileFormat(content);
+            val fileType = StorageService.detectFileFormat(content)
+            require(bestandsLocatie.isNotBlank()) {
+                "bestandsLocatie must not be blank when inhoud is present"
+            }
             storageService.uploadFile(bestandsLocatie, content)
             return UploadResultaat(
                 bestandsFormaat = fileType,
-                bestandsOmvang = content.size.toLong()
+                bestandsOmvang = content.size.toLong(),
+                bestandsLocatie = bestandsLocatie
             )
         }
-        return null
+        return UploadResultaat(bestandsLocatie = bestandsLocatie)
     }
 
     /**
@@ -240,6 +239,7 @@ class EnkelvoudigInformatieObjectService {
 
             // Validate informatieobjecttype against OpenZaak
             val latestVersion = record.versions.maxByOrNull { it.versie }
+            auditContext.captureOld(record.toResponse(latestVersion))
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
 
             if (!request.informatieobjecttype.isNullOrEmpty()) {
@@ -247,18 +247,9 @@ class EnkelvoudigInformatieObjectService {
                     request.informatieobjecttype)
             }
 
-            var locatie = latestVersion?.bestandsLocatie.orEmpty()
-            if ( !request.inhoud.isNullOrEmpty() &&
-                            request.bestandsomvang != null &&
-                            request.bestandsomvang > 0 &&
-                            request.bestandsnaam != null) {
-                // if we have new content, upload with new version number, otherwise use previous location
-                locatie = "${record.id.value}/$newVersionNumber/${request.bestandsnaam}"
-            }
-
-            val uploadResultaat = storeFileVersion(request, locatie)
-            val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat?.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
-            val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat?.bestandsFormaat ?: latestVersion?.formaat else request.formaat
+            val uploadResultaat = getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
+            val bestandsOmvang = if (partial && request.bestandsomvang == null) uploadResultaat.bestandsOmvang ?: latestVersion?.bestandsomvang else request.bestandsomvang
+            val bestandsFormaat = if (partial && request.formaat == null) uploadResultaat.bestandsFormaat ?: latestVersion?.formaat else request.formaat
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) { "Unable to determine file format from content. Please specify the 'formaat' field in the request." }
@@ -275,7 +266,7 @@ class EnkelvoudigInformatieObjectService {
                 bestandsnaam = if (partial && request.bestandsnaam.isNullOrEmpty()) latestVersion?.bestandsnaam.orEmpty() else request.bestandsnaam.orEmpty()
                 titel = if (partial && request.titel.isNullOrEmpty()) latestVersion?.titel.orEmpty() else request.titel!!
                 auteur = if (partial && request.auteur.isNullOrEmpty()) latestVersion?.auteur.orEmpty() else request.auteur!!
-                bestandsLocatie = locatie
+                bestandsLocatie = uploadResultaat.bestandsLocatie
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = if (partial && request.link.isNullOrEmpty()) latestVersion?.link.orEmpty() else request.link.orEmpty()
                 creatieDatum = if (partial && request.creatiedatum == null) latestVersion?.creatieDatum ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date else request.creatiedatum!!
@@ -294,14 +285,17 @@ class EnkelvoudigInformatieObjectService {
                 ondertekenings_datum = if (partial && request.ondertekening?.datum == null) latestVersion?.ondertekenings_datum else request.ondertekening?.datum?.atTime(0,0,0,0)
                 identificatie = if (partial && request.identificatie.isNullOrEmpty()) latestVersion?.identificatie.orEmpty() else request.identificatie.orEmpty()
             }
-            record.toResponse(version)
+            val response = record.toResponse(version)
+            auditContext.captureNew(response, "${version.bronOrganisatie} - ${version.identificatie}")
+            response
         }
     }
 
     @OptIn(ExperimentalTime::class)
     private fun EIORecordEntity.toResponse(
-        version: EIOVersionEntity
-    ): EnkelvoudigInformatieObjectResponse {
+        version: EIOVersionEntity?
+    ): EnkelvoudigInformatieObjectResponse? {
+        if (version == null) return null
 
         val integriteit = when {
             version.integriteitAlgoritme.isNotEmpty() && version.integriteitsDatum != null -> Integriteit(
@@ -386,7 +380,7 @@ class EnkelvoudigInformatieObjectService {
             val uuids = filters.uuids.mapNotNull {
                 try {
                     UUID.fromString(it)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             }
@@ -461,6 +455,7 @@ class EnkelvoudigInformatieObjectService {
     fun delete(id: UUID): DeleteResult {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
+            auditTrailService.removeAuditTrailsForResource(id)
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked
             }

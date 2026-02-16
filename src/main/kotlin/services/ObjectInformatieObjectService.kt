@@ -2,30 +2,31 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.EIORecordEntity
-import com.baseflow.EIOVersionEntity
-import com.baseflow.EIOVersions
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionEntity
+import com.baseflow.entities.EIOVersions
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.ResourceUuidParser
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.entities.OIORecordEntity
+import com.baseflow.entities.OIORecords
 import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
 import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
-import com.baseflow.entities.OIORecords
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.*
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Service for ObjectInformatieObject operations
@@ -89,6 +90,7 @@ class ObjectInformatieObjectService(private val resourceSegment: String) {
      * Create a new ObjectInformatieObject relation
      * Automatically fetches the latest version of the informatieobject
      */
+    @OptIn(ExperimentalTime::class)
     fun create(request: CreateOIORequest): CreateOIOResult {
         return transaction {
             // Extract UUID from informatieobject URL and fetch EIO record

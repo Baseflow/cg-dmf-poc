@@ -5,6 +5,7 @@ package com.baseflow.api.routes
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ProblemDetailsResponse
@@ -72,7 +73,13 @@ class ObjectInformatieObjectenRoutesTest {
     // Helper to create an EIO record using the service
     private fun createTestEIO(): String = runBlocking {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        val service = EnkelvoudigInformatieObjectService(StorageService(), ApplicationConfig, OpenZaakService(openZaakConfig))
+        val service = EnkelvoudigInformatieObjectService(
+            StorageService(),
+            ApplicationConfig,
+            OpenZaakService(openZaakConfig),
+            AuditTrailServiceInstance,
+            AuditContext()
+        )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
     }
@@ -413,7 +420,7 @@ class ObjectInformatieObjectenRoutesTest {
         val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
         assertEquals(HttpStatusCode.BadRequest.value, body.status)
         assertEquals("Bad Request", body.title)
-        assertTrue(body.detail?.contains("Invalid request body") == true)
+        assertEquals(body.detail?.contains("Invalid request body"), true)
     }
 
     @Test

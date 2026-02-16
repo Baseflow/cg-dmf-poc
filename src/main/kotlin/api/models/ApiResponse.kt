@@ -2,10 +2,12 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.models
 
-interface ApiResponse {
-}
+import kotlinx.serialization.Serializable
 
-interface ApiEntityResponse : ApiResponse {
+sealed interface ApiResponse
+
+@Serializable
+sealed interface ApiEntityResponse : ApiResponse {
     // NOTE id is not part of the spec, but included by us for convenience
     val id: String?
     // URL is the actual identity representation

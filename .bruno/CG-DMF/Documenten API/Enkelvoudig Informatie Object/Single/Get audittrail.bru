@@ -1,0 +1,16 @@
+meta {
+  name: Get audittrail
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}/audittrail/{{firstAudit}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

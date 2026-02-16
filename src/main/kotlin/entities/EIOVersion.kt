@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-package com.baseflow
+package com.baseflow.entities
 
 import org.jetbrains.exposed.v1.core.ArrayColumnType
 import org.jetbrains.exposed.v1.core.ReferenceOption

@@ -2,15 +2,12 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.documentenApiModule
-import com.baseflow.EIORecords
-import com.baseflow.EIOVersions
+import com.baseflow.entities.EIORecords
+import com.baseflow.entities.EIOVersions
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json

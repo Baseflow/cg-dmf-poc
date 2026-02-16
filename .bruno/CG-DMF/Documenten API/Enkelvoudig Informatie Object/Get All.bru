@@ -10,7 +10,7 @@ get {
   auth: inherit
 }
 
-query {
+params:query {
   ~identificatie: DOC-001
   ~bronorganisatie: 012345678
   ~page: 1
@@ -18,6 +18,12 @@ query {
   ~trefwoorden: trefwoord1,trefwoord2
   ~objectinformatieobjecten__object: {{zakenBaseUrl}}/zaken/12345
   ~objectinformatieobjecten__objectType: zaak
+}
+
+script:post-response {
+  const results = res.body.results
+  const createdId = results[results.length-1].id;
+  bru.setVar("createdId", createdId);
 }
 
 settings {

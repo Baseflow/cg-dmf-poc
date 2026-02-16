@@ -51,6 +51,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.8.+")
     implementation("com.auth0:jwks-rsa:0.23.0")
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
+    implementation("org.jetbrains.exposed:exposed-json:1.0.0-rc-4")
 }
 
 

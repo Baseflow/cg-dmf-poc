@@ -28,7 +28,7 @@ data class InformatieObjectType(
  *
  * TODO: We should split this into a service per API type (Catalogus, Zaken, etc.) if more functionality is added.
  */
-class OpenZaakService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
+open class OpenZaakService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
     private val logger = LoggerFactory.getLogger(OpenZaakService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
