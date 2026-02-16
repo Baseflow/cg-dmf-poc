@@ -22,6 +22,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
@@ -82,6 +83,7 @@ data class ApplicationInfo @JsonCreator constructor(
 )
 
 @OptIn(ExperimentalTime::class)
+@Singleton
 open class AuditTrailService {
     private val logger = LoggerFactory.getLogger(AuditTrailService::class.java)
 

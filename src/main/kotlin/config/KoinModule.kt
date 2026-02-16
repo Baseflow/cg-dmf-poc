@@ -6,7 +6,6 @@ package com.baseflow.config
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.services.*
 import io.ktor.server.application.*
-import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
 /**
@@ -22,7 +21,6 @@ val appModule = module {
     single { StorageService() }
     single { OpenZaakService(get()) }
     single { AuditTrailService() }
-    single { AuditTrailRetrievalService() }
 
     // ObjectInformatieObjectService - factory with resourceSegment parameter
     factory { (resourceSegment: String) ->
@@ -39,12 +37,13 @@ val appModule = module {
         AuditContext(call)
     }
 
-    factory { (call: ApplicationCall) ->
-        EnkelvoudigInformatieObjectService(
-            storageService = get(),
-            applicationConfig = get(),
-            openZaakService = get(),
-            auditContext = get { parametersOf(call) }
-        )
-    }
+//    factory { (call: ApplicationCall) ->
+//        EnkelvoudigInformatieObjectService(
+//            storageService = get(),
+//            applicationConfig = get(),
+//            openZaakService = get(),
+//            auditTrailService = get(),
+//            auditContext = get { parametersOf(call) }
+//        )
+//    }
 }

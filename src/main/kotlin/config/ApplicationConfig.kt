@@ -2,8 +2,10 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.config
 
+import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 
+@Singleton
 object ApplicationConfig : Config() {
     private val logger = LoggerFactory.getLogger(ApplicationConfig::class.java)
 

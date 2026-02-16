@@ -12,6 +12,7 @@ import io.ktor.client.request.headers
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -28,6 +29,7 @@ data class InformatieObjectType(
  *
  * TODO: We should split this into a service per API type (Catalogus, Zaken, etc.) if more functionality is added.
  */
+@Singleton
 open class OpenZaakService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
     private val logger = LoggerFactory.getLogger(OpenZaakService::class.java)
     private val json = Json { ignoreUnknownKeys = true }

@@ -2,7 +2,7 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow
 
-import com.baseflow.api.documentenApiModule
+import com.baseflow.api.DocumentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.DatabaseConfig
@@ -14,6 +14,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
@@ -45,10 +46,12 @@ fun Application.module() {
     install(Koin) {
         slf4jLogger()
         modules(appModule)
+        modules(defaultModule)
     }
 
     authenticationModule()
     helloWorldModule()      // Keep for basic health check at /
     healthModule()          // Health endpoints at /health/liveness and /health/readiness
-    documentenApiModule()   // Documenten API at /documenten/api/v1
+    // Replace function call with class-based module registration
+    DocumentenApiModule().install(this)   // Documenten API at /documenten/api/v1
 }

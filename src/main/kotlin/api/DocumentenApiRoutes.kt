@@ -15,6 +15,7 @@ import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.core.annotation.ComponentScan
 
 /**
  * Documenten API Routing Module
@@ -80,23 +81,25 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
-    // Configure StatusPages for global exception handling
-    configureStatusPages()
+@ComponentScan("com.baseflow.api", "com.baseflow.services")
+class DocumentenApiModule(private val useAuthentication: Boolean = true, private val openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+    fun install(application: Application) {
+        // Configure StatusPages for global exception handling
+        application.configureStatusPages()
 
-    // Configure JSON serialization
-    install(ContentNegotiation) {
-        json(apiJsonConfig())
-    }
+        // Configure JSON serialization
+        application.install(ContentNegotiation) {
+            json(apiJsonConfig())
+        }
 
-    routing {
-        if (useAuthentication) {
-            authenticate("auth-jwt") {
+        application.routing {
+            if (useAuthentication) {
+                authenticate("auth-jwt") {
+                    documentenApiRoutes(openZaakConfig)
+                }
+            } else {
                 documentenApiRoutes(openZaakConfig)
             }
-        } else {
-            documentenApiRoutes(openZaakConfig)
         }
     }
 }
-
