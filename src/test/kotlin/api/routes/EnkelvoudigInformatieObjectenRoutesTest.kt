@@ -4,7 +4,7 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.documentenApiModule
+import com.baseflow.api.DocumentenApiModule
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.api.models.EIOZoekRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
@@ -66,7 +66,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
         )
         
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
+        DocumentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
     }
 
     @Test

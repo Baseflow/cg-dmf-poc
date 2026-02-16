@@ -18,7 +18,6 @@ import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
 import com.baseflow.testutils.TestDataFactory
-import com.baseflow.testutils.TestDataFactory.createMockAuditContext
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT_ALT
 import com.baseflow.tooling.AllTables
@@ -55,7 +54,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
             AuditTrailService(),
-            createMockAuditContext()
+            AuditContext()
         )
     }
 
@@ -272,7 +271,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             ApplicationConfig,
             mockOpenZaakService,
             AuditTrailService(),
-            createMockAuditContext()
+            AuditContext()
         )
 
         val req = generateTestDocument().copy(vertrouwelijkheidaanduiding = null)

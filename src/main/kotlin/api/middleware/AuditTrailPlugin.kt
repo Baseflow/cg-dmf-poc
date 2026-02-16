@@ -12,7 +12,7 @@ val AuditContextKey = AttributeKey<AuditContext>("AuditContext")
 
 val AuditTrailPlugin = createRouteScopedPlugin("AuditTrail") {
     onCall { call ->
-        call.attributes.put(AuditContextKey, AuditContext(call))
+        call.attributes.put(AuditContextKey, AuditContext())
     }
 
     onCallRespond { call, _ ->

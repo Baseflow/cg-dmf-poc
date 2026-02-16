@@ -6,7 +6,7 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
     id("com.github.ben-manes.versions") version "0.53.0"
     // KSP plugin for annotation processing (required by koin-annotations)
-    id("com.google.devtools.ksp") version "2.2.21-2.0.5"
+    id("com.google.devtools.ksp") version "2.3.5"
 }
 
 group = "com.baseflow"
@@ -15,6 +15,10 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
     google()
+}
+
+ksp {
+    arg("KOIN_DEFAULT_MODULE","true")
 }
 
 dependencies {
@@ -56,10 +60,11 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     implementation("org.jetbrains.exposed:exposed-json:1.0.0-rc-4")
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
-    implementation("io.insert-koin:koin-core:4.1.0")
-    implementation("io.insert-koin:koin-ktor3:4.1.0-Beta8")
-    implementation("io.insert-koin:koin-logger-slf4j:4.1.0")
-    implementation("io.insert-koin:koin-annotations:4.2.0-RC1")
+    implementation("io.insert-koin:koin-core:4.1.1")
+    implementation("io.insert-koin:koin-ktor:4.1.1")
+    implementation("io.insert-koin:koin-logger-slf4j:4.1.1")
+    implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
+    ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
 }
 
 

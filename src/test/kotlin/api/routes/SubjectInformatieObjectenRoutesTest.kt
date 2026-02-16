@@ -5,11 +5,12 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.documentenApiModule
+import com.baseflow.api.DocumentenApiModule
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
@@ -58,7 +59,7 @@ class SubjectInformatieObjectenRoutesTest {
         )
 
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
+        DocumentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
     }
 
     private fun createTestEIO(): String = runBlocking {
@@ -67,8 +68,8 @@ class SubjectInformatieObjectenRoutesTest {
             StorageService(),
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
-            AuditTrailServiceInstance,
-            TestDataFactory.createMockAuditContext()
+            AuditTrailService(),
+            AuditContext()
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id

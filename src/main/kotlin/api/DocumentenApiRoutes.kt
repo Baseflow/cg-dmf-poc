@@ -81,7 +81,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-@ComponentScan("com.baseflow.api", "com.baseflow.services")
+@ComponentScan("com.baseflow.api", "com.baseflow.services", "com.baseflow.config")
 class DocumentenApiModule(private val useAuthentication: Boolean = true, private val openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     fun install(application: Application) {
         // Configure StatusPages for global exception handling

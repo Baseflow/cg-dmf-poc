@@ -1,7 +1,7 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.documentenApiModule
+import com.baseflow.api.DocumentenApiModule
 import com.baseflow.entities.EIORecords
 import com.baseflow.entities.EIOVersions
 import io.ktor.client.request.*
@@ -37,7 +37,7 @@ class GlobalExceptionHandlerTest {
             SchemaUtils.create(EIORecords, EIOVersions)
         }
 
-        documentenApiModule(useAuthentication = false)
+        DocumentenApiModule(useAuthentication = false)
     }
 
     @Test

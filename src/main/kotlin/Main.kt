@@ -16,7 +16,6 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
-import org.koin.logger.slf4jLogger
 
 fun main() {
     ApplicationConfig.printConfig()
@@ -44,7 +43,7 @@ fun main() {
 fun Application.module() {
     // Install Koin for dependency injection
     install(Koin) {
-        slf4jLogger()
+//        slf4jLogger()
         modules(appModule)
         modules(defaultModule)
     }

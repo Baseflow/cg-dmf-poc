@@ -6,6 +6,8 @@ import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.middleware.AuditContextKey
 import com.baseflow.api.middleware.AuditTrailPlugin
 import com.baseflow.api.models.*
 import com.baseflow.services.EnkelvoudigInformatieObjectService
@@ -134,7 +136,7 @@ private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObject
 private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     try {
-        val response = service.create(request)
+        val response = service.create(request, call.attributes[AuditContextKey])
         // Location header with the URL of the created resource
         val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
         call.response.headers.append(HttpHeaders.Location, locationUrl)
@@ -224,7 +226,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     try {
         val uuid = UUID.fromString(uuidString)
         val request = call.receive<EnkelvoudigInformatieObjectRequest>()
-        val response = service.update(uuid, request)
+        val response = service.update(uuid, request, call.attributes[AuditContextKey])
         if (response == null) {
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
@@ -245,7 +247,7 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
     try {
         val uuid = UUID.fromString(uuidString)
         val request = call.receive<EnkelvoudigInformatieObjectRequest>()
-        val response = service.update(uuid, request, true)
+        val response = service.update(uuid, request, call.attributes[AuditContextKey], true)
         if (response == null) {
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return

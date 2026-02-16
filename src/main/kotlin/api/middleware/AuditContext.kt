@@ -4,11 +4,8 @@
 package com.baseflow.api.middleware
 
 import com.baseflow.api.models.ApiEntityResponse
-import io.ktor.server.application.*
-import org.koin.core.annotation.Scoped
 
-@Scoped
-class AuditContext(val call: ApplicationCall) {
+class AuditContext {
     var oldValue: ApiEntityResponse? = null
         private set
     var newValue: ApiEntityResponse? = null

@@ -3,9 +3,10 @@
 
 package com.baseflow.config
 
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.services.*
-import io.ktor.server.application.*
+import com.baseflow.services.AuditTrailService
+import com.baseflow.services.ObjectInformatieObjectService
+import com.baseflow.services.OpenZaakService
+import com.baseflow.services.StorageService
 import org.koin.dsl.module
 
 /**
@@ -30,11 +31,6 @@ val appModule = module {
     // Default instance for objectinformatieobjecten
     single(qualifier = org.koin.core.qualifier.named("objectinformatieobjecten")) {
         ObjectInformatieObjectService("objectinformatieobjecten")
-    }
-
-    // Request-scoped services (factory - new instance per request)
-    factory { (call: ApplicationCall) ->
-        AuditContext(call)
     }
 
 //    factory { (call: ApplicationCall) ->

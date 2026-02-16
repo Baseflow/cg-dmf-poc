@@ -60,12 +60,4 @@ object TestDataFactory {
         beschrijving = "Test beschrijving",
         indicatieGebruiksrecht = true,
     )
-
-    /**
-     * Creates a mock AuditContext for testing purposes
-     */
-    fun createMockAuditContext(): AuditContext {
-        val mockCall = mockk<ApplicationCall>(relaxed = true)
-        return AuditContext(mockCall)
-    }
 }

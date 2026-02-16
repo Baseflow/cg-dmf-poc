@@ -20,7 +20,7 @@ import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.annotation.Scoped
+import org.koin.core.annotation.Factory
 import java.io.OutputStream
 import java.util.*
 import kotlin.io.encoding.Base64
@@ -31,13 +31,12 @@ import kotlin.time.ExperimentalTime
  * Service for handling EnkelvoudigInformatieObject operations
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
-@Scoped
+@Factory
 class EnkelvoudigInformatieObjectService(
     private val storageService: StorageService,
     private val applicationConfig: ApplicationConfig,
     private val openZaakService: OpenZaakService,
-    private val auditTrailService: AuditTrailService,
-    private val auditContext: AuditContext
+    private val auditTrailService: AuditTrailService
 ) {
 
     /**
@@ -45,7 +44,7 @@ class EnkelvoudigInformatieObjectService(
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse {
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest, auditContext: AuditContext): EnkelvoudigInformatieObjectResponse {
         return suspendTransaction {
             request.controleerVerplichteVelden()
 
@@ -217,7 +216,7 @@ class EnkelvoudigInformatieObjectService(
      * If no new content is provided, the existing file location will be reused.
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
+    suspend fun update(id: UUID, request: EnkelvoudigInformatieObjectRequest, auditContext: AuditContext, partial: Boolean = false): EnkelvoudigInformatieObjectResponse? {
         return suspendTransaction {
 
             if (!partial) {
