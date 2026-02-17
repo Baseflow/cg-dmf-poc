@@ -6,9 +6,8 @@ import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.middleware.AuditContextKey
 import com.baseflow.api.middleware.AuditTrailPlugin
+import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
@@ -20,8 +19,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.parameter.parametersOf
-import org.koin.ktor.ext.inject
 import java.util.*
 
 /**
@@ -37,75 +34,42 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     install(AuditTrailPlugin)
 
     // List all documents (with optional filters)
-    get {
-        val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-        list(call, service)
-    }
+    get { list() }
 
     // Create new document
-    post {
-        val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-        create(call, service)
-    }
+    post { create() }
 
     // Advanced search endpoint
-    post("/_zoek") {
-        val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-        zoek(call, service)
-    }
+    post("/_zoek") { zoek() }
 
-    // Single document operations
+    // Single document operationsr
     route("/{uuid}") {
         // HEAD - existence check
-        head {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            head(call, service)
-        }
+        head { head() }
         // Get single document
-        get {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            get(call, service)
-        }
-
+        get { get() }
         // Update document (full)
-        put {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            put(call, service)
-        }
-
+        put { put() }
         // Partial update
-        patch {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            patch(call, service)
-        }
-
+        patch { patch() }
         // Delete document
-        delete {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            delete(call, service)
-        }
-
+        delete { delete() }
         // Download document content (streamed from storage)
-        get("/download") {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            download(call, service)
-        }
-
+        get("/download") { download() }
         // Lock document for editing
-        post("/lock") {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            lock(call, service)
-        }
-
+        post("/lock") { lock() }
         // Unlock document
-        post("/unlock") {
-            val service: EnkelvoudigInformatieObjectService by inject { parametersOf(call) }
-            unlock(call, service)
-        }
+        post("/unlock") { unlock() }
     }
 }
 
-private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+/**
+ * Extension property to get the request-scoped EnkelvoudigInformatieObjectService.
+ */
+private val RoutingContext.service: EnkelvoudigInformatieObjectService
+    get() = call.attributes[RequestScopeKey].get()
+
+private suspend fun RoutingContext.list() {
     val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
     val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
     val identificatie = call.request.queryParameters["identificatie"]
@@ -133,10 +97,10 @@ private suspend fun list(call: RoutingCall, service: EnkelvoudigInformatieObject
     call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
 }
 
-private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.create() {
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     try {
-        val response = service.create(request, call.attributes[AuditContextKey])
+        val response = service.create(request)
         // Location header with the URL of the created resource
         val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
         call.response.headers.append(HttpHeaders.Location, locationUrl)
@@ -148,7 +112,7 @@ private suspend fun create(call: RoutingCall, service: EnkelvoudigInformatieObje
     }
 }
 
-private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.zoek() {
     val request = call.receive<EIOZoekRequest>()
     val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
     val queryParameters = call.request.queryParameters
@@ -175,7 +139,7 @@ private suspend fun zoek(call: RoutingCall, service: EnkelvoudigInformatieObject
     call.respond(response)
 }
 
-private suspend fun head(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.head() {
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -194,7 +158,7 @@ private suspend fun head(call: RoutingCall, service: EnkelvoudigInformatieObject
     }
 }
 
-private suspend fun get(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.get() {
     // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
@@ -216,7 +180,7 @@ private suspend fun get(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     }
 }
 
-private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.put() {
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -226,7 +190,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     try {
         val uuid = UUID.fromString(uuidString)
         val request = call.receive<EnkelvoudigInformatieObjectRequest>()
-        val response = service.update(uuid, request, call.attributes[AuditContextKey])
+        val response = service.update(uuid, request)
         if (response == null) {
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
@@ -238,7 +202,7 @@ private suspend fun put(call: RoutingCall, service: EnkelvoudigInformatieObjectS
     }
 }
 
-private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.patch() {
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -247,7 +211,7 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
     try {
         val uuid = UUID.fromString(uuidString)
         val request = call.receive<EnkelvoudigInformatieObjectRequest>()
-        val response = service.update(uuid, request, call.attributes[AuditContextKey], true)
+        val response = service.update(uuid, request, true)
         if (response == null) {
             call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
             return
@@ -259,7 +223,7 @@ private suspend fun patch(call: RoutingCall, service: EnkelvoudigInformatieObjec
 
 }
 
-private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.delete() {
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -286,7 +250,7 @@ private suspend fun delete(call: RoutingCall, service: EnkelvoudigInformatieObje
     }
 }
 
-private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.download() {
     // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
@@ -351,7 +315,7 @@ private suspend fun download(call: RoutingCall, service: EnkelvoudigInformatieOb
     }
 }
 
-private suspend fun lock(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.lock() {
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -373,7 +337,7 @@ private suspend fun lock(call: RoutingCall, service: EnkelvoudigInformatieObject
     }
 }
 
-private suspend fun unlock(call: RoutingCall, service: EnkelvoudigInformatieObjectService) {
+private suspend fun RoutingContext.unlock() {
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
