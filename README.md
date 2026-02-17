@@ -9,8 +9,8 @@ This repository is a Proof of Concept (PoC) for a new Document Registration Comp
 | -------- | -------- | -------- | ---------- |  --------------- |
 | / | GET  | Get a list of enkelvoudiginformatieobjecten based on the given query parameters | $${\color{green}Done}$$ | | 
 | / | POST | Create a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
-| /{UUID}/audittrail | GET | Get all audittrail records for a enkelvoudiginformatieobject | $${\color{orange}In \space review}$$ | |
-| /{UUID}/audittrail/{at_UUID} | GET | Get a single audittrail record based on enkelvoudiginformatieobject-id and audittrail-id | $${\color{orange}In \space review}$$ | | 
+| /{UUID}/audittrail | GET | Get all audittrail records for a enkelvoudiginformatieobject | $${\color{green}Done}$$ | |
+| /{UUID}/audittrail/{at_UUID} | GET | Get a single audittrail record based on enkelvoudiginformatieobject-id and audittrail-id | $${\color{green}Done}$$ | | 
 | /{UUID} | GET | Get a single enkelvoudigInformatieObject | $${\color{green}Done}$$ | | 
 | /{UUID} | PUT | Fully updates a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
 | /{UUID} | PATCH | Partially updates a enkelvoudiginformatieobject | $${\color{green}Done}$$ | | 
@@ -56,6 +56,12 @@ This repository is a Proof of Concept (PoC) for a new Document Registration Comp
 | Endpoint | Method | Description | Status | Remarks|
 | -------- | -------- | -------- | ---------- |  --------------- |
 | /{UUID} | PUT | Upload a bestandsdeel | $${\color{red}Not \space implemented}$$ | | 
+
+### overig
+| Functionaliteit | Status | Remarks |
+| ----------------|--------|---------|
+| Notificaties    | Out of scope for our PoC so far | |
+| API scopes      | Out of scope for our PoC so far | |
 
 ## Prerequisites
 
