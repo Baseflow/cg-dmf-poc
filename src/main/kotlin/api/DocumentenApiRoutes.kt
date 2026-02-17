@@ -5,6 +5,7 @@ package com.baseflow.api
 
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.AuditTrailPlugin
 import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
@@ -38,6 +39,7 @@ import org.koin.core.annotation.ComponentScan
 fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
+        install(AuditTrailPlugin)
         install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
         install(ConditionalHeaders) {
             version(ApiConditionalHeadersProvider)
@@ -81,25 +83,22 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-@ComponentScan("com.baseflow.api", "com.baseflow.services", "com.baseflow.config")
-class DocumentenApiModule(private val useAuthentication: Boolean = true, private val openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
-    fun install(application: Application) {
-        // Configure StatusPages for global exception handling
-        application.configureStatusPages()
+fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+    // Configure StatusPages for global exception handling
+    configureStatusPages()
 
-        // Configure JSON serialization
-        application.install(ContentNegotiation) {
-            json(apiJsonConfig())
-        }
+    // Configure JSON serialization
+    install(ContentNegotiation) {
+        json(apiJsonConfig())
+    }
 
-        application.routing {
-            if (useAuthentication) {
-                authenticate("auth-jwt") {
-                    documentenApiRoutes(openZaakConfig)
-                }
-            } else {
+    routing {
+        if (useAuthentication) {
+            authenticate("auth-jwt") {
                 documentenApiRoutes(openZaakConfig)
             }
+        } else {
+            documentenApiRoutes(openZaakConfig)
         }
     }
 }

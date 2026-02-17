@@ -28,8 +28,8 @@ val AuditTrailPlugin = createRouteScopedPlugin("AuditTrail") {
     onCallRespond { call, _ ->
         val context = call.attributes.getOrNull(AuditContextKey) ?: return@onCallRespond
         if (context.hasChanges()) {
-            val auditTrailService = call.application.getKoin().get<AuditTrailService>()
-            auditTrailService.create(call, context)
+            val auditTrailService: AuditTrailService = call.attributes[RequestScopeKey].get()
+            auditTrailService.create(call)
         }
 
         // Close the request scope when the call is complete

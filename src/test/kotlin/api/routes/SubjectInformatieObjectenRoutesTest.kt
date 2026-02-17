@@ -3,11 +3,12 @@
 
 package com.baseflow.api.routes
 
-import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.DocumentenApiModule
+import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.*
+import com.baseflow.api.models.CreateOIORequest
+import com.baseflow.api.models.ObjectInformatieObjectResponse
+import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.AuditTrailService
@@ -15,61 +16,32 @@ import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
 import com.baseflow.testutils.TestDataFactory
-import com.baseflow.tooling.AllTables
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.testing.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.*
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.*
 
-class SubjectInformatieObjectenRoutesTest {
-    private lateinit var dbName: String
-
-    @BeforeTest
-    fun setup() {
-        dbName = "subject_oio_routes_${UUID.randomUUID()}"
-        Database.connect(
-            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
-            driver = "org.h2.Driver",
-            user = "root",
-            password = ""
-        )
-        transaction {
-            AllTables.createMissing()
-        }
-    }
-
+class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
         private const val RESOURCE_SEGMENT = "subjectinformatieobjecten"
     }
 
-    private fun Application.testModule() {
-        Database.connect(
-            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
-            driver = "org.h2.Driver",
-            user = "root",
-            password = ""
-        )
-
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        DocumentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
-    }
-
     private fun createTestEIO(): String = runBlocking {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        val auditContext = AuditContext()
         val service = EnkelvoudigInformatieObjectService(
             StorageService(),
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
-            AuditTrailService(),
-            AuditContext()
+            AuditTrailService(auditContext),
+            auditContext
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
@@ -77,7 +49,7 @@ class SubjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test list empty subjectinformatieobjecten returns paginated empty results`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT")
 
@@ -93,7 +65,7 @@ class SubjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test create subjectinformatieobject returns 201 with location header`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
@@ -117,7 +89,7 @@ class SubjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test subjectinformatieobjecten list paging`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
 
         // Create 12 relations
@@ -155,7 +127,7 @@ class SubjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test get subjectinformatieobject by id`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
@@ -178,7 +150,7 @@ class SubjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test delete subjectinformatieobject`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",

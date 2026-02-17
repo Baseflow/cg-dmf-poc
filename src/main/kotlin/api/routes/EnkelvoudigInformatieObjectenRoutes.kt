@@ -31,7 +31,6 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
     install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
-    install(AuditTrailPlugin)
 
     // List all documents (with optional filters)
     get { list() }
