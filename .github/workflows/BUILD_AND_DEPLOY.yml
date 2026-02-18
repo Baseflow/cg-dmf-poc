@@ -36,7 +36,7 @@ jobs:
           version=$(grep '^version' build.gradle.kts | head -n 1 | cut -d '"' -f2)
           echo "version=$version" >> $GITHUB_OUTPUT
 
-      - uses: Baseflow/github-actions/docker@main
+      - uses: ./.github/actions/docker
         name: Build docker image
         with:
           username: ${{ secrets.CG_ACR_USERNAME }}
