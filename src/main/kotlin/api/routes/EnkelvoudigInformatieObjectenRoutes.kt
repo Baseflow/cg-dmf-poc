@@ -41,7 +41,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Advanced search endpoint
     post("/_zoek") { zoek() }
 
-    // Single document operationsr
+    // Single document operations
     route("/{uuid}") {
         // HEAD - existence check
         head { head() }
