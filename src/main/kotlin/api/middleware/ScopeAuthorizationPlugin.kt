@@ -8,161 +8,162 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.RouteSelector
-import io.ktor.server.routing.RouteSelectorEvaluation
-import io.ktor.server.routing.RoutingResolveContext
-import io.ktor.server.routing.intercept
+import io.ktor.server.routing.*
 import io.ktor.util.*
 import org.slf4j.LoggerFactory
 
+private val logger = LoggerFactory.getLogger("ScopeAuthorizationPlugin")
+
 /**
- * Plugin to enforce scope-based authorization on routes.
- *
- * This plugin intercepts requests and checks if the authenticated user
- * has the required scopes specified via the @RequireScope annotation.
+ * Configuration for scope authorization.
  */
-class ScopeAuthorizationPlugin {
-    companion object Plugin : BaseApplicationPlugin<Application, Configuration, ScopeAuthorizationPlugin> {
-        override val key = AttributeKey<ScopeAuthorizationPlugin>("ScopeAuthorization")
-        private val logger = LoggerFactory.getLogger(ScopeAuthorizationPlugin::class.java)
+class ScopeAuthorizationConfig {
+    /**
+     * The name of the JWT claim containing scopes. Default is "scope" (OAuth2 standard).
+     */
+    var scopeClaimName: String = "scope"
 
-        override fun install(
-            pipeline: Application,
-            configure: Configuration.() -> Unit
-        ): ScopeAuthorizationPlugin {
-            val configuration = Configuration().apply(configure)
-            val plugin = ScopeAuthorizationPlugin()
+    /**
+     * Whether to enable wildcard scope matching (e.g., "documenten:*" matches "documenten:read").
+     * Default is true.
+     */
+    var wildcardEnabled: Boolean = true
+}
 
-            // Store configuration in application attributes for access by route interceptors
-            pipeline.attributes.put(ConfigKey, configuration)
+/**
+ * Attribute key for storing the plugin configuration.
+ */
+val ScopeAuthorizationConfigKey = AttributeKey<ScopeAuthorizationConfig>("ScopeAuthorizationConfig")
 
-            return plugin
+/**
+ * Attribute key for storing required scopes on route attributes.
+ */
+val RouteScopeKey = AttributeKey<Set<String>>("RouteRequiredScopes")
+
+/**
+ * Application plugin to configure scope authorization settings.
+ * Install this plugin to configure global settings like scope claim name and wildcard matching.
+ */
+val ScopeAuthorizationPlugin = createApplicationPlugin(
+    name = "ScopeAuthorizationPlugin",
+    createConfiguration = ::ScopeAuthorizationConfig
+) {
+    application.attributes.put(ScopeAuthorizationConfigKey, pluginConfig)
+}
+
+/**
+ * Route-scoped plugin that checks JWT scopes against required scopes.
+ * This plugin is automatically installed when you call requiredScope().
+ */
+private class ScopeCheckPluginConfig {
+    var scopes: Set<String> = emptySet()
+}
+
+private val ScopeCheckPlugin = createRouteScopedPlugin(
+    name = "ScopeCheckPlugin",
+    createConfiguration = ::ScopeCheckPluginConfig
+) {
+    val requiredScopes = pluginConfig.scopes
+    val config = application.attributes.getOrNull(ScopeAuthorizationConfigKey)
+        ?: ScopeAuthorizationConfig()
+
+    on(AuthenticationChecked) { call ->
+        if (requiredScopes.isEmpty()) {
+            return@on
         }
 
-        internal val ConfigKey = AttributeKey<Configuration>("ScopeAuthorizationConfig")
+        val principal = call.principal<JWTPrincipal>()
 
-        /**
-         * Check scopes for a call. This is called from the route interceptor.
-         */
-        internal fun checkScopes(call: ApplicationCall, configuration: Configuration) {
-            val principal = call.principal<JWTPrincipal>()
+        // If no principal, skip (authentication should handle this)
+        if (principal == null) {
+            logger.debug("No JWT principal found, skipping scope check")
+            return@on
+        }
 
-            // If no principal, skip (authentication should handle this)
-            if (principal == null) {
-                logger.debug("No JWT principal found, skipping scope check")
-                return
-            }
+        // Extract scopes from JWT token
+        val userScopes = extractScopes(principal, config)
+        logger.debug("User scopes: {}", userScopes)
+        logger.debug("Route requires scopes: {}", requiredScopes)
 
-            // Extract scopes from JWT token
-            val userScopes = extractScopes(principal, configuration)
-            logger.debug("User scopes: {}", userScopes)
-
-            // Get required scopes from route attributes
-            val requiredScopes = call.attributes.getOrNull(ScopeKey)
-
-            if (requiredScopes != null && requiredScopes.isNotEmpty()) {
-                logger.debug("Route requires scopes: {}", requiredScopes)
-
-                // Check if user has all required scopes
-                val hasAllScopes = requiredScopes.all { required ->
-                    userScopes.any { userScope ->
-                        matchScope(userScope, required, configuration.wildcardEnabled)
-                    }
-                }
-
-                if (!hasAllScopes) {
-                    val missingScopes = requiredScopes.filter { required ->
-                        !userScopes.any { userScope ->
-                            matchScope(userScope, required, configuration.wildcardEnabled)
-                        }
-                    }
-                    logger.warn(
-                        "Access denied. User missing scopes: {}. User has: {}",
-                        missingScopes,
-                        userScopes
-                    )
-                    throw ScopeAuthorizationException(
-                        requiredScopes = requiredScopes,
-                        userScopes = userScopes,
-                        missingScopes = missingScopes
-                    )
-                }
-
-                logger.debug("Scope check passed")
+        // Check if user has all required scopes
+        val hasAllScopes = requiredScopes.all { required ->
+            userScopes.any { userScope ->
+                matchScope(userScope, required, config.wildcardEnabled)
             }
         }
 
-        /**
-         * Extract scopes from JWT token.
-         * Supports both "scope" (space-separated string) and "scopes" (array) claims.
-         */
-        private fun extractScopes(principal: JWTPrincipal, config: Configuration): Set<String> {
-            val scopes = mutableSetOf<String>()
-
-            // Try "scope" claim (space-separated string, OAuth2 standard)
-            principal.payload.getClaim(config.scopeClaimName)?.let { claim ->
-                if (!claim.isNull) {
-                    when {
-                        claim.asString() != null -> {
-                            scopes.addAll(claim.asString().split(" ").filter { it.isNotBlank() })
-                        }
-                        claim.asList(String::class.java) != null -> {
-                            scopes.addAll(claim.asList(String::class.java))
-                        }
-                    }
+        if (!hasAllScopes) {
+            val missingScopes = requiredScopes.filter { required ->
+                !userScopes.any { userScope ->
+                    matchScope(userScope, required, config.wildcardEnabled)
                 }
             }
-
-            // Try alternative "scopes" claim (array)
-            if (config.scopeClaimName != "scopes") {
-                principal.payload.getClaim("scopes")?.let { claim ->
-                    if (!claim.isNull) {
-                        claim.asList(String::class.java)?.let { scopes.addAll(it) }
-                    }
-                }
-            }
-
-            return scopes
+            logger.warn(
+                "Access denied. User missing scopes: {}. User has: {}",
+                missingScopes,
+                userScopes
+            )
+            throw ScopeAuthorizationException(
+                requiredScopes = requiredScopes,
+                userScopes = userScopes,
+                missingScopes = missingScopes
+            )
+        } else {
+            logger.debug("Scope check passed")
         }
-
-        /**
-         * Match a user scope against a required scope.
-         * Supports wildcard matching if enabled (e.g., "documenten:*" matches "documenten:read").
-         */
-        private fun matchScope(userScope: String, requiredScope: String, wildcardEnabled: Boolean): Boolean {
-            if (userScope == requiredScope) return true
-
-            if (!wildcardEnabled) return false
-
-            // Wildcard matching: "documenten.*" matches "documenten.read"
-            if (userScope.endsWith(":*")) {
-                val prefix = userScope.removeSuffix(":*")
-                return requiredScope.startsWith("$prefix:")
-            }
-
-            return false
-        }
-    }
-
-    class Configuration {
-        /**
-         * The name of the JWT claim containing scopes. Default is "scope" (OAuth2 standard).
-         */
-        var scopeClaimName: String = "scope"
-
-        /**
-         * Whether to enable wildcard scope matching (e.g., "documenten:*" matches "documenten:read").
-         * Default is true.
-         */
-        var wildcardEnabled: Boolean = true
     }
 }
 
 /**
- * Attribute key for storing required scopes in route attributes.
+ * Extract scopes from JWT token.
+ * Supports both "scope" (space-separated string) and "scopes" (array) claims.
  */
-val ScopeKey = AttributeKey<Set<String>>("RequiredScopes")
+private fun extractScopes(principal: JWTPrincipal, config: ScopeAuthorizationConfig): Set<String> {
+    val scopes = mutableSetOf<String>()
+
+    // Try "scope" claim (space-separated string, OAuth2 standard)
+    principal.payload.getClaim(config.scopeClaimName)?.let { claim ->
+        if (!claim.isNull) {
+            when {
+                claim.asString() != null -> {
+                    scopes.addAll(claim.asString().split(" ").filter { it.isNotBlank() })
+                }
+                claim.asList(String::class.java) != null -> {
+                    scopes.addAll(claim.asList(String::class.java))
+                }
+            }
+        }
+    }
+
+    // Try alternative "scopes" claim (array)
+    if (config.scopeClaimName != "scopes") {
+        principal.payload.getClaim("scopes")?.let { claim ->
+            if (!claim.isNull) {
+                claim.asList(String::class.java)?.let { scopes.addAll(it) }
+            }
+        }
+    }
+
+    return scopes
+}
+
+/**
+ * Match a user scope against a required scope.
+ * Supports wildcard matching if enabled (e.g., "documenten:*" matches "documenten:read").
+ */
+private fun matchScope(userScope: String, requiredScope: String, wildcardEnabled: Boolean): Boolean {
+    if (userScope == requiredScope) return true
+
+    if (!wildcardEnabled) return false
+
+    // Wildcard matching: "documenten:*" matches "documenten:read"
+    if (userScope.endsWith(":*")) {
+        val prefix = userScope.removeSuffix(":*")
+        return requiredScope.startsWith("$prefix:")
+    }
+
+    return false
+}
 
 /**
  * Exception thrown when a user lacks required scopes.
@@ -174,44 +175,27 @@ class ScopeAuthorizationException(
 ) : Exception("Access denied. Required scopes: ${requiredScopes.joinToString(", ")}")
 
 /**
- * Extension function to add required scopes to a route.
+ * Extension function to set required scopes on a route.
+ * Use this inside a route block to specify what scopes are needed.
  *
  * Usage:
  * ```
  * route("/documents") {
- *     withScopes("documenten:read") {
- *         get { ... }
- *     }
+ *     requiredScope("documenten:read")
+ *     get { ... }
  * }
  * ```
+ *
+ * @param scopes One or more required scopes (AND logic - user must have ALL)
  */
-fun Route.withScopes(build: Route.() -> Unit): Route {
-    // Create a child route with a custom selector
-    val scopedRoute = createChild(object : RouteSelector() {
-        override suspend fun evaluate(context: RoutingResolveContext, segmentIndex: Int) = RouteSelectorEvaluation.Constant
-    })
+fun Route.requiredScope(vararg scopes: String) {
+    if (scopes.isNotEmpty()) {
+        // Store scopes on the route for reference
+        attributes.put(RouteScopeKey, scopes.toSet())
 
-    // Intercept at Call phase to set the scope attribute and check scopes
-    scopedRoute.intercept(ApplicationCallPipeline.Call) {
-        // Get the configuration and check scopes
-        val config = call.application.attributes.getOrNull(ScopeAuthorizationPlugin.ConfigKey)
-            ?: ScopeAuthorizationPlugin.Configuration() // Use default if not configured
-
-        try {
-            ScopeAuthorizationPlugin.checkScopes(call, config)
-        } catch (e: ScopeAuthorizationException) {
-            call.respond(
-                HttpStatusCode.Forbidden,
-                mapOf(
-                    "error" to "Insufficient permissions",
-                    "detail" to "Required scopes: ${e.requiredScopes.joinToString(", ")}",
-                    "code" to "insufficient_scope"
-                )
-            )
-            finish()
+        // Install the scope check plugin on this route with the required scopes
+        install(ScopeCheckPlugin) {
+            this.scopes = scopes.toSet()
         }
     }
-
-    scopedRoute.build()
-    return scopedRoute
 }

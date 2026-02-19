@@ -22,6 +22,19 @@ fun Application.configureStatusPages() {
     val logger = LoggerFactory.getLogger("GlobalExceptionHandler")
 
     install(StatusPages) {
+        exception<ScopeAuthorizationException> { call, cause ->
+            logger.warn("Access denied at ${call.request.path()}: ${cause.message}")
+            call.respondProblem(
+                HttpStatusCode.Forbidden,
+                ProblemDetailsResponse(
+                    title = "Insufficient permissions",
+                    status = HttpStatusCode.Forbidden.value,
+                    detail = "Required scopes: ${cause.requiredScopes.joinToString(", ")}",
+                    instance = call.request.path()
+                )
+            )
+        }
+
         exception<BadRequestException> { call, cause ->
             logger.error("Bad request at ${call.request.path()}: ${cause.message}")
             

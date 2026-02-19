@@ -37,6 +37,19 @@ class ScopeAuthorizationPluginTest {
                 json()
             }
 
+            install(io.ktor.server.plugins.statuspages.StatusPages) {
+                exception<ScopeAuthorizationException> { call, cause ->
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf(
+                            "error" to "Insufficient permissions",
+                            "detail" to "Required scopes: ${cause.requiredScopes.joinToString(", ")}",
+                            "code" to "insufficient_scope"
+                        )
+                    )
+                }
+            }
+
             install(Authentication) {
                 jwt("auth-jwt") {
                     verifier(
@@ -62,15 +75,17 @@ class ScopeAuthorizationPluginTest {
             routing {
                 authenticate("auth-jwt") {
                     // Route requiring single scope
-                    withScopes("documenten:read") {
-                        get("/documents") {
+                    route("/documents") {
+                        requiredScope("documenten:read")
+                        get {
                             call.respond(HttpStatusCode.OK, mapOf("message" to "success"))
                         }
                     }
 
                     // Route requiring multiple scopes
-                    withScopes("documenten:write", "documenten:admin") {
-                        delete("/documents/{id}") {
+                    route("/documents/{id}") {
+                        requiredScope("documenten:write", "documenten:admin")
+                        delete {
                             call.respond(HttpStatusCode.NoContent)
                         }
                     }
@@ -195,8 +210,9 @@ class ScopeAuthorizationPluginTest {
 
             routing {
                 authenticate("auth-jwt") {
-                    withScopes("documenten:read") {
-                        get("/documents") {
+                    route("/documents") {
+                        requiredScope("documenten:read")
+                        get {
                             call.respond(HttpStatusCode.OK, mapOf("message" to "success"))
                         }
                     }
