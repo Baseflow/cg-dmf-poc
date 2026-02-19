@@ -4,6 +4,7 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.middleware.RequestScopeKey
+import com.baseflow.api.middleware.RequireScope
 import com.baseflow.api.middleware.withScopes
 import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
@@ -13,36 +14,35 @@ import java.util.*
 
 fun Route.auditTrailRoutes() {
     // Require "audittrails.lezen" scope for all audit trail routes
-    withScopes("audittrails.lezen") {
-        route("/{uuid}/audittrail/{auditTrailUuid}") {
-            get {
-                val resourceUuid = call.parameters["uuid"]
-                    ?.let { UUID.fromString(it) }
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid resource UUID")
+    @RequireScope("audittrails.lezen")
+    route("/{uuid}/audittrail/{auditTrailUuid}") {
+        get {
+            val resourceUuid = call.parameters["uuid"]
+                ?.let { UUID.fromString(it) }
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid resource UUID")
 
-                val auditTrailUuid = call.parameters["auditTrailUuid"]
-                    ?.let { UUID.fromString(it) }
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid audit trail UUID")
+            val auditTrailUuid = call.parameters["auditTrailUuid"]
+                ?.let { UUID.fromString(it) }
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid audit trail UUID")
 
-                val auditTrail = service.getByUuid(resourceUuid, auditTrailUuid)
-                    ?: return@get call.respond(HttpStatusCode.NotFound)
+            val auditTrail = service.getByUuid(resourceUuid, auditTrailUuid)
+                ?: return@get call.respond(HttpStatusCode.NotFound)
 
-                call.respond(auditTrail)
-            }
-        }
-
-        route("/{uuid}/audittrail") {
-            get {
-                val resourceUuid = call.parameters["uuid"]
-                    ?.let { UUID.fromString(it) }
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid UUID")
-
-                val auditTrails = service.listByResource(resourceUuid)
-                call.respond(auditTrails)
-            }
+            call.respond(auditTrail)
         }
     }
 
+    @RequireScope("audittrails.lezen")
+    route("/{uuid}/audittrail") {
+        get {
+            val resourceUuid = call.parameters["uuid"]
+                ?.let { UUID.fromString(it) }
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid UUID")
+
+            val auditTrails = service.listByResource(resourceUuid)
+            call.respond(auditTrails)
+        }
+    }
 }
 
 private val RoutingContext.service: AuditTrailService

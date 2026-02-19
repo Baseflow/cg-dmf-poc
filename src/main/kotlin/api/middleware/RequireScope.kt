@@ -15,6 +15,6 @@ package com.baseflow.api.middleware
  * @param scopes One or more scopes that are required. If multiple scopes are provided,
  *               the user must have ALL of them (AND logic).
  */
-@Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS, AnnotationTarget.EXPRESSION)
+@Retention(AnnotationRetention.SOURCE)
 annotation class RequireScope(vararg val scopes: String)

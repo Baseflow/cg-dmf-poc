@@ -185,18 +185,14 @@ class ScopeAuthorizationException(
  * }
  * ```
  */
-fun Route.withScopes(vararg scopes: String, build: Route.() -> Unit): Route {
+fun Route.withScopes(build: Route.() -> Unit): Route {
     // Create a child route with a custom selector
     val scopedRoute = createChild(object : RouteSelector() {
         override suspend fun evaluate(context: RoutingResolveContext, segmentIndex: Int) = RouteSelectorEvaluation.Constant
-        override fun toString(): String = "(scopes: ${scopes.joinToString(", ")})"
     })
 
     // Intercept at Call phase to set the scope attribute and check scopes
     scopedRoute.intercept(ApplicationCallPipeline.Call) {
-        // Set the required scopes
-        call.attributes.put(ScopeKey, scopes.toSet())
-
         // Get the configuration and check scopes
         val config = call.application.attributes.getOrNull(ScopeAuthorizationPlugin.ConfigKey)
             ?: ScopeAuthorizationPlugin.Configuration() // Use default if not configured

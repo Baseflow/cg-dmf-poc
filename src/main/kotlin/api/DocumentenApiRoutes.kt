@@ -8,6 +8,7 @@ import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.AuditTrailPlugin
 import com.baseflow.api.middleware.ScopeAuthorizationPlugin
 import com.baseflow.api.middleware.configureStatusPages
+import com.baseflow.api.middleware.withScopes
 import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
 import io.ktor.serialization.kotlinx.json.*
@@ -102,7 +103,9 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakC
     routing {
         if (useAuthentication) {
             authenticate("auth-jwt") {
-                documentenApiRoutes(openZaakConfig)
+                withScopes {
+                    documentenApiRoutes(openZaakConfig)
+                }
             }
         } else {
             documentenApiRoutes(openZaakConfig)
