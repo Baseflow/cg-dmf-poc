@@ -4,7 +4,6 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.middleware.RequestScopeKey
-import com.baseflow.api.middleware.requiredScope
 import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
 import io.ktor.server.response.*
@@ -14,8 +13,8 @@ import java.util.*
 fun Route.auditTrailRoutes() {
     // Require "audittrails.lezen" scope for all audit trail routes
     route("/{uuid}/audittrail/{auditTrailUuid}") {
-        requiredScope("audittrails.lezen")
         get {
+            call.checkScope("audittrails.lezen")
             val resourceUuid = call.parameters["uuid"]
                 ?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid resource UUID")
@@ -32,8 +31,8 @@ fun Route.auditTrailRoutes() {
     }
 
     route("/{uuid}/audittrail") {
-        requiredScope("audittrails.lezen")
         get {
+            call.checkScope("audittrails.lezen")
             val resourceUuid = call.parameters["uuid"]
                 ?.let { UUID.fromString(it) }
                 ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid UUID")

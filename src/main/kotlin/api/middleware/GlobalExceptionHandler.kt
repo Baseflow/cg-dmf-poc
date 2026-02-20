@@ -6,6 +6,7 @@ package com.baseflow.api.middleware
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.ProblemDetailsResponse
+import com.baseflow.api.routes.ScopeAuthorizationException
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.JsonConvertException
 import io.ktor.server.application.*

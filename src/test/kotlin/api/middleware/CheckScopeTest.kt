@@ -5,6 +5,8 @@ package com.baseflow.api.middleware
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.baseflow.api.routes.ScopeAuthorizationException
+import com.baseflow.api.routes.checkScope
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -18,7 +20,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import kotlin.test.*
 
-class ScopeAuthorizationPluginTest {
+class CheckScopeTest {
 
     private val jwtSecret = "test-secret-key-for-testing-only"
     private val jwtIssuer = "test-issuer"
@@ -67,25 +69,20 @@ class ScopeAuthorizationPluginTest {
                 }
             }
 
-            install(ScopeAuthorizationPlugin) {
-                scopeClaimName = "scope"
-                wildcardEnabled = true
-            }
-
             routing {
                 authenticate("auth-jwt") {
                     // Route requiring single scope
                     route("/documents") {
-                        requiredScope("documenten:read")
                         get {
+                            call.checkScope("documenten.read")
                             call.respond(HttpStatusCode.OK, mapOf("message" to "success"))
                         }
                     }
 
                     // Route requiring multiple scopes
                     route("/documents/{id}") {
-                        requiredScope("documenten:write", "documenten:admin")
                         delete {
+                            call.checkScope("documenten.write", "documenten.admin")
                             call.respond(HttpStatusCode.NoContent)
                         }
                     }
@@ -103,7 +100,7 @@ class ScopeAuthorizationPluginTest {
     fun testAccessWithCorrectScope() = testApplication {
         setupTestApp()
 
-        val token = generateToken("documenten:read")
+        val token = generateToken("documenten.read")
 
         val response = client.get("/documents") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -130,7 +127,7 @@ class ScopeAuthorizationPluginTest {
     fun testAccessWithMultipleScopes() = testApplication {
         setupTestApp()
 
-        val token = generateToken("documenten:write documenten:admin")
+        val token = generateToken("documenten.write documenten.admin")
 
         val response = client.delete("/documents/123") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -143,8 +140,8 @@ class ScopeAuthorizationPluginTest {
     fun testAccessWithMissingOneOfMultipleScopes() = testApplication {
         setupTestApp()
 
-        // Has documenten:write but missing documenten:admin
-        val token = generateToken("documenten:write")
+        // Has documenten.write but missing documenten.admin
+        val token = generateToken("documenten.write")
 
         val response = client.delete("/documents/123") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -171,7 +168,7 @@ class ScopeAuthorizationPluginTest {
         setupTestApp()
 
         // User has wildcard scope
-        val token = generateToken("documenten:*")
+        val token = generateToken("documenten.*")
 
         val response = client.get("/documents") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -204,15 +201,11 @@ class ScopeAuthorizationPluginTest {
                 }
             }
 
-            install(ScopeAuthorizationPlugin) {
-                scopeClaimName = "scope"
-            }
-
             routing {
                 authenticate("auth-jwt") {
                     route("/documents") {
-                        requiredScope("documenten:read")
                         get {
+                            call.checkScope("documenten.read")
                             call.respond(HttpStatusCode.OK, mapOf("message" to "success"))
                         }
                     }
@@ -224,7 +217,7 @@ class ScopeAuthorizationPluginTest {
         val token = JWT.create()
             .withIssuer(jwtIssuer)
             .withSubject("testuser")
-            .withArrayClaim("scope", arrayOf("documenten:read", "documenten:write"))
+            .withArrayClaim("scope", arrayOf("documenten.read", "documenten.write"))
             .sign(Algorithm.HMAC256(jwtSecret))
 
         val response = client.get("/documents") {

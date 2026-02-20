@@ -2,13 +2,12 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
-import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.AuditTrailPlugin
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
@@ -69,6 +68,7 @@ private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
 
 private suspend fun RoutingContext.list() {
+    call.checkScope("documenten.lezen")
     val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
     val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
     val identificatie = call.request.queryParameters["identificatie"]
@@ -97,6 +97,7 @@ private suspend fun RoutingContext.list() {
 }
 
 private suspend fun RoutingContext.create() {
+    call.checkScope("documenten.aanmaken")
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     try {
         val response = service.create(request)
@@ -112,6 +113,7 @@ private suspend fun RoutingContext.create() {
 }
 
 private suspend fun RoutingContext.zoek() {
+    call.checkScope("documenten.lezen")
     val request = call.receive<EIOZoekRequest>()
     val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
     val queryParameters = call.request.queryParameters
@@ -158,6 +160,7 @@ private suspend fun RoutingContext.head() {
 }
 
 private suspend fun RoutingContext.get() {
+    call.checkScope("documenten.lezen")
     // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
@@ -180,6 +183,7 @@ private suspend fun RoutingContext.get() {
 }
 
 private suspend fun RoutingContext.put() {
+    call.checkScope("documenten.bijwerken")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -202,6 +206,7 @@ private suspend fun RoutingContext.put() {
 }
 
 private suspend fun RoutingContext.patch() {
+    call.checkScope("documenten.bijwerken")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -223,6 +228,7 @@ private suspend fun RoutingContext.patch() {
 }
 
 private suspend fun RoutingContext.delete() {
+    call.checkScope("documenten.verwijderen")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -250,6 +256,7 @@ private suspend fun RoutingContext.delete() {
 }
 
 private suspend fun RoutingContext.download() {
+    call.checkScope("documenten.lezen")
     // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
@@ -315,6 +322,7 @@ private suspend fun RoutingContext.download() {
 }
 
 private suspend fun RoutingContext.lock() {
+    call.checkScope("documenten.lock")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -337,6 +345,7 @@ private suspend fun RoutingContext.lock() {
 }
 
 private suspend fun RoutingContext.unlock() {
+    call.checkScope("documenten.geforceerd-unlock")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))

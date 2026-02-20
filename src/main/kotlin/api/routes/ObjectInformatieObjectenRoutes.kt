@@ -68,6 +68,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.list() {
+        call.checkScope("documenten.lezen")
         val informatieobject = call.request.queryParameters["informatieobject"]
         val subjectObject = call.request.queryParameters["object"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
@@ -94,6 +95,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.create() {
+        call.checkScope("documenten.aanmaken")
         val request = call.receive<CreateOIORequest>()
 
         when (val result = service.create(request)) {
@@ -134,6 +136,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.get(resourceTitle: String) {
+        call.checkScope("documenten.lezen")
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -158,6 +161,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.delete(resourceTitle: String) {
+        call.checkScope("documenten.verwijderen")
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
