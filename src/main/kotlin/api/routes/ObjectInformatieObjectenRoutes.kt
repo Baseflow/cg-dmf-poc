@@ -6,17 +6,18 @@ package com.baseflow.api.routes
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
+import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
 import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
 import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import java.util.UUID
+import org.koin.core.parameter.parametersOf
+import java.util.*
 
 /**
  * ObjectInformatieObject routes
@@ -35,36 +36,38 @@ import java.util.UUID
  * Common implementation for ObjectInformatieObject routes.
  * Used by both ObjectInformatieObjecten and SubjectInformatieObjecten.
  */
-open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, private val experimental: Boolean = false) {
-    fun register(route: Route) {
+open class ObjectInformatieObjectenRoutes(
+    private val route: Route,
+    private val resourceSegment: String,
+    private val experimental: Boolean = false
+) {
+    fun register() {
         with(route) {
             // Ensure API-version header is added for all responses
             install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
 
-            val service = ObjectInformatieObjectService(resourceSegment)
-
             // List all document-object relations (with optional filters)
-            get { list(this.call, service) }
+            get { list() }
 
             // Create new document-object relation
-            post { create(this.call, service) }
+            post { create() }
 
             // Single relation operations
             route("/{uuid}") {
                 val resourceTitle = if (resourceSegment == "subjectinformatieobjecten") "SubjectInformatieObject" else "ObjectInformatieObject"
                 // HEAD - existence check
-                head { head(this.call, service, resourceTitle) }
+                head { head(resourceTitle) }
 
                 // Get single relation
-                get { get(this.call, service, resourceTitle) }
+                get { get(resourceTitle) }
 
                 // Delete relation
-                delete { delete(this.call, service, resourceTitle) }
+                delete { delete(resourceTitle) }
             }
         }
     }
 
-    private suspend fun list(call: RoutingCall, service: ObjectInformatieObjectService) {
+    private suspend fun RoutingContext.list() {
         val informatieobject = call.request.queryParameters["informatieobject"]
         val subjectObject = call.request.queryParameters["object"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
@@ -90,7 +93,7 @@ open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, p
         }
     }
 
-    private suspend fun create(call: RoutingCall, service: ObjectInformatieObjectService) {
+    private suspend fun RoutingContext.create() {
         val request = call.receive<CreateOIORequest>()
 
         when (val result = service.create(request)) {
@@ -108,7 +111,7 @@ open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, p
         }
     }
 
-    private suspend fun head(call: RoutingCall, service: ObjectInformatieObjectService, resourceTitle: String) {
+    private suspend fun RoutingContext.head(resourceTitle: String) {
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -130,7 +133,7 @@ open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, p
         }
     }
 
-    private suspend fun get(call: RoutingCall, service: ObjectInformatieObjectService, resourceTitle: String) {
+    private suspend fun RoutingContext.get(resourceTitle: String) {
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -154,7 +157,7 @@ open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, p
         }
     }
 
-    private suspend fun delete(call: RoutingCall, service: ObjectInformatieObjectService, resourceTitle: String) {
+    private suspend fun RoutingContext.delete(resourceTitle: String) {
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -174,8 +177,12 @@ open class ObjectInformatieObjectenRoutes(private val resourceSegment: String, p
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
         }
     }
+
+    private val RoutingContext.service: ObjectInformatieObjectService
+        // construct service by injecting resourceSegment
+        get() = call.attributes[RequestScopeKey].inject<ObjectInformatieObjectService> { parametersOf(resourceSegment) }.value
 }
 
 fun Route.objectInformatieObjectenRoutes() {
-    ObjectInformatieObjectenRoutes("objectinformatieobjecten", experimental = false).register(this)
+    ObjectInformatieObjectenRoutes(this, "objectinformatieobjecten", experimental = false).register()
 }

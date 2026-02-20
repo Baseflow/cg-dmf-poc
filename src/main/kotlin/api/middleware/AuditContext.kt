@@ -4,7 +4,12 @@
 package com.baseflow.api.middleware
 
 import com.baseflow.api.models.ApiEntityResponse
+import com.baseflow.config.RequestScope
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 
+@Scope(RequestScope::class)
+@Scoped
 class AuditContext {
     var oldValue: ApiEntityResponse? = null
         private set
@@ -24,3 +29,4 @@ class AuditContext {
 
     fun hasChanges(): Boolean = oldValue != null || newValue != null
 }
+

@@ -12,5 +12,5 @@ import io.ktor.server.routing.*
  * Similar to ObjectInformatieObjecten, but with pagination support.
  */
 fun Route.subjectInformatieObjectenRoutes() {
-    ObjectInformatieObjectenRoutes("subjectinformatieobjecten", experimental = true).register(this)
+    ObjectInformatieObjectenRoutes(this, "subjectinformatieobjecten", experimental = true).register()
 }

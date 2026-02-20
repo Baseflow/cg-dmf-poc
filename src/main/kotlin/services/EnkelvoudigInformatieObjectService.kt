@@ -8,6 +8,7 @@ import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.*
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.RequestScope
 import com.baseflow.entities.*
 import com.baseflow.services.models.*
 import kotlinx.datetime.TimeZone
@@ -20,6 +21,8 @@ import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 import java.io.OutputStream
 import java.util.*
 import kotlin.io.encoding.Base64
@@ -30,26 +33,15 @@ import kotlin.time.ExperimentalTime
  * Service for handling EnkelvoudigInformatieObject operations
  * Manages EIORecords and EIOVersions with proper transaction handling
  */
-class EnkelvoudigInformatieObjectService {
-    private val storageService : StorageService
-    private val applicationConfig : ApplicationConfig
-    private val openZaakService : OpenZaakService
-    private val auditTrailService: AuditTrailService
+@Scope(RequestScope::class)
+@Scoped
+class EnkelvoudigInformatieObjectService(
+    private val storageService: StorageService,
+    private val applicationConfig: ApplicationConfig,
+    private val openZaakService: OpenZaakService,
+    private val auditTrailService: AuditTrailService,
     private val auditContext: AuditContext
-
-    constructor(
-        storageService: StorageService,
-        applicationConfig: ApplicationConfig,
-        openZaakService: OpenZaakService,
-        auditTrailService: AuditTrailService,
-        auditContext: AuditContext
-    ) {
-        this.storageService = storageService
-        this.applicationConfig = applicationConfig
-        this.openZaakService = openZaakService
-        this.auditTrailService = auditTrailService
-        this.auditContext = auditContext
-    }
+) {
 
     /**
      * Create a new EnkelvoudigInformatieObject

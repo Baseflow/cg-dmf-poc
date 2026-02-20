@@ -3,6 +3,7 @@
 package com.baseflow.services
 
 import com.baseflow.config.MinioConfig
+import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
@@ -29,6 +30,7 @@ import java.util.zip.ZipInputStream
  * StorageService interacts with the MinIO storage backend using the configuration
  * provided by MinioConfigProvider.
  */
+@Singleton
 open class StorageService {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)

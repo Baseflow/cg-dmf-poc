@@ -2,53 +2,26 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
-import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.documentenApiModule
-import com.baseflow.config.OpenZaakConfig
-import com.baseflow.api.models.EIOZoekRequest
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
-import com.baseflow.api.models.UnlockEIORequest
-import com.baseflow.api.models.CreateOIORequest
-import com.baseflow.api.models.SubjectTypeEnum
+import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.models.*
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
-import com.baseflow.tooling.AllTables
-import io.ktor.http.*
-import io.ktor.server.testing.*
-import io.ktor.server.application.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import kotlin.test.Test
-import kotlin.test.BeforeTest
-import kotlin.test.assertEquals
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonArray
+import io.ktor.http.*
+import io.ktor.server.testing.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.UUID
+import java.util.*
+import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class EnkelvoudigInformatieObjectenRoutesTest {
-    private lateinit var dbName: String
-
-    @BeforeTest
-    fun setup() {
-        dbName = "eio_routes_${UUID.randomUUID()}"
-        Database.connect(
-            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
-            driver = "org.h2.Driver",
-            user = "root",
-            password = ""
-        )
-        transaction {
-            AllTables.createMissing()
-        }
-    }
-
+class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
         private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
@@ -57,23 +30,11 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     @Serializable
     private data class LockPayload(val lock: String)
 
-    private fun Application.testModule() {
-        Database.connect(
-            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
-            driver = "org.h2.Driver",
-            user = "root",
-            password = ""
-        )
-        
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
-    }
-
     @Test
     fun `test POST enkelvoudiginformatieobjecten with taal and bestandsnaam`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
-        val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf");
+        val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
         val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(request))
@@ -99,7 +60,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET list includes url in each result`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create two documents
         val req1 = generateTestDocument(taal = "dut", bestandsnaam = "doc1.pdf")
@@ -131,13 +92,13 @@ class EnkelvoudigInformatieObjectenRoutesTest {
             val url = obj["url"]?.jsonPrimitive?.content
             assertNotNull(id)
             assertNotNull(url, "url should be present for item $id")
-            assertContains(url!!, "/$RESOURCE_SEGMENT/$id")
+            assertContains(url, "/$RESOURCE_SEGMENT/$id")
         }
     }
 
     @Test
     fun `test GET enkelvoudiginformatieobjecten with invalid UUID`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/invalid-uuid")
 
@@ -151,7 +112,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET enkelvoudiginformatieobjecten with missing UUID parameter`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/")
 
@@ -160,7 +121,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET enkelvoudiginformatieobjecten with valid UUID after creation`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
         val postResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -184,7 +145,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `HEAD enkelvoudiginformatieobjecten returns 200 for existing resource`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // create
         val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -202,7 +163,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `HEAD enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val resp = client.head("$API_BASE/$RESOURCE_SEGMENT/${UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, resp.status)
@@ -210,7 +171,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `HEAD enkelvoudiginformatieobjecten returns 400 for invalid UUID`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val resp = client.head("$API_BASE/$RESOURCE_SEGMENT/not-a-uuid")
         assertEquals(HttpStatusCode.BadRequest, resp.status)
@@ -218,7 +179,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `DELETE enkelvoudiginformatieobjecten returns 204 and removes resource`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // create
         val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -239,7 +200,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `DELETE enkelvoudiginformatieobjecten returns 404 for missing resource`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/${UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, del.status)
@@ -247,7 +208,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `DELETE enkelvoudiginformatieobjecten returns 400 for invalid UUID`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val del = client.delete("$API_BASE/$RESOURCE_SEGMENT/not-a-uuid")
         assertEquals(HttpStatusCode.BadRequest, del.status)
@@ -255,7 +216,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `DELETE enkelvoudiginformatieobjecten returns 409 for locked resource`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // create
         val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -281,7 +242,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET enkelvoudiginformatieobjecten with valid UUID returns JSON UTF-8`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val request = generateTestDocument(taal = "dut", bestandsnaam = "test.pdf")
         val postResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -305,7 +266,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `lock returns 200 with lock token, second lock returns 409`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create an object first
         val createReq = generateTestDocument()
@@ -331,7 +292,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `unlock with correct token returns 204 and subsequent unlock returns 409`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create
         val createReq = generateTestDocument()
@@ -365,7 +326,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `unlock with invalid token returns 409 Conflict`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create and lock
         val createReq = generateTestDocument()
@@ -388,7 +349,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `lock and unlock with unknown UUID return 404`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val unknownId = "00000000-0000-0000-0000-000000000001"
 
@@ -405,7 +366,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `lock and unlock with invalid UUID return 400`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val invalidId = "not-a-uuid"
 
@@ -421,7 +382,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
     }
     @Test
     fun `test zoek endpoint with uuid_In`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create two documents
         val req1 = generateTestDocument(identificatie = "DOC-001")
@@ -466,7 +427,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET list paging`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create 12 documents
         for (i in 1..12) {
@@ -509,7 +470,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test zoek endpoint paging`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val createdIds = mutableListOf<String>()
         // Create 12 documents
@@ -560,7 +521,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET list paging with custom pageSize`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create 12 documents
         for (i in 1..12) {
@@ -597,7 +558,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET list paging preserves filters`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val bronOrganisatie = "999999999"
         // Create 12 documents with specific bronorganisatie
@@ -624,7 +585,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test GET list with experimental object filters`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create an EIO
         val resEio = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -663,7 +624,7 @@ class EnkelvoudigInformatieObjectenRoutesTest {
 
     @Test
     fun `test POST zoek with experimental object filters`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create an EIO
         val resEio = client.post("$API_BASE/$RESOURCE_SEGMENT") {

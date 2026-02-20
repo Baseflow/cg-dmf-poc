@@ -10,6 +10,7 @@ import com.baseflow.api.ResourceUuidParser
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.SubjectTypeEnum
+import com.baseflow.config.RequestScope
 import com.baseflow.entities.OIORecordEntity
 import com.baseflow.entities.OIORecords
 import com.baseflow.services.models.CreateOIOResult
@@ -23,6 +24,9 @@ import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.core.annotation.InjectedParam
+import org.koin.core.annotation.Scope
+import org.koin.core.annotation.Scoped
 import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
@@ -31,7 +35,9 @@ import kotlin.time.ExperimentalTime
 /**
  * Service for ObjectInformatieObject operations
  */
-class ObjectInformatieObjectService(private val resourceSegment: String) {
+@Scope(RequestScope::class)
+@Scoped
+open class ObjectInformatieObjectService(@InjectedParam private val resourceSegment: String) {
     private val logger = LoggerFactory.getLogger(ObjectInformatieObjectService::class.java)
 
     /**

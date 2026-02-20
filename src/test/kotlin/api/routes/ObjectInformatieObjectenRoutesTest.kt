@@ -2,83 +2,48 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
-import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
-import com.baseflow.api.documentenApiModule
+import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.SubjectTypeEnum
-import io.ktor.http.*
-import io.ktor.server.testing.*
-import io.ktor.server.application.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
+import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
-import com.baseflow.config.ApplicationConfig
-import com.baseflow.config.OpenZaakConfig
 import com.baseflow.testutils.TestDataFactory
-import com.baseflow.tooling.AllTables
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.UUID
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import java.util.*
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.test.Test
-import kotlin.test.BeforeTest
 
-class ObjectInformatieObjectenRoutesTest {
-    private lateinit var dbName: String
-
-    @BeforeTest
-    fun setup() {
-        dbName = "oio_routes_${UUID.randomUUID()}"
-        Database.connect(
-            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
-            driver = "org.h2.Driver",
-            user = "root",
-            password = ""
-        )
-        transaction {
-            AllTables.createMissing()
-        }
-    }
-
+class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
         private const val RESOURCE_SEGMENT = "objectinformatieobjecten"
     }
 
-    private fun Application.testModule() {
-        // Reuse the connection from setup()
-        // This avoids conflicts between the testcases and
-        // allows the service and the routes to share the same database connection
-        Database.connect(
-            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
-            driver = "org.h2.Driver",
-            user = "root",
-            password = ""
-        )
-
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
-    }
-
     // Helper to create an EIO record using the service
     private fun createTestEIO(): String = runBlocking {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        val auditContext = AuditContext()
         val service = EnkelvoudigInformatieObjectService(
             StorageService(),
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
-            AuditTrailServiceInstance,
-            AuditContext()
+            AuditTrailService(auditContext),
+            auditContext
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
@@ -86,7 +51,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test list empty objectinformatieobjecten returns empty array`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT")
 
@@ -99,7 +64,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test create objectinformatieobject returns 201 with location header`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
@@ -128,7 +93,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test create duplicate objectinformatieobject returns 400`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
@@ -154,7 +119,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test get objectinformatieobject by id returns 200`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
@@ -183,7 +148,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test get non-existent objectinformatieobject returns 404`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val nonExistentId = UUID.randomUUID()
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$nonExistentId")
@@ -193,7 +158,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test head existing objectinformatieobject returns 200`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
@@ -216,7 +181,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test head non-existent objectinformatieobject returns 404`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val nonExistentId = UUID.randomUUID()
         val response = client.head("$API_BASE/$RESOURCE_SEGMENT/$nonExistentId")
@@ -226,7 +191,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test delete objectinformatieobject returns 204`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
@@ -252,7 +217,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test delete non-existent objectinformatieobject returns 404`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val nonExistentId = UUID.randomUUID()
         val response = client.delete("$API_BASE/$RESOURCE_SEGMENT/$nonExistentId")
@@ -262,7 +227,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test filter by informatieobject returns matching relations`() = testApplication {
-        application { testModule() }
+        application { setup() }
         val sharedEioId = createTestEIO()
         val sharedEioUrl = "$API_BASE/enkelvoudiginformatieobjecten/$sharedEioId"
 
@@ -308,7 +273,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test filter by object returns matching relations`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val sharedObjectUrl = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321"
 
@@ -355,7 +320,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test create objectinformatieobject with different object types`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         // Create an actual EIO via API
         val eioId = createTestEIO()
@@ -398,7 +363,7 @@ class ObjectInformatieObjectenRoutesTest {
     }
     @Test
     fun `test get objectinformatieobject with invalid uuid returns 400`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/not-a-uuid")
 
@@ -409,7 +374,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test create objectinformatieobject with invalid json returns 400`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
@@ -425,7 +390,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test head objectinformatieobject returns 200 for existing`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val eioId = createTestEIO()
         val request = CreateOIORequest(
@@ -447,7 +412,7 @@ class ObjectInformatieObjectenRoutesTest {
 
     @Test
     fun `test head objectinformatieobject returns 404 for non-existing`() = testApplication {
-        application { testModule() }
+        application { setup() }
 
         val response = client.head("$API_BASE/$RESOURCE_SEGMENT/${UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, response.status)

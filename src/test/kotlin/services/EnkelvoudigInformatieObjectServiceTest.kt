@@ -49,12 +49,13 @@ class EnkelvoudigInformatieObjectServiceTest {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any(), any()) } returns Unit
+        val auditContext = AuditContext()
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
             OpenZaakService(openZaakConfig),
-            AuditTrailService(),
-            AuditContext()
+            AuditTrailService(auditContext),
+            auditContext
         )
     }
 
@@ -266,12 +267,13 @@ class EnkelvoudigInformatieObjectServiceTest {
             vertrouwelijkheidaanduiding = "geheim"
         )
 
+        val auditContext = AuditContext()
         val customService = EnkelvoudigInformatieObjectService(
             StorageService(),
             ApplicationConfig,
             mockOpenZaakService,
-            AuditTrailService(),
-            AuditContext()
+            AuditTrailService(auditContext),
+            auditContext
         )
 
         val req = generateTestDocument().copy(vertrouwelijkheidaanduiding = null)
