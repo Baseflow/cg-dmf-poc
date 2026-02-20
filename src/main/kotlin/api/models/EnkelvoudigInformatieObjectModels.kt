@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.models
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -109,6 +110,7 @@ data class BestandsDeelResponse (
     val lock: Boolean
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class EnkelvoudigInformatieObjectResponse(
     override val id: String,
@@ -136,8 +138,10 @@ data class EnkelvoudigInformatieObjectResponse(
     val informatieobjecttype: String,
     val trefwoorden: List<String> = emptyList(),
     val inhoudIsVervallen: Boolean? = null,
+    @kotlinx.serialization.EncodeDefault
     val bestandsdelen: List<BestandsDeelResponse> = emptyList(),
     val lock: String,
+    @kotlinx.serialization.EncodeDefault
     val locked: Boolean,
 ) : ApiEntityResponse
 
