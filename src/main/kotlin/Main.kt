@@ -50,6 +50,5 @@ fun Application.module() {
     authenticationModule()
     helloWorldModule()      // Keep for basic health check at /
     healthModule()          // Health endpoints at /health/liveness and /health/readiness
-    // Replace function call with class-based module registration
-    documentenApiModule()
+    documentenApiModule()   // Documenten API at /documenten/api/v1
 }
