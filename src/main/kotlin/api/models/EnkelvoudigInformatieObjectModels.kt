@@ -101,6 +101,15 @@ data class Integriteit(
 }
 
 @Serializable
+data class BestandsDeelResponse (
+    val url: String,
+    val volgnummer: Int,
+    val omvang: Long,
+    val voltooid: Boolean,
+    val lock: Boolean
+)
+
+@Serializable
 data class EnkelvoudigInformatieObjectResponse(
     override val id: String,
     override val url: String? = null,
@@ -127,6 +136,8 @@ data class EnkelvoudigInformatieObjectResponse(
     val informatieobjecttype: String,
     val trefwoorden: List<String> = emptyList(),
     val inhoudIsVervallen: Boolean? = null,
+    val bestandsdelen: List<BestandsDeelResponse> = emptyList(),
+    val lock: String,
     val locked: Boolean,
 ) : ApiEntityResponse
 

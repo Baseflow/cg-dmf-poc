@@ -350,6 +350,20 @@ class EnkelvoudigInformatieObjectService(
             beginRegistratie = version.beginRegistratie
                 .toInstant(TimeZone.UTC)
                 .toString(),
+            lock = this.lockToken.orEmpty(),
+
+            // TODO, check bestandsdelen response
+            bestandsdelen = version.bestandsLocatie.takeIf { it.isNotEmpty() }?.let { locatie ->
+                listOf(
+                    BestandsDeelResponse(
+                        url = ApiUrlBuilder.absolute("bestandsdelen", this.id.value.toString(), "download"),
+                        volgnummer = 1,
+                        omvang = version.bestandsomvang ?: 0,
+                        voltooid = true,
+                        lock = this.lockToken != null
+                    )
+                )
+            } ?: emptyList()
         )
     }
 
