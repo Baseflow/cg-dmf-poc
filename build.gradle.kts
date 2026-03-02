@@ -43,13 +43,13 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:3.4.0")
 
     // Database - Exposed ORM
-    implementation("org.jetbrains.exposed:exposed-core:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-dao:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-jdbc:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-migration-core:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.0.0-rc-4")
-    implementation("org.jetbrains.exposed:exposed-json:1.0.0-rc-4")
+    implementation("org.jetbrains.exposed:exposed-core:1.1.1")
+    implementation("org.jetbrains.exposed:exposed-dao:1.1.1")
+    implementation("org.jetbrains.exposed:exposed-jdbc:1.1.1")
+    implementation("org.jetbrains.exposed:exposed-migration-core:1.1.1")
+    implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.1.1")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.1.1")
+    implementation("org.jetbrains.exposed:exposed-json:1.1.1")
     implementation("org.postgresql:postgresql:42.7.10")
 
     // Database migrations
