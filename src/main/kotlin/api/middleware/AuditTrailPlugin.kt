@@ -6,6 +6,7 @@ package com.baseflow.api.middleware
 import com.baseflow.config.RequestScope
 import com.baseflow.services.AuditTrailService
 import io.ktor.server.application.*
+import io.ktor.server.application.hooks.ResponseSent
 import io.ktor.util.*
 import org.koin.core.scope.Scope
 import org.koin.ktor.ext.getKoin
@@ -31,8 +32,11 @@ val AuditTrailPlugin = createRouteScopedPlugin("AuditTrail") {
             val auditTrailService: AuditTrailService = call.attributes[RequestScopeKey].get()
             auditTrailService.create(call)
         }
+    }
 
-        // Close the request scope when the call is complete
+    on(ResponseSent) { call ->
+        // Close the request scope only after the full response (including body) has been sent.
+        // This prevents ClosedScopeException in streaming endpoints like respondOutputStream.
         call.attributes.getOrNull(RequestScopeKey)?.close()
     }
 }
