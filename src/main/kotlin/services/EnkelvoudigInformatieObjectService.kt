@@ -38,7 +38,7 @@ import kotlin.time.ExperimentalTime
 class EnkelvoudigInformatieObjectService(
     private val storageService: StorageService,
     private val applicationConfig: ApplicationConfig,
-    private val openZaakService: OpenZaakService,
+    private val catalogusService: CatalogusService,
     private val auditTrailService: AuditTrailService,
     private val auditContext: AuditContext
 ) {
@@ -56,7 +56,7 @@ class EnkelvoudigInformatieObjectService(
             }
 
             // Validate informatieobjecttype against catalogus
-            val ioType = openZaakService.validateInformatieobjecttype(request.informatieobjecttype!!)
+            val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
             val version = 1
 
             val uploadResultaat = getUploadResultaat(request, record, version)
@@ -235,7 +235,7 @@ class EnkelvoudigInformatieObjectService(
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
 
             if (!request.informatieobjecttype.isNullOrEmpty()) {
-                openZaakService.validateInformatieobjecttype(
+                catalogusService.validateInformatieobjecttype(
                     request.informatieobjecttype)
             }
 

@@ -25,13 +25,13 @@ data class InformatieObjectType(
 )
 
 /**
- * Service for interacting with OpenZaak
+ * Service for interacting with the Catalogus API
  *
  * TODO: We should split this into a service per API type (Catalogus, Zaken, etc.) if more functionality is added.
  */
 @Singleton
-open class OpenZaakService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
-    private val logger = LoggerFactory.getLogger(OpenZaakService::class.java)
+open class CatalogusService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
+    private val logger = LoggerFactory.getLogger(CatalogusService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
     /**

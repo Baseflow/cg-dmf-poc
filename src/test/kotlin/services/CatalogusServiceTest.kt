@@ -10,27 +10,25 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.runBlocking
-import org.slf4j.LoggerFactory
 import kotlin.test.*
 
-class OpenZaakServiceTest {
+class CatalogusServiceTest {
 
-    private val logger = LoggerFactory.getLogger(OpenZaakServiceTest::class.java)
     private val defaultConfig = OpenZaakConfig(
         clientId = "test-client",
         clientSecret = "test-secret",
         validationEnabled = true
     )
 
-    private fun createMockService(config: OpenZaakConfig = defaultConfig, handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): OpenZaakService {
+    private fun createMockService(config: OpenZaakConfig = defaultConfig, handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): CatalogusService {
         val mockEngine = MockEngine(handler)
         val httpClient = HttpClient(mockEngine)
-        return OpenZaakService(config, httpClient)
+        return CatalogusService(config, httpClient)
     }
 
     @Test
     fun `test generateJwtToken contains expected claims`() {
-        val service = OpenZaakService(defaultConfig)
+        val service = CatalogusService(defaultConfig)
         val jwtToken = service.generateJwtToken()
 
         assertNotNull(jwtToken)
@@ -92,7 +90,7 @@ class OpenZaakServiceTest {
         val mockEngine = MockEngine {
             throw Exception("Connection refused")
         }
-        val service = OpenZaakService(defaultConfig, HttpClient(mockEngine))
+        val service = CatalogusService(defaultConfig, HttpClient(mockEngine))
 
         val exception = assertFailsWith<Exception> {
             service.validateInformatieobjecttype(url)
@@ -109,7 +107,7 @@ class OpenZaakServiceTest {
         val mockEngine = MockEngine {
             fail("Should not be called when validation is disabled")
         }
-        val service = OpenZaakService(config, HttpClient(mockEngine))
+        val service = CatalogusService(config, HttpClient(mockEngine))
 
         service.validateInformatieobjecttype("https://any-url.com")
         service.close()
@@ -119,7 +117,7 @@ class OpenZaakServiceTest {
     fun `test close method closes client`() {
         val mockEngine = MockEngine { respondOk() }
         val httpClient = HttpClient(mockEngine)
-        val service = OpenZaakService(defaultConfig, httpClient)
+        val service = CatalogusService(defaultConfig, httpClient)
         
         service.close()
         

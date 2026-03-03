@@ -12,8 +12,8 @@ import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.AuditTrailService
+import com.baseflow.services.CatalogusService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
-import com.baseflow.services.OpenZaakService
 import com.baseflow.services.StorageService
 import com.baseflow.testutils.TestDataFactory
 import io.ktor.client.request.*
@@ -39,7 +39,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val service = EnkelvoudigInformatieObjectService(
             StorageService(),
             ApplicationConfig,
-            OpenZaakService(openZaakConfig),
+            CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
             auditContext
         )
