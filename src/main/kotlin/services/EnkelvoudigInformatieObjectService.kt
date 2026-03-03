@@ -229,11 +229,11 @@ class EnkelvoudigInformatieObjectService(
 
             val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
 
-            // Validate informatieobjecttype against OpenZaak
             val latestVersion = record.versions.maxByOrNull { it.versie }
             auditContext.captureOld(record.toResponse(latestVersion))
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
 
+            // Validate informatieobjecttype against Catalogus
             if (!request.informatieobjecttype.isNullOrEmpty()) {
                 catalogusService.validateInformatieobjecttype(
                     request.informatieobjecttype)

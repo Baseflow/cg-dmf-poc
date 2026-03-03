@@ -96,7 +96,7 @@ class CatalogusServiceTest {
             service.validateInformatieobjecttype(url)
         }
 
-        assertTrue(exception.message!!.contains("Failed to connect to OpenZaak"))
+        assertTrue(exception.message!!.contains("Failed to connect to Catalogus"))
         assertTrue(exception.message!!.contains("Connection refused"))
         service.close()
     }
