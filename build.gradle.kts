@@ -91,7 +91,7 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-core:2.19.1") {
             because("Minimum version from transitive dependencies")
         }
-        implementation("io.netty:netty-codec-http:4.2.8") {
+        implementation("io.netty:netty-codec-http:4.2.10.Final") {
             because("Fixes CVE-2025-67735 - CRLF Injection vulnerability in HttpRequestEncoder")
         }
         implementation("io.netty:netty-codec:4.1.125.Final") {
