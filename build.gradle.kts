@@ -88,7 +88,7 @@ dependencies {
         implementation("tools.jackson.core:jackson-core:3.1.0") {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
-        implementation("com.fasterxml.jackson.core:jackson-core:2.19.1") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.1") {
             because("Minimum version from transitive dependencies")
         }
         implementation("io.netty:netty-codec-http:4.2.8") {
