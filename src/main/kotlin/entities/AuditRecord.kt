@@ -2,17 +2,16 @@ package com.baseflow.entities
 
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
-import org.jetbrains.exposed.v1.dao.UUIDEntity
-import org.jetbrains.exposed.v1.dao.UUIDEntityClass
+import org.jetbrains.exposed.v1.dao.java.UUIDEntity
+import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
-import org.jetbrains.exposed.v1.core.dao.id.UUIDTable as UUIDTableCore
+import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable as UUIDTableCore
 import java.util.UUID
 import com.baseflow.api.models.AuditTrailResponse
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.jsonObject
 import org.jetbrains.exposed.v1.json.json
 
 @Serializable
