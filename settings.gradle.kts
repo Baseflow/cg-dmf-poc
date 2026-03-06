@@ -6,7 +6,7 @@ pluginManagement {
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
     plugins {
-        id("com.google.devtools.ksp") version "2.1.0-1.0.24"
+        id("com.google.devtools.ksp") version "2.3.6"
     }
 }
 
