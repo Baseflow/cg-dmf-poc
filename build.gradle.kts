@@ -94,7 +94,7 @@ dependencies {
         implementation("io.netty:netty-codec-http:4.2.8") {
             because("Fixes CVE-2025-67735 - CRLF Injection vulnerability in HttpRequestEncoder")
         }
-        implementation("io.netty:netty-codec:4.1.125.Final") {
+        implementation("io.netty:netty-codec:4.2.10.Final") {
             because("Fixes CVE-2025-58057 - DoS via zip bomb style attack in BrotliDecoder")
         }
         implementation("ch.qos.logback:logback-core:1.5.32") {
