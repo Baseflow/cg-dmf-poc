@@ -350,6 +350,10 @@ class EnkelvoudigInformatieObjectService(
             beginRegistratie = version.beginRegistratie
                 .toInstant(TimeZone.UTC)
                 .toString(),
+            lock = this.lockToken.orEmpty(),
+
+            // TODO, check bestandsdelen response with sizes > 3GB
+            bestandsdelen = emptyList()
         )
     }
 

@@ -13,7 +13,12 @@ internal object AuthenticationConfig : Config() {
 
     val issuer: String = envOrSystem("OIDC_ISSUER", "http://localhost:8081/realms/cg-dmf")
 
+    /** Comma-separated list of client_id values allowed for ZGW-style JWT auth. */
+    val zgwAllowedClientIds: List<String> = envOrSystem("ZGW_ALLOWED_CLIENT_IDS", "gzac")
+        .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
     override fun printConfig() {
         logger.info("AuthenticationConfig: issuer={}", issuer)
+        logger.info("AuthenticationConfig: zgwAllowedClientIds={}", zgwAllowedClientIds)
     }
 }

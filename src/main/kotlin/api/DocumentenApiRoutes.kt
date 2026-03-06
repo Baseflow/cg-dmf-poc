@@ -94,7 +94,7 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakC
 
     routing {
         if (useAuthentication) {
-            authenticate("auth-jwt") {
+            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 documentenApiRoutes(openZaakConfig)
             }
         } else {

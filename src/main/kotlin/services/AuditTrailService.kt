@@ -35,11 +35,18 @@ private fun getUserFromJwt(call: PipelineCall): JWTPrincipal? {
 }
 
 private fun getUserId(call: PipelineCall): String? {
-    return getUserFromJwt(call)?.payload?.subject
+    val principal = getUserFromJwt(call) ?: return null
+    // Keycloak tokens use 'sub', ZGW tokens use 'user_id'
+    return principal.payload.subject
+        ?: principal.payload.getClaim("user_id")?.asString()
 }
 
 private fun getUserClaim(call: PipelineCall, claimName: String = "username"): String? {
-    return getUserFromJwt(call)?.payload?.getClaim(claimName)?.asString()
+    val principal = getUserFromJwt(call) ?: return null
+    // Try the requested claim first, then fall back to ZGW-style claims
+    return principal.payload.getClaim(claimName)?.asString()?.ifEmpty { null }
+        ?: principal.payload.getClaim("user_id")?.asString()?.ifEmpty { null }
+        ?: principal.payload.getClaim("user_representation")?.asString()?.ifEmpty { null }
 }
 
 private fun getAuditToelichting(call: PipelineCall): String? {
@@ -157,15 +164,21 @@ open class AuditTrailService(private val context: AuditContext) {
         val principal = call.principal<JWTPrincipal>()
         val appId = call.request.headers["X-NLX-Request-Application-Id"]
         if (principal != null) {
+            // Try Keycloak-style 'applications' claim first
             val claim = principal.payload.getClaim("applications")
-            if (claim != null) {
-                // First try the auth0 Claim.asArray conversion to our data class
+            if (claim != null && !claim.isMissing) {
                 try {
                     val apps = claim.asArray(ApplicationInfo::class.java)
                     if (apps != null && apps.isNotEmpty()) return apps[0]
                 } catch (ex: Exception) {
                     logger.debug("Claim.asArray failed for applications claim: ${ex.message}")
                 }
+            }
+
+            // Fall back to ZGW-style 'client_id' claim
+            val clientId = principal.payload.getClaim("client_id")?.asString()
+            if (!clientId.isNullOrEmpty()) {
+                return ApplicationInfo(clientId, clientId)
             }
         } else if (appId != null) {
             return ApplicationInfo(appId, appId)

@@ -50,6 +50,7 @@ services:
       DB_USER: documenten
       DB_PASSWORD: documenten
       OIDC_ISSUER: http://localhost:8081/realms/cg-dmf
+      ZGW_ALLOWED_CLIENT_IDS: gzac
     depends_on:
       postgres:
         condition: service_healthy
