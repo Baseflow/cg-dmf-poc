@@ -7,7 +7,7 @@ COPY src ./src
 
 RUN gradle clean installDist --no-daemon
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
 COPY --from=build /app/build/install/DMF-PoC ./app
