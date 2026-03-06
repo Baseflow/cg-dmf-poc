@@ -70,8 +70,8 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.23.0")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.4")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.4")
+    implementation("software.amazon.awssdk:s3:2.42.7")
+    implementation("software.amazon.awssdk:netty-nio-client:2.42.7")
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
