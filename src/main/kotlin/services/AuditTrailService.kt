@@ -127,13 +127,6 @@ open class AuditTrailService(private val context: AuditContext) {
                     nieuw = after,
                 )
             }
-
-            HttpMethod.Delete -> {
-                wijzigingen = Wijzigingen.of(
-                    oud = before,
-                    nieuw = null,
-                )
-            }
         }
         val entity = before ?: after
         val resourceSegment = entity?.getResourceSegment()?.value.orEmpty()
