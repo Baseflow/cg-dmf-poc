@@ -4,6 +4,7 @@ package com.baseflow.services
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.ResourceUuidParser
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.SubjectTypeEnum
@@ -37,7 +38,9 @@ import kotlin.time.ExperimentalTime
  */
 @Scope(RequestScope::class)
 @Scoped
-open class ObjectInformatieObjectService(@InjectedParam private val resourceSegment: String) {
+open class ObjectInformatieObjectService(@InjectedParam private val resourceSegment: String,
+                                         private val auditTrailService: AuditTrailService,
+                                         private val auditContext: AuditContext) {
     private val logger = LoggerFactory.getLogger(ObjectInformatieObjectService::class.java)
 
     /**
@@ -146,7 +149,10 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
             logger.info(
                 "Created OIO relation with id=${entity.id.value}, informatieobject=${eioRecord.id.value}, informatieobjectVersie=${versionEntity.versie}",
             )
-            CreateOIOResult.Success(entity.toResponse())
+
+            val response = entity.toResponse()
+            auditContext.captureNew(response, versionEntity)
+            CreateOIOResult.Success(response)
         }
     }
 
@@ -155,6 +161,7 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
      */
     fun delete(id: UUID): DeleteOIOResult = transaction {
         val entity = OIORecordEntity.findById(id)
+            auditTrailService.removeAuditTrailsForResource(id)
         if (entity == null) {
             logger.warn("Attempted to delete non-existent OIO with id=$id")
             DeleteOIOResult.NotFound
