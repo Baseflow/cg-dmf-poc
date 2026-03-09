@@ -28,6 +28,7 @@ data class CreateOIORequest(
  * ObjectInformatieObject response model
  */
 @Serializable
+@ResourceSegment(ResourceSegments.OBJECT_INFORMATIE_OBJECTEN)
 data class ObjectInformatieObjectResponse(
     override val id: String? = null,
     override val url: String? = null,

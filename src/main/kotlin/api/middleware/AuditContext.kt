@@ -31,6 +31,11 @@ class AuditContext {
     fun hasChanges(): Boolean = oldValue != null || newValue != null
 
     val resourceWeergave: String
-        get() = (if (sourceRequest != null) "${sourceRequest?.bronOrganisatie} - ${sourceRequest?.identificatie}"
-                 else "unknown resource")
+        get() = (
+            if (sourceRequest != null) {
+                "${sourceRequest?.bronOrganisatie} - ${sourceRequest?.identificatie}"
+            } else {
+                "unknown resource"
+            }
+            )
 }

@@ -51,7 +51,9 @@ object EIOVersions : UUIDTable("eio_versions") {
 }
 
 @OptIn(ExperimentalTime::class)
-class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id), IAuditContext {
+class EIOVersionEntity(id: EntityID<UUID>) :
+    UUIDEntity(id),
+    IAuditContext {
     companion object : UUIDEntityClass<EIOVersionEntity>(EIOVersions)
 
     var recordId by EIORecordEntity referencedOn EIOVersions.recordId

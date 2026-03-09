@@ -113,6 +113,7 @@ data class BestandsDeelResponse(val url: String, val volgnummer: Int, val omvang
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
+@ResourceSegment(ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN)
 data class EnkelvoudigInformatieObjectResponse(
     override val id: String,
     override val url: String? = null,

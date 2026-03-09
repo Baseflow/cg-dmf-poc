@@ -37,7 +37,7 @@ import java.util.*
  */
 open class ObjectInformatieObjectenRoutes(
     private val route: Route,
-    private val resourceSegment: String,
+    private val resourceSegment: ResourceSegments,
     private val experimental: Boolean = false,
 ) {
     fun register() {
@@ -53,13 +53,7 @@ open class ObjectInformatieObjectenRoutes(
 
             // Single relation operations
             route("/{uuid}") {
-                val resourceTitle = if (resourceSegment ==
-                    "subjectinformatieobjecten"
-                ) {
-                    "SubjectInformatieObject"
-                } else {
-                    "ObjectInformatieObject"
-                }
+                val resourceTitle = resourceSegment.title
                 // HEAD - existence check
                 head { head(resourceTitle) }
 
@@ -90,7 +84,7 @@ open class ObjectInformatieObjectenRoutes(
         val (items, totalCount) = service.getAll(filter)
 
         if (experimental) {
-            call.respond(PaginatedResponse.from(call, resourceSegment, items, totalCount, page, pageSize))
+            call.respond(PaginatedResponse.from(call, resourceSegment.value, items, totalCount, page, pageSize))
         } else {
             // Note: ObjectInformatieObjecten are not paginated in the specification,
             // Changing this is a breaking API change.
@@ -104,7 +98,7 @@ open class ObjectInformatieObjectenRoutes(
         when (val result = service.create(request)) {
             is CreateOIOResult.Success -> {
                 val locationUrl = ApiUrlBuilder.absolute(
-                    resourceSegment,
+                    resourceSegment.value,
                     result.payload.url?.substringAfterLast("/") ?: "",
                 )
                 call.response.headers.append(HttpHeaders.Location, locationUrl)
@@ -203,5 +197,5 @@ open class ObjectInformatieObjectenRoutes(
 }
 
 fun Route.objectInformatieObjectenRoutes() {
-    ObjectInformatieObjectenRoutes(this, "objectinformatieobjecten", experimental = false).register()
+    ObjectInformatieObjectenRoutes(this, ResourceSegments.OBJECT_INFORMATIE_OBJECTEN, experimental = false).register()
 }

@@ -8,6 +8,7 @@ import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ProblemDetailsResponse
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
@@ -31,7 +32,7 @@ import kotlin.test.assertTrue
 class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
-        private const val RESOURCE_SEGMENT = "objectinformatieobjecten"
+        private val RESOURCE_SEGMENT = ResourceSegments.OBJECT_INFORMATIE_OBJECTEN
     }
 
     // Helper to create an EIO record using the service
@@ -68,7 +69,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -97,7 +98,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -122,7 +123,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         application { setup() }
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -161,7 +162,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         application { setup() }
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -194,7 +195,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         application { setup() }
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -229,7 +230,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     fun `test filter by informatieobject returns matching relations`() = testApplication {
         application { setup() }
         val sharedEioId = createTestEIO()
-        val sharedEioUrl = "$API_BASE/enkelvoudiginformatieobjecten/$sharedEioId"
+        val sharedEioUrl = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$sharedEioId"
 
         // Create two OIOs with the same informatieobject
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -268,7 +269,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
                 Json.encodeToString(
                     CreateOIORequest.serializer(),
                     CreateOIORequest(
-                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$otherEioId",
+                        informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$otherEioId",
                         subjectObject = "https://example.com/zaken/api/v1/zaken/33333333-3333-3333-3333-333333333333",
                         subjectType = SubjectTypeEnum.ZAAK,
                     ),
@@ -305,7 +306,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
                 Json.encodeToString(
                     CreateOIORequest.serializer(),
                     CreateOIORequest(
-                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio1Id",
+                        informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eio1Id",
                         subjectObject = sharedObjectUrl,
                         subjectType = SubjectTypeEnum.ZAAK,
                     ),
@@ -320,7 +321,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
                 Json.encodeToString(
                     CreateOIORequest.serializer(),
                     CreateOIORequest(
-                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio2Id",
+                        informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eio2Id",
                         subjectObject = sharedObjectUrl,
                         subjectType = SubjectTypeEnum.ZAAK,
                     ),
@@ -336,7 +337,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
                 Json.encodeToString(
                     CreateOIORequest.serializer(),
                     CreateOIORequest(
-                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio3Id",
+                        informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eio3Id",
                         subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
                         subjectType = SubjectTypeEnum.ZAAK,
                     ),
@@ -362,7 +363,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         // Test ZAAK
         val zaakRequest = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -374,7 +375,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         // Test BESLUIT
         val besluitRequest = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/besluiten/api/v1/besluiten/11111111-1111-1111-1111-111111111111",
             subjectType = SubjectTypeEnum.BESLUIT,
         )
@@ -386,7 +387,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         // Test VERZOEK
         val verzoekRequest = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/verzoeken/api/v1/verzoeken/22222222-2222-2222-2222-222222222222",
             subjectType = SubjectTypeEnum.VERZOEK,
         )
@@ -430,7 +431,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         val eioId = createTestEIO()
         val request = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/1",
             subjectType = SubjectTypeEnum.ZAAK,
         )

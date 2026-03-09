@@ -41,4 +41,3 @@ private fun sha1Hex(data: String): String {
         (if (v < 16) "0" else "") + v.toString(16)
     }
 }
-

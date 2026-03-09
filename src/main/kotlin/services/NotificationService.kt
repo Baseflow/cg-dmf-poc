@@ -4,13 +4,13 @@ package com.baseflow.services
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.routes.RESOURCE_SEGMENT
+import com.baseflow.api.models.getResourceSegment
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.RequestScope
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -34,11 +34,7 @@ import kotlin.time.ExperimentalTime
  * @property filters List of filter attribute names supported by this channel.
  */
 @Serializable
-data class KanaalPayload(
-    val naam: String,
-    val documentatieLink: String = "",
-    val filters: List<String> = emptyList()
-)
+data class KanaalPayload(val naam: String, val documentatieLink: String = "", val filters: List<String> = emptyList())
 
 /**
  * Notification action types that map to HTTP methods.
@@ -48,7 +44,7 @@ enum class NotificationAction(val value: String) {
     CREATE("create"),
     UPDATE("update"),
     PARTIAL_UPDATE("partial_update"),
-    DESTROY("destroy")
+    DESTROY("destroy"),
 }
 
 /**
@@ -59,7 +55,7 @@ private val httpMethodToNotificationAction = mapOf(
     HttpMethod.Post to NotificationAction.CREATE,
     HttpMethod.Put to NotificationAction.UPDATE,
     HttpMethod.Patch to NotificationAction.PARTIAL_UPDATE,
-    HttpMethod.Delete to NotificationAction.DESTROY
+    HttpMethod.Delete to NotificationAction.DESTROY,
 )
 
 /**
@@ -83,7 +79,7 @@ data class NotificationMessage(
     val resourceUrl: String,
     val actie: String,
     val aanmaakdatum: String,
-    val kenmerken: Map<String, String>? = null
+    val kenmerken: Map<String, String>? = null,
 )
 
 /**
@@ -160,7 +156,7 @@ class NotificationService(private val context: AuditContext) {
 
                 val payload = KanaalPayload(
                     naam = kanaalName,
-                    filters = listOf("bronorganisatie", "informatieobjecttype", "vertrouwelijkheidaanduiding")
+                    filters = listOf("bronorganisatie", "informatieobjecttype", "vertrouwelijkheidaanduiding"),
                 )
 
                 val createResponse = httpClient.post("$url/kanaal") {
@@ -178,7 +174,7 @@ class NotificationService(private val context: AuditContext) {
                         "Failed to create kanaal '{}': status={}, body={}",
                         kanaalName,
                         createResponse.status,
-                        errorBody
+                        errorBody,
                     )
                     false
                 }
@@ -188,7 +184,6 @@ class NotificationService(private val context: AuditContext) {
             }
         }
     }
-
 
     /**
      * Sends a notification for the current request context.
@@ -218,7 +213,8 @@ class NotificationService(private val context: AuditContext) {
             return
         }
 
-        val resourceUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, entity.id.toString())
+        val resourceSegment = entity.getResourceSegment().value
+        val resourceUrl = ApiUrlBuilder.absolute(resourceSegment, entity.id.toString())
         val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         val request = context.sourceRequest
 
@@ -226,15 +222,15 @@ class NotificationService(private val context: AuditContext) {
             kanaal = NotificationConfig.kanaal,
             source = NotificationConfig.source,
             hoofdObject = resourceUrl,
-            resource = RESOURCE_SEGMENT,
+            resource = resourceSegment,
             resourceUrl = resourceUrl,
             actie = action.value,
             aanmaakdatum = now.toString(),
             kenmerken = mapOf(
                 "bronorganisatie" to request?.bronOrganisatie.orEmpty(),
                 "informatieobjecttype" to request?.informatieobject_type.orEmpty(),
-                "vertrouwelijkheidaanduiding" to request?.vertrouwlijkheidsAanduiding.orEmpty()
-            )
+                "vertrouwelijkheidaanduiding" to request?.vertrouwlijkheidsAanduiding.orEmpty(),
+            ),
         )
 
         // Send notification asynchronously to not block the response
@@ -242,8 +238,6 @@ class NotificationService(private val context: AuditContext) {
             sendNotification(message)
         }
     }
-
-
 
     /**
      * Actually sends the notification to the Open Notificaties API.
@@ -258,7 +252,7 @@ class NotificationService(private val context: AuditContext) {
                 message.kanaal,
                 message.resource,
                 message.actie,
-                message.resourceUrl
+                message.resourceUrl,
             )
 
             val response = httpClient.post("$url/notificaties") {
@@ -276,7 +270,7 @@ class NotificationService(private val context: AuditContext) {
                     "Failed to send notification: status={}, resourceUrl={}, body={}",
                     response.status,
                     message.resourceUrl,
-                    errorBody
+                    errorBody,
                 )
             }
         } catch (e: Exception) {
@@ -286,9 +280,4 @@ class NotificationService(private val context: AuditContext) {
 }
 
 @Serializable
-data class Kanaal(
-    val url: String,
-    val naam: String,
-    val documentatieLink: String? = null,
-    val filters: List<String>? = null
-)
+data class Kanaal(val url: String, val naam: String, val documentatieLink: String? = null, val filters: List<String>? = null)

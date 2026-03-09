@@ -24,7 +24,7 @@ import kotlin.test.assertNotNull
 class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
-        private const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
+        private val RESOURCE_SEGMENT = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
     }
 
     @Serializable
@@ -608,7 +608,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
             subjectObject = objectUrl,
             subjectType = SubjectTypeEnum.ZAAK,
         )
-        client.post("$API_BASE/objectinformatieobjecten") {
+        client.post("$API_BASE/${ResourceSegments.OBJECT_INFORMATIE_OBJECTEN}") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(oioReq))
         }
@@ -644,7 +644,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
             subjectObject = objectUrl,
             subjectType = SubjectTypeEnum.ZAAK,
         )
-        client.post("$API_BASE/objectinformatieobjecten") {
+        client.post("$API_BASE/${ResourceSegments.OBJECT_INFORMATIE_OBJECTEN}") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(oioReq))
         }
