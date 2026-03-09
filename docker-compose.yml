@@ -80,7 +80,7 @@ services:
       DB_USER: documenten
       DB_PASSWORD: documenten
       DJANGO_SETTINGS_MODULE: nrc.conf.docker
-      SECRET_KEY: ${SECRET_KEY:-\(,gc7VE(#CO<zCR3e(lRtOsw5q+U2DpG5o\X#P4PVRm*=u|E%}
+      SECRET_KEY: "${SECRET_KEY:-\\(,gc7VE(#CO<zCR3e(lRtOsw5q+U2DpG5o\\X#P4PVRm*=u|E%}"
       IS_HTTPS: no
       ALLOWED_HOSTS: '*'
       CACHE_DEFAULT: redis:6379/0

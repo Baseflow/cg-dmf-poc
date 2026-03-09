@@ -185,9 +185,6 @@ class NotificationService(private val context: AuditContext) {
         }
     }
 
-    private val httpClient = HttpClient(CIO) {
-        expectSuccess = false
-    }
 
     /**
      * Sends a notification for the current request context.

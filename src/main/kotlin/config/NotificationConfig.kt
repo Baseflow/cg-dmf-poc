@@ -12,8 +12,12 @@ object NotificationConfig : Config() {
     private val logger = LoggerFactory.getLogger(NotificationConfig::class.java)
 
     /**
-     * URL of the Open Notificaties API endpoint for publishing notifications.
-     * Example: https://notificaties.example.com/api/v1/notificaties
+     * Base URL of the Open Notificaties API (without specific endpoint paths).
+     *
+     * The application will append its own path segments (e.g. "/notificaties", "/kanaal")
+     * to this base URL when calling the API. Do not include these segments here.
+     *
+     * Example: https://notificaties.example.com/api/v1
      */
     val url: String? = envOrSystem("NOTIFICATION_API_URL", "").ifBlank { null }
 
