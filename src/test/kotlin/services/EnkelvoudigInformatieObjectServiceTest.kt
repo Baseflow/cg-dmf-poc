@@ -53,7 +53,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
-            OpenZaakService(openZaakConfig),
+            CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
             auditContext
         )
@@ -259,9 +259,9 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `create should inherit vertrouwelijkheidaanduiding from informatieobjecttype if not provided`() = runBlocking {
-        // We need a custom service with a mocked OpenZaakService for this
-        val mockOpenZaakService = mockk<OpenZaakService>()
-        coEvery { mockOpenZaakService.validateInformatieobjecttype(any()) } returns InformatieObjectType(
+        // We need a custom service with a mocked CatalogusService for this
+        val mockCatalogusService = mockk<CatalogusService>()
+        coEvery { mockCatalogusService.validateInformatieobjecttype(any()) } returns InformatieObjectType(
             url = "https://example.com/api/v1/informatieobjecttypen/1",
             omschrijving = "Mock Type",
             vertrouwelijkheidaanduiding = "geheim"
@@ -271,7 +271,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val customService = EnkelvoudigInformatieObjectService(
             StorageService(),
             ApplicationConfig,
-            mockOpenZaakService,
+            mockCatalogusService,
             AuditTrailService(auditContext),
             auditContext
         )
@@ -280,7 +280,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val resp = customService.create(req)
 
         assertEquals(Vertrouwelijkheidaanduiding.GEHEIM, resp.vertrouwelijkheidaanduiding)
-        coVerify { mockOpenZaakService.validateInformatieobjecttype(any()) }
+        coVerify { mockCatalogusService.validateInformatieobjecttype(any()) }
     }
 
     @Test

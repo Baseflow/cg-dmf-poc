@@ -25,19 +25,19 @@ data class InformatieObjectType(
 )
 
 /**
- * Service for interacting with OpenZaak
+ * Service for interacting with the Catalogus API
  *
  * TODO: We should split this into a service per API type (Catalogus, Zaken, etc.) if more functionality is added.
  */
 @Singleton
-open class OpenZaakService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
-    private val logger = LoggerFactory.getLogger(OpenZaakService::class.java)
+open class CatalogusService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
+    private val logger = LoggerFactory.getLogger(CatalogusService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * Validates if the given informatieobjecttype URL exists in OpenZaak
+     * Validates if the given informatieobjecttype URL exists in the Catalogus API
      *
-     * @param url The full URL to the informatieobjecttype in OpenZaak
+     * @param url The full URL to the informatieobjecttype in the Catalogus
      * @return The InformatieObjectType if found, null otherwise
      * @throws Exception if validation fails and validation is enabled in config
      */
@@ -59,12 +59,12 @@ open class OpenZaakService(private val config: OpenZaakConfig, private val httpC
 
             if (response.status.value != 200) {
                 val errorMessage = """
-                    Error fetching information object type from OpenZaak.
+                    Error fetching information object type from Catalogus.
                     Status: ${response.status.value}
                     Endpoint: $url
                     Response: ${response.bodyAsText()}
                 """.trimIndent()
-                logger.error("OpenZaak validation failed: {}", errorMessage)
+                logger.error("Catalogus validation failed: {}", errorMessage)
                 throw Exception(errorMessage)
             }
 
@@ -75,8 +75,8 @@ open class OpenZaakService(private val config: OpenZaakConfig, private val httpC
             if (e.message?.contains("Error fetching information object type") == true) {
                 throw e
             }
-            logger.error("Failed to connect to OpenZaak for validation: {}", e.message)
-            throw Exception("Failed to connect to OpenZaak for validation: ${e.message}", e)
+            logger.error("Failed to connect to Catalogus for validation: {}", e.message)
+            throw Exception("Failed to connect to Catalogus for validation: ${e.message}", e)
         }
     }
 
@@ -88,7 +88,7 @@ open class OpenZaakService(private val config: OpenZaakConfig, private val httpC
     }
 
     /**
-     * Generates a JWT token for OpenZaak authentication
+     * Generates a JWT token for Catalogus authentication
      */
     @OptIn(ExperimentalTime::class)
     fun generateJwtToken(): String {
