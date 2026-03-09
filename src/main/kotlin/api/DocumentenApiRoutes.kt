@@ -6,6 +6,7 @@ package com.baseflow.api
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.AuditTrailPlugin
+import com.baseflow.api.middleware.NotificationPlugin
 import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
@@ -39,6 +40,7 @@ import org.koin.core.annotation.ComponentScan
 fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
+        install(NotificationPlugin)
         install(AuditTrailPlugin)
         install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
         install(ConditionalHeaders) {
