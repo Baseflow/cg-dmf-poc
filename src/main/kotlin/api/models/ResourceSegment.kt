@@ -26,7 +26,7 @@ annotation class ResourceSegment(val value: ResourceSegments)
  * Extension function to get the resource segment from an ApiEntityResponse.
  * Returns the value from the @ResourceSegment annotation if present, or a default fallback.
  */
-fun ApiEntityResponse.getResourceSegment(): ResourceSegments = this::class.annotations
-    .filterIsInstance<ResourceSegment>()
-    .firstOrNull()?.value
-    ?: ResourceSegments.UNKNOWN
+fun ApiEntityResponse.getResourceSegment(): ResourceSegments {
+    val annotation = this.javaClass.getAnnotation(ResourceSegment::class.java)
+    return annotation?.value ?: ResourceSegments.UNKNOWN
+}
