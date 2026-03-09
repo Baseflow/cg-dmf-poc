@@ -3,11 +3,7 @@
 
 package com.baseflow.api
 
-import com.baseflow.api.middleware.ApiConditionalHeadersProvider
-import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.AuditTrailPlugin
-import com.baseflow.api.middleware.NotificationPlugin
-import com.baseflow.api.middleware.configureStatusPages
+import com.baseflow.api.middleware.*
 import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
 import io.ktor.serialization.kotlinx.json.*
@@ -17,7 +13,6 @@ import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.core.annotation.ComponentScan
 
 /**
  * Documenten API Routing Module

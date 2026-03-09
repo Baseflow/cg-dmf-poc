@@ -219,6 +219,7 @@ class NotificationService(private val context: AuditContext) {
 
         val resourceUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, entity.id.toString())
         val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        val request = context.sourceRequest
 
         val message = NotificationMessage(
             kanaal = NotificationConfig.kanaal,
@@ -228,7 +229,11 @@ class NotificationService(private val context: AuditContext) {
             resourceUrl = resourceUrl,
             actie = action.value,
             aanmaakdatum = now.toString(),
-            kenmerken = mapOf()
+            kenmerken = mapOf(
+                "bronorganisatie" to request?.bronOrganisatie.orEmpty(),
+                "informatieobjecttype" to request?.informatieobject_type.orEmpty(),
+                "vertrouwelijkheidaanduiding" to request?.vertrouwlijkheidsAanduiding.orEmpty()
+            )
         )
 
         // Send notification asynchronously to not block the response
