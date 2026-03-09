@@ -27,6 +27,20 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 /**
+ * Payload for creating a kanaal in the Open Notificaties API.
+ *
+ * @property naam The name of the notification channel.
+ * @property documentatieLink URL to the documentation for this channel.
+ * @property filters List of filter attribute names supported by this channel.
+ */
+@Serializable
+data class KanaalPayload(
+    val naam: String,
+    val documentatieLink: String = "",
+    val filters: List<String> = emptyList()
+)
+
+/**
  * Notification action types that map to HTTP methods.
  * These are the standard actions as defined by the Documenten API.
  */
@@ -90,6 +104,87 @@ class NotificationService(private val context: AuditContext) {
         encodeDefaults = true
     }
 
+    companion object {
+        private val logger = LoggerFactory.getLogger(NotificationService::class.java)
+
+        private val json = Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
+
+        private val httpClient = HttpClient(CIO) {
+            expectSuccess = false
+        }
+
+        /**
+         * Ensures that the notification kanaal exists in the Open Notificaties API.
+         * If the kanaal doesn't exist, it will be created.
+         * This should be called during application startup.
+         *
+         * @return true if the kanaal exists or was created successfully, false otherwise.
+         */
+        suspend fun ensureKanaalExists(): Boolean {
+            if (!NotificationConfig.isEnabled) {
+                logger.debug("Notifications are disabled, skipping kanaal check")
+                return false
+            }
+
+            val url = NotificationConfig.url ?: return false
+            val token = NotificationConfig.bearerToken ?: return false
+            val kanaalName = NotificationConfig.kanaal
+
+            try {
+                // First, check if the kanaal already exists
+                val checkResponse = httpClient.get("$url/kanaal") {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(token)
+                    parameter("naam", kanaalName)
+                }
+
+                if (checkResponse.status.isSuccess()) {
+                    val responseBody = checkResponse.bodyAsText()
+                    // Check if the response contains our kanaal
+                    if (responseBody.contains("\"naam\":\"$kanaalName\"") ||
+                        responseBody.contains("\"naam\": \"$kanaalName\"")) {
+                        logger.info("Kanaal '{}' already exists", kanaalName)
+                        return true
+                    }
+                }
+
+                // Kanaal doesn't exist, create it
+                logger.info("Creating kanaal '{}'", kanaalName)
+
+                val payload = KanaalPayload(
+                    naam = kanaalName,
+                    filters = listOf("bronorganisatie", "informatieobjecttype", "vertrouwelijkheidaanduiding")
+                )
+
+                val createResponse = httpClient.post("$url/kanaal") {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(token)
+                    setBody(json.encodeToString(payload))
+                }
+
+                return if (createResponse.status.isSuccess()) {
+                    logger.info("Kanaal '{}' created successfully", kanaalName)
+                    true
+                } else {
+                    val errorBody = createResponse.bodyAsText()
+                    logger.warn(
+                        "Failed to create kanaal '{}': status={}, body={}",
+                        kanaalName,
+                        createResponse.status,
+                        errorBody
+                    )
+                    false
+                }
+            } catch (e: Exception) {
+                logger.error("Error ensuring kanaal '{}' exists: {}", kanaalName, e.message)
+                return false
+            }
+        }
+    }
+
     private val httpClient = HttpClient(CIO) {
         expectSuccess = false
     }
@@ -101,7 +196,7 @@ class NotificationService(private val context: AuditContext) {
      *
      * @param call The current pipeline call containing request information.
      */
-    suspend fun send(call: PipelineCall) {
+    fun send(call: PipelineCall) {
         if (!NotificationConfig.isEnabled) {
             logger.debug("Notifications are disabled, skipping notification")
             return
@@ -141,6 +236,8 @@ class NotificationService(private val context: AuditContext) {
             sendNotification(message)
         }
     }
+
+
 
     /**
      * Actually sends the notification to the Open Notificaties API.
