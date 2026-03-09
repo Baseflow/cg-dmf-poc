@@ -2,10 +2,10 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.entities.EIORecordEntity
-import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.SubjectTypeEnum
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.entities.OIORecordEntity
 import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
@@ -16,10 +16,10 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import kotlin.test.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
+import kotlin.test.*
 
 class ObjectInformatieObjectServiceTest {
     private lateinit var service: ObjectInformatieObjectService
@@ -30,7 +30,7 @@ class ObjectInformatieObjectServiceTest {
             "jdbc:h2:mem:test_oio;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
             user = "root",
-            password = ""
+            password = "",
         )
         transaction {
             // Create all tables
@@ -48,37 +48,34 @@ class ObjectInformatieObjectServiceTest {
     }
 
     // Helper to create test EIO with versions for version detection tests
-    private fun createTestEIO(versie: Int = 1): UUID {
-        return transaction {
-            val record = EIORecordEntity.new {}
-            val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+    private fun createTestEIO(versie: Int = 1): UUID = transaction {
+        val record = EIORecordEntity.new {}
+        val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
-            EIOVersionEntity.new {
-                recordId = record
-                this.versie = versie
-                bronOrganisatie = "test"
-                taal = "nld"
-                bestandsnaam = "test.pdf"
-                titel = "Test"
-                auteur = "Test Author"
-                creatieDatum = LocalDate(2025, 1, 1)
-                beginRegistratie = now
-            }
-            record.id.value
+        EIOVersionEntity.new {
+            recordId = record
+            this.versie = versie
+            bronOrganisatie = "test"
+            taal = "nld"
+            bestandsnaam = "test.pdf"
+            titel = "Test"
+            auteur = "Test Author"
+            creatieDatum = LocalDate(2025, 1, 1)
+            beginRegistratie = now
         }
+        record.id.value
     }
 
     private fun createTestOIORequest(
-        informatieobject: String = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/12345678-1234-1234-1234-123456789012",
+        informatieobject: String =
+            "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/12345678-1234-1234-1234-123456789012",
         subjectObject: String = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-        subjectType: SubjectTypeEnum = SubjectTypeEnum.ZAAK
-    ): CreateOIORequest {
-        return CreateOIORequest(
-            informatieobject = informatieobject,
-            subjectObject = subjectObject,
-            subjectType = subjectType
-        )
-    }
+        subjectType: SubjectTypeEnum = SubjectTypeEnum.ZAAK,
+    ): CreateOIORequest = CreateOIORequest(
+        informatieobject = informatieobject,
+        subjectObject = subjectObject,
+        subjectType = subjectType,
+    )
 
     @Test
     fun `create should persist relation and return success`() {
@@ -147,11 +144,11 @@ class ObjectInformatieObjectServiceTest {
 
         val req1 = createTestOIORequest(
             informatieobject = informatieobject,
-            subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111"
+            subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
         )
         val req2 = createTestOIORequest(
             informatieobject = informatieobject,
-            subjectObject = "https://example.com/zaken/api/v1/zaken/22222222-2222-2222-2222-222222222222"
+            subjectObject = "https://example.com/zaken/api/v1/zaken/22222222-2222-2222-2222-222222222222",
         )
 
         val result1 = service.create(req1)
@@ -170,11 +167,11 @@ class ObjectInformatieObjectServiceTest {
 
         val req1 = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
-            subjectObject = subjectObject
+            subjectObject = subjectObject,
         )
         val req2 = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
-            subjectObject = subjectObject
+            subjectObject = subjectObject,
         )
 
         val result1 = service.create(req1)
@@ -264,10 +261,10 @@ class ObjectInformatieObjectServiceTest {
         val eioId2 = createTestEIO(versie = 1)
 
         val req1 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1"
+            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
         )
         val req2 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2"
+            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
         )
 
         service.create(req1)
@@ -287,9 +284,18 @@ class ObjectInformatieObjectServiceTest {
         val informatieobject1 = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1"
         val informatieobject2 = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2"
 
-        val req1 = createTestOIORequest(informatieobject = informatieobject1, subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111")
-        val req2 = createTestOIORequest(informatieobject = informatieobject1, subjectObject = "https://example.com/zaken/api/v1/zaken/22222222-2222-2222-2222-222222222222")
-        val req3 = createTestOIORequest(informatieobject = informatieobject2, subjectObject = "https://example.com/zaken/api/v1/zaken/33333333-3333-3333-3333-333333333333")
+        val req1 = createTestOIORequest(
+            informatieobject = informatieobject1,
+            subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
+        )
+        val req2 = createTestOIORequest(
+            informatieobject = informatieobject1,
+            subjectObject = "https://example.com/zaken/api/v1/zaken/22222222-2222-2222-2222-222222222222",
+        )
+        val req3 = createTestOIORequest(
+            informatieobject = informatieobject2,
+            subjectObject = "https://example.com/zaken/api/v1/zaken/33333333-3333-3333-3333-333333333333",
+        )
 
         val result1 = service.create(req1) as CreateOIOResult.Success
         service.create(req2)
@@ -312,9 +318,18 @@ class ObjectInformatieObjectServiceTest {
         val eioId2 = createTestEIO(versie = 1)
         val eioId3 = createTestEIO(versie = 1)
 
-        val req1 = createTestOIORequest(informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1", subjectObject = subjectObject)
-        val req2 = createTestOIORequest(informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2", subjectObject = subjectObject)
-        val req3 = createTestOIORequest(informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId3", subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999")
+        val req1 = createTestOIORequest(
+            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
+            subjectObject = subjectObject,
+        )
+        val req2 = createTestOIORequest(
+            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            subjectObject = subjectObject,
+        )
+        val req3 = createTestOIORequest(
+            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId3",
+            subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
+        )
 
         service.create(req1)
         service.create(req2)
@@ -336,8 +351,14 @@ class ObjectInformatieObjectServiceTest {
         val subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321"
 
         val req1 = createTestOIORequest(informatieobject = informatieobject, subjectObject = subjectObject)
-        val req2 = createTestOIORequest(informatieobject = informatieobject, subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999")
-        val req3 = createTestOIORequest(informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2", subjectObject = subjectObject)
+        val req2 = createTestOIORequest(
+            informatieobject = informatieobject,
+            subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
+        )
+        val req3 = createTestOIORequest(
+            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            subjectObject = subjectObject,
+        )
 
         val result1 = service.create(req1) as CreateOIOResult.Success
         service.create(req2)
@@ -362,17 +383,17 @@ class ObjectInformatieObjectServiceTest {
         val zaakReq = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
             subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
         val besluitReq = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
             subjectObject = "https://example.com/besluiten/api/v1/besluiten/22222222-2222-2222-2222-222222222222",
-            subjectType = SubjectTypeEnum.BESLUIT
+            subjectType = SubjectTypeEnum.BESLUIT,
         )
         val verzoekReq = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId3",
             subjectObject = "https://example.com/verzoeken/api/v1/verzoeken/33333333-3333-3333-3333-333333333333",
-            subjectType = SubjectTypeEnum.VERZOEK
+            subjectType = SubjectTypeEnum.VERZOEK,
         )
 
         val zaakResult = service.create(zaakReq)
@@ -387,6 +408,7 @@ class ObjectInformatieObjectServiceTest {
         assertEquals(SubjectTypeEnum.BESLUIT, besluitResult.payload.subjectType)
         assertEquals(SubjectTypeEnum.VERZOEK, verzoekResult.payload.subjectType)
     }
+
     @Test
     fun `create should return conflict for invalid informatieobject URL`() {
         val req = createTestOIORequest(informatieobject = "not-a-url")
@@ -410,4 +432,3 @@ class ObjectInformatieObjectServiceTest {
         assertTrue(results.isEmpty())
     }
 }
-

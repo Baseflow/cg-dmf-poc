@@ -12,15 +12,20 @@ import java.time.Duration
 internal object MinioConfig : Config() {
     private val logger = LoggerFactory.getLogger(MinioConfig::class.java)
 
-    val urlExpiry: Duration =  Duration.parse(envOrSystem("MINIO_URL_EXPIRY", "PT15M"))
+    val urlExpiry: Duration = Duration.parse(envOrSystem("MINIO_URL_EXPIRY", "PT15M"))
     val endpoint: String = envOrSystem("MINIO_ENDPOINT", "http://localhost:9000")
     val accessKey: String = envOrSystem("MINIO_ACCESS_KEY", "minioadmin")
     val secretKey: String = envOrSystem("MINIO_SECRET_KEY", "minioadmin")
     val bucketName: String = envOrSystem("MINIO_BUCKET", "default-bucket")
 
     override fun printConfig() {
-        logger.info("MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}",
-            endpoint, accessKey, bucketName, urlExpiry)
+        logger.info(
+            "MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}",
+            endpoint,
+            accessKey,
+            bucketName,
+            urlExpiry,
+        )
         logger.debug("MinioConfig: secretKey is set: {}", secretKey.isNotEmpty())
     }
 }

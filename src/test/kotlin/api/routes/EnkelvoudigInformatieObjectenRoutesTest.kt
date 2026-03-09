@@ -606,7 +606,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val oioReq = CreateOIORequest(
             informatieobject = eio.url!!,
             subjectObject = objectUrl,
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
         client.post("$API_BASE/objectinformatieobjecten") {
             contentType(ContentType.Application.Json)
@@ -615,7 +615,9 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
 
         // Filter EIOs by object
         val filterResp =
-            client.get("$API_BASE/$RESOURCE_SEGMENT?objectinformatieobjecten__object=${objectUrl.encodeURLParameter()}&objectinformatieobjecten__objectType=zaak")
+            client.get(
+                "$API_BASE/$RESOURCE_SEGMENT?objectinformatieobjecten__object=${objectUrl.encodeURLParameter()}&objectinformatieobjecten__objectType=zaak",
+            )
         assertEquals(HttpStatusCode.OK, filterResp.status)
         val body = Json.parseToJsonElement(filterResp.bodyAsText()).jsonObject
         val results = body["results"]?.jsonArray ?: error("results missing")
@@ -640,7 +642,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val oioReq = CreateOIORequest(
             informatieobject = eio.url!!,
             subjectObject = objectUrl,
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
         client.post("$API_BASE/objectinformatieobjecten") {
             contentType(ContentType.Application.Json)
@@ -650,7 +652,9 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         // Search EIOs by UUID and filter by object (via query params)
         val zoekReq = EIOZoekRequest(uuidIn = listOf(eio.id))
         val filterResp =
-            client.post("$API_BASE/$RESOURCE_SEGMENT/_zoek?objectinformatieobjecten__object=${objectUrl.encodeURLParameter()}") {
+            client.post(
+                "$API_BASE/$RESOURCE_SEGMENT/_zoek?objectinformatieobjecten__object=${objectUrl.encodeURLParameter()}",
+            ) {
                 contentType(ContentType.Application.Json)
                 setBody(Json.encodeToString(zoekReq))
             }
@@ -662,5 +666,4 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         assertEquals(1, results.size)
         assertEquals(eio.id, results[0].jsonObject["id"]?.jsonPrimitive?.content)
     }
-
 }

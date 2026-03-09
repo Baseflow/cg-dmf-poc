@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
@@ -57,7 +59,7 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
         val body = response.bodyAsText()
         println("[DEBUG_LOG] Response Body for invalid enum: $body")
         val problem = Json.parseToJsonElement(body).jsonObject
-        
+
         val detail = problem["detail"]?.jsonPrimitive?.content ?: ""
         // We expect something like "Invalid request body: ..."
         assertTrue(detail.contains("Invalid request body"), "Detail should mention invalid request body. Got: $detail")

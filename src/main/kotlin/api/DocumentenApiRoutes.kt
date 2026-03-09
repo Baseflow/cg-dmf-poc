@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.api
 
 import com.baseflow.api.middleware.ApiConditionalHeadersProvider
@@ -16,7 +15,6 @@ import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.core.annotation.ComponentScan
 
 /**
  * Documenten API Routing Module
@@ -51,8 +49,8 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
                 mapOf(
                     "service" to "Documenten API",
                     "version" to DOCUMENTEN_API_VERSION,
-                    "status" to "operational"
-                )
+                    "status" to "operational",
+                ),
             )
         }
 
@@ -83,10 +81,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-fun Application.documentenApiModule(
-    useAuthentication: Boolean = true,
-    openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()
-) {
+fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // Configure StatusPages for global exception handling
     configureStatusPages()
 

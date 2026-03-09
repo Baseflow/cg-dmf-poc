@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.api.middleware
 
+import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.respondProblem
-import com.baseflow.api.models.ProblemDetailsResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.JsonConvertException
 import io.ktor.server.application.*
@@ -24,7 +23,7 @@ fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<BadRequestException> { call, cause ->
             logger.error("Bad request at ${call.request.path()}: ${cause.message}")
-            
+
             // Try to find a SerializationException or JsonConvertException in the cause chain
             var currentCause: Throwable? = cause
             var serializationException: Throwable? = null
@@ -53,8 +52,8 @@ fun Application.configureStatusPages() {
                     title = "Internal Server Error",
                     status = HttpStatusCode.InternalServerError.value,
                     detail = cause.message,
-                    instance = call.request.path()
-                )
+                    instance = call.request.path(),
+                ),
             )
         }
     }
@@ -65,7 +64,7 @@ private suspend fun respondWithBadRequest(call: ApplicationCall, detail: String)
         HttpStatusCode.BadRequest,
         badRequest(
             detail = detail,
-            instance = call.request.path()
-        )
+            instance = call.request.path(),
+        ),
     )
 }

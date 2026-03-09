@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.api
 
 import io.ktor.http.*
@@ -24,9 +23,8 @@ fun Application.healthModule() {
 
             // Readiness probe - checks if the application is ready to serve traffic
             get("/readiness") {
-                call.respond( HttpStatusCode.OK)
+                call.respond(HttpStatusCode.OK)
             }
         }
     }
 }
-

@@ -35,29 +35,47 @@ data class EnkelvoudigInformatieObjectRequest(
     val integriteit: Integriteit? = null,
     val informatieobjecttype: String? = null,
     val trefwoorden: List<String>? = null,
-    val inhoudIsVervallen: Boolean? = null
-) : ApiRequest
-{
+    val inhoudIsVervallen: Boolean? = null,
+) : ApiRequest {
     init {
 
         // Length checks
-        require(identificatie.isNullOrBlank() || identificatie.length <= 40) { "Identificatie mag maximaal 40 karakters lang zijn" }
-        require(bestandsnaam.isNullOrBlank() || bestandsnaam.length <= 255) { "Bestandsnaam mag maximaal 255 karakters lang zijn" }
+        require(identificatie.isNullOrBlank() || identificatie.length <= 40) {
+            "Identificatie mag maximaal 40 karakters lang zijn"
+        }
+        require(bestandsnaam.isNullOrBlank() || bestandsnaam.length <= 255) {
+            "Bestandsnaam mag maximaal 255 karakters lang zijn"
+        }
         require(titel.orEmpty().length <= 200) { "Titel mag maximaal 200 karakters lang zijn" }
         require(auteur.orEmpty().length <= 200) { "Auteur mag maximaal 200 karakters lang zijn" }
-        require(beschrijving.isNullOrBlank() || beschrijving.length <= 1000) { "Beschrijving mag maximaal 1000 karakters lang zijn" }
+        require(beschrijving.isNullOrBlank() || beschrijving.length <= 1000) {
+            "Beschrijving mag maximaal 1000 karakters lang zijn"
+        }
         require(formaat.isNullOrEmpty() || formaat.length <= 255) { "Formaat mag maximaal 255 karakters lang zijn" }
         require(link.isNullOrEmpty() || link.length <= 200) { "Link mag maximaal 200 karakters lang zijn" }
-        require(informatieobjecttype.isNullOrBlank() || informatieobjecttype.length <= 200) { "Informatieobjecttype mag maximaal 200 karakters lang zijn" }
-        require(trefwoorden.isNullOrEmpty() || trefwoorden.all { it.length <= 100 }) { "Elk trefwoord mag maximaal 100 karakters lang zijn" }
+        require(informatieobjecttype.isNullOrBlank() || informatieobjecttype.length <= 200) {
+            "Informatieobjecttype mag maximaal 200 karakters lang zijn"
+        }
+        require(
+            trefwoorden.isNullOrEmpty() ||
+                trefwoorden.all {
+                    it.length <= 100
+                },
+        ) { "Elk trefwoord mag maximaal 100 karakters lang zijn" }
 
         // format checks
         require(taal.isNullOrBlank() || taal.matches(Regex("^[a-z]{3}$"))) { "Taal moet conform ISO 639-2/B code zijn" }
 
         // complex requirements
-        require((status != EnkelvoudigInformatieObjectStatus.IN_BEWERKING &&
-                status != EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING) ||
-                ondertekening == null) { "Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'" }
+        require(
+            (
+                status != EnkelvoudigInformatieObjectStatus.IN_BEWERKING &&
+                    status != EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING
+                ) ||
+                ondertekening == null,
+        ) {
+            "Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'"
+        }
 
         if (inhoud != null) {
             require(bestandsnaam != null) { "Bestandsnaam moet worden opgegeven als inhoud is opgegeven" }
@@ -77,38 +95,21 @@ data class EnkelvoudigInformatieObjectRequest(
         require(creatiedatum != null) { "Creatiedatum mag niet leeg zijn" }
     }
 
-    fun isFileEmpty(): Boolean {
-        return inhoud.isNullOrEmpty() || bestandsnaam == null
-    }
-
+    fun isFileEmpty(): Boolean = inhoud.isNullOrEmpty() || bestandsnaam == null
 }
 
 @Serializable
-data class Ondertekening(
-    val soort: OndertekeningSoort,
-    val datum: LocalDate
-)
+data class Ondertekening(val soort: OndertekeningSoort, val datum: LocalDate)
 
 @Serializable
-data class Integriteit(
-    val algoritme: IntegriteitAlgoritme,
-    val waarde: String,
-    val datum: LocalDate
-)
-{
+data class Integriteit(val algoritme: IntegriteitAlgoritme, val waarde: String, val datum: LocalDate) {
     init {
         require(waarde.isNotEmpty()) { "Waarde mag niet leeg zijn" }
     }
 }
 
 @Serializable
-data class BestandsDeelResponse (
-    val url: String,
-    val volgnummer: Int,
-    val omvang: Long,
-    val voltooid: Boolean,
-    val lock: Boolean
-)
+data class BestandsDeelResponse(val url: String, val volgnummer: Int, val omvang: Long, val voltooid: Boolean, val lock: Boolean)
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
@@ -163,7 +164,7 @@ enum class EnkelvoudigInformatieObjectStatus {
     VASTGESTELD,
 
     @SerialName("gearchiveerd")
-    GEARCHIVEERD
+    GEARCHIVEERD,
 }
 
 @Serializable
@@ -195,7 +196,7 @@ enum class Vertrouwelijkheidaanduiding {
     GEHEIM,
 
     @SerialName("zeer_geheim")
-    ZEER_GEHEIM
+    ZEER_GEHEIM,
 }
 
 @Serializable
@@ -231,27 +232,27 @@ enum class IntegriteitAlgoritme {
     SHA_1,
 
     @SerialName("sha_256")
-    SHA_256
+    SHA_256,
 }
 
 @Serializable
 enum class OndertekeningSoort {
     @SerialName("analoog")
     ANALOOG,
+
     @SerialName("digitaal")
     DIGITAAL,
+
     @SerialName("pki")
-    PKI
+    PKI,
 }
 
 @Serializable
-data class UnlockEIORequest(
-    val lock: String
-) : ApiRequest
+data class UnlockEIORequest(val lock: String) : ApiRequest
 
 @Serializable
 data class EIOZoekRequest(
     @SerialName("uuid_In")
     val uuidIn: List<String>,
-    val expand: String? = null
+    val expand: String? = null,
 ) : ApiRequest

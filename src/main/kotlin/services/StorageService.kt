@@ -4,6 +4,8 @@ package com.baseflow.services
 
 import com.baseflow.config.MinioConfig
 import org.koin.core.annotation.Singleton
+import org.reactivestreams.Subscriber
+import org.reactivestreams.Subscription
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
@@ -16,14 +18,11 @@ import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
-import java.net.URI
+import java.io.ByteArrayInputStream
 import java.io.OutputStream
+import java.net.URI
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
-import org.reactivestreams.Subscriber
-import org.reactivestreams.Subscription
-import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 
 /**
@@ -38,7 +37,7 @@ open class StorageService {
     private val bucketName = MinioConfig.bucketName
 
     private val creds = StaticCredentialsProvider.create(
-        AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey)
+        AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
     )
 
     private val s3Config = S3Configuration.builder()
@@ -64,7 +63,6 @@ open class StorageService {
         logger.info("Created S3 client for bucket {}", bucketName)
     }
 
-
     fun uploadFile(objectName: String, content: ByteArray) {
         try {
             if (!s3Client.listBuckets().join().buckets()
@@ -80,7 +78,7 @@ open class StorageService {
                 "Uploading file {} to bucket {} (size: {} bytes)",
                 objectName,
                 bucketName,
-                content.size
+                content.size,
             )
             val putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
@@ -92,7 +90,7 @@ open class StorageService {
                 "Successfully uploaded data to {}/{} (ETag: {})",
                 bucketName,
                 objectName,
-                putObjectResponse.eTag()
+                putObjectResponse.eTag(),
             )
         } catch (e: Exception) {
             logger.error(
@@ -100,40 +98,20 @@ open class StorageService {
                 objectName,
                 bucketName,
                 e.message,
-                e
+                e,
             )
             throw e
         }
     }
 
-    fun downloadFile(objectName: String): ByteArray {
-        logger.debug(
-            "Downloading file {} from bucket {}",
-            objectName,
-            bucketName
-        )
-        // return byte array of file content
-        val getObjectRequest =
-            GetObjectRequest.builder().bucket(bucketName).key(objectName)
-                .build()
-        val response = s3Client
-            .getObject(getObjectRequest, AsyncResponseTransformer.toBytes())
-            .join()
-
-        return response.asByteArray()
-    }
-
     /**
      * Streams an object directly to the provided OutputStream without loading it fully into memory.
      */
-    fun downloadFileTo(
-        objectName: String,
-        output: OutputStream
-    ): CompletableFuture<Void> {
+    fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
         logger.debug(
             "Streaming download of {} from bucket {}",
             objectName,
-            bucketName
+            bucketName,
         )
         val getObjectRequest = GetObjectRequest.builder()
             .bucket(bucketName)
@@ -189,22 +167,6 @@ open class StorageService {
         return result
     }
 
-    fun getDownloadUrl(objectName: String): String {
-        // get token url
-        val getReq = GetObjectRequest.builder()
-            .bucket(bucketName)
-            .key(objectName)
-            .build()
-
-        val presignReq = GetObjectPresignRequest.builder()
-            .signatureDuration(MinioConfig.urlExpiry)
-            .getObjectRequest(getReq)
-            .build()
-
-        return presigner.presignGetObject(presignReq).url().toString()
-    }
-
-
     companion object {
         /*
         Detecteert het formaat van een bestand op basis van de eerste bytes.
@@ -218,7 +180,7 @@ open class StorageService {
                 0xD0,
                 0xCF,
                 0x11,
-                0xE0
+                0xE0,
             ) -> "application/vnd.ms-office"
             // modern office files
             // word
@@ -229,11 +191,12 @@ open class StorageService {
                 0x50,
                 0x4B,
                 0x03,
-                0x04
-            ) && bytes.isOpcPackageWithEntry("ppt/presentation.xml") ->
+                0x04,
+            ) &&
+                bytes.isOpcPackageWithEntry("ppt/presentation.xml") ->
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation"
             // excel
-            bytes.hasPrefix(0x50,0x4B,0x03,0x04) && bytes.isOpcPackageWithEntry("xl/workbook.xml") ->
+            bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) && bytes.isOpcPackageWithEntry("xl/workbook.xml") ->
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
             bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) -> "application/zip"
@@ -245,17 +208,18 @@ open class StorageService {
                 0x0D,
                 0x0A,
                 0x1A,
-                0x0A
+                0x0A,
             ) -> "image/png"
 
             bytes.hasPrefix(0xFF, 0xD8, 0xFF) -> "image/jpeg"
             bytes.hasPrefix(0x47, 0x49, 0x46, 0x38) -> "image/gif"
             bytes.hasPrefix(0x42, 0x4D) -> "image/bmp"
             bytes.hasPrefix(0x4F, 0x67, 0x67, 0x53) -> "application/ogg"
-            bytes.hasPrefix(0x49, 0x44, 0x33) || bytes.hasPrefix(
-                0xFF,
-                0xFB
-            ) -> "audio/mpeg"
+            bytes.hasPrefix(0x49, 0x44, 0x33) ||
+                bytes.hasPrefix(
+                    0xFF,
+                    0xFB,
+                ) -> "audio/mpeg"
 
             bytes.hasPrefix(0x66, 0x4C, 0x61, 0x43) -> "audio/flac"
             bytes.hasPrefix(0x1A, 0x45, 0xDF, 0xA3) -> "video/x-matroska"
@@ -267,34 +231,35 @@ open class StorageService {
                 0xBC,
                 0xAF,
                 0x27,
-                0x1C
+                0x1C,
             ) -> "application/x-7z-compressed"
 
             bytes.hasPrefix(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00) ||
-                    bytes.hasPrefix(
-                        0x52,
-                        0x61,
-                        0x72,
-                        0x21,
-                        0x1A,
-                        0x07,
-                        0x01,
-                        0x00
-                    ) -> "application/vnd.rar"
+                bytes.hasPrefix(
+                    0x52,
+                    0x61,
+                    0x72,
+                    0x21,
+                    0x1A,
+                    0x07,
+                    0x01,
+                    0x00,
+                ) -> "application/vnd.rar"
 
-            bytes.hasPrefix(0x49, 0x49, 0x2A, 0x00) || bytes.hasPrefix(
-                0x4D,
-                0x4D,
-                0x00,
-                0x2A
-            ) -> "image/tiff"
+            bytes.hasPrefix(0x49, 0x49, 0x2A, 0x00) ||
+                bytes.hasPrefix(
+                    0x4D,
+                    0x4D,
+                    0x00,
+                    0x2A,
+                ) -> "image/tiff"
 
             bytes.hasIsoBmffBrand(
                 "heic",
                 "heif",
                 "hevc",
                 "mif1",
-                "msf1"
+                "msf1",
             ) -> "image/heic"
 
             bytes.startsWithAscii("<svg") -> "image/svg+xml"
@@ -304,7 +269,7 @@ open class StorageService {
                 "mp41",
                 "mp42",
                 "avc1",
-                "dash"
+                "dash",
             ) -> "video/mp4"
 
             bytes.hasRiffType("AVI ") -> "video/x-msvideo"
@@ -319,9 +284,11 @@ open class StorageService {
                 0xD0,
                 0xCF,
                 0x11,
-                0xE0
-            ) && bytes.containsAscii("PowerPoint Document") ->
+                0xE0,
+            ) &&
+                bytes.containsAscii("PowerPoint Document") ->
                 "application/vnd.ms-powerpoint"
+
             else -> null
         }
 
@@ -330,8 +297,9 @@ open class StorageService {
         Retourneert true als alle signatures overeenkomen, anders false.
          */
         private fun ByteArray.hasPrefix(vararg signature: Int): Boolean {
-            if (size < signature.size)
+            if (size < signature.size) {
                 return false
+            }
             signature.forEachIndexed { index, value ->
                 if (this[index] != value.toByte()) return false
             }
@@ -342,30 +310,34 @@ open class StorageService {
         Controleert of de gegeven bytes een RIFF-header hebben met het opgegeven type.
          */
         private fun ByteArray.hasRiffType(expected: String): Boolean {
-            if (size < 12 || expected.length != 4)
+            if (size < 12 || expected.length != 4) {
                 return false
-            return hasPrefix(0x52, 0x49, 0x46, 0x46) && copyOfRange(
-                8,
-                12
-            ).contentEquals(expected.toByteArray())
+            }
+            return hasPrefix(0x52, 0x49, 0x46, 0x46) &&
+                copyOfRange(
+                    8,
+                    12,
+                ).contentEquals(expected.toByteArray())
         }
 
         /*
         Controleert of de gegeven bytes een ISO/IEC 14496-12:2015 BMFF-header hebben met het opgegeven type.
          */
         private fun ByteArray.hasIsoBmffBrand(vararg brands: String): Boolean {
-            if (size < 12)
+            if (size < 12) {
                 return false
+            }
             if (!copyOfRange(4, 8).contentEquals(
                     byteArrayOf(
                         0x66,
                         0x74,
                         0x79,
-                        0x70
-                    )
+                        0x70,
+                    ),
                 )
-            )
+            ) {
                 return false
+            }
             val brand = copyOfRange(8, 12).decodeToString().lowercase()
             return brands.any { brand == it.lowercase() }
         }
@@ -373,26 +345,28 @@ open class StorageService {
         /*
         Controleert of de gegeven bytes een tar-header hebben.
          */
-        private fun ByteArray.hasTarMagic(): Boolean =
-            size >= 262 && copyOfRange(
+        private fun ByteArray.hasTarMagic(): Boolean = size >= 262 &&
+            copyOfRange(
                 257,
-                262
+                262,
             ).contentEquals("ustar".toByteArray())
 
         /*
         Controleert of de gegeven bytes een ASCII-tekst hebben met het opgegeven voorvoegsel.
          */
         private fun ByteArray.startsWithAscii(prefix: String): Boolean {
-            if (isEmpty())
+            if (isEmpty()) {
                 return false
-
-            var offset = if (
-                size >= 3 && this[0] == 0xEF.toByte() && this[1] == 0xBB.toByte() && this[2] == 0xBF.toByte()) {
-                3
-            } else {
-                0
             }
-            while (offset < size && this[offset].toInt().toChar()
+
+            var offset =
+                if (size >= 3 && this[0] == 0xEF.toByte() && this[1] == 0xBB.toByte() && this[2] == 0xBF.toByte()) {
+                    3
+                } else {
+                    0
+                }
+            while (offset < size &&
+                this[offset].toInt().toChar()
                     .isWhitespace()
             ) {
                 offset++
@@ -424,7 +398,6 @@ open class StorageService {
             false
         }
 
-
         /*
         Controleert of de gegeven bytes een ASCII-tekst bevat met het opgegeven voorvoegsel.
         Zoeken wordt beperkt tot de eerste 1024 bytes voor efficiëntie.
@@ -445,19 +418,19 @@ open class StorageService {
             return false
         }
 
-        private fun ByteArray.isOpcPackageWithEntry(requiredEntry: String): Boolean =
-            try {
-                ZipInputStream(ByteArrayInputStream(this)).use { zip ->
-                    var entry = zip.nextEntry
-                    while (entry != null) {
-                        if (entry.name.equals(requiredEntry, ignoreCase = true))
-                            return true
-                        entry = zip.nextEntry
+        private fun ByteArray.isOpcPackageWithEntry(requiredEntry: String): Boolean = try {
+            ZipInputStream(ByteArrayInputStream(this)).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    if (entry.name.equals(requiredEntry, ignoreCase = true)) {
+                        return true
                     }
-                    false
+                    entry = zip.nextEntry
                 }
-            } catch (_: Exception) {
                 false
             }
+        } catch (_: Exception) {
+            false
+        }
     }
 }

@@ -30,9 +30,7 @@ import java.util.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-private fun getUserFromJwt(call: PipelineCall): JWTPrincipal? {
-    return call.principal<JWTPrincipal>()
-}
+private fun getUserFromJwt(call: PipelineCall): JWTPrincipal? = call.principal<JWTPrincipal>()
 
 private fun getUserId(call: PipelineCall): String? {
     val principal = getUserFromJwt(call) ?: return null
@@ -49,9 +47,7 @@ private fun getUserClaim(call: PipelineCall, claimName: String = "username"): St
         ?: principal.payload.getClaim("user_representation")?.asString()?.ifEmpty { null }
 }
 
-private fun getAuditToelichting(call: PipelineCall): String? {
-    return call.request.headers["X-Audit-Toelichting"]
-}
+private fun getAuditToelichting(call: PipelineCall): String? = call.request.headers["X-Audit-Toelichting"]
 
 enum class AuditSource(val weergave: String) {
     AC("ac"),
@@ -62,7 +58,7 @@ enum class AuditSource(val weergave: String) {
     BRC("brc"),
     CMC("cmc"),
     KC("kc"),
-    VRC("vrc")
+    VRC("vrc"),
 }
 
 enum class AuditAction(val value: String, val weergave: String) {
@@ -73,7 +69,7 @@ enum class AuditAction(val value: String, val weergave: String) {
     DESTROY("destroy", "Object verwijderd"),
     UPDATE("update", "Object bijgewerkt"),
     HEAD("head", "Object opgevraagd (HEAD)"),
-    UNKNOWN("unknown", "Onbekende actie")
+    UNKNOWN("unknown", "Onbekende actie"),
 }
 
 val httpMethodToAction = mapOf(
@@ -88,7 +84,7 @@ val httpMethodToAction = mapOf(
 @Serializable
 data class ApplicationInfo @JsonCreator constructor(
     @param:JsonProperty("uuid") val id: String,
-    @param:JsonProperty("label") val label: String
+    @param:JsonProperty("label") val label: String,
 )
 
 @OptIn(ExperimentalTime::class)
@@ -120,21 +116,21 @@ open class AuditTrailService(private val context: AuditContext) {
             HttpMethod.Post -> {
                 wijzigingen = Wijzigingen.of(
                     oud = null, // Voor een POST-aanroep is er geen oud object
-                    nieuw = after
+                    nieuw = after,
                 )
             }
 
             HttpMethod.Patch, HttpMethod.Put -> {
                 wijzigingen = Wijzigingen.of(
                     oud = before,
-                    nieuw = after
+                    nieuw = after,
                 )
             }
 
             HttpMethod.Delete -> {
                 wijzigingen = Wijzigingen.of(
                     oud = before,
-                    nieuw = null
+                    nieuw = null,
                 )
             }
         }
@@ -144,7 +140,8 @@ open class AuditTrailService(private val context: AuditContext) {
                 this.applicatieId = appInfo.id
                 this.applicatieWeergave = appInfo.label
                 this.bron = AuditSource.DRC.weergave
-                this.hoofdObject = resourceUrl // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
+                // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
+                this.hoofdObject = resourceUrl
                 this.resource = "enkelvoudiginformatieobjecten"
                 this.resourceUrl = resourceUrl
                 this.resourceWeergave = context.customId
@@ -188,22 +185,18 @@ open class AuditTrailService(private val context: AuditContext) {
         return ApplicationInfo("unknown", "unknown")
     }
 
-    fun listByResource(resourceUuid: UUID): List<AuditTrailResponse> {
-        return transaction {
-            AuditTrailEntity.find {
-                AuditTrails.resourceUrl like "%/$resourceUuid"
-            }.map { it.toResponse() }
-        }
+    fun listByResource(resourceUuid: UUID): List<AuditTrailResponse> = transaction {
+        AuditTrailEntity.find {
+            AuditTrails.resourceUrl like "%/$resourceUuid"
+        }.map { it.toResponse() }
     }
 
-    fun getByUuid(resourceUuid: UUID, auditTrailUuid: UUID): AuditTrailResponse? {
-        return transaction {
-            val entity = AuditTrailEntity.findById(auditTrailUuid)
-            if (entity != null && entity.resourceUrl.endsWith("/$resourceUuid")) {
-                entity.toResponse()
-            } else {
-                null
-            }
+    fun getByUuid(resourceUuid: UUID, auditTrailUuid: UUID): AuditTrailResponse? = transaction {
+        val entity = AuditTrailEntity.findById(auditTrailUuid)
+        if (entity != null && entity.resourceUrl.endsWith("/$resourceUuid")) {
+            entity.toResponse()
+        } else {
+            null
         }
     }
 

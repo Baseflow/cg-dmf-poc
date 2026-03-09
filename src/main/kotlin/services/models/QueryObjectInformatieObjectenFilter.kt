@@ -15,6 +15,5 @@ data class QueryObjectInformatieObjectenFilter(
      * NOTE: pageSize is not yet defined in the Documenten API 1.5.0 specification.
      * This parameter is an extension used for pagination control and might require filing a ticket for the official spec.
      */
-    val pageSize: Int = 100
+    val pageSize: Int = 100,
 )
-

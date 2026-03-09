@@ -43,7 +43,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
             ApplicationConfig,
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
-            auditContext
+            auditContext,
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
@@ -70,7 +70,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -99,7 +99,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         // Create first relation
@@ -124,7 +124,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val createResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -163,7 +163,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val createResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -196,7 +196,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val createResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -234,31 +234,46 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         // Create two OIOs with the same informatieobject
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOIORequest.serializer(), CreateOIORequest(
-                informatieobject = sharedEioUrl,
-                subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
-                subjectType = SubjectTypeEnum.ZAAK
-            )))
+            setBody(
+                Json.encodeToString(
+                    CreateOIORequest.serializer(),
+                    CreateOIORequest(
+                        informatieobject = sharedEioUrl,
+                        subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
+                        subjectType = SubjectTypeEnum.ZAAK,
+                    ),
+                ),
+            )
         }
 
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOIORequest.serializer(), CreateOIORequest(
-                informatieobject = sharedEioUrl,
-                subjectObject = "https://example.com/besluiten/api/v1/besluiten/22222222-2222-2222-2222-222222222222",
-                subjectType = SubjectTypeEnum.BESLUIT
-            )))
+            setBody(
+                Json.encodeToString(
+                    CreateOIORequest.serializer(),
+                    CreateOIORequest(
+                        informatieobject = sharedEioUrl,
+                        subjectObject = "https://example.com/besluiten/api/v1/besluiten/22222222-2222-2222-2222-222222222222",
+                        subjectType = SubjectTypeEnum.BESLUIT,
+                    ),
+                ),
+            )
         }
 
         // Create one OIO with a different informatieobject
         val otherEioId = createTestEIO()
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOIORequest.serializer(), CreateOIORequest(
-                informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$otherEioId",
-                subjectObject = "https://example.com/zaken/api/v1/zaken/33333333-3333-3333-3333-333333333333",
-                subjectType = SubjectTypeEnum.ZAAK
-            )))
+            setBody(
+                Json.encodeToString(
+                    CreateOIORequest.serializer(),
+                    CreateOIORequest(
+                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$otherEioId",
+                        subjectObject = "https://example.com/zaken/api/v1/zaken/33333333-3333-3333-3333-333333333333",
+                        subjectType = SubjectTypeEnum.ZAAK,
+                    ),
+                ),
+            )
         }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT?informatieobject=${sharedEioUrl.encodeURLParameter()}")
@@ -268,7 +283,12 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(responseBody)
         assertEquals(2, items.size, "Expected 2 items but got ${items.size}. Items: $items")
-        assertTrue(items.all { it.informatieobject.contains(sharedEioId) }, "Not all items have matching informatieobject UUID. Expected UUID: $sharedEioId, Got: ${items.map { it.informatieobject }}")
+        assertTrue(
+            items.all {
+                it.informatieobject.contains(sharedEioId)
+            },
+            "Not all items have matching informatieobject UUID. Expected UUID: $sharedEioId, Got: ${items.map { it.informatieobject }}",
+        )
     }
 
     @Test
@@ -281,32 +301,47 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val eio1Id = createTestEIO()
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOIORequest.serializer(), CreateOIORequest(
-                informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio1Id",
-                subjectObject = sharedObjectUrl,
-                subjectType = SubjectTypeEnum.ZAAK
-            )))
+            setBody(
+                Json.encodeToString(
+                    CreateOIORequest.serializer(),
+                    CreateOIORequest(
+                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio1Id",
+                        subjectObject = sharedObjectUrl,
+                        subjectType = SubjectTypeEnum.ZAAK,
+                    ),
+                ),
+            )
         }
 
         val eio2Id = createTestEIO()
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOIORequest.serializer(), CreateOIORequest(
-                informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio2Id",
-                subjectObject = sharedObjectUrl,
-                subjectType = SubjectTypeEnum.ZAAK
-            )))
+            setBody(
+                Json.encodeToString(
+                    CreateOIORequest.serializer(),
+                    CreateOIORequest(
+                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio2Id",
+                        subjectObject = sharedObjectUrl,
+                        subjectType = SubjectTypeEnum.ZAAK,
+                    ),
+                ),
+            )
         }
 
         // Create one OIO with a different subject object
         val eio3Id = createTestEIO()
         client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOIORequest.serializer(), CreateOIORequest(
-                informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio3Id",
-                subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
-                subjectType = SubjectTypeEnum.ZAAK
-            )))
+            setBody(
+                Json.encodeToString(
+                    CreateOIORequest.serializer(),
+                    CreateOIORequest(
+                        informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eio3Id",
+                        subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
+                        subjectType = SubjectTypeEnum.ZAAK,
+                    ),
+                ),
+            )
         }
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT?object=$sharedObjectUrl")
@@ -329,7 +364,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val zaakRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
         val zaakResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
@@ -341,7 +376,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val besluitRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/besluiten/api/v1/besluiten/11111111-1111-1111-1111-111111111111",
-            subjectType = SubjectTypeEnum.BESLUIT
+            subjectType = SubjectTypeEnum.BESLUIT,
         )
         val besluitResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
@@ -353,7 +388,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val verzoekRequest = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/verzoeken/api/v1/verzoeken/22222222-2222-2222-2222-222222222222",
-            subjectType = SubjectTypeEnum.VERZOEK
+            subjectType = SubjectTypeEnum.VERZOEK,
         )
         val verzoekResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
@@ -361,6 +396,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         }
         assertEquals(HttpStatusCode.Created, verzoekResponse.status)
     }
+
     @Test
     fun `test get objectinformatieobject with invalid uuid returns 400`() = testApplication {
         application { setup() }
@@ -396,7 +432,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/zaken/api/v1/zaken/1",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val createResponse = client.post("$API_BASE/$RESOURCE_SEGMENT") {

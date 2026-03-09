@@ -1,4 +1,5 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.jetbrains.kotlin.gradle.internal.builtins.StandardNames.FqNames.target
 
 plugins {
     kotlin("jvm") version "2.3.10"
@@ -7,6 +8,8 @@ plugins {
     id("com.github.ben-manes.versions") version "0.53.0"
     // KSP plugin for annotation processing (required by koin-annotations)
     id("com.google.devtools.ksp") version "2.3.6"
+    // Code formatting with Spotless and ktlint
+    id("com.diffplug.spotless") version "7.0.4"
 }
 
 group = "com.baseflow"
@@ -18,7 +21,7 @@ repositories {
 }
 
 ksp {
-    arg("KOIN_DEFAULT_MODULE","true")
+    arg("KOIN_DEFAULT_MODULE", "true")
 }
 
 dependencies {
@@ -96,10 +99,35 @@ dependencies {
     }
 }
 
-
 kotlin {
     jvmToolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+spotless {
+    kotlin {
+        target("src/**/*.kt")
+        ktlint("1.6.0")
+            .editorConfigOverride(
+                mapOf(
+                    "ktlint_standard_no-wildcard-imports" to "disabled",
+                    "ktlint_standard_package-name" to "disabled",
+                    "ktlint_standard_property-naming" to "disabled",
+                    "ktlint_standard_filename" to "disabled",
+                    "max_line_length" to "140",
+                ),
+            )
+        licenseHeader(
+            """
+            // SPDX-License-Identifier: EUPL-1.2
+            // Copyright (C) ${'$'}YEAR Gemeente Utrecht
+            """.trimIndent(),
+        )
+    }
+    kotlinGradle {
+        target("*.gradle.kts", "gradle/**/*.gradle.kts")
+        ktlint("1.6.0")
     }
 }
 

@@ -13,12 +13,11 @@ abstract class Config {
     abstract fun printConfig()
 
     companion object {
-       private val env = dotenv {
+        private val env = dotenv {
             ignoreIfMalformed = true
             ignoreIfMissing = true
-       }
+        }
 
-        fun envOrSystem(key: String, default: String): String =
-            env[key] ?: System.getenv(key) ?: default
+        fun envOrSystem(key: String, default: String): String = env[key] ?: System.getenv(key) ?: default
     }
 }

@@ -14,7 +14,7 @@ data class CreateOIORequest(
     @SerialName("object")
     val subjectObject: String,
     @SerialName("objectType")
-    val subjectType: SubjectTypeEnum
+    val subjectType: SubjectTypeEnum,
 ) : ApiRequest {
     init {
         require(informatieobject.isNotBlank()) { "Informatieobject mag niet leeg zijn" }
@@ -35,7 +35,7 @@ data class ObjectInformatieObjectResponse(
     @SerialName("object")
     val subjectObject: String,
     @SerialName("objectType")
-    val subjectType: SubjectTypeEnum
+    val subjectType: SubjectTypeEnum,
 ) : ApiEntityResponse
 
 /**
@@ -50,6 +50,5 @@ enum class SubjectTypeEnum {
     ZAAK,
 
     @SerialName("verzoek")
-    VERZOEK
+    VERZOEK,
 }
-

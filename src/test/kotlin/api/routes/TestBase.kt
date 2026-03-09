@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
 import com.baseflow.api.documentenApiModule
@@ -21,7 +23,7 @@ open class TestBase(dbNamePrefix: String) {
             "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
             user = "root",
-            password = ""
+            password = "",
         )
     }
 
