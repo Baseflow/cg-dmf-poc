@@ -7,12 +7,12 @@ services:
       POSTGRES_USER: documenten
       POSTGRES_PASSWORD: documenten
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./data/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U documenten"]
+      test: ['CMD-SHELL', 'pg_isready -U documenten']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +33,7 @@ services:
       - KC_DB_URL_DATABASE=keycloak
       - KC_DB_USERNAME=documenten
     ports:
-      - "8081:8080"
+      - '8081:8080'
     volumes:
       - ./data/realm-export.json:/opt/keycloak/data/import/realm.json
     depends_on:
@@ -44,7 +44,7 @@ services:
     build: .
     container_name: dmf-app
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/documenten
       DB_USER: documenten
@@ -71,7 +71,21 @@ services:
     volumes:
       - minio_data:/data
 
+  notificaties-api:
+    image: ghcr.io/vng-realisatie/notificaties-api:1.0.0.post1
+    container_name: notificaties-api
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=notificaties
+      - DB_USER=documenten
+      - DB_PASSWORD=documenten
+      - SECRET_KEY=notificaties-secret
+    ports:
+      - '8082:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   minio_data:
-
