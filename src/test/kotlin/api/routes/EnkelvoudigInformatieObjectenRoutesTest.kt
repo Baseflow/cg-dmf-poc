@@ -256,7 +256,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val getResponse = client.get("$API_BASE/$RESOURCE_SEGMENT/$uuid")
         assertEquals(HttpStatusCode.OK, getResponse.status)
         val contentType = getResponse.headers[HttpHeaders.ContentType]
-        assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), contentType)
+        assertEquals(ContentType.Application.Json.toString(), contentType)
         val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResponse.bodyAsText())
         assertEquals(uuid, fetched.id)
         assertEquals("dut", fetched.taal)
@@ -281,7 +281,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val lockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/lock")
         assertEquals(HttpStatusCode.OK, lockResp.status)
         val lockContentType = lockResp.headers[HttpHeaders.ContentType]
-        assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), lockContentType)
+        assertEquals(ContentType.Application.Json.toString(), lockContentType)
         val payload = Json.decodeFromString<LockPayload>(lockResp.bodyAsText())
         assert(payload.lock.isNotBlank())
 
@@ -313,7 +313,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
             setBody(Json.encodeToString(unlockReq))
         }
         val lockContentType = lockResp.headers[HttpHeaders.ContentType]
-        assertEquals(ContentType.Application.Json.withCharset(Charsets.UTF_8).toString(), lockContentType)
+        assertEquals(ContentType.Application.Json.toString(), lockContentType)
         assertEquals(HttpStatusCode.NoContent, unlockResp.status)
 
         // Unlock again -> NotLocked (409)
