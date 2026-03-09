@@ -380,6 +380,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         }
         assertEquals(HttpStatusCode.BadRequest, unlockResp.status)
     }
+    
     @Test
     fun `test zoek endpoint with uuid_In`() = testApplication {
         application { setup() }

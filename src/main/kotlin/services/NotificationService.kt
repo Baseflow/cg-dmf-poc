@@ -143,11 +143,15 @@ class NotificationService(private val context: AuditContext) {
 
                 if (checkResponse.status.isSuccess()) {
                     val responseBody = checkResponse.bodyAsText()
-                    // Check if the response contains our kanaal
-                    if (responseBody.contains("\"naam\":\"$kanaalName\"") ||
-                        responseBody.contains("\"naam\": \"$kanaalName\"")) {
-                        logger.info("Kanaal '{}' already exists", kanaalName)
-                        return true
+                    try {
+                        val kanaalList = json.decodeFromString<List<Kanaal>>(responseBody)
+                        val kanaalExists = kanaalList.any { it.naam == kanaalName }
+                        if (kanaalExists) {
+                            logger.info("Kanaal '{}' already exists", kanaalName)
+                            return true
+                        }
+                    } catch (e: Exception) {
+                        logger.warn("Failed to parse kanaal response: {}", e.message)
                     }
                 }
 
@@ -240,7 +244,6 @@ class NotificationService(private val context: AuditContext) {
     }
 
 
-
     /**
      * Actually sends the notification to the Open Notificaties API.
      */
@@ -280,3 +283,11 @@ class NotificationService(private val context: AuditContext) {
         }
     }
 }
+
+@Serializable
+data class Kanaal(
+    val url: String,
+    val naam: String,
+    val documentatieLink: String? = null,
+    val filters: List<String>? = null
+)

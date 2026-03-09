@@ -27,8 +27,8 @@ private val logger = LoggerFactory.getLogger("NotificationPlugin")
  * Example usage:
  * ```kotlin
  * route("/api/v1") {
- *     install(AuditTrailPlugin)
  *     install(NotificationPlugin)
+ *     install(AuditTrailPlugin)
  *
  *     route("/enkelvoudiginformatieobjecten") {
  *         enkelvoudigInformatieObjectenRoutes()
@@ -39,7 +39,6 @@ private val logger = LoggerFactory.getLogger("NotificationPlugin")
 val NotificationPlugin = createRouteScopedPlugin("NotificationPlugin") {
 
     onCall {
-        // Log initialization only once on first call
         if (!NotificationConfig.isEnabled) {
             logger.trace("NotificationPlugin active but notifications disabled - no URL/token configured")
         }
