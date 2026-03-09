@@ -12,7 +12,7 @@ post {
 
 body:json {
   {
-    "informatieobject": "{{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{eio_id}}",
+    "informatieobject": "{{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}",
     "object": "{{zakenBaseUrl}}/zaken/{{zaak_id}}",
     "objectType": "zaak"
   }
@@ -31,29 +31,33 @@ script:pre-request {
       return v.toString(16);
     });
   };
-
+  
   bru.setVar("zaak_id", generateUUID());
-
+  
   // Fetch the first EIO to use in the request
   const response = await bru.runRequest(
     "Documenten API/Enkelvoudig Informatie Object/Get All"
   );
-
+  
   if (!response) {
     throw new Error("Get All request returned no response");
   }
-
+  
   const data = response.data;
   if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
     throw new Error("No results returned from Get All");
   }
-
+  
   const firstId = data.results[0].id;
   bru.setVar("eio_id", firstId);
+}
+
+script:post-response {
+  const createdId = res.body.id;
+  bru.setVar("createdOio", createdId);
 }
 
 settings {
   encodeUrl: true
   timeout: 0
 }
-

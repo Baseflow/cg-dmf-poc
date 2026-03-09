@@ -5,11 +5,12 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten/{{firstId}}
+  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten/{{createdOio}}
   body: none
   auth: inherit
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
 }
