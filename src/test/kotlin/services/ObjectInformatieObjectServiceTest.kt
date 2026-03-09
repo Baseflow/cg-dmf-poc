@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.entities.EIORecordEntity
@@ -36,7 +37,8 @@ class ObjectInformatieObjectServiceTest {
             // Create all tables
             AllTables.createMissing()
         }
-        service = ObjectInformatieObjectService(resourceSegment = "objectinformatieobjecten")
+        val auditContext = AuditContext()
+        service = ObjectInformatieObjectService(resourceSegment = "objectinformatieobjecten", AuditTrailService(auditContext), auditContext)
     }
 
     @AfterTest

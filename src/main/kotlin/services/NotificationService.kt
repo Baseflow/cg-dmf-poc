@@ -244,6 +244,7 @@ class NotificationService(private val context: AuditContext) {
     }
 
 
+
     /**
      * Actually sends the notification to the Open Notificaties API.
      */

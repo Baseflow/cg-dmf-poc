@@ -161,6 +161,7 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
      */
     fun delete(id: UUID): DeleteOIOResult = transaction {
         val entity = OIORecordEntity.findById(id)
+            auditContext.captureOld(entity?.toResponse(), entity?.informatieobjectVersie)
             auditTrailService.removeAuditTrailsForResource(id)
         if (entity == null) {
             logger.warn("Attempted to delete non-existent OIO with id=$id")

@@ -596,6 +596,8 @@ class EnkelvoudigInformatieObjectService(
     fun delete(id: UUID): DeleteResult {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
+            val latestVersion = record.versions.maxByOrNull { it.versie }
+            auditContext.captureOld(record.toResponse(latestVersion), latestVersion)
             auditTrailService.removeAuditTrailsForResource(id)
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked

@@ -218,7 +218,7 @@ class AuditTrailServiceTest {
     }
 
     @Test
-    fun `create should persist audit trail for DELETE request`() {
+    fun `create should not persist audit trail for DELETE request`() {
         val entityId = UUID.randomUUID().toString()
         val oldEntity = createTestEntity(entityId = entityId)
         val sourceRequest = TestAuditContext()
@@ -235,13 +235,7 @@ class AuditTrailServiceTest {
 
         transaction {
             val audits = AuditTrailEntity.all().toList()
-            assertEquals(1, audits.size)
-
-            val audit = audits.first()
-            assertEquals("destroy", audit.actie)
-            assertEquals("Object verwijderd", audit.actieWeergave)
-            assertNotNull(audit.wijzigingen.oud)
-            assertNull(audit.wijzigingen.nieuw)
+            assertEquals(0, audits.size)
         }
     }
 

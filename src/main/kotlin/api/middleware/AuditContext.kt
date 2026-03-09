@@ -18,13 +18,14 @@ class AuditContext {
     var sourceRequest: IAuditContext? = null
         private set
 
-    fun captureOld(entity: ApiEntityResponse?) {
+    fun captureOld(entity: ApiEntityResponse?, sourceRequest: IAuditContext? = null) {
         oldValue = entity
+        if (sourceRequest != null) this.sourceRequest = sourceRequest
     }
 
     fun captureNew(entity: ApiEntityResponse?, sourceRequest: IAuditContext? = null) {
         newValue = entity
-        this.sourceRequest = sourceRequest
+        if (sourceRequest != null) this.sourceRequest = sourceRequest
     }
 
     fun hasChanges(): Boolean = oldValue != null || newValue != null

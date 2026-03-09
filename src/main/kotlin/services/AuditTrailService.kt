@@ -96,7 +96,9 @@ open class AuditTrailService(private val context: AuditContext) {
     fun create(call: PipelineCall) {
         val before = context.oldValue
         val after = context.newValue
-        if (before == null && after == null) return
+        val method = call.request.httpMethod
+        // Skip logging if there are no changes, and it's not a DELETE operation (audit trails are supposed to be deleted on DELETE)
+        if ((before == null && after == null) || method == HttpMethod.Delete) return
 
         val userId = getUserId(call) ?: "unknown"
         val username = getUserClaim(call) ?: "unknown"
@@ -104,7 +106,6 @@ open class AuditTrailService(private val context: AuditContext) {
 
         val appInfo = getApplicationInfo(call)
 
-        val method = call.request.httpMethod
         var action = httpMethodToAction[method] ?: AuditAction.UNKNOWN
         if (method == HttpMethod.Get && before is List<*>) {
             action = AuditAction.LIST
