@@ -85,20 +85,13 @@ dependencies {
 
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
+        // dependency of flyway-core and ktor-server-auth-jwt
         implementation("tools.jackson.core:jackson-core:3.1.0") {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
-        implementation("com.fasterxml.jackson.core:jackson-core:2.19.1") {
+        // dependency of ktor-server-auth-jwt
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.1") {
             because("Minimum version from transitive dependencies")
-        }
-        implementation("io.netty:netty-codec-http:4.2.8") {
-            because("Fixes CVE-2025-67735 - CRLF Injection vulnerability in HttpRequestEncoder")
-        }
-        implementation("io.netty:netty-codec:4.1.125.Final") {
-            because("Fixes CVE-2025-58057 - DoS via zip bomb style attack in BrotliDecoder")
-        }
-        implementation("ch.qos.logback:logback-core:1.5.32") {
-            because("Fixes CVE-2026-1225 - ACE vulnerability in configuration file processing")
         }
     }
 }
