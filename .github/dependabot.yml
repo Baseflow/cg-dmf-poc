@@ -54,11 +54,6 @@ updates:
     # Allow specific dependencies to be updated more frequently
     allow:
       - dependency-type: "all"
-    # Ignore kotlinx-datetime -compat versions
-    ignore:
-      - dependency-name: "org.jetbrains.kotlinx:kotlinx-datetime"
-        versions:
-          - pattern: ".*-compat$"
 
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
