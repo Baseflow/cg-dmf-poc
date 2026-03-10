@@ -2,7 +2,6 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import api.models.UploadResultaat
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.middleware.AuditContext
@@ -48,61 +47,62 @@ class EnkelvoudigInformatieObjectService(
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse = suspendTransaction {
-        request.controleerVerplichteVelden()
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse =
+        suspendTransaction {
+            request.controleerVerplichteVelden()
 
-        val record = EIORecordEntity.new {
-        }
-
-        // Validate informatieobjecttype against catalogus
-        val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
-        val version = 1
-
-        val uploadResultaat = getUploadResultaat(request, record, version)
-        val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
-        val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
-
-        if (!request.inhoud.isNullOrEmpty()) {
-            require(bestandsFormaat != null) {
-                "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+            val record = EIORecordEntity.new {
             }
-        }
 
-        val eioVersion = EIOVersionEntity.new {
-            recordId = record
-            versie = version
-            bronOrganisatie = request.bronorganisatie!!
-            informatieobject_type = request.informatieobjecttype
-            taal = request.taal!!
-            bestandsnaam = request.bestandsnaam.orEmpty()
-            titel = request.titel!!
-            auteur = request.auteur!!
-            creatieDatum = request.creatiedatum!!
-            beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            formaat = bestandsFormaat
-            bestandsomvang = bestandsOmvang
-            link = request.link.orEmpty()
-            integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
-            integriteitWaarde = request.integriteit?.waarde.orEmpty()
-            integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
-            verschijningsVorm = request.verschijningsvorm.orEmpty()
-            trefwoorden = request.trefwoorden ?: emptyList()
-            vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
-                ?: ioType?.vertrouwelijkheidaanduiding
-                ?: ""
-            status = request.status?.toString().orEmpty()
-            beschrijving = request.beschrijving.orEmpty()
-            indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
-            ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
-            ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
-            identificatie = request.identificatie.orEmpty()
-            bestandsLocatie = uploadResultaat.bestandsLocatie
-        }
+            // Validate informatieobjecttype against catalogus
+            val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
+            val version = 1
 
-        val response = record.toResponse(eioVersion)
-        auditContext.captureNew(response, "${eioVersion.bronOrganisatie} - ${eioVersion.identificatie}")
-        response as EnkelvoudigInformatieObjectResponse
-    }
+            val uploadResultaat = getUploadResultaat(request, record, version)
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
+
+            if (!request.inhoud.isNullOrEmpty()) {
+                require(bestandsFormaat != null) {
+                    "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+                }
+            }
+
+            val eioVersion = EIOVersionEntity.new {
+                recordId = record
+                versie = version
+                bronOrganisatie = request.bronorganisatie!!
+                informatieobject_type = request.informatieobjecttype
+                taal = request.taal!!
+                bestandsnaam = request.bestandsnaam.orEmpty()
+                titel = request.titel!!
+                auteur = request.auteur!!
+                creatieDatum = request.creatiedatum!!
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                formaat = bestandsFormaat
+                bestandsomvang = bestandsOmvang
+                link = request.link.orEmpty()
+                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
+                integriteitWaarde = request.integriteit?.waarde.orEmpty()
+                integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
+                verschijningsVorm = request.verschijningsvorm.orEmpty()
+                trefwoorden = request.trefwoorden ?: emptyList()
+                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
+                    ?: ioType?.vertrouwelijkheidaanduiding
+                        ?: ""
+                status = request.status?.toString().orEmpty()
+                beschrijving = request.beschrijving.orEmpty()
+                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
+                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
+                ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
+                identificatie = request.identificatie.orEmpty()
+                bestandsLocatie = uploadResultaat.bestandsLocatie
+            }
+
+            val response = record.toResponse(eioVersion)
+            auditContext.captureNew(response, "${eioVersion.bronOrganisatie} - ${eioVersion.identificatie}")
+            response as EnkelvoudigInformatieObjectResponse
+        }
 
     private fun getUploadResultaat(
         request: EnkelvoudigInformatieObjectRequest,
@@ -117,7 +117,10 @@ class EnkelvoudigInformatieObjectService(
         return storeFileVersion(request, loc)
     }
 
-    private fun storeFileVersion(request: EnkelvoudigInformatieObjectRequest, bestandsLocatie: String): UploadResultaat {
+    private fun storeFileVersion(
+        request: EnkelvoudigInformatieObjectRequest,
+        bestandsLocatie: String
+    ): UploadResultaat {
         if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content)
@@ -436,6 +439,7 @@ class EnkelvoudigInformatieObjectService(
                 waarde = version.integriteitWaarde,
                 datum = version.integriteitsDatum!!.date,
             )
+
             else -> null
         }
 
@@ -444,6 +448,7 @@ class EnkelvoudigInformatieObjectService(
                 soort = OndertekeningSoort.valueOf(version.ondertekening_soort),
                 datum = version.ondertekenings_datum!!.date,
             )
+
             else -> null
         }
 
@@ -452,6 +457,7 @@ class EnkelvoudigInformatieObjectService(
                 val base = applicationConfig.baseUrl()
                 "$base${DOCUMENTEN_API_BASE_PATH}/enkelvoudiginformatieobjecten/${this.id}/download?versie=${version.versie}"
             }
+
             else -> null
         }
 
@@ -537,30 +543,31 @@ class EnkelvoudigInformatieObjectService(
         return op
     }
 
-    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> = object : Op<Boolean>() {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-            val arrayType = column.columnType as ArrayColumnType<String, *>
-            val elementType = arrayType.delegate
+    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> =
+        object : Op<Boolean>() {
+            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                val arrayType = column.columnType as ArrayColumnType<String, *>
+                val elementType = arrayType.delegate
 
-            queryBuilder {
-                append(column)
-                append(" @> ")
-                append("ARRAY[")
+                queryBuilder {
+                    append(column)
+                    append(" @> ")
+                    append("ARRAY[")
 
-                values.forEachIndexed { index, value ->
-                    if (index > 0) append(", ")
-                    append(
-                        QueryParameter(
-                            value,
-                            elementType,
-                        ),
-                    )
+                    values.forEachIndexed { index, value ->
+                        if (index > 0) append(", ")
+                        append(
+                            QueryParameter(
+                                value,
+                                elementType,
+                            ),
+                        )
+                    }
+
+                    append("]")
                 }
-
-                append("]")
             }
         }
-    }
 
     fun lock(id: UUID): LockResult? {
         return transaction {
