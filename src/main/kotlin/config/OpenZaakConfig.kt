@@ -5,7 +5,7 @@ package com.baseflow.config
 class OpenZaakConfig(
     val endpoint: String = envOrSystem("OPENZAAK_ENDPOINT", "https://openzaak.dev.baseflow.com"),
     val clientId: String = envOrSystem("OPENZAAK_CLIENT_ID", "cg-dmf"),
-    val clientSecret: String = envOrSystem("OPENZAAK_CLIENT_SECRET", "baseflow"),
+    val clientSecret: String = envOrThrow("OPENZAAK_CLIENT_SECRET"),
     val validationEnabled: Boolean = (
         envOrSystem(
             "OPENZAAK_VALIDATION_ENABLED",

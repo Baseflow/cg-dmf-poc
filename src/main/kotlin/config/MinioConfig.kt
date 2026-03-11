@@ -15,7 +15,7 @@ internal object MinioConfig : Config() {
     val urlExpiry: Duration = Duration.parse(envOrSystem("MINIO_URL_EXPIRY", "PT15M"))
     val endpoint: String = envOrSystem("MINIO_ENDPOINT", "http://localhost:9000")
     val accessKey: String = envOrSystem("MINIO_ACCESS_KEY", "minioadmin")
-    val secretKey: String = envOrSystem("MINIO_SECRET_KEY", "minioadmin")
+    val secretKey: String = envOrThrow("MINIO_SECRET_KEY")
     val bucketName: String = envOrSystem("MINIO_BUCKET", "default-bucket")
 
     override fun printConfig() {
