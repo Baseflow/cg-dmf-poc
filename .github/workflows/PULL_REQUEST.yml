@@ -11,3 +11,4 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/TEST.yml
+    secrets: inherit
