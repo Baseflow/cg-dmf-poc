@@ -28,6 +28,15 @@ data class CreateOIORequest(
  * ObjectInformatieObject response model
  */
 @Serializable
+/**
+ * The ResourceSegment annotation is used to associate this response model with the correct API endpoint segment for
+ * documentation and routing purposes. It indicates that this response model corresponds to the
+ * "object-informatie-objecten" segment of the API.
+ *
+ * Both used for objectInformatieObjectenRoutes & subjectInformatieObjectenRoutes, but the latter route is not
+ * definite yet and marked as experimental, so we keep the annotation here for now to ensure correct documentation
+ * generation.
+ */
 @ResourceSegment(ResourceSegments.OBJECT_INFORMATIE_OBJECTEN)
 data class ObjectInformatieObjectResponse(
     override val id: String? = null,
