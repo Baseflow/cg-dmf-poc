@@ -19,4 +19,3 @@ sealed class DeleteOIOResult {
     object Success : DeleteOIOResult()
     object NotFound : DeleteOIOResult()
 }
-

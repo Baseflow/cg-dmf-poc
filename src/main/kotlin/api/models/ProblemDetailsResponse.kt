@@ -20,7 +20,7 @@ data class ProblemDetailsResponse(
     val title: String,
     val status: Int,
     val detail: String? = null,
-    val instance: String? = null
+    val instance: String? = null,
 ) : ApiResponse
 
 private val problemJson = Json {
@@ -38,11 +38,23 @@ suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, problem: Prob
 }
 
 // Convenience factories
-fun badRequest(detail: String, instance: String? = null) =
-    ProblemDetailsResponse(title = "Bad Request", status = HttpStatusCode.BadRequest.value, detail = detail, instance = instance)
+fun badRequest(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Bad Request",
+    status = HttpStatusCode.BadRequest.value,
+    detail = detail,
+    instance = instance,
+)
 
-fun notFound(detail: String, instance: String? = null) =
-    ProblemDetailsResponse(title = "Not Found", status = HttpStatusCode.NotFound.value, detail = detail, instance = instance)
+fun notFound(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Not Found",
+    status = HttpStatusCode.NotFound.value,
+    detail = detail,
+    instance = instance,
+)
 
-fun conflict(detail: String, instance: String? = null) =
-    ProblemDetailsResponse(title = "Conflict", status = HttpStatusCode.Conflict.value, detail = detail, instance = instance)
+fun conflict(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Conflict",
+    status = HttpStatusCode.Conflict.value,
+    detail = detail,
+    instance = instance,
+)

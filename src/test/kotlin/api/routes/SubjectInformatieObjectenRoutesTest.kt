@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-
 package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
@@ -41,7 +40,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
             ApplicationConfig,
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
-            auditContext
+            auditContext,
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id
@@ -71,7 +70,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/subjects/123",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -97,7 +96,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
             val request = CreateOIORequest(
                 informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
                 subjectObject = "https://example.com/subjects/$i",
-                subjectType = SubjectTypeEnum.ZAAK
+                subjectType = SubjectTypeEnum.ZAAK,
             )
             client.post("$API_BASE/$RESOURCE_SEGMENT") {
                 contentType(ContentType.Application.Json)
@@ -132,7 +131,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/subjects/test",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val createResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -155,7 +154,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
             subjectObject = "https://example.com/subjects/delete",
-            subjectType = SubjectTypeEnum.ZAAK
+            subjectType = SubjectTypeEnum.ZAAK,
         )
 
         val createResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {

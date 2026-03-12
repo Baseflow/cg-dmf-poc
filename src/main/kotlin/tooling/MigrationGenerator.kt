@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 @file:OptIn(ExperimentalDatabaseMigrationApi::class)
 
 package com.baseflow.tooling
@@ -37,7 +36,7 @@ fun main(args: Array<String>) {
         url = DatabaseConfig.url,
         user = DatabaseConfig.user,
         password = DatabaseConfig.password,
-        driver = DatabaseConfig.driver
+        driver = DatabaseConfig.driver,
     )
 
     if (filterTableName != null) {
@@ -55,7 +54,11 @@ fun main(args: Array<String>) {
         val tables = if (filterTableName != null) {
             val filtered = allTables.filter { it.tableName == filterTableName }.toTypedArray()
             if (filtered.isEmpty()) {
-                println("✗ Error: Table '$filterTableName' not found in AllTables. Available tables: ${allTables.joinToString { it.tableName }}")
+                println(
+                    "✗ Error: Table '$filterTableName' not found in AllTables. Available tables: ${allTables.joinToString {
+                        it.tableName
+                    }}",
+                )
                 return@transaction
             }
             filtered
@@ -82,4 +85,3 @@ fun main(args: Array<String>) {
     println("  2. Create undo script: src/main/resources/db/migration/${scriptName.replace("V", "U")}.sql")
     println("  3. Apply: ./gradlew flywayMigrate")
 }
-

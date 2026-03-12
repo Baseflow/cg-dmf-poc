@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.middleware
 
 import io.ktor.http.ContentType
@@ -7,9 +9,9 @@ import io.ktor.http.content.TextContent
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.ApplicationRequest
 import io.ktor.server.response.ApplicationResponse
-import kotlinx.coroutines.runBlocking
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -30,11 +32,9 @@ class ApiConditionalHeadersProviderUnitTest {
         return call
     }
 
-    private fun jsonContent(text: String): TextContent =
-        TextContent(text, ContentType.Application.Json)
+    private fun jsonContent(text: String): TextContent = TextContent(text, ContentType.Application.Json)
 
-    private fun plainTextContent(text: String): TextContent =
-        TextContent(text, ContentType.Text.Plain)
+    private fun plainTextContent(text: String): TextContent = TextContent(text, ContentType.Text.Plain)
 
     @Test
     fun returnsEntityTagForJsonTextContent() = runBlocking {

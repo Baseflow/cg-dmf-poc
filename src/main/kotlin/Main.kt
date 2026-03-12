@@ -29,7 +29,7 @@ fun main() {
         url = DatabaseConfig.url,
         driver = DatabaseConfig.driver,
         user = DatabaseConfig.user,
-        password = DatabaseConfig.password
+        password = DatabaseConfig.password,
     )
 
     // apply migrations
@@ -58,7 +58,7 @@ fun Application.module() {
     }
 
     authenticationModule()
-    helloWorldModule()      // Keep for basic health check at /
-    healthModule()          // Health endpoints at /health/liveness and /health/readiness
-    documentenApiModule()   // Documenten API at /documenten/api/v1
+    helloWorldModule() // Keep for basic health check at /
+    healthModule() // Health endpoints at /health/liveness and /health/readiness
+    documentenApiModule() // Documenten API at /documenten/api/v1
 }

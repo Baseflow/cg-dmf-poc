@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.api
 
 import com.baseflow.api.middleware.*
@@ -48,8 +47,8 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
                 mapOf(
                     "service" to "Documenten API",
                     "version" to DOCUMENTEN_API_VERSION,
-                    "status" to "operational"
-                )
+                    "status" to "operational",
+                ),
             )
         }
 

@@ -28,7 +28,6 @@ fun Application.authenticationModule() {
 
     install(Authentication) {
         jwt("auth-jwt") {
-
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
                 logger.info("Raw Authorization header: {}", header)
@@ -41,9 +40,15 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
-                logger.info("JWT token received - subject: {}, issuer: {}, claims: {}", token.subject, token.issuer, token.claims.keys)
+                logger.info(
+                    "JWT token received - subject: {}, issuer: {}, claims: {}",
+                    token.subject,
+                    token.issuer,
+                    token.claims.keys,
+                )
                 if (credential.payload.getClaim("username").asString() != "" ||
-                    credential.payload.getClaim("user_id").asString() != "") {
+                    credential.payload.getClaim("user_id").asString() != ""
+                ) {
                     JWTPrincipal(credential.payload)
                 } else {
                     null
@@ -53,17 +58,15 @@ fun Application.authenticationModule() {
             challenge { _, _ ->
                 call.respondText(
                     text = "Unauthorized",
-                    status = HttpStatusCode.Unauthorized
+                    status = HttpStatusCode.Unauthorized,
                 )
             }
-
         }
 
         // ZGW-style JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
         // These tokens are HS256-signed but we don't have access to the shared secret,
         // so we skip signature verification and only validate the client_id claim.
         jwt("auth-zgw") {
-
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
                 logger.info("[ZGW] Raw Authorization header: {}", header)
@@ -72,17 +75,20 @@ fun Application.authenticationModule() {
 
             verifier(
                 object : JWTVerifier {
-                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT =
-                        JWT.decode(token)
-                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT =
-                        jwt
-                }
+                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT = JWT.decode(token)
+                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT = jwt
+                },
             )
 
             validate { credential ->
                 val token = credential.payload
                 val clientId = token.getClaim("client_id").asString()
-                logger.info("[ZGW] JWT token received - issuer: {}, client_id: {}, claims: {}", token.issuer, clientId, token.claims.keys)
+                logger.info(
+                    "[ZGW] JWT token received - issuer: {}, client_id: {}, claims: {}",
+                    token.issuer,
+                    clientId,
+                    token.claims.keys,
+                )
                 if (clientId in zgwAllowedClientIds) {
                     JWTPrincipal(credential.payload)
                 } else {
@@ -94,7 +100,7 @@ fun Application.authenticationModule() {
             challenge { _, _ ->
                 call.respondText(
                     text = "Unauthorized",
-                    status = HttpStatusCode.Unauthorized
+                    status = HttpStatusCode.Unauthorized,
                 )
             }
         }

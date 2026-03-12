@@ -2,13 +2,12 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
-import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.AuditTrailPlugin
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
@@ -85,11 +84,10 @@ private suspend fun RoutingContext.list() {
         bronOrganisatie = bronOrganisatie,
         trefwoorden = trefwoorden,
         identificatie = identificatie,
-        expand = expand,
         page = page,
         pageSize = pageSize,
         objectUrl = objectUrl,
-        objectType = objectType
+        objectType = objectType,
     )
 
     val (items, totalCount) = service.getAll(filter)
@@ -106,7 +104,10 @@ private suspend fun RoutingContext.create() {
 
         call.respond(HttpStatusCode.Created, response)
     } catch (e: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Validation failed", call.request.path()))
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Validation failed", call.request.path()),
+        )
         return
     }
 }
@@ -125,11 +126,10 @@ private suspend fun RoutingContext.zoek() {
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = request.uuidIn,
-        expand = expand,
         page = page,
         pageSize = pageSize,
         objectUrl = objectUrl,
-        objectType = objectType
+        objectType = objectType,
     )
 
     val (items, totalCount) = service.getAll(filter)
@@ -150,7 +150,10 @@ private suspend fun RoutingContext.head() {
         if (service.exists(uuid)) {
             call.respond(HttpStatusCode.OK)
         } else {
-            call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
@@ -170,7 +173,10 @@ private suspend fun RoutingContext.get() {
         val result = service.getById(uuid)
 
         if (result == null) {
-            call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
         } else {
             call.respond(HttpStatusCode.OK, result)
         }
@@ -191,12 +197,18 @@ private suspend fun RoutingContext.put() {
         val request = call.receive<EnkelvoudigInformatieObjectRequest>()
         val response = service.update(uuid, request)
         if (response == null) {
-            call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                badRequest("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
             return
         }
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
         return
     }
 }
@@ -212,14 +224,19 @@ private suspend fun RoutingContext.patch() {
         val request = call.receive<EnkelvoudigInformatieObjectRequest>()
         val response = service.update(uuid, request, true)
         if (response == null) {
-            call.respondProblem(HttpStatusCode.NotFound, badRequest("EnkelvoudigInformatieObject not found", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                badRequest("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
             return
         }
         call.respond(HttpStatusCode.OK, response)
     } catch (e: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid UUID format", call.request.path()))
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
     }
-
 }
 
 private suspend fun RoutingContext.delete() {
@@ -235,13 +252,15 @@ private suspend fun RoutingContext.delete() {
             is DeleteResult.Success -> {
                 call.respond(HttpStatusCode.NoContent)
             }
+
             is DeleteResult.NotFound -> call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("EnkelvoudigInformatieObject not found", call.request.path())
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
             )
+
             is DeleteResult.Locked -> call.respondProblem(
                 HttpStatusCode.Conflict,
-                conflict("EnkelvoudigInformatieObject is locked", call.request.path())
+                conflict("EnkelvoudigInformatieObject is locked", call.request.path()),
             )
         }
     } catch (_: IllegalArgumentException) {
@@ -267,11 +286,10 @@ private suspend fun RoutingContext.download() {
             return@transaction eio
         }
 
-
         if (eio == null) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("EnkelvoudigInformatieObject not found", call.request.path())
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
             )
             return
         }
@@ -281,7 +299,7 @@ private suspend fun RoutingContext.download() {
         if (objectKey.isBlank()) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Document content not available for download", call.request.path())
+                notFound("Document content not available for download", call.request.path()),
             )
             return
         }
@@ -300,7 +318,7 @@ private suspend fun RoutingContext.download() {
             HttpHeaders.ContentDisposition,
             ContentDisposition.Attachment
                 .withParameter(ContentDisposition.Parameters.FileName, fileName)
-                .toString()
+                .toString(),
         )
         call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
         // TODO: support Range requests, ETag, Last-Modified when metadata is available
@@ -324,11 +342,15 @@ private suspend fun RoutingContext.lock() {
     try {
         val uuid = UUID.fromString(uuidString)
         when (val result = service.lock(uuid)) {
-            null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+            null -> call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
+
             is LockResult.Success -> call.respond(result.payload)
             is LockResult.AlreadyLocked -> call.respondProblem(
                 HttpStatusCode.Conflict,
-                conflict("EnkelvoudigInformatieObject is already locked", call.request.path())
+                conflict("EnkelvoudigInformatieObject is already locked", call.request.path()),
             )
         }
     } catch (_: IllegalArgumentException) {
@@ -350,13 +372,18 @@ private suspend fun RoutingContext.unlock() {
             is UnlockResult.Success -> call.respond(HttpStatusCode.NoContent)
             is UnlockResult.InvalidLock -> call.respondProblem(
                 HttpStatusCode.Conflict,
-                conflict("Invalid lock token for unlock", call.request.path())
+                conflict("Invalid lock token for unlock", call.request.path()),
             )
+
             is UnlockResult.NotLocked -> call.respondProblem(
                 HttpStatusCode.Conflict,
-                conflict("EnkelvoudigInformatieObject is not locked", call.request.path())
+                conflict("EnkelvoudigInformatieObject is not locked", call.request.path()),
             )
-            null -> call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+
+            null -> call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))

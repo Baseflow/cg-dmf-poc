@@ -36,4 +36,3 @@ class OIORecordEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var createdAt by OIORecords.createdAt
     var updatedAt by OIORecords.updatedAt
 }
-

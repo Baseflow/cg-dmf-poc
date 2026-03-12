@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
@@ -51,7 +50,7 @@ import org.flywaydb.core.Flyway
  * - `DB_USER` (default: documenten)
  * - `DB_PASSWORD` (default: documenten)
  *
- * @see com.baseflow.tooling.MigrationGenerator for generating migrations from Exposed models
+ * @see main/kotlin/tooling/MigrationGenerator.kt for generating migrations from Exposed models
  */
 fun main(args: Array<String>) {
     val flyway = Flyway.configure()
@@ -67,6 +66,7 @@ fun main(args: Array<String>) {
             println("Successfully applied ${result.migrationsExecuted} migration(s)")
             println("Current version: ${result.targetSchemaVersion ?: "empty"}")
         }
+
         "info" -> {
             println("Migration info:")
             val info = flyway.info()
@@ -74,23 +74,29 @@ fun main(args: Array<String>) {
                 println("  ${migration.version ?: "baseline"} - ${migration.description} [${migration.state}]")
             }
         }
+
         "undo" -> {
             println("Undoing last migration...")
             println("Note: Undo is not available in Flyway Community Edition.")
             println("You need to manually execute the undo script or use Flyway Teams/Enterprise.")
             println("\nTo manually undo, connect to the database and run:")
-            println("  psql -h localhost -U documenten -d documenten -f src/main/resources/db/migration/U1__Drop_EIO_tables.sql")
+            println(
+                "  psql -h localhost -U documenten -d documenten -f src/main/resources/db/migration/U1__Drop_EIO_tables.sql",
+            )
         }
+
         "clean" -> {
             println("Cleaning database...")
             flyway.clean()
             println("Database cleaned successfully")
         }
+
         "validate" -> {
             println("Validating migrations...")
             flyway.validate()
             println("Migrations are valid")
         }
+
         else -> {
             println("Usage: gradle run --args='<command>'")
             println("Commands:")
@@ -102,4 +108,3 @@ fun main(args: Array<String>) {
         }
     }
 }
-

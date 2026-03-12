@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-
 package com.baseflow.api.models
 
 import com.baseflow.entities.Wijzigingen
@@ -24,5 +23,5 @@ data class AuditTrailResponse(
     val resourceWeergave: String?,
     val toelichting: String?,
     val wijzigingen: Wijzigingen,
-    val aanmaakdatum: LocalDateTime?
+    val aanmaakdatum: LocalDateTime?,
 ) : ApiResponse

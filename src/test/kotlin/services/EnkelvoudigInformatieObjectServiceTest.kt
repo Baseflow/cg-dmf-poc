@@ -5,31 +5,31 @@
 package com.baseflow.services
 
 import com.baseflow.api.middleware.AuditContext
-import com.baseflow.entities.EIORecordEntity
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
+import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
-import com.baseflow.testutils.TestDataFactory.generateTestDocument
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.UnlockResult
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT_ALT
+import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.tooling.AllTables
+import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import io.mockk.*
-import kotlin.test.*
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import kotlin.io.encoding.Base64
+import kotlin.test.*
 
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
@@ -40,7 +40,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             "jdbc:h2:mem:test_eio;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
             user = "root",
-            password = ""
+            password = "",
         )
         transaction {
             // Create all tables
@@ -55,7 +55,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             ApplicationConfig,
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
-            auditContext
+            auditContext,
         )
     }
 
@@ -70,7 +70,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `create should persist and return correct data`() = runBlocking {
         val req = generateTestDocument(taal = "dut", bestandsnaam = "doc.pdf").copy(
-            vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.INTERN
+            vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.INTERN,
         )
         val resp = service.create(req)
         assertEquals("dut", resp.taal)
@@ -97,7 +97,12 @@ class EnkelvoudigInformatieObjectServiceTest {
     fun `update should increment version and persist new data`() = runBlocking {
         val req = generateTestDocument()
         val created = service.create(req)
-        val updateReq = generateTestDocument(taal = "eng", bestandsnaam = "doc2.pdf", informatieobjecttype = "https://example.com/api/v1/informatieobjecttypen/new-type")
+        val updateReq =
+            generateTestDocument(
+                taal = "eng",
+                bestandsnaam = "doc2.pdf",
+                informatieobjecttype = "https://example.com/api/v1/informatieobjecttypen/new-type",
+            )
         val updated = service.update(UUID.fromString(created.id), updateReq)
         assertNotNull(updated)
         assertEquals(created.id, updated.id)
@@ -227,7 +232,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument().copy(
             inhoud = base64Content,
             bestandsomvang = null,
-            formaat = "text/plain"
+            formaat = "text/plain",
         )
         val resp = service.create(req)
         assertEquals(content.length.toLong(), resp.bestandsomvang)
@@ -240,7 +245,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument().copy(
             inhoud = base64Content,
             bestandsomvang = 100L, // Intentionally different from content size
-            formaat = "text/plain"
+            formaat = "text/plain",
         )
         val resp = service.create(req)
         assertEquals(100L, resp.bestandsomvang)
@@ -251,7 +256,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument().copy(
             inhoud = null,
             bestandsomvang = null,
-            link = "https://example.com/file"
+            link = "https://example.com/file",
         )
         val resp = service.create(req)
         assertEquals(null, resp.bestandsomvang)
@@ -264,7 +269,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         coEvery { mockCatalogusService.validateInformatieobjecttype(any()) } returns InformatieObjectType(
             url = "https://example.com/api/v1/informatieobjecttypen/1",
             omschrijving = "Mock Type",
-            vertrouwelijkheidaanduiding = "geheim"
+            vertrouwelijkheidaanduiding = "geheim",
         )
 
         val auditContext = AuditContext()
@@ -273,7 +278,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             ApplicationConfig,
             mockCatalogusService,
             AuditTrailService(auditContext),
-            auditContext
+            auditContext,
         )
 
         val req = generateTestDocument().copy(vertrouwelijkheidaanduiding = null)
@@ -292,7 +297,6 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         assertEquals("Informatieobjecttype mag maximaal 200 karakters lang zijn", exception.message)
     }
-
 
     @Test
     fun `patch should update only provided properties`() = runBlocking {
@@ -391,7 +395,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             taal = "eng",
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
-            creatiedatum =  LocalDate(2025, 1, 1),
+            creatiedatum = LocalDate(2025, 1, 1),
             auteur = "auteur",
         )
 
@@ -404,7 +408,6 @@ class EnkelvoudigInformatieObjectServiceTest {
             service.update(UUID.randomUUID(), req, false)
         }
         assertEquals("Titel mag niet leeg zijn", putException.message)
-
     }
 
     @Test
@@ -413,9 +416,9 @@ class EnkelvoudigInformatieObjectServiceTest {
             taal = "eng",
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
-            creatiedatum =  LocalDate(2025, 1, 1),
+            creatiedatum = LocalDate(2025, 1, 1),
             auteur = "auteur",
-            titel = "titel"
+            titel = "titel",
         )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
@@ -432,10 +435,10 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = EnkelvoudigInformatieObjectRequest(
             taal = "eng",
             bestandsnaam = "doc2.pdf",
-            creatiedatum =  LocalDate(2025, 1, 1),
+            creatiedatum = LocalDate(2025, 1, 1),
             auteur = "auteur",
             titel = "titel",
-            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
         )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
@@ -455,7 +458,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             bronorganisatie = "012345678",
             auteur = "auteur",
             titel = "titel",
-            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
         )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
@@ -473,9 +476,9 @@ class EnkelvoudigInformatieObjectServiceTest {
             taal = "eng",
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
-            creatiedatum =  LocalDate(2025, 1, 1),
+            creatiedatum = LocalDate(2025, 1, 1),
             titel = "titel",
-            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
         )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
@@ -492,10 +495,10 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = EnkelvoudigInformatieObjectRequest(
             bestandsnaam = "doc2.pdf",
             bronorganisatie = "012345678",
-            creatiedatum =  LocalDate(2025, 1, 1),
+            creatiedatum = LocalDate(2025, 1, 1),
             auteur = "auteur",
             titel = "titel",
-            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
+            informatieobjecttype = TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL,
         )
         val createException = assertFailsWith<IllegalArgumentException> {
             service.create(req)
@@ -598,26 +601,41 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'`() = runBlocking {
         val inBewerkingException = assertFailsWith<IllegalArgumentException> {
-            EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
-                soort = OndertekeningSoort.DIGITAAL,
-                datum = LocalDate(2025, 1, 1),
-            ), status = EnkelvoudigInformatieObjectStatus.IN_BEWERKING)
+            EnkelvoudigInformatieObjectRequest(
+                ondertekening = Ondertekening(
+                    soort = OndertekeningSoort.DIGITAAL,
+                    datum = LocalDate(2025, 1, 1),
+                ),
+                status = EnkelvoudigInformatieObjectStatus.IN_BEWERKING,
+            )
         }
-        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", inBewerkingException.message)
+        assertEquals(
+            "Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'",
+            inBewerkingException.message,
+        )
 
         val terVastStellingException = assertFailsWith<IllegalArgumentException> {
-            EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
-                soort = OndertekeningSoort.PKI,
-                datum = LocalDate(2025, 1, 1),
-            ), status = EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING)
+            EnkelvoudigInformatieObjectRequest(
+                ondertekening = Ondertekening(
+                    soort = OndertekeningSoort.PKI,
+                    datum = LocalDate(2025, 1, 1),
+                ),
+                status = EnkelvoudigInformatieObjectStatus.TER_VASTSTELLING,
+            )
         }
-        assertEquals("Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'", terVastStellingException.message)
+        assertEquals(
+            "Ondertekening mag niet worden opgegeven voor status 'in bewerking' of 'ter vaststelling'",
+            terVastStellingException.message,
+        )
 
         // check successful with another state
-        val successfulRequest = EnkelvoudigInformatieObjectRequest(ondertekening = Ondertekening(
-            soort = OndertekeningSoort.PKI,
-            datum = LocalDate(2025, 1, 1),
-        ), status = EnkelvoudigInformatieObjectStatus.DEFINITIEF)
+        val successfulRequest = EnkelvoudigInformatieObjectRequest(
+            ondertekening = Ondertekening(
+                soort = OndertekeningSoort.PKI,
+                datum = LocalDate(2025, 1, 1),
+            ),
+            status = EnkelvoudigInformatieObjectStatus.DEFINITIEF,
+        )
 
         assertNotNull(successfulRequest)
 
@@ -639,7 +657,6 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `formaat moet worden bepaald zijn als inhoud is opgegeven`() = runBlocking {
-
         val inputFileName = "/testdata/pdf_sample.pdf"
         val resource = requireNotNull(javaClass.getResource(inputFileName)) {
             "Missing test resource: $inputFileName"
@@ -648,24 +665,26 @@ class EnkelvoudigInformatieObjectServiceTest {
         val pdfContent = Base64.encode(bytes)
         var request = generateTestDocument()
         request = request.copy(
-                bestandsnaam = "doc.pdf",
-                bestandsomvang = 123456L,
-                inhoud = pdfContent
-            )
+            bestandsnaam = "doc.pdf",
+            bestandsomvang = 123456L,
+            inhoud = pdfContent,
+        )
         val resp = service.create(request)
         assertEquals("application/pdf", resp.formaat)
     }
 
     @Test
-    fun `formaat moet opgegeven zijn als het formaat niet bepaald kan worden`() = runBlocking{
+    fun `formaat moet opgegeven zijn als het formaat niet bepaald kan worden`() = runBlocking {
         var request = generateTestDocument()
         request = request.copy(inhoud = "dGVzdA==", formaat = null)
         val exception = assertFailsWith<IllegalArgumentException> {
             service.create(request)
         }
-        assertEquals("Unable to determine file format from content. Please specify the 'formaat' field in the request.", exception.message)
+        assertEquals(
+            "Unable to determine file format from content. Please specify the 'formaat' field in the request.",
+            exception.message,
+        )
     }
-
 
     @Test fun `update file location if content has changed`() = runBlocking {
         val req = generateTestDocument(bestandsnaam = "doc.pdf")
@@ -682,8 +701,11 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals(eio.versie, 1)
         assertEquals("${resp.id}/1/${req.bestandsnaam}", eio.bestandsLocatie)
 
-
-        val requestWithUpdatedContent = req.copy(inhoud = PDF_CONTENT_ALT, formaat = "application/pdf", bestandsomvang = 620L)
+        val requestWithUpdatedContent = req.copy(
+            inhoud = PDF_CONTENT_ALT,
+            formaat = "application/pdf",
+            bestandsomvang = 620L,
+        )
         val patchedResp = service.update(UUID.fromString(resp.id), requestWithUpdatedContent, false)
         assertNotNull(patchedResp)
         assertEquals("doc.pdf", patchedResp.bestandsnaam)

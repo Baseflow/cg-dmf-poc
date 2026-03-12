@@ -10,6 +10,7 @@ sealed interface ApiResponse
 sealed interface ApiEntityResponse : ApiResponse {
     // NOTE id is not part of the spec, but included by us for convenience
     val id: String?
+
     // URL is the actual identity representation
     val url: String?
 }

@@ -18,11 +18,7 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 @Serializable
-data class InformatieObjectType(
-    val url: String,
-    val omschrijving: String,
-    val vertrouwelijkheidaanduiding: String,
-)
+data class InformatieObjectType(val url: String, val omschrijving: String, val vertrouwelijkheidaanduiding: String)
 
 /**
  * Service for interacting with the Catalogus API

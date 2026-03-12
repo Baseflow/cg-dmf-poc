@@ -17,10 +17,13 @@ class CatalogusServiceTest {
     private val defaultConfig = OpenZaakConfig(
         clientId = "test-client",
         clientSecret = "test-secret",
-        validationEnabled = true
+        validationEnabled = true,
     )
 
-    private fun createMockService(config: OpenZaakConfig = defaultConfig, handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): CatalogusService {
+    private fun createMockService(
+        config: OpenZaakConfig = defaultConfig,
+        handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
+    ): CatalogusService {
         val mockEngine = MockEngine(handler)
         val httpClient = HttpClient(mockEngine)
         return CatalogusService(config, httpClient)
@@ -56,7 +59,7 @@ class CatalogusServiceTest {
             respond(
                 content = ByteReadChannel(jsonResponse),
                 status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
 
@@ -71,7 +74,7 @@ class CatalogusServiceTest {
             respond(
                 content = ByteReadChannel("Not Found"),
                 status = HttpStatusCode.NotFound,
-                headers = headersOf(HttpHeaders.ContentType, "text/plain")
+                headers = headersOf(HttpHeaders.ContentType, "text/plain"),
             )
         }
 
@@ -118,9 +121,9 @@ class CatalogusServiceTest {
         val mockEngine = MockEngine { respondOk() }
         val httpClient = HttpClient(mockEngine)
         val service = CatalogusService(defaultConfig, httpClient)
-        
+
         service.close()
-        
+
         runBlocking {
             assertFails {
                 httpClient.get("https://any.com")

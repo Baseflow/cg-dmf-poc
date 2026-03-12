@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
@@ -56,7 +55,7 @@ fun main() {
         url = DatabaseConfig.url,
         driver = DatabaseConfig.driver,
         user = DatabaseConfig.user,
-        password = DatabaseConfig.password
+        password = DatabaseConfig.password,
     )
 
     try {
@@ -71,7 +70,7 @@ fun main() {
 
 /**
  * Load stub data into the database.
- * 
+ *
  * Modify this function to insert your own test/development data.
  * Use Exposed's transaction DSL to insert data into your tables.
  *
@@ -102,7 +101,7 @@ private fun loadStubData() {
         }
         val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         EIOVersionEntity.new {
-            recordId = record  // Pass the entity, not UUID
+            recordId = record // Pass the entity, not UUID
             versie = 1
             taal = "dut"
             bestandsnaam = "test.pdf"

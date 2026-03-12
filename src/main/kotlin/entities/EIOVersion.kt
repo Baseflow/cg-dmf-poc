@@ -12,7 +12,6 @@ import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.datetime.datetime
 import java.util.UUID
-
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -29,15 +28,15 @@ object EIOVersions : UUIDTable("eio_versions") {
     val integriteitWaarde = varchar("integriteit_waarde", 128).default("")
 
     val integriteitsDatum = datetime("integriteits_datum").nullable()
-    val beginRegistratie = datetime("begin_registratie").defaultExpression(
-        CurrentDateTime )
+    val beginRegistratie = datetime("begin_registratie").defaultExpression(CurrentDateTime)
     val verschijningsVorm = text("verschijnings_vorm").default("")
     val trefwoorden = registerColumn<List<String>>(
-        "trefwoorden", ArrayColumnType(VarCharColumnType(100))
+        "trefwoorden",
+        ArrayColumnType(VarCharColumnType(100)),
     ).default(emptyList())
 
     val bronOrganisatie = varchar("bron_organisatie", 9).default("")
-    val creatieDatum = date("creatie_datum").defaultExpression(CurrentDate )
+    val creatieDatum = date("creatie_datum").defaultExpression(CurrentDate)
     val titel = varchar("titel", 200)
     val vertrouwlijkheidsAanduiding = varchar("vertrouwlijkheids_aanduiding", 20).default("")
     val auteur = varchar("auteur", 200)

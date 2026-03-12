@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025 Gemeente Utrecht
-
 package com.baseflow.api.routes
 
-import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -22,4 +20,3 @@ fun Route.bestandsDelenRoutes() {
         call.respond(mapOf("message" to "Upload BestandsDeel $uuid - to be implemented"))
     }
 }
-

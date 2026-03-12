@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-
 package com.baseflow.api.middleware
 
 import com.baseflow.api.models.ApiEntityResponse
@@ -34,4 +33,3 @@ class AuditContext {
         get() = (if (sourceRequest != null) "${sourceRequest?.bronOrganisatie} - ${sourceRequest?.identificatie}"
                  else "unknown resource")
 }
-

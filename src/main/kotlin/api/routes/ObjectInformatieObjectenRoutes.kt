@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-
 package com.baseflow.api.routes
 
 import com.baseflow.api.ApiUrlBuilder
@@ -39,7 +38,7 @@ import java.util.*
 open class ObjectInformatieObjectenRoutes(
     private val route: Route,
     private val resourceSegment: String,
-    private val experimental: Boolean = false
+    private val experimental: Boolean = false,
 ) {
     fun register() {
         with(route) {
@@ -54,7 +53,13 @@ open class ObjectInformatieObjectenRoutes(
 
             // Single relation operations
             route("/{uuid}") {
-                val resourceTitle = if (resourceSegment == "subjectinformatieobjecten") "SubjectInformatieObject" else "ObjectInformatieObject"
+                val resourceTitle = if (resourceSegment ==
+                    "subjectinformatieobjecten"
+                ) {
+                    "SubjectInformatieObject"
+                } else {
+                    "ObjectInformatieObject"
+                }
                 // HEAD - existence check
                 head { head(resourceTitle) }
 
@@ -79,7 +84,7 @@ open class ObjectInformatieObjectenRoutes(
             subjectObject = subjectObject,
             expand = expand,
             page = page,
-            pageSize = pageSize
+            pageSize = pageSize,
         )
 
         val (items, totalCount) = service.getAll(filter)
@@ -98,14 +103,17 @@ open class ObjectInformatieObjectenRoutes(
 
         when (val result = service.create(request)) {
             is CreateOIOResult.Success -> {
-                val locationUrl = ApiUrlBuilder.absolute(resourceSegment, result.payload.url?.substringAfterLast("/") ?: "")
+                val locationUrl = ApiUrlBuilder.absolute(
+                    resourceSegment,
+                    result.payload.url?.substringAfterLast("/") ?: "",
+                )
                 call.response.headers.append(HttpHeaders.Location, locationUrl)
                 call.respond(HttpStatusCode.Created, result.payload)
             }
             is CreateOIOResult.Conflict -> {
                 call.respondProblem(
                     HttpStatusCode.BadRequest,
-                    badRequest(result.message, call.request.path())
+                    badRequest(result.message, call.request.path()),
                 )
             }
         }
@@ -114,7 +122,10 @@ open class ObjectInformatieObjectenRoutes(
     private suspend fun RoutingContext.head(resourceTitle: String) {
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
-            call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("UUID parameter is required", call.request.path()),
+            )
             return
         }
 
@@ -125,7 +136,7 @@ open class ObjectInformatieObjectenRoutes(
             } else {
                 call.respondProblem(
                     HttpStatusCode.NotFound,
-                    notFound("$resourceTitle not found", call.request.path())
+                    notFound("$resourceTitle not found", call.request.path()),
                 )
             }
         } catch (_: IllegalArgumentException) {
@@ -136,7 +147,10 @@ open class ObjectInformatieObjectenRoutes(
     private suspend fun RoutingContext.get(resourceTitle: String) {
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
-            call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("UUID parameter is required", call.request.path()),
+            )
             return
         }
 
@@ -147,7 +161,7 @@ open class ObjectInformatieObjectenRoutes(
             if (result == null) {
                 call.respondProblem(
                     HttpStatusCode.NotFound,
-                    notFound("$resourceTitle not found", call.request.path())
+                    notFound("$resourceTitle not found", call.request.path()),
                 )
             } else {
                 call.respond(HttpStatusCode.OK, result)
@@ -160,7 +174,10 @@ open class ObjectInformatieObjectenRoutes(
     private suspend fun RoutingContext.delete(resourceTitle: String) {
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
-            call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("UUID parameter is required", call.request.path()),
+            )
             return
         }
 
@@ -170,7 +187,7 @@ open class ObjectInformatieObjectenRoutes(
                 is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
                 is DeleteOIOResult.NotFound -> call.respondProblem(
                     HttpStatusCode.NotFound,
-                    notFound("$resourceTitle not found", call.request.path())
+                    notFound("$resourceTitle not found", call.request.path()),
                 )
             }
         } catch (_: IllegalArgumentException) {
@@ -180,7 +197,9 @@ open class ObjectInformatieObjectenRoutes(
 
     private val RoutingContext.service: ObjectInformatieObjectService
         // construct service by injecting resourceSegment
-        get() = call.attributes[RequestScopeKey].inject<ObjectInformatieObjectService> { parametersOf(resourceSegment) }.value
+        get() = call.attributes[RequestScopeKey].inject<ObjectInformatieObjectService> {
+            parametersOf(resourceSegment)
+        }.value
 }
 
 fun Route.objectInformatieObjectenRoutes() {

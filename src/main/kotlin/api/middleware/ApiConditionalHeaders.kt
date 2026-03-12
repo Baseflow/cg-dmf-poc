@@ -6,8 +6,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.content.EntityTagVersion
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.TextContent
-import io.ktor.server.application.ApplicationCall
 import io.ktor.http.content.Version
+import io.ktor.server.application.ApplicationCall
 import java.security.MessageDigest
 
 /**
@@ -42,13 +42,3 @@ private fun sha1Hex(data: String): String {
     }
 }
 
-/**
- * Compute the exact ETag header value (quoted) for a given JSON text, using
- * the same algorithm as [jsonEtagVersionFor]. This allows endpoints that do
- * not emit a body (e.g., HEAD) to still include an ETag corresponding to the
- * GET representation.
- */
-fun etagHeaderForJsonText(jsonText: String): String {
-    val tag = sha1Hex(jsonText)
-    return "\"$tag\""
-}

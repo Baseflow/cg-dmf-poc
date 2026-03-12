@@ -26,9 +26,7 @@ import kotlinx.serialization.modules.SerializersModuleBuilder
  * }
  * ```
  */
-fun apiJsonConfig (
-    configure: SerializersModuleBuilder.() -> Unit = {}
-): Json = Json {
+fun apiJsonConfig(configure: SerializersModuleBuilder.() -> Unit = {}): Json = Json {
     encodeDefaults = false
     explicitNulls = false
     ignoreUnknownKeys = true

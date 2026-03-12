@@ -1,31 +1,28 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.entities
 
+import com.baseflow.api.models.AuditTrailResponse
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
-import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable as UUIDTableCore
-import java.util.UUID
-import com.baseflow.api.models.AuditTrailResponse
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import org.jetbrains.exposed.v1.json.json
+import java.util.UUID
+import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable as UUIDTableCore
 
 @Serializable
-data class Wijzigingen(
-    val oud: JsonElement? = null,
-    val nieuw: JsonElement? = null
-) {
+data class Wijzigingen(val oud: JsonElement? = null, val nieuw: JsonElement? = null) {
     companion object {
-        inline fun <reified T> of(oud: T? = null, nieuw: T? = null): Wijzigingen {
-            return Wijzigingen(
-                oud = oud?.let { Json.encodeToJsonElement(it) },
-                nieuw = nieuw?.let { Json.encodeToJsonElement(it) }
-            )
-        }
+        inline fun <reified T> of(oud: T? = null, nieuw: T? = null): Wijzigingen = Wijzigingen(
+            oud = oud?.let { Json.encodeToJsonElement(it) },
+            nieuw = nieuw?.let { Json.encodeToJsonElement(it) },
+        )
     }
 }
 
@@ -67,23 +64,21 @@ class AuditTrailEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var wijzigingen by AuditTrails.wijzigingen
 }
 
-fun AuditTrailEntity.toResponse(): AuditTrailResponse {
-    return AuditTrailResponse(
-        uuid = this.id.value.toString(),
-        bron = this.bron,
-        applicatieId = this.applicatieId,
-        applicatieWeergave = this.applicatieWeergave,
-        gebruikersId = this.gebruikersId,
-        gebruikersWeergave = this.gebruikersWeergave,
-        actie = this.actie,
-        actieWeergave = this.actieWeergave,
-        resultaat = this.resultaat,
-        hoofdObject = this.hoofdObject,
-        resource = this.resource,
-        resourceUrl = this.resourceUrl,
-        resourceWeergave = this.resourceWeergave,
-        toelichting = this.toelichting,
-        wijzigingen = wijzigingen,
-        aanmaakdatum = this.aanmaakdatum
-    )
-}
+fun AuditTrailEntity.toResponse(): AuditTrailResponse = AuditTrailResponse(
+    uuid = this.id.value.toString(),
+    bron = this.bron,
+    applicatieId = this.applicatieId,
+    applicatieWeergave = this.applicatieWeergave,
+    gebruikersId = this.gebruikersId,
+    gebruikersWeergave = this.gebruikersWeergave,
+    actie = this.actie,
+    actieWeergave = this.actieWeergave,
+    resultaat = this.resultaat,
+    hoofdObject = this.hoofdObject,
+    resource = this.resource,
+    resourceUrl = this.resourceUrl,
+    resourceWeergave = this.resourceWeergave,
+    toelichting = this.toelichting,
+    wijzigingen = wijzigingen,
+    aanmaakdatum = this.aanmaakdatum,
+)

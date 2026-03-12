@@ -2,15 +2,15 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.entities.EIORecordEntity
-import com.baseflow.entities.EIOVersionEntity
-import com.baseflow.entities.EIOVersions
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.ResourceUuidParser
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.config.RequestScope
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionEntity
+import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecordEntity
 import com.baseflow.entities.OIORecords
 import com.baseflow.services.models.CreateOIOResult
@@ -77,19 +77,15 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
     /**
      * Get a single ObjectInformatieObject by ID
      */
-    fun getById(id: UUID): ObjectInformatieObjectResponse? {
-        return transaction {
-            OIORecordEntity.findById(id)?.toResponse()
-        }
+    fun getById(id: UUID): ObjectInformatieObjectResponse? = transaction {
+        OIORecordEntity.findById(id)?.toResponse()
     }
 
     /**
      * Check if an ObjectInformatieObject exists
      */
-    fun exists(id: UUID): Boolean {
-        return transaction {
-            OIORecordEntity.findById(id) != null
-        }
+    fun exists(id: UUID): Boolean = transaction {
+        OIORecordEntity.findById(id) != null
     }
 
     /**
@@ -118,8 +114,12 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
             }.firstOrNull()
 
             if (existing != null) {
-                logger.warn("Duplicate OIO relation attempted: informatieobject=${request.informatieobject}, object=${request.subjectObject}")
-                return@transaction CreateOIOResult.Conflict("Relation between informatieobject and object already exists")
+                logger.warn(
+                    "Duplicate OIO relation attempted: informatieobject=${request.informatieobject}, object=${request.subjectObject}",
+                )
+                return@transaction CreateOIOResult.Conflict(
+                    "Relation between informatieobject and object already exists",
+                )
             }
 
             // Fetch latest version entity
@@ -143,7 +143,9 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
                 updatedAt = now
             }
 
-            logger.info("Created OIO relation with id=${entity.id.value}, informatieobject=${eioRecord.id.value}, informatieobjectVersie=${versionEntity.versie}")
+            logger.info(
+                "Created OIO relation with id=${entity.id.value}, informatieobject=${eioRecord.id.value}, informatieobjectVersie=${versionEntity.versie}",
+            )
             CreateOIOResult.Success(entity.toResponse())
         }
     }
@@ -151,34 +153,33 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
     /**
      * Delete an ObjectInformatieObject relation
      */
-    fun delete(id: UUID): DeleteOIOResult {
-        return transaction {
-            val entity = OIORecordEntity.findById(id)
-            if (entity == null) {
-                logger.warn("Attempted to delete non-existent OIO with id=$id")
-                DeleteOIOResult.NotFound
-            } else {
-                entity.delete()
-                logger.info("Deleted OIO relation with id=$id")
-                DeleteOIOResult.Success
-            }
+    fun delete(id: UUID): DeleteOIOResult = transaction {
+        val entity = OIORecordEntity.findById(id)
+        if (entity == null) {
+            logger.warn("Attempted to delete non-existent OIO with id=$id")
+            DeleteOIOResult.NotFound
+        } else {
+            entity.delete()
+            logger.info("Deleted OIO relation with id=$id")
+            DeleteOIOResult.Success
         }
     }
-
 
     /**
      * Convert entity to response model
      */
     private fun OIORecordEntity.toResponse(): ObjectInformatieObjectResponse {
         val url = ApiUrlBuilder.absolute(resourceSegment, this.id.value.toString())
-        val informatieobjectUrl = ApiUrlBuilder.absolute("enkelvoudiginformatieobjecten", this.informatieobject.id.value.toString())
+        val informatieobjectUrl = ApiUrlBuilder.absolute(
+            "enkelvoudiginformatieobjecten",
+            this.informatieobject.id.value.toString(),
+        )
         return ObjectInformatieObjectResponse(
             id = this.id.value.toString(),
             url = url,
             informatieobject = informatieobjectUrl,
             subjectObject = this.subjectObject,
-            subjectType = SubjectTypeEnum.valueOf(this.subjectType.uppercase())
+            subjectType = SubjectTypeEnum.valueOf(this.subjectType.uppercase()),
         )
     }
 }
-
