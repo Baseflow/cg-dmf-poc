@@ -19,5 +19,8 @@ abstract class Config {
         }
 
         fun envOrSystem(key: String, default: String): String = env[key] ?: System.getenv(key) ?: default
+
+        fun envOrThrow(key: String): String =
+            env[key] ?: System.getenv(key) ?: throw IllegalStateException("Environment variable '$key' is required but not set.")
     }
 }
