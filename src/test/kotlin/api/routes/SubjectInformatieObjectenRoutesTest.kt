@@ -7,6 +7,7 @@ import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
@@ -29,7 +30,7 @@ import kotlin.test.*
 class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     companion object {
         private const val API_BASE = DOCUMENTEN_API_BASE_PATH
-        private const val RESOURCE_SEGMENT = "subjectinformatieobjecten"
+        private val RESOURCE_SEGMENT = ResourceSegments.SUBJECT_INFORMATIE_OBJECTEN
     }
 
     private fun createTestEIO(): String = runBlocking {
@@ -68,7 +69,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/subjects/123",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -83,7 +84,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
 
         val body = Json.decodeFromString<ObjectInformatieObjectResponse>(response.bodyAsText())
         assertNotNull(body.url)
-        assertTrue(body.url.contains(RESOURCE_SEGMENT))
+        assertTrue(body.url.contains(RESOURCE_SEGMENT.value))
     }
 
     @Test
@@ -94,7 +95,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         // Create 12 relations
         for (i in 1..12) {
             val request = CreateOIORequest(
-                informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+                informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
                 subjectObject = "https://example.com/subjects/$i",
                 subjectType = SubjectTypeEnum.ZAAK,
             )
@@ -129,7 +130,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         application { setup() }
         val eioId = createTestEIO()
         val request = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/subjects/test",
             subjectType = SubjectTypeEnum.ZAAK,
         )
@@ -152,7 +153,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         application { setup() }
         val eioId = createTestEIO()
         val request = CreateOIORequest(
-            informatieobject = "$API_BASE/enkelvoudiginformatieobjecten/$eioId",
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/subjects/delete",
             subjectType = SubjectTypeEnum.ZAAK,
         )

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
+import com.baseflow.api.models.ResourceSegments
 import io.ktor.server.routing.*
 
 /**
@@ -11,5 +12,5 @@ import io.ktor.server.routing.*
  * Similar to ObjectInformatieObjecten, but with pagination support.
  */
 fun Route.subjectInformatieObjectenRoutes() {
-    ObjectInformatieObjectenRoutes(this, "subjectinformatieobjecten", experimental = true).register()
+    ObjectInformatieObjectenRoutes(this, ResourceSegments.SUBJECT_INFORMATIE_OBJECTEN, experimental = true).register()
 }

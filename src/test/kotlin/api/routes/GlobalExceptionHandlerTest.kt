@@ -3,6 +3,7 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.models.ResourceSegments
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -17,7 +18,7 @@ import kotlin.test.assertTrue
 
 class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
     private val API_BASE = DOCUMENTEN_API_BASE_PATH
-    private val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
+    private val RESOURCE_SEGMENT = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
 
     @Test
     fun `test malformed JSON returns ProblemDetailsResponse`() = testApplication {

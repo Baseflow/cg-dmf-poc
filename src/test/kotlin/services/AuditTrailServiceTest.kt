@@ -2,15 +2,16 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.entities.AuditTrailEntity
 import com.baseflow.entities.IAuditContext
 import com.baseflow.tooling.AllTables
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.jwt.*
@@ -34,7 +35,7 @@ class AuditTrailServiceTest {
             "jdbc:h2:mem:test_audit;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
             driver = "org.h2.Driver",
             user = "root",
-            password = ""
+            password = "",
         )
         transaction {
             AllTables.createMissing()
@@ -55,7 +56,7 @@ class AuditTrailServiceTest {
         override var bronOrganisatie: String = "012345678",
         override var vertrouwlijkheidsAanduiding: String = "openbaar",
         override var identificatie: String = "TEST-001",
-        override var informatieobject_type: String = "https://example.com/type/1"
+        override var informatieobject_type: String = "https://example.com/type/1",
     ) : IAuditContext
 
     /**
@@ -63,26 +64,24 @@ class AuditTrailServiceTest {
      */
     private fun createTestEntity(
         entityId: String = UUID.randomUUID().toString(),
-        name: String = "test"
-    ): EnkelvoudigInformatieObjectResponse {
-        return EnkelvoudigInformatieObjectResponse(
-            id = entityId,
-            url = "https://example.com/resource/$entityId",
-            identificatie = "TEST-$name",
-            bronorganisatie = "012345678",
-            creatiedatum = LocalDate(2026, 1, 1),
-            titel = name,
-            versie = 1,
-            vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR,
-            auteur = "test-author",
-            status = EnkelvoudigInformatieObjectStatus.CONCEPT,
-            taal = "dut",
-            beginRegistratie = "2026-01-01T00:00:00Z",
-            informatieobjecttype = "https://example.com/type/1",
-            lock = "",
-            locked = false
-        )
-    }
+        name: String = "test",
+    ): EnkelvoudigInformatieObjectResponse = EnkelvoudigInformatieObjectResponse(
+        id = entityId,
+        url = "https://example.com/resource/$entityId",
+        identificatie = "TEST-$name",
+        bronorganisatie = "012345678",
+        creatiedatum = LocalDate(2026, 1, 1),
+        titel = name,
+        versie = 1,
+        vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR,
+        auteur = "test-author",
+        status = EnkelvoudigInformatieObjectStatus.CONCEPT,
+        taal = "dut",
+        beginRegistratie = "2026-01-01T00:00:00Z",
+        informatieobjecttype = "https://example.com/type/1",
+        lock = "",
+        locked = false,
+    )
 
     private fun createMockCall(
         httpMethod: HttpMethod = HttpMethod.Post,
@@ -90,7 +89,7 @@ class AuditTrailServiceTest {
         username: String = "testuser",
         clientId: String = "test-client",
         auditToelichting: String? = null,
-        statusCode: HttpStatusCode = HttpStatusCode.Created
+        statusCode: HttpStatusCode = HttpStatusCode.Created,
     ): PipelineCall {
         val call = mockk<PipelineCall>(relaxed = true)
         val headers = mockk<Headers>(relaxed = true)
@@ -137,7 +136,7 @@ class AuditTrailServiceTest {
 
         val call = createMockCall(
             httpMethod = HttpMethod.Post,
-            statusCode = HttpStatusCode.Created
+            statusCode = HttpStatusCode.Created,
         )
 
         service.create(call)
@@ -150,7 +149,7 @@ class AuditTrailServiceTest {
             assertEquals("create", audit.actie)
             assertEquals("Object aangemaakt", audit.actieWeergave)
             assertEquals("drc", audit.bron)
-            assertEquals("enkelvoudiginformatieobjecten", audit.resource)
+            assertEquals(ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value, audit.resource)
             assertEquals(201, audit.resultaat)
             assertEquals("test-user-id", audit.gebruikersId)
             assertEquals("testuser", audit.gebruikersWeergave)
@@ -173,7 +172,7 @@ class AuditTrailServiceTest {
 
         val call = createMockCall(
             httpMethod = HttpMethod.Patch,
-            statusCode = HttpStatusCode.OK
+            statusCode = HttpStatusCode.OK,
         )
 
         service.create(call)
@@ -202,7 +201,7 @@ class AuditTrailServiceTest {
 
         val call = createMockCall(
             httpMethod = HttpMethod.Put,
-            statusCode = HttpStatusCode.OK
+            statusCode = HttpStatusCode.OK,
         )
 
         service.create(call)
@@ -218,7 +217,7 @@ class AuditTrailServiceTest {
     }
 
     @Test
-    fun `create should persist audit trail for DELETE request`() {
+    fun `create should not persist audit trail for DELETE request`() {
         val entityId = UUID.randomUUID().toString()
         val oldEntity = createTestEntity(entityId = entityId)
         val sourceRequest = TestAuditContext()
@@ -228,20 +227,14 @@ class AuditTrailServiceTest {
 
         val call = createMockCall(
             httpMethod = HttpMethod.Delete,
-            statusCode = HttpStatusCode.NoContent
+            statusCode = HttpStatusCode.NoContent,
         )
 
         service.create(call)
 
         transaction {
             val audits = AuditTrailEntity.all().toList()
-            assertEquals(1, audits.size)
-
-            val audit = audits.first()
-            assertEquals("destroy", audit.actie)
-            assertEquals("Object verwijderd", audit.actieWeergave)
-            assertNotNull(audit.wijzigingen.oud)
-            assertNull(audit.wijzigingen.nieuw)
+            assertEquals(0, audits.size)
         }
     }
 
@@ -254,7 +247,7 @@ class AuditTrailServiceTest {
 
         val call = createMockCall(
             httpMethod = HttpMethod.Get,
-            statusCode = HttpStatusCode.OK
+            statusCode = HttpStatusCode.OK,
         )
 
         service.create(call)
@@ -279,7 +272,7 @@ class AuditTrailServiceTest {
 
         val call = createMockCall(
             httpMethod = HttpMethod.Post,
-            auditToelichting = "Custom toelichting for audit"
+            auditToelichting = "Custom toelichting for audit",
         )
 
         service.create(call)
@@ -304,7 +297,7 @@ class AuditTrailServiceTest {
                 actie = "create"
                 actieWeergave = "Object aangemaakt"
                 hoofdObject = "https://example.com/resource/$resourceUuid"
-                resource = "enkelvoudiginformatieobjecten"
+                resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
                 resourceUrl = "https://example.com/resource/$resourceUuid"
                 resourceWeergave = "test"
                 resultaat = 201
@@ -318,7 +311,7 @@ class AuditTrailServiceTest {
                 actie = "create"
                 actieWeergave = "Object aangemaakt"
                 hoofdObject = "https://example.com/resource/${UUID.randomUUID()}"
-                resource = "enkelvoudiginformatieobjecten"
+                resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
                 resourceUrl = "https://example.com/resource/${UUID.randomUUID()}"
                 resourceWeergave = "test"
                 resultaat = 201
@@ -344,7 +337,7 @@ class AuditTrailServiceTest {
                 actie = "create"
                 actieWeergave = "Object aangemaakt"
                 hoofdObject = "https://example.com/resource/$resourceUuid"
-                resource = "enkelvoudiginformatieobjecten"
+                resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
                 resourceUrl = "https://example.com/resource/$resourceUuid"
                 resourceWeergave = "test"
                 resultaat = 201
@@ -372,7 +365,7 @@ class AuditTrailServiceTest {
                 actie = "create"
                 actieWeergave = "Object aangemaakt"
                 hoofdObject = "https://example.com/resource/$resourceUuid"
-                resource = "enkelvoudiginformatieobjecten"
+                resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
                 resourceUrl = "https://example.com/resource/$resourceUuid"
                 resourceWeergave = "test"
                 resultaat = 201
@@ -401,7 +394,7 @@ class AuditTrailServiceTest {
                     actie = "create"
                     actieWeergave = "Object aangemaakt"
                     hoofdObject = "https://example.com/resource/$resourceUuid"
-                    resource = "enkelvoudiginformatieobjecten"
+                    resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
                     resourceUrl = "https://example.com/resource/$resourceUuid"
                     resourceWeergave = "test"
                     resultaat = 201
@@ -416,7 +409,7 @@ class AuditTrailServiceTest {
                 actie = "create"
                 actieWeergave = "Object aangemaakt"
                 hoofdObject = "https://example.com/resource/$otherResourceUuid"
-                resource = "enkelvoudiginformatieobjecten"
+                resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
                 resourceUrl = "https://example.com/resource/$otherResourceUuid"
                 resourceWeergave = "test"
                 resultaat = 201

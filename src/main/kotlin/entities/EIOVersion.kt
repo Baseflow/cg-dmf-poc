@@ -50,15 +50,10 @@ object EIOVersions : UUIDTable("eio_versions") {
     val bestandsLocatie = varchar("bestands_locatie", 1000).default("")
 }
 
-interface IAuditContext {
-    var bronOrganisatie: String
-    var vertrouwlijkheidsAanduiding: String
-    var identificatie: String
-    var informatieobject_type: String
-}
-
 @OptIn(ExperimentalTime::class)
-class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id), IAuditContext {
+class EIOVersionEntity(id: EntityID<UUID>) :
+    UUIDEntity(id),
+    IAuditContext {
     companion object : UUIDEntityClass<EIOVersionEntity>(EIOVersions)
 
     var recordId by EIORecordEntity referencedOn EIOVersions.recordId

@@ -3,6 +3,7 @@
 package com.baseflow.api
 
 import com.baseflow.api.middleware.*
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
 import io.ktor.serialization.kotlinx.json.*
@@ -54,20 +55,20 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
 
         // EnkelvoudigInformatieObject endpoints
         // These handle the core document CRUD operations
-        route("/enkelvoudiginformatieobjecten") {
+        route("/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}") {
             enkelvoudigInformatieObjectenRoutes()
             auditTrailRoutes()
         }
 
         // ObjectInformatieObject endpoints
         // These handle relations between documents and other objects (Zaken, etc.)
-        route("/objectinformatieobjecten") {
+        route("/${ResourceSegments.OBJECT_INFORMATIE_OBJECTEN}") {
             objectInformatieObjectenRoutes()
         }
 
         // EXPERIMENTAL: SubjectInformatieObject endpoints
         // These handle relations between documents and subject objects
-        route("/subjectinformatieobjecten") {
+        route("/${ResourceSegments.SUBJECT_INFORMATIE_OBJECTEN}") {
             subjectInformatieObjectenRoutes()
         }
 

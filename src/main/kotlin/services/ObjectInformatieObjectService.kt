@@ -4,8 +4,10 @@ package com.baseflow.services
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.ResourceUuidParser
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.config.RequestScope
 import com.baseflow.entities.EIORecordEntity
@@ -37,7 +39,11 @@ import kotlin.time.ExperimentalTime
  */
 @Scope(RequestScope::class)
 @Scoped
-open class ObjectInformatieObjectService(@InjectedParam private val resourceSegment: String) {
+open class ObjectInformatieObjectService(
+    @InjectedParam private val resourceSegment: ResourceSegments,
+    private val auditTrailService: AuditTrailService,
+    private val auditContext: AuditContext,
+) {
     private val logger = LoggerFactory.getLogger(ObjectInformatieObjectService::class.java)
 
     /**
@@ -48,7 +54,7 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
             val query = OIORecords.selectAll()
 
             filter.informatieobject?.let { filterUrl ->
-                val filterUuid = ResourceUuidParser.parseUuid(filterUrl, "enkelvoudiginformatieobjecten")
+                val filterUuid = ResourceUuidParser.parseUuid(filterUrl, ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value)
                 if (filterUuid != null) {
                     query.andWhere { OIORecords.informatieobject eq filterUuid }
                 } else {
@@ -96,7 +102,7 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
     fun create(request: CreateOIORequest): CreateOIOResult {
         return transaction {
             // Extract UUID from informatieobject URL and fetch EIO record
-            val eioUuid = ResourceUuidParser.parseUuid(request.informatieobject, "enkelvoudiginformatieobjecten")
+            val eioUuid = ResourceUuidParser.parseUuid(request.informatieobject, ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value)
             if (eioUuid == null) {
                 logger.warn("Could not extract UUID from informatieobject URL: ${request.informatieobject}")
                 return@transaction CreateOIOResult.Conflict("Invalid informatieobject URL")
@@ -146,7 +152,10 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
             logger.info(
                 "Created OIO relation with id=${entity.id.value}, informatieobject=${eioRecord.id.value}, informatieobjectVersie=${versionEntity.versie}",
             )
-            CreateOIOResult.Success(entity.toResponse())
+
+            val response = entity.toResponse()
+            auditContext.captureNew(response, versionEntity)
+            CreateOIOResult.Success(response)
         }
     }
 
@@ -155,6 +164,8 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
      */
     fun delete(id: UUID): DeleteOIOResult = transaction {
         val entity = OIORecordEntity.findById(id)
+        auditContext.captureOld(entity?.toResponse(), entity?.informatieobjectVersie)
+        auditTrailService.removeAuditTrailsForResource(id)
         if (entity == null) {
             logger.warn("Attempted to delete non-existent OIO with id=$id")
             DeleteOIOResult.NotFound
@@ -169,9 +180,9 @@ open class ObjectInformatieObjectService(@InjectedParam private val resourceSegm
      * Convert entity to response model
      */
     private fun OIORecordEntity.toResponse(): ObjectInformatieObjectResponse {
-        val url = ApiUrlBuilder.absolute(resourceSegment, this.id.value.toString())
+        val url = ApiUrlBuilder.absolute(resourceSegment.value, this.id.value.toString())
         val informatieobjectUrl = ApiUrlBuilder.absolute(
-            "enkelvoudiginformatieobjecten",
+            ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
             this.informatieobject.id.value.toString(),
         )
         return ObjectInformatieObjectResponse(

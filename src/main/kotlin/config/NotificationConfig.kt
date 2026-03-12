@@ -52,7 +52,7 @@ object NotificationConfig : Config() {
             isEnabled,
             url?.take(50)?.let { "$it..." } ?: "<not configured>",
             kanaal,
-            source
+            source,
         )
         if (!isEnabled) {
             logger.warn("Notifications are disabled. Set NOTIFICATION_API_URL and NOTIFICATION_API_TOKEN to enable.")

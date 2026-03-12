@@ -24,7 +24,7 @@ import java.util.*
  * Routes for EnkelvoudigInformatieObjecten (Single Information Objects).
  */
 
-const val RESOURCE_SEGMENT = "enkelvoudiginformatieobjecten"
+val RESOURCE_SEGMENT = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
 
 fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,

@@ -5,6 +5,7 @@ package com.baseflow.services
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.NotificationConfig
 import com.baseflow.entities.IAuditContext
@@ -40,7 +41,7 @@ class NotificationServiceTest {
         override var bronOrganisatie: String = "012345678",
         override var vertrouwlijkheidsAanduiding: String = "openbaar",
         override var identificatie: String = "TEST-001",
-        override var informatieobject_type: String = "https://example.com/type/1"
+        override var informatieobject_type: String = "https://example.com/type/1",
     ) : IAuditContext
 
     /**
@@ -48,30 +49,26 @@ class NotificationServiceTest {
      */
     private fun createTestEntity(
         entityId: String = java.util.UUID.randomUUID().toString(),
-        name: String = "test"
-    ): EnkelvoudigInformatieObjectResponse {
-        return EnkelvoudigInformatieObjectResponse(
-            id = entityId,
-            url = "https://example.com/resource/$entityId",
-            identificatie = "TEST-$name",
-            bronorganisatie = "012345678",
-            creatiedatum = LocalDate(2026, 1, 1),
-            titel = name,
-            versie = 1,
-            vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR,
-            auteur = "test-author",
-            status = EnkelvoudigInformatieObjectStatus.CONCEPT,
-            taal = "dut",
-            beginRegistratie = "2026-01-01T00:00:00Z",
-            informatieobjecttype = "https://example.com/type/1",
-            lock = "",
-            locked = false
-        )
-    }
+        name: String = "test",
+    ): EnkelvoudigInformatieObjectResponse = EnkelvoudigInformatieObjectResponse(
+        id = entityId,
+        url = "https://example.com/resource/$entityId",
+        identificatie = "TEST-$name",
+        bronorganisatie = "012345678",
+        creatiedatum = LocalDate(2026, 1, 1),
+        titel = name,
+        versie = 1,
+        vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR,
+        auteur = "test-author",
+        status = EnkelvoudigInformatieObjectStatus.CONCEPT,
+        taal = "dut",
+        beginRegistratie = "2026-01-01T00:00:00Z",
+        informatieobjecttype = "https://example.com/type/1",
+        lock = "",
+        locked = false,
+    )
 
-    private fun createMockCall(
-        httpMethod: HttpMethod = HttpMethod.Post
-    ): PipelineCall {
+    private fun createMockCall(httpMethod: HttpMethod = HttpMethod.Post): PipelineCall {
         val call = mockk<PipelineCall>(relaxed = true)
         val application = mockk<Application>(relaxed = true)
 
@@ -131,21 +128,21 @@ class NotificationServiceTest {
             kanaal = "documenten",
             source = "drc",
             hoofdObject = "https://example.com/resource/123",
-            resource = "enkelvoudiginformatieobjecten",
+            resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
             resourceUrl = "https://example.com/resource/123",
             actie = "create",
             aanmaakdatum = "2026-03-05T12:00:00",
             kenmerken = mapOf(
                 "bronorganisatie" to "012345678",
                 "informatieobjecttype" to "https://example.com/type/1",
-                "vertrouwelijkheidaanduiding" to "openbaar"
-            )
+                "vertrouwelijkheidaanduiding" to "openbaar",
+            ),
         )
 
         assertEquals("documenten", message.kanaal)
         assertEquals("drc", message.source)
         assertEquals("https://example.com/resource/123", message.hoofdObject)
-        assertEquals("enkelvoudiginformatieobjecten", message.resource)
+        assertEquals(ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value, message.resource)
         assertEquals("https://example.com/resource/123", message.resourceUrl)
         assertEquals("create", message.actie)
         assertNotNull(message.kenmerken)
@@ -166,7 +163,7 @@ class NotificationServiceTest {
         val payload = KanaalPayload(
             naam = "documenten",
             documentatieLink = "https://example.com/docs",
-            filters = listOf("bronorganisatie", "informatieobjecttype", "vertrouwelijkheidaanduiding")
+            filters = listOf("bronorganisatie", "informatieobjecttype", "vertrouwelijkheidaanduiding"),
         )
 
         assertEquals("documenten", payload.naam)
@@ -205,11 +202,11 @@ class NotificationServiceTest {
             kanaal = "documenten",
             source = "drc",
             hoofdObject = "https://example.com/resource/123",
-            resource = "enkelvoudiginformatieobjecten",
+            resource = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
             resourceUrl = "https://example.com/resource/123",
             actie = "create",
             aanmaakdatum = "2026-03-05T12:00:00",
-            kenmerken = null
+            kenmerken = null,
         )
 
         assertNull(message.kenmerken)
@@ -278,7 +275,7 @@ class NotificationServiceTest {
     fun `AuditContext resourceWeergave should combine bronOrganisatie and identificatie`() {
         val sourceRequest = TestAuditContext(
             bronOrganisatie = "987654321",
-            identificatie = "DOC-123"
+            identificatie = "DOC-123",
         )
         val testEntity = createTestEntity(entityId = "123")
 

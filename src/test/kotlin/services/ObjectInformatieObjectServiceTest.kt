@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
+import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.SubjectTypeEnum
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
@@ -36,7 +38,13 @@ class ObjectInformatieObjectServiceTest {
             // Create all tables
             AllTables.createMissing()
         }
-        service = ObjectInformatieObjectService(resourceSegment = "objectinformatieobjecten")
+        val auditContext = AuditContext()
+        service =
+            ObjectInformatieObjectService(
+                resourceSegment = ResourceSegments.OBJECT_INFORMATIE_OBJECTEN,
+                AuditTrailService(auditContext),
+                auditContext,
+            )
     }
 
     @AfterTest
@@ -68,7 +76,7 @@ class ObjectInformatieObjectServiceTest {
 
     private fun createTestOIORequest(
         informatieobject: String =
-            "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/12345678-1234-1234-1234-123456789012",
+            "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/12345678-1234-1234-1234-123456789012",
         subjectObject: String = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
         subjectType: SubjectTypeEnum = SubjectTypeEnum.ZAAK,
     ): CreateOIORequest = CreateOIORequest(
@@ -81,7 +89,7 @@ class ObjectInformatieObjectServiceTest {
     fun `create should persist relation and return success`() {
         // Create an EIO first
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
 
         val req = createTestOIORequest(informatieobject = eioUrl)
         val result = service.create(req)
@@ -100,7 +108,7 @@ class ObjectInformatieObjectServiceTest {
     fun `create should auto-detect version from EIO when it exists`() {
         // Create an EIO with version 3
         val eioId = createTestEIO(versie = 3)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
 
         val req = createTestOIORequest(informatieobject = eioUrl)
         val result = service.create(req)
@@ -125,7 +133,7 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `create should return conflict for duplicate relation`() {
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
         val req = createTestOIORequest(informatieobject = eioUrl)
 
         // Create first relation
@@ -140,7 +148,7 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `create should allow same informatieobject with different subjectObject`() {
         val eioId = createTestEIO(versie = 1)
-        val informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
 
         val req1 = createTestOIORequest(
             informatieobject = informatieobject,
@@ -166,11 +174,11 @@ class ObjectInformatieObjectServiceTest {
         val eioId2 = createTestEIO(versie = 1)
 
         val req1 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1",
             subjectObject = subjectObject,
         )
         val req2 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2",
             subjectObject = subjectObject,
         )
 
@@ -184,7 +192,7 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `create should store timestamps`() {
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
         val req = createTestOIORequest(informatieobject = eioUrl)
         val result = service.create(req)
 
@@ -200,7 +208,7 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `getById should return created relation`() {
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
         val req = createTestOIORequest(informatieobject = eioUrl)
         val createResult = service.create(req) as CreateOIOResult.Success
         val createdId = createResult.payload.url!!.substringAfterLast('/')
@@ -223,7 +231,7 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `exists should return true for existing id and false for random id`() {
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
         val req = createTestOIORequest(informatieobject = eioUrl)
         val createResult = service.create(req) as CreateOIOResult.Success
         val createdId = createResult.payload.url!!.substringAfterLast('/')
@@ -242,7 +250,7 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `delete should return Success when relation exists`() {
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
         val req = createTestOIORequest(informatieobject = eioUrl)
         val createResult = service.create(req) as CreateOIOResult.Success
         val createdId = createResult.payload.url!!.substringAfterLast('/')
@@ -261,10 +269,10 @@ class ObjectInformatieObjectServiceTest {
         val eioId2 = createTestEIO(versie = 1)
 
         val req1 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1",
         )
         val req2 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2",
         )
 
         service.create(req1)
@@ -281,8 +289,8 @@ class ObjectInformatieObjectServiceTest {
         val eioId1 = createTestEIO(versie = 1)
         val eioId2 = createTestEIO(versie = 1)
 
-        val informatieobject1 = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1"
-        val informatieobject2 = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2"
+        val informatieobject1 = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1"
+        val informatieobject2 = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2"
 
         val req1 = createTestOIORequest(
             informatieobject = informatieobject1,
@@ -319,15 +327,15 @@ class ObjectInformatieObjectServiceTest {
         val eioId3 = createTestEIO(versie = 1)
 
         val req1 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1",
             subjectObject = subjectObject,
         )
         val req2 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2",
             subjectObject = subjectObject,
         )
         val req3 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId3",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId3",
             subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
         )
 
@@ -347,7 +355,7 @@ class ObjectInformatieObjectServiceTest {
         val eioId1 = createTestEIO(versie = 1)
         val eioId2 = createTestEIO(versie = 1)
 
-        val informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1"
+        val informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1"
         val subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321"
 
         val req1 = createTestOIORequest(informatieobject = informatieobject, subjectObject = subjectObject)
@@ -356,7 +364,7 @@ class ObjectInformatieObjectServiceTest {
             subjectObject = "https://example.com/zaken/api/v1/zaken/99999999-9999-9999-9999-999999999999",
         )
         val req3 = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2",
             subjectObject = subjectObject,
         )
 
@@ -381,17 +389,17 @@ class ObjectInformatieObjectServiceTest {
         val eioId3 = createTestEIO(versie = 1)
 
         val zaakReq = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId1",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1",
             subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
             subjectType = SubjectTypeEnum.ZAAK,
         )
         val besluitReq = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId2",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2",
             subjectObject = "https://example.com/besluiten/api/v1/besluiten/22222222-2222-2222-2222-222222222222",
             subjectType = SubjectTypeEnum.BESLUIT,
         )
         val verzoekReq = createTestOIORequest(
-            informatieobject = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId3",
+            informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId3",
             subjectObject = "https://example.com/verzoeken/api/v1/verzoeken/33333333-3333-3333-3333-333333333333",
             subjectType = SubjectTypeEnum.VERZOEK,
         )
@@ -422,7 +430,7 @@ class ObjectInformatieObjectServiceTest {
     fun `getAll with invalid informatieobject filter URL should return empty list`() {
         // Create an EIO first
         val eioId = createTestEIO(versie = 1)
-        val eioUrl = "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/$eioId"
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
         service.create(createTestOIORequest(informatieobject = eioUrl))
 
         // Filter with invalid URL

@@ -5,7 +5,7 @@ package com.baseflow.services
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.AuditTrailResponse
-import com.baseflow.api.routes.RESOURCE_SEGMENT
+import com.baseflow.api.models.getResourceSegment
 import com.baseflow.config.RequestScope
 import com.baseflow.entities.AuditTrailEntity
 import com.baseflow.entities.AuditTrails
@@ -96,7 +96,9 @@ open class AuditTrailService(private val context: AuditContext) {
     fun create(call: PipelineCall) {
         val before = context.oldValue
         val after = context.newValue
-        if (before == null && after == null) return
+        val method = call.request.httpMethod
+        // Skip logging if there are no changes, and it's not a DELETE operation (audit trails are supposed to be deleted on DELETE)
+        if ((before == null && after == null) || method == HttpMethod.Delete) return
 
         val userId = getUserId(call) ?: "unknown"
         val username = getUserClaim(call) ?: "unknown"
@@ -104,7 +106,6 @@ open class AuditTrailService(private val context: AuditContext) {
 
         val appInfo = getApplicationInfo(call)
 
-        val method = call.request.httpMethod
         var action = httpMethodToAction[method] ?: AuditAction.UNKNOWN
         if (method == HttpMethod.Get && before is List<*>) {
             action = AuditAction.LIST
@@ -126,15 +127,10 @@ open class AuditTrailService(private val context: AuditContext) {
                     nieuw = after,
                 )
             }
-
-            HttpMethod.Delete -> {
-                wijzigingen = Wijzigingen.of(
-                    oud = before,
-                    nieuw = null,
-                )
-            }
         }
-        val resourceUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, (before ?: after)?.id.toString())
+        val entity = before ?: after
+        val resourceSegment = entity?.getResourceSegment()?.value.orEmpty()
+        val resourceUrl = ApiUrlBuilder.absolute(resourceSegment, entity?.id.toString())
         transaction {
             AuditTrailEntity.new {
                 this.applicatieId = appInfo.id
@@ -142,7 +138,7 @@ open class AuditTrailService(private val context: AuditContext) {
                 this.bron = AuditSource.DRC.weergave
                 // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
                 this.hoofdObject = resourceUrl
-                this.resource = "enkelvoudiginformatieobjecten"
+                this.resource = resourceSegment
                 this.resourceUrl = resourceUrl
                 this.resourceWeergave = context.resourceWeergave
                 this.actie = action.value
