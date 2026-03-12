@@ -100,7 +100,7 @@ class EnkelvoudigInformatieObjectService(
             }
 
             val response = record.toResponse(eioVersion)
-            auditContext.captureNew(response, "${eioVersion.bronOrganisatie} - ${eioVersion.identificatie}")
+            auditContext.captureNew(response, eioVersion)
             response as EnkelvoudigInformatieObjectResponse
         }
 
@@ -424,7 +424,7 @@ class EnkelvoudigInformatieObjectService(
                     }
             }
             val response = record.toResponse(version)
-            auditContext.captureNew(response, "${version.bronOrganisatie} - ${version.identificatie}")
+            auditContext.captureNew(response, version)
             response
         }
     }

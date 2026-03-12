@@ -7,12 +7,12 @@ services:
       POSTGRES_USER: documenten
       POSTGRES_PASSWORD: documenten
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./data/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U documenten"]
+      test: ['CMD-SHELL', 'pg_isready -U documenten']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +33,7 @@ services:
       - KC_DB_URL_DATABASE=keycloak
       - KC_DB_USERNAME=documenten
     ports:
-      - "8081:8080"
+      - '8081:8080'
     volumes:
       - ./data/realm-export.json:/opt/keycloak/data/import/realm.json
     depends_on:
@@ -44,7 +44,7 @@ services:
     build: .
     container_name: dmf-app
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/documenten
       DB_USER: documenten
@@ -71,7 +71,56 @@ services:
     volumes:
       - minio_data:/data
 
+  notificaties-api:
+    image: openzaak/open-notificaties:latest
+    container_name: notificaties-api
+    environment:
+      DB_HOST: postgres
+      DB_NAME: notificaties
+      DB_USER: documenten
+      DB_PASSWORD: documenten
+      DJANGO_SETTINGS_MODULE: nrc.conf.docker
+      SECRET_KEY: "${SECRET_KEY:-\\(,gc7VE(#CO<zCR3e(lRtOsw5q+U2DpG5o\\X#P4PVRm*=u|E%}"
+      IS_HTTPS: no
+      ALLOWED_HOSTS: '*'
+      CACHE_DEFAULT: redis:6379/0
+      CACHE_AXES: redis:6379/1
+      RABBITMQ_HOST: rabbitmq
+      PUBLISH_BROKER_URL: amqp://guest:guest@rabbitmq:5672/%2F
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      CELERY_RESULT_EXPIRES: 3600
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_LOGLEVEL: DEBUG
+      CELERY_WORKER_CONCURRENCY: ${CELERY_WORKER_CONCURRENCY:-4}
+      SUBPATH: ${SUBPATH:-/}
+      OPENNOTIFICATIES_SUPERUSER_USERNAME: admin
+      OPENNOTIFICATIES_SUPERUSER_EMAIL: admin@localhost
+      DJANGO_SUPERUSER_PASSWORD: admin
+      DISABLE_2FA: ${DISABLE_2FA:-yes}
+      LOG_NOTIFICATIONS_IN_DB: ${LOG_NOTIFICATIONS_IN_DB:-yes}
+      DB_CONN_MAX_AGE: '0'
+      DB_POOL_ENABLED: True
+
+      # Enabling Open Telemetry requires the services in docker/docker-compose.observability.yaml
+      # to be up and running.
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
+      OTEL_RESOURCE_ATTRIBUTES: maykin.saas.client=maykin,maykin.saas.target=dev
+      OTEL_METRIC_EXPORT_INTERVAL: ${OTEL_METRIC_EXPORT_INTERVAL:-60000}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317} # gRPC
+      # otel:supersecret, escape spaces and = with percent encoding
+      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Basic b3RlbDpzdXBlcnNlY3JldA==
+      OTEL_EXPORTER_OTLP_METRICS_INSECURE: ${OTEL_EXPORTER_OTLP_METRICS_INSECURE:-true}
+      _OTEL_ENABLE_CONTAINER_RESOURCE_DETECTOR: true
+
+    ports:
+      - '8000:8000'
+
+  rabbitmq:
+    image: rabbitmq:4.0-alpine
+
+  redis:
+    image: redis
+
 volumes:
   postgres_data:
   minio_data:
-

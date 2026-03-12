@@ -50,8 +50,15 @@ object EIOVersions : UUIDTable("eio_versions") {
     val bestandsLocatie = varchar("bestands_locatie", 1000).default("")
 }
 
+interface IAuditContext {
+    var bronOrganisatie: String
+    var vertrouwlijkheidsAanduiding: String
+    var identificatie: String
+    var informatieobject_type: String
+}
+
 @OptIn(ExperimentalTime::class)
-class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id) {
+class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id), IAuditContext {
     companion object : UUIDEntityClass<EIOVersionEntity>(EIOVersions)
 
     var recordId by EIORecordEntity referencedOn EIOVersions.recordId
@@ -67,17 +74,17 @@ class EIOVersionEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var beginRegistratie by EIOVersions.beginRegistratie
     var verschijningsVorm by EIOVersions.verschijningsVorm
     var trefwoorden by EIOVersions.trefwoorden
-    var bronOrganisatie by EIOVersions.bronOrganisatie
+    override var bronOrganisatie by EIOVersions.bronOrganisatie
     var creatieDatum by EIOVersions.creatieDatum
     var titel by EIOVersions.titel
-    var vertrouwlijkheidsAanduiding by EIOVersions.vertrouwlijkheidsAanduiding
+    override var vertrouwlijkheidsAanduiding by EIOVersions.vertrouwlijkheidsAanduiding
     var auteur by EIOVersions.auteur
     var status by EIOVersions.status
     var beschrijving by EIOVersions.beschrijving
     var indicatieGebruiksrecht by EIOVersions.indicatieGebruiksrecht
     var ondertekening_soort by EIOVersions.ondertekening_soort
     var ondertekenings_datum by EIOVersions.ondertekenings_datum
-    var identificatie by EIOVersions.identificatie
-    var informatieobject_type by EIOVersions.informatieobject_type
+    override var identificatie by EIOVersions.identificatie
+    override var informatieobject_type by EIOVersions.informatieobject_type
     var bestandsLocatie by EIOVersions.bestandsLocatie
 }

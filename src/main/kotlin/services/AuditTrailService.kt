@@ -144,7 +144,7 @@ open class AuditTrailService(private val context: AuditContext) {
                 this.hoofdObject = resourceUrl
                 this.resource = "enkelvoudiginformatieobjecten"
                 this.resourceUrl = resourceUrl
-                this.resourceWeergave = context.customId
+                this.resourceWeergave = context.resourceWeergave
                 this.actie = action.value
                 this.gebruikersId = userId
                 this.gebruikersWeergave = username
