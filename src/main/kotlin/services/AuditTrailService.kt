@@ -144,10 +144,10 @@ open class AuditTrailService(private val context: AuditContext) {
                 this.applicatieId = appInfo.id
                 this.applicatieWeergave = appInfo.label
                 this.bron = AuditSource.DRC.weergave
-                this.hoofdObject = resourceUrl // TODO: what is the hoofdObject for this audit trail? Is it the resource URL or something else?
+                this.hoofdObject = resourceUrl
                 this.resource = "enkelvoudiginformatieobjecten"
                 this.resourceUrl = resourceUrl
-                this.resourceWeergave = context.customId
+                this.resourceWeergave = context.resourceWeergave
                 this.actie = action.value
                 this.gebruikersId = userId
                 this.gebruikersWeergave = username

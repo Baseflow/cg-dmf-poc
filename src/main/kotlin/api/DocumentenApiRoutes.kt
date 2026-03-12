@@ -3,10 +3,7 @@
 
 package com.baseflow.api
 
-import com.baseflow.api.middleware.ApiConditionalHeadersProvider
-import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.AuditTrailPlugin
-import com.baseflow.api.middleware.configureStatusPages
+import com.baseflow.api.middleware.*
 import com.baseflow.api.routes.*
 import com.baseflow.config.OpenZaakConfig
 import io.ktor.serialization.kotlinx.json.*
@@ -16,7 +13,6 @@ import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.core.annotation.ComponentScan
 
 /**
  * Documenten API Routing Module
@@ -39,6 +35,7 @@ import org.koin.core.annotation.ComponentScan
 fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
+        install(NotificationPlugin)
         install(AuditTrailPlugin)
         install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
         install(ConditionalHeaders) {
