@@ -31,8 +31,8 @@ relations between non-Zaken objects.
 | /        | GET    | Get a list of gebruiksrechten based on the given query parameters  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /        | POST   | Create gebruiksrechten                                             | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /{UUID}  | GET    | Get a single gebruiksrechten instance based on Id                  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID}  | PUT    | Completely updates a a single gebruiksrechten instance based on Id | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID}  | PATCH  | Partually updates a a single gebruiksrechten instance based on Id  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID}  | PUT    | Completely updates a single gebruiksrechten instance based on Id   | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID}  | PATCH  | Partially updates a single gebruiksrechten instance based on Id    | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /{UUID}  | DELETE | Deletes a single gebruiksrechten instance based on Id              | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /{UUID}  | HEAD   | Gets the headers for a single gebruiksrechten instance based on Id | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 
@@ -53,8 +53,8 @@ relations between non-Zaken objects.
 | /        | GET    | Get a list of verzendingen based on the given query parameters | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /        | POST   | Create verzending                                              | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /{UUID}  | GET    | Get a single verzending instance based on Id                   | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID}  | PUT    | Completely updates a a single verzending instance based on Id  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
-| /{UUID}  | PATCH  | Partually updates a a single verzending instance based on Id   | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID}  | PUT    | Completely updates a single verzending instance based on Id    | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
+| /{UUID}  | PATCH  | Partially updates a single verzending instance based on Id     | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /{UUID}  | DELETE | Deletes a single verzending instance based on Id               | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 | /{UUID}  | HEAD   | Gets the headers for a single verzending instance based on Id  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far | 
 
