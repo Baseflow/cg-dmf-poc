@@ -159,29 +159,28 @@ Copy `.env.example` to `.env` and adjust the values before starting the applicat
 
 ### Database
 
-| Variable            | Default      | Description       |
-|---------------------|--------------|-------------------|
-| `DATABASE_HOST`     | `localhost`  | PostgreSQL host   |
-| `DATABASE_PORT`     | `5432`       | PostgreSQL port   |
-| `DATABASE_NAME`     | `documenten` | Database name     |
-| `DATABASE_USER`     | `documenten` | Database user     |
-| `DATABASE_PASSWORD` | `documenten` | Database password |
+| Variable       | Default                                  | Description                             |
+|----------------|------------------------------------------|-----------------------------------------|
+| `DB_URL`       | `jdbc:postgresql://localhost:5432/documenten` | JDBC URL to the PostgreSQL database     |
+| `DB_USER`      | `documenten`                             | Database user                           |
+| `DB_PASSWORD`  | `documenten`                             | Database password                       |
+| `DB_DRIVER`    | `org.postgresql.Driver`                  | JDBC driver class name (optional)       |
 
 ### Application
 
-| Variable   | Default | Description                     |
-|------------|---------|---------------------------------|
-| `APP_PORT` | `8080`  | HTTP port the server listens on |
+| Variable | Default | Description                     |
+|----------|---------|---------------------------------|
+| `PORT`   | `8080`  | HTTP port the server listens on |
 
 ### MinIO (object storage)
 
-| Variable            | Default                 | Description                                   |
-|---------------------|-------------------------|-----------------------------------------------|
-| `MINIO_ENDPOINT`    | `http://localhost:9000` | MinIO / S3-compatible endpoint URL            |
-| `MINIO_ACCESS_KEY`  | `minioadmin`            | Access key (username)                         |
-| `MINIO_SECRET_KEY`  | `minioadmin`            | Secret key (password)                         |
-| `MINIO_BUCKET_NAME` | `documenten`            | Bucket used for document storage              |
-| `MINIO_URL_EXPIRY`  | `PT15M`                 | Pre-signed URL expiry as an ISO-8601 duration |
+| Variable           | Default                 | Description                                   |
+|--------------------|-------------------------|-----------------------------------------------|
+| `MINIO_ENDPOINT`   | `http://localhost:9000` | MinIO / S3-compatible endpoint URL            |
+| `MINIO_ACCESS_KEY` | `minioadmin`            | Access key (username)                         |
+| `MINIO_SECRET_KEY` | `minioadmin`            | Secret key (password)                         |
+| `MINIO_BUCKET`     | `documenten`            | Bucket used for document storage              |
+| `MINIO_URL_EXPIRY` | `PT15M`                 | Pre-signed URL expiry as an ISO-8601 duration |
 
 ### Authentication
 
