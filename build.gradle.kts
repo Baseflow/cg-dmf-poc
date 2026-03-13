@@ -9,7 +9,7 @@ plugins {
     // KSP plugin for annotation processing (required by koin-annotations)
     id("com.google.devtools.ksp") version "2.3.6"
     // Code formatting with Spotless and ktlint
-    id("com.diffplug.spotless") version "7.0.4"
+    id("com.diffplug.spotless") version "8.3.0"
 }
 
 group = "com.baseflow"
