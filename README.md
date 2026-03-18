@@ -216,6 +216,10 @@ Notifications are **disabled** when `NOTIFICATION_API_URL` or `NOTIFICATION_API_
 - [Database Migrations](docs/DATABASE.md) - Migration workflow and limitations
 - [API Specification](docs/documenten-1.5.0.yaml) - OpenAPI spec
 
+### Component Diagram
+
+![Component Diagram](docs/dmf-componenten.png)
+
 ## License
 
 EUPL 1.2 - See [LICENSE.md](LICENSE.md)

@@ -1,0 +1,56 @@
+flowchart TB
+    %% DMF component overzicht: Identiteit -> Applicatie -> Services -> Data
+    KEYCLOAK["KeyCloak"]
+
+    subgraph Application["Applicatielaag"]
+        GZAC_FRONT["GZAC-frontend"]
+        GZAC_BACKEND["GZAC-backend"]
+    end
+
+    subgraph OPENZAAK_GROUP["OpenZaak"]
+        ZRC["ZRC"]
+        CATALOGUS["Catalogus"]
+    end
+    subgraph DMF_GROUP["Baseflow DMF"]
+        DMF["DRC"]
+    end
+
+    subgraph Data["Datalaag"]
+        POSTGRES_GZAC[("Postgres – GZAC-data")]
+        POSTGRES_ZRC[("Postgres – ZRC-data")]
+        POSTGRES_DMF[("Postgres – DMF-documentmetadata")]
+        S3[("S3-opslaglaag")]
+    end
+
+    %% Identiteit en UI-interacties
+    GZAC_FRONT -->|OIDC-inlog| KEYCLOAK
+    KEYCLOAK -->|JWT / toegangstokens| GZAC_FRONT
+    GZAC_FRONT -->|API-aanroepen met token| GZAC_BACKEND
+    GZAC_BACKEND -->|tokenvalidatie| KEYCLOAK
+    ZRC -->|tokenvalidatie| KEYCLOAK
+    DMF -->|tokenvalidatie| KEYCLOAK
+
+    %% Backend naar services
+    GZAC_BACKEND <-->|ZGW-zaak-API's| ZRC
+    GZAC_BACKEND -->|Document-API's met bearer token| DMF
+
+    %% Datapersistentie
+    GZAC_BACKEND -->|business-metadata| POSTGRES_GZAC
+    ZRC -->|slaat zaken op| POSTGRES_ZRC
+    DMF -->|documentmetadata| POSTGRES_DMF
+    DMF -->|slaat bestanden op| S3
+
+    %% OpenZaak intern
+    CATALOGUS -->|Zaaktypes| ZRC
+    DMF -->|informatieobjecttype validatie met bearer token| CATALOGUS
+
+    %% Styling
+    classDef access fill:#e7f1ff,stroke:#1e64b4,stroke-width:2px
+    classDef application fill:#fff5d9,stroke:#d48a00,stroke-width:2px
+    classDef services fill:#e9f7ef,stroke:#2d8a57,stroke-width:2px
+    classDef data fill:#f3e5f5,stroke:#7a1fa2,stroke-width:2px
+
+    class KEYCLOAK access
+    class GZAC_FRONT,GZAC_BACKEND application
+    class ZRC,CATALOGUS,DMF services
+    class POSTGRES_GZAC,POSTGRES_ZRC,POSTGRES_DMF,S3 data
