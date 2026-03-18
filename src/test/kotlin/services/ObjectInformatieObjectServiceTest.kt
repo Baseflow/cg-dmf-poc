@@ -13,7 +13,6 @@ import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
 import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
 import com.baseflow.tooling.AllTables
-import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -22,6 +21,7 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import kotlin.test.*
+import kotlin.time.Clock
 
 class ObjectInformatieObjectServiceTest {
     private lateinit var service: ObjectInformatieObjectService
@@ -148,7 +148,8 @@ class ObjectInformatieObjectServiceTest {
     @Test
     fun `create should allow same informatieobject with different subjectObject`() {
         val eioId = createTestEIO(versie = 1)
-        val informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
+        val informatieobject =
+            "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
 
         val req1 = createTestOIORequest(
             informatieobject = informatieobject,
@@ -289,8 +290,10 @@ class ObjectInformatieObjectServiceTest {
         val eioId1 = createTestEIO(versie = 1)
         val eioId2 = createTestEIO(versie = 1)
 
-        val informatieobject1 = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1"
-        val informatieobject2 = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2"
+        val informatieobject1 =
+            "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1"
+        val informatieobject2 =
+            "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2"
 
         val req1 = createTestOIORequest(
             informatieobject = informatieobject1,
@@ -355,7 +358,8 @@ class ObjectInformatieObjectServiceTest {
         val eioId1 = createTestEIO(versie = 1)
         val eioId2 = createTestEIO(versie = 1)
 
-        val informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1"
+        val informatieobject =
+            "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1"
         val subjectObject = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321"
 
         val req1 = createTestOIORequest(informatieobject = informatieobject, subjectObject = subjectObject)

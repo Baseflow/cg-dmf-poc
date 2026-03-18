@@ -47,61 +47,62 @@ class EnkelvoudigInformatieObjectService(
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse = suspendTransaction {
-        request.controleerVerplichteVelden()
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse =
+        suspendTransaction {
+            request.controleerVerplichteVelden()
 
-        val record = EIORecordEntity.new {
-        }
-
-        // Validate informatieobjecttype against catalogus
-        val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
-        val version = 1
-
-        val uploadResultaat = getUploadResultaat(request, record, version)
-        val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
-        val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
-
-        if (!request.inhoud.isNullOrEmpty()) {
-            require(bestandsFormaat != null) {
-                "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+            val record = EIORecordEntity.new {
             }
-        }
 
-        val eioVersion = EIOVersionEntity.new {
-            recordId = record
-            versie = version
-            bronOrganisatie = request.bronorganisatie!!
-            informatieobject_type = request.informatieobjecttype
-            taal = request.taal!!
-            bestandsnaam = request.bestandsnaam.orEmpty()
-            titel = request.titel!!
-            auteur = request.auteur!!
-            creatieDatum = request.creatiedatum!!
-            beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            formaat = bestandsFormaat
-            bestandsomvang = bestandsOmvang
-            link = request.link.orEmpty()
-            integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
-            integriteitWaarde = request.integriteit?.waarde.orEmpty()
-            integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
-            verschijningsVorm = request.verschijningsvorm.orEmpty()
-            trefwoorden = request.trefwoorden ?: emptyList()
-            vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
-                ?: ioType?.vertrouwelijkheidaanduiding
-                ?: ""
-            status = request.status?.toString().orEmpty()
-            beschrijving = request.beschrijving.orEmpty()
-            indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
-            ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
-            ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
-            identificatie = request.identificatie.orEmpty()
-            bestandsLocatie = uploadResultaat.bestandsLocatie
-        }
+            // Validate informatieobjecttype against catalogus
+            val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
+            val version = 1
 
-        val response = record.toResponse(eioVersion)
-        auditContext.captureNew(response, eioVersion)
-        response as EnkelvoudigInformatieObjectResponse
-    }
+            val uploadResultaat = getUploadResultaat(request, record, version)
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
+
+            if (!request.inhoud.isNullOrEmpty()) {
+                require(bestandsFormaat != null) {
+                    "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+                }
+            }
+
+            val eioVersion = EIOVersionEntity.new {
+                recordId = record
+                versie = version
+                bronOrganisatie = request.bronorganisatie!!
+                informatieobject_type = request.informatieobjecttype
+                taal = request.taal!!
+                bestandsnaam = request.bestandsnaam.orEmpty()
+                titel = request.titel!!
+                auteur = request.auteur!!
+                creatieDatum = request.creatiedatum!!
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                formaat = bestandsFormaat
+                bestandsomvang = bestandsOmvang
+                link = request.link.orEmpty()
+                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
+                integriteitWaarde = request.integriteit?.waarde.orEmpty()
+                integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
+                verschijningsVorm = request.verschijningsvorm.orEmpty()
+                trefwoorden = request.trefwoorden ?: emptyList()
+                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
+                    ?: ioType?.vertrouwelijkheidaanduiding
+                        ?: ""
+                status = request.status?.toString().orEmpty()
+                beschrijving = request.beschrijving.orEmpty()
+                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
+                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
+                ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
+                identificatie = request.identificatie.orEmpty()
+                bestandsLocatie = uploadResultaat.bestandsLocatie
+            }
+
+            val response = record.toResponse(eioVersion)
+            auditContext.captureNew(response, eioVersion)
+            response as EnkelvoudigInformatieObjectResponse
+        }
 
     private fun getUploadResultaat(
         request: EnkelvoudigInformatieObjectRequest,
@@ -116,7 +117,10 @@ class EnkelvoudigInformatieObjectService(
         return storeFileVersion(request, loc)
     }
 
-    private fun storeFileVersion(request: EnkelvoudigInformatieObjectRequest, bestandsLocatie: String): UploadResultaat {
+    private fun storeFileVersion(
+        request: EnkelvoudigInformatieObjectRequest,
+        bestandsLocatie: String
+    ): UploadResultaat {
         if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content)
@@ -236,20 +240,8 @@ class EnkelvoudigInformatieObjectService(
 
             val uploadResultaat =
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
-            val bestandsOmvang = if (partial &&
-                request.bestandsomvang == null
-            ) {
-                uploadResultaat.bestandsOmvang ?: latestVersion?.bestandsomvang
-            } else {
-                request.bestandsomvang
-            }
-            val bestandsFormaat = if (partial &&
-                request.formaat == null
-            ) {
-                uploadResultaat.bestandsFormaat ?: latestVersion?.formaat
-            } else {
-                request.formaat
-            }
+            val bestandsFormaat =
+                mergeNullable(partial, request.formaat, uploadResultaat.bestandsFormaat ?: latestVersion?.formaat)
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) {
@@ -258,172 +250,88 @@ class EnkelvoudigInformatieObjectService(
             }
 
             // create a new version. If values in the request are empty,
-            // use existing values from latest version but only if the update is not partial
+            // use existing values from latest version but only if the update is partial
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
-                bronOrganisatie =
-                    if (partial &&
-                        request.bronorganisatie.isNullOrEmpty()
-                    ) {
-                        latestVersion?.bronOrganisatie.orEmpty()
-                    } else {
-                        request.bronorganisatie!!
-                    }
+                bronOrganisatie = mergeString(partial, request.bronorganisatie, latestVersion?.bronOrganisatie)
                 informatieobject_type =
-                    if (partial &&
-                        request.informatieobjecttype.isNullOrEmpty()
-                    ) {
-                        latestVersion?.informatieobject_type.orEmpty()
-                    } else {
-                        request.informatieobjecttype!!
-                    }
-                taal = if (partial && request.taal.isNullOrEmpty()) latestVersion?.taal.orEmpty() else request.taal!!
-                bestandsnaam =
-                    if (partial &&
-                        request.bestandsnaam.isNullOrEmpty()
-                    ) {
-                        latestVersion?.bestandsnaam.orEmpty()
-                    } else {
-                        request.bestandsnaam.orEmpty()
-                    }
-                titel =
-                    if (partial && request.titel.isNullOrEmpty()) latestVersion?.titel.orEmpty() else request.titel!!
-                auteur =
-                    if (partial && request.auteur.isNullOrEmpty()) latestVersion?.auteur.orEmpty() else request.auteur!!
+                    mergeString(partial, request.informatieobjecttype, latestVersion?.informatieobject_type)
+                taal = mergeString(partial, request.taal, latestVersion?.taal)
+                bestandsnaam = mergeOptionalString(partial, request.bestandsnaam, latestVersion?.bestandsnaam)
+                titel = mergeString(partial, request.titel, latestVersion?.titel)
+                auteur = mergeString(partial, request.auteur, latestVersion?.auteur)
                 bestandsLocatie = uploadResultaat.bestandsLocatie
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                link =
-                    if (partial &&
-                        request.link.isNullOrEmpty()
-                    ) {
-                        latestVersion?.link.orEmpty()
-                    } else {
-                        request.link.orEmpty()
-                    }
-                creatieDatum =
-                    if (partial &&
-                        request.creatiedatum == null
-                    ) {
-                        latestVersion?.creatieDatum
-                            ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
-                    } else {
-                        request.creatiedatum!!
-                    }
+                link = mergeOptionalString(partial, request.link, latestVersion?.link)
+                creatieDatum = mergeNullable(partial, request.creatiedatum, latestVersion?.creatieDatum)
+                    ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
                 formaat = bestandsFormaat
-                bestandsomvang =
-                    if (partial &&
-                        request.bestandsomvang == null
-                    ) {
-                        latestVersion?.bestandsomvang ?: 0
-                    } else {
-                        bestandsOmvang
-                    }
-                integriteitAlgoritme =
-                    if (partial &&
-                        request.integriteit?.algoritme == null
-                    ) {
-                        latestVersion?.integriteitAlgoritme.orEmpty()
-                    } else {
-                        request.integriteit?.algoritme?.toString().orEmpty()
-                    }
+                bestandsomvang = mergeNullable(partial, request.bestandsomvang, latestVersion?.bestandsomvang) ?: 0
+                integriteitAlgoritme = mergeOptionalString(
+                    partial,
+                    request.integriteit?.algoritme?.toString(),
+                    latestVersion?.integriteitAlgoritme
+                )
                 integriteitWaarde =
-                    if (partial &&
-                        request.integriteit?.waarde.isNullOrEmpty()
-                    ) {
-                        latestVersion?.integriteitWaarde.orEmpty()
-                    } else {
-                        request.integriteit?.waarde.orEmpty()
-                    }
-                integriteitsDatum =
-                    if (partial &&
-                        request.integriteit?.datum == null
-                    ) {
-                        latestVersion?.integriteitsDatum
-                    } else {
-                        request.integriteit?.datum?.atTime(0, 0, 0, 0)
-                    }
+                    mergeOptionalString(partial, request.integriteit?.waarde, latestVersion?.integriteitWaarde)
+                integriteitsDatum = mergeNullable(
+                    partial,
+                    request.integriteit?.datum?.atTime(0, 0, 0, 0),
+                    latestVersion?.integriteitsDatum
+                )
                 verschijningsVorm =
-                    if (partial &&
-                        request.verschijningsvorm.isNullOrEmpty()
-                    ) {
-                        latestVersion?.verschijningsVorm.orEmpty()
-                    } else {
-                        request.verschijningsvorm.orEmpty()
-                    }
-                trefwoorden =
-                    if (partial &&
-                        request.trefwoorden.isNullOrEmpty()
-                    ) {
-                        latestVersion?.trefwoorden ?: emptyList()
-                    } else {
-                        request.trefwoorden
-                            ?: emptyList()
-                    }
-                vertrouwlijkheidsAanduiding =
-                    if (partial &&
-                        request.vertrouwelijkheidaanduiding == null
-                    ) {
-                        latestVersion?.vertrouwlijkheidsAanduiding ?: ""
-                    } else {
-                        request.vertrouwelijkheidaanduiding?.toString()
-                            ?: ""
-                    }
-                status =
-                    if (partial &&
-                        request.status == null
-                    ) {
-                        latestVersion?.status.orEmpty()
-                    } else {
-                        request.status?.toString().orEmpty()
-                    }
-                beschrijving =
-                    if (partial &&
-                        request.beschrijving.isNullOrEmpty()
-                    ) {
-                        latestVersion?.beschrijving.orEmpty()
-                    } else {
-                        request.beschrijving.orEmpty()
-                    }
+                    mergeOptionalString(partial, request.verschijningsvorm, latestVersion?.verschijningsVorm)
+                trefwoorden = mergeNullable(partial, request.trefwoorden?.ifEmpty { null }, latestVersion?.trefwoorden)
+                    ?: emptyList()
+                vertrouwlijkheidsAanduiding = mergeOptionalString(
+                    partial,
+                    request.vertrouwelijkheidaanduiding?.toString(),
+                    latestVersion?.vertrouwlijkheidsAanduiding
+                )
+                status = mergeOptionalString(partial, request.status?.toString(), latestVersion?.status)
+                beschrijving = mergeOptionalString(partial, request.beschrijving, latestVersion?.beschrijving)
                 indicatieGebruiksrecht =
-                    if (partial &&
-                        request.indicatieGebruiksrecht == null
-                    ) {
-                        latestVersion?.indicatieGebruiksrecht ?: false
-                    } else {
-                        request.indicatieGebruiksrecht
-                            ?: false
-                    }
-                ondertekening_soort =
-                    if (partial &&
-                        request.ondertekening?.soort == null
-                    ) {
-                        latestVersion?.ondertekening_soort.orEmpty()
-                    } else {
-                        request.ondertekening?.soort?.toString().orEmpty()
-                    }
-                ondertekenings_datum =
-                    if (partial &&
-                        request.ondertekening?.datum == null
-                    ) {
-                        latestVersion?.ondertekenings_datum
-                    } else {
-                        request.ondertekening?.datum?.atTime(0, 0, 0, 0)
-                    }
-                identificatie =
-                    if (partial &&
-                        request.identificatie.isNullOrEmpty()
-                    ) {
-                        latestVersion?.identificatie.orEmpty()
-                    } else {
-                        request.identificatie.orEmpty()
-                    }
+                    mergeNullable(partial, request.indicatieGebruiksrecht, latestVersion?.indicatieGebruiksrecht)
+                        ?: false
+                ondertekening_soort = mergeOptionalString(
+                    partial,
+                    request.ondertekening?.soort?.toString(),
+                    latestVersion?.ondertekening_soort
+                )
+                ondertekenings_datum = mergeNullable(
+                    partial,
+                    request.ondertekening?.datum?.atTime(0, 0, 0, 0),
+                    latestVersion?.ondertekenings_datum
+                )
+                identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
             }
             val response = record.toResponse(version)
             auditContext.captureNew(response, version)
             response
         }
     }
+
+    /**
+     * In a partial update, returns [fallback] when [newValue] is null; otherwise returns [newValue].
+     * In a full update, always returns [newValue].
+     */
+    private fun <T> mergeNullable(partial: Boolean, newValue: T?, fallback: T?): T? =
+        if (partial && newValue == null) fallback else newValue
+
+    /**
+     * Merges a required string field: in a partial update falls back to [fallback] when [newValue]
+     * is null or empty; in a full update always uses [newValue] (assumed non-null by caller).
+     */
+    private fun mergeString(partial: Boolean, newValue: String?, fallback: String?): String =
+        if (partial && newValue.isNullOrEmpty()) fallback.orEmpty() else newValue!!
+
+    /**
+     * Merges an optional string field (empty string is a valid value).
+     * In a partial update falls back to [fallback] when [newValue] is null or empty.
+     */
+    private fun mergeOptionalString(partial: Boolean, newValue: String?, fallback: String?): String =
+        if (partial && newValue.isNullOrEmpty()) fallback.orEmpty() else newValue.orEmpty()
 
     @OptIn(ExperimentalTime::class)
     private fun EIORecordEntity.toResponse(version: EIOVersionEntity?): EnkelvoudigInformatieObjectResponse? {
@@ -459,7 +367,10 @@ class EnkelvoudigInformatieObjectService(
 
         return EnkelvoudigInformatieObjectResponse(
             id = this.id.value.toString(),
-            url = ApiUrlBuilder.absolute(ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value, this.id.value.toString()),
+            url = ApiUrlBuilder.absolute(
+                ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
+                this.id.value.toString()
+            ),
             identificatie = version.identificatie,
             bronorganisatie = version.bronOrganisatie,
             creatiedatum = version.creatieDatum,
@@ -539,30 +450,31 @@ class EnkelvoudigInformatieObjectService(
         return op
     }
 
-    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> = object : Op<Boolean>() {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-            val arrayType = column.columnType as ArrayColumnType<String, *>
-            val elementType = arrayType.delegate
+    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> =
+        object : Op<Boolean>() {
+            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                val arrayType = column.columnType as ArrayColumnType<String, *>
+                val elementType = arrayType.delegate
 
-            queryBuilder {
-                append(column)
-                append(" @> ")
-                append("ARRAY[")
+                queryBuilder {
+                    append(column)
+                    append(" @> ")
+                    append("ARRAY[")
 
-                values.forEachIndexed { index, value ->
-                    if (index > 0) append(", ")
-                    append(
-                        QueryParameter(
-                            value,
-                            elementType,
-                        ),
-                    )
+                    values.forEachIndexed { index, value ->
+                        if (index > 0) append(", ")
+                        append(
+                            QueryParameter(
+                                value,
+                                elementType,
+                            ),
+                        )
+                    }
+
+                    append("]")
                 }
-
-                append("]")
             }
         }
-    }
 
     fun lock(id: UUID): LockResult? {
         return transaction {
