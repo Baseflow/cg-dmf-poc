@@ -11,9 +11,9 @@ keywords:
   - documenten-api
   - drc
   - kotlin
-home: https://github.com/Gemeente-Utrecht/DMF-PoC
+home: https://github.com/baseflow/cg-dmf-poc
 sources:
-  - https://github.com/Gemeente-Utrecht/DMF-PoC
+  - https://github.com/baseflow/cg-dmf-poc
 maintainers:
-  - name: Gemeente Utrecht
+  - name: Baseflow
 
