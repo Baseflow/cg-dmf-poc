@@ -1,0 +1,204 @@
+# Default values for cg-dmf.
+# Override per environment with -f <env-values.yaml> or --set key=value.
+
+# -- Number of pod replicas.
+replicaCount: 1
+
+image:
+  # -- Container image repository.
+  repository: baseflow.azurecr.io/cg-dmf-poc
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag. Defaults to the chart's appVersion.
+  tag: ""
+
+# -- Image pull secrets (list of secret names).
+imagePullSecrets: []
+
+# -- Override the chart name used in resource names.
+nameOverride: ""
+# -- String to fully override cg-dmf.fullname.
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Whether to create a dedicated ServiceAccount.
+  create: true
+  # -- Annotations to add to the ServiceAccount.
+  annotations: {}
+  # -- Name of the ServiceAccount to use. Auto-generated when empty.
+  name: ""
+
+# -- Annotations added to every pod.
+podAnnotations: {}
+
+# -- Labels added to every pod.
+podLabels: {}
+
+# -- Pod-level security context.
+podSecurityContext:
+  fsGroup: 1000
+
+# -- Container-level security context.
+securityContext:
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  # -- Kubernetes Service type.
+  type: ClusterIP
+  # -- Port exposed by the Service.
+  port: 80
+  # -- NodePort to use when service.type is NodePort. Leave unset for a random port.
+  nodePort: null
+
+ingress:
+  # -- Enable Ingress resource creation.
+  enabled: false
+  # -- Ingress class name.
+  ingressClassName: "nginx"
+  # -- Ingress annotations.
+  annotations: {}
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    # cert-manager.io/cluster-issuer: letsencrypt-production
+  hosts:
+    - host: cg-dmf.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  # -- TLS configuration for the Ingress.
+  tls: []
+  #  - secretName: cg-dmf-tls-secret
+  #    hosts:
+  #      - cg-dmf.example.com
+
+# -- Resources for cg-dmf. We recommend not setting defaults so this is a conscious choice per environment.
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 256Mi
+
+startupProbe:
+  httpGet:
+    path: /health/liveness
+    port: http
+  # -- Allow up to 5 minutes for the app to start (30 * 10s).
+  failureThreshold: 30
+  periodSeconds: 10
+
+livenessProbe:
+  httpGet:
+    path: /health/liveness
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/readiness
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 20
+  failureThreshold: 3
+
+autoscaling:
+  # -- Enable Horizontal Pod Autoscaler.
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# -- Node selector for pod placement.
+nodeSelector: {}
+
+# -- Tolerations for pod placement.
+tolerations: []
+
+# -- Affinity rules for pod placement.
+affinity: {}
+
+# -- Array with extra environment variables to add to the container.
+extraEnvVars: []
+# e.g:
+# extraEnvVars:
+#   - name: FOO
+#     value: "bar"
+
+# -- Optionally specify extra list of additional volumes for the pod.
+extraVolumes: []
+# e.g:
+# extraVolumes:
+#   - name: extra-certs
+#     configMap:
+#       name: extra-certs
+
+# -- Optionally specify extra list of additional volumeMounts for the container.
+extraVolumeMounts: []
+# e.g:
+# extraVolumeMounts:
+#   - name: extra-certs
+#     mountPath: /etc/ssl/certs/extra-certs/
+
+# ---------------------------------------------------------------------------
+# Application configuration
+# ---------------------------------------------------------------------------
+
+settings:
+  # -- Public base URL of the API (used in self-links returned by the API).
+  baseUrl: "https://cg-dmf.example.com"
+
+  # -- OIDC issuer URL for JWT validation.
+  oidcIssuer: "https://auth.example.com/realms/valtimo"
+  # -- Comma-separated list of ZGW client IDs allowed to call the API.
+  zgwAllowedClientIds: "gzac"
+
+  # ---------------------------------------------------------------------------
+  # Database
+  # ---------------------------------------------------------------------------
+  database:
+    # -- JDBC connection URL.
+    url: "jdbc:postgresql://postgres:5432/documenten"
+    # -- Database username.
+    username: "documenten"
+    # -- Database password.
+    # @sensitive
+    password: ""
+
+  # ---------------------------------------------------------------------------
+  # S3 / MinIO object storage
+  # ---------------------------------------------------------------------------
+  s3:
+    # -- S3/MinIO endpoint URL.
+    endpoint: "http://minio:9000"
+    # -- Bucket name used to store document files.
+    bucket: "cg-dmf"
+    # -- S3/MinIO access key.
+    accessKey: ""
+    # -- S3/MinIO secret key.
+    # @sensitive
+    secretKey: ""
+
+  # ---------------------------------------------------------------------------
+  # OpenZaak integration
+  # ---------------------------------------------------------------------------
+  openzaak:
+    # -- OpenZaak base endpoint URL.
+    endpoint: "https://openzaak.example.com"
+    # -- OAuth2 / ZGW client ID used to call OpenZaak.
+    clientId: "cg-dmf"
+    # -- OAuth2 client secret for OpenZaak.
+    # @sensitive
+    clientSecret: ""
+    # -- Whether to validate OpenZaak responses.
+    validationEnabled: false

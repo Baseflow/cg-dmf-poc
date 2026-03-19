@@ -1,0 +1,24 @@
+# Patterns to ignore when packaging the Helm chart.
+# Follows .gitignore syntax.
+
+# Byte-compiled / optimized files
+*.pyc
+*.pyo
+*.pyd
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Helm test fixtures (not part of the release)
+tests/
+
+# CI output
+*.tar.gz
+

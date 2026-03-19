@@ -1,0 +1,19 @@
+apiVersion: v2
+name: cg-dmf
+description: >
+  Document Management Facility (DMF) – a Proof-of-Concept implementation of the
+  Common Ground Documenten API (DRC) written in Kotlin.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - common-ground
+  - documenten-api
+  - drc
+  - kotlin
+home: https://github.com/Gemeente-Utrecht/DMF-PoC
+sources:
+  - https://github.com/Gemeente-Utrecht/DMF-PoC
+maintainers:
+  - name: Gemeente Utrecht
+
