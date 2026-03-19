@@ -62,5 +62,5 @@ jobs:
           SOURCE_TAG="${{ steps.acr.outputs.tag }}"
           DEST_TAG="baseflow/cg-dmf-poc:${SOURCE_TAG##*:}"
           docker tag ${SOURCE_TAG} ${DEST_TAG}
-          docker push baseflow/dmf-poc --all-tags
+          docker push baseflow/cg-dmf-poc --all-tags
 
