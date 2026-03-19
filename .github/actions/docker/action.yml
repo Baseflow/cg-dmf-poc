@@ -8,14 +8,14 @@ inputs:
   vulnerability_scan:
     description: Whether to scan docker image for vulnerabilities
     default: "false"
-  dockerfile: 
-    description: Defaults to the first Dockerfile found 
+  dockerfile:
+    description: Defaults to the first Dockerfile found
     required: false
-  context: 
+  context:
     description: Defaults to repoistory root
     required: false
     default: .
-  push: 
+  push:
     description: Push image to the container registry
     required: false
     default: 'true'
@@ -45,8 +45,11 @@ inputs:
 outputs:
   image:
     description: "Built container image name"
-    value: ${{ steps.build.outputs.image }}
- 
+    value: ${{ steps.info.outputs.image }}
+  tag:
+    description: "Full image tag that was built"
+    value: ${{ steps.determine-tag.outputs.tag }}
+
 runs:
   using: "composite"
   steps:
@@ -61,11 +64,11 @@ runs:
       run: |
         COMMIT=${GITHUB_SHA::7}
         BRANCH=${GITHUB_REF_NAME/\//-}
-        DOCKERFILE=$(find ${DOCKERFILE:--iname Dockerfile*} -print -quit) 
+        DOCKERFILE=$(find ${DOCKERFILE:--iname Dockerfile*} -print -quit)
         IMAGE_NAME=$(echo "${IMAGE:-${GITHUB_REPOSITORY##*/}}" | sed "s/$REGISTRY\///i")
         echo "image=${REGISTRY}/${IMAGE_NAME}" >> $GITHUB_OUTPUT
-        echo "dockerfile=$DOCKERFILE" >> $GITHUB_OUTPUT  
-        echo "registry=$REGISTRY" >> $GITHUB_OUTPUT  
+        echo "dockerfile=$DOCKERFILE" >> $GITHUB_OUTPUT
+        echo "registry=$REGISTRY" >> $GITHUB_OUTPUT
 
     - name: Authenticate to Container registry
       shell: bash
@@ -146,4 +149,4 @@ runs:
       env:
         IMAGE: ${{ steps.info.outputs.image }}
       run: |
-        docker push ${IMAGE} --all-tags 
+        docker push ${IMAGE} --all-tags
