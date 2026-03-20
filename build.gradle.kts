@@ -80,9 +80,9 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
-    implementation("io.insert-koin:koin-core:4.1.1")
-    implementation("io.insert-koin:koin-ktor:4.1.1")
-    implementation("io.insert-koin:koin-logger-slf4j:4.1.1")
+    implementation("io.insert-koin:koin-core:4.2.0")
+    implementation("io.insert-koin:koin-ktor:4.2.0")
+    implementation("io.insert-koin:koin-logger-slf4j:4.2.0")
     implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
     ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
 
