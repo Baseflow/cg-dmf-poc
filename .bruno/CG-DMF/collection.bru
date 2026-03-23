@@ -37,8 +37,14 @@ script:pre-request {
   const clientId = bru.getEnvVar("jwt.clientId");
   const clientSecret = bru.getEnvVar("jwt.clientSecret");
 
-  if (!clientSecret) {
-    throw new Error("jwt.clientSecret is not set. Please set it in the environment secrets (Environments > Edit > jwt.clientSecret).");
+  // If neither is set, skip JWT generation entirely (e.g. using OAuth2 instead)
+  if (!clientId && !clientSecret) {
+    return;
+  }
+
+  // If only one is set, that's a misconfiguration — warn loudly
+  if (!clientId || !clientSecret) {
+    throw new Error("Both jwt.clientId and jwt.clientSecret must be set together.");
   }
 
   const payload = {
