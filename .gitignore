@@ -72,8 +72,11 @@ helm/**/values.*.local.yaml
 devbox.lock
 .devbox
 
-    
 # Node modules
 **/node_modules/
+
+# Bruno secrets (never commit these)
+**/*.secrets.json
+
 # npm
 package-lock.json
