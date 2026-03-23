@@ -55,71 +55,87 @@ class HealthCheckService {
     }
 
     fun checkStorage(): StorageStatus {
-        val creds = StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
-        )
-        val s3Config = S3Configuration.builder()
-            .pathStyleAccessEnabled(true)
-            .build()
-
-        val s3Client = S3AsyncClient.builder()
-            .region(Region.EU_WEST_1)
-            .endpointOverride(URI.create(MinioConfig.endpoint))
-            .credentialsProvider(creds)
-            .httpClientBuilder(NettyNioAsyncHttpClient.builder())
-            .serviceConfiguration(s3Config)
-            .build()
-
-        // Check read access: list buckets / head bucket
-        val readStatus = try {
-            val headRequest = HeadBucketRequest.builder()
-                .bucket(MinioConfig.bucketName)
+        var s3Client: S3AsyncClient? = null
+        return try {
+            val creds = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
+            )
+            val s3Config = S3Configuration.builder()
+                .pathStyleAccessEnabled(true)
                 .build()
+
+            s3Client = S3AsyncClient.builder()
+                .region(Region.EU_WEST_1)
+                .endpointOverride(URI.create(MinioConfig.endpoint))
+                .credentialsProvider(creds)
+                .httpClientBuilder(NettyNioAsyncHttpClient.builder())
+                .serviceConfiguration(s3Config)
+                .build()
+
+            // Check read access: list buckets / head bucket
+            val readStatus = try {
+                val headRequest = HeadBucketRequest.builder()
+                    .bucket(MinioConfig.bucketName)
+                    .build()
+                try {
+                    s3Client.headBucket(headRequest).join()
+                } catch (_: Exception) {
+                    s3Client.listBuckets().join()
+                }
+                DependencyStatus(status = "ok")
+            } catch (e: Exception) {
+                logger.warn("Storage read health check failed: {}", e.message)
+                DependencyStatus(status = "error", detail = e.message)
+            }
+
+            // Check write access: upload and delete a small probe object
+            val writeStatus = try {
+                val bucketExists = s3Client.listBuckets().join().buckets()
+                    .any { it.name() == MinioConfig.bucketName }
+
+                if (!bucketExists) {
+                    s3Client.createBucket { it.bucket(MinioConfig.bucketName) }.join()
+                }
+
+                val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
+                val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                    .bucket(MinioConfig.bucketName)
+                    .key(probeKey)
+                    .build()
+
+                s3Client.putObject(
+                    putRequest,
+                    software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
+                ).join()
+
+                s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }.join()
+
+                DependencyStatus(status = "ok")
+            } catch (e: Exception) {
+                logger.warn("Storage write health check failed: {}", e.message)
+                DependencyStatus(status = "error", detail = e.message)
+            }
+
+            val storageOk = readStatus.status == "ok" && writeStatus.status == "ok"
+            StorageStatus(
+                status = if (storageOk) "ok" else "error",
+                read = readStatus,
+                write = writeStatus,
+            )
+        } catch (e: Exception) {
+            logger.warn("Storage health check failed: {}", e.message)
+            val detail = e.message
+            StorageStatus(
+                status = "error",
+                read = DependencyStatus(status = "error", detail = detail),
+                write = DependencyStatus(status = "error", detail = detail),
+            )
+        } finally {
             try {
-                s3Client.headBucket(headRequest).join()
-            } catch (_: Exception) {
-                s3Client.listBuckets().join()
+                s3Client?.close()
+            } catch (closeException: Exception) {
+                logger.debug("Failed to close S3 client in health check: {}", closeException.message)
             }
-            DependencyStatus(status = "ok")
-        } catch (e: Exception) {
-            logger.warn("Storage read health check failed: {}", e.message)
-            DependencyStatus(status = "error", detail = e.message)
         }
-
-        // Check write access: upload and delete a small probe object
-        val writeStatus = try {
-            val bucketExists = s3Client.listBuckets().join().buckets()
-                .any { it.name() == MinioConfig.bucketName }
-
-            if (!bucketExists) {
-                s3Client.createBucket { it.bucket(MinioConfig.bucketName) }.join()
-            }
-
-            val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
-            val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
-                .bucket(MinioConfig.bucketName)
-                .key(probeKey)
-                .build()
-
-            s3Client.putObject(
-                putRequest,
-                software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
-            ).join()
-
-            s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }.join()
-
-            DependencyStatus(status = "ok")
-        } catch (e: Exception) {
-            logger.warn("Storage write health check failed: {}", e.message)
-            DependencyStatus(status = "error", detail = e.message)
-        }
-
-        s3Client.close()
-        val storageOk = readStatus.status == "ok" && writeStatus.status == "ok"
-        return StorageStatus(
-            status = if (storageOk) "ok" else "error",
-            read = readStatus,
-            write = writeStatus,
-        )
     }
 }
