@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api
 
+import com.baseflow.services.HealthCheckService
+import com.baseflow.services.HealthValidateResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
 /**
  * Health Check Endpoints Module
@@ -24,6 +27,22 @@ fun Application.healthModule() {
             // Readiness probe - checks if the application is ready to serve traffic
             get("/readiness") {
                 call.respond(HttpStatusCode.OK)
+            }
+
+            // Validate probe - checks connectivity to external dependencies (database & S3 storage)
+            get("/validate") {
+                val healthCheckService by inject<HealthCheckService>()
+
+                val database = healthCheckService.checkDatabase()
+                val storage = healthCheckService.checkStorage()
+
+                val response = HealthValidateResponse(
+                    database = database,
+                    storage = storage,
+                )
+
+                val statusCode = if (response.healthy) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+                call.respond(statusCode, response)
             }
         }
     }
