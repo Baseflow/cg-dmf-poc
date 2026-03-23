@@ -167,6 +167,9 @@ settings:
   # Database
   # ---------------------------------------------------------------------------
   database:
+    # -- Specifies whether there is an existing Secret with database credentials.
+    # If true, the Secret must be created manually and contain the keys DB_URL, DB_USER, and DB_PASSWORD.
+    existingSecret: false
     # -- JDBC connection URL.
     url: "jdbc:postgresql://postgres:5432/documenten"
     # -- Database username.
@@ -179,6 +182,9 @@ settings:
   # S3 / MinIO object storage
   # ---------------------------------------------------------------------------
   s3:
+    # -- Specifies whether there is an existing Secret with S3/MinIO credentials.
+    # If true, the Secret must be created manually and contain the keys MINIO_ACCESS_KEY and MINIO_SECRET_KEY.
+    existingSecret: false
     # -- S3/MinIO endpoint URL.
     endpoint: "http://minio:9000"
     # -- Bucket name used to store document files.
@@ -193,6 +199,9 @@ settings:
   # OpenZaak integration
   # ---------------------------------------------------------------------------
   openzaak:
+    # -- Specifies whether there is an existing Secret with OpenZaak credentials.
+    # If true, the Secret must be created manually and contain the key OPENZAAK_CLIENT_SECRET.
+    existingSecret: false
     # -- OpenZaak base endpoint URL.
     endpoint: "https://openzaak.example.com"
     # -- OAuth2 / ZGW client ID used to call OpenZaak.
