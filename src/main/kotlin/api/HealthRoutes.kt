@@ -37,11 +37,12 @@ fun Application.healthModule() {
                 val storage = healthCheckService.checkStorage()
 
                 val response = HealthValidateResponse(
+                    status = if (database.status == "ok" && storage.status == "ok") "ok" else "error",
                     database = database,
                     storage = storage,
                 )
 
-                val statusCode = if (response.healthy) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
+                val statusCode = if (response.status == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
                 call.respond(statusCode, response)
             }
         }

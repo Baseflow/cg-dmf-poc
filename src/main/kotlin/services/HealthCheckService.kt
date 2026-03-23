@@ -24,12 +24,18 @@ data class DependencyStatus(
 )
 
 @Serializable
+data class StorageStatus(
+    val status: String,
+    val read: DependencyStatus,
+    val write: DependencyStatus,
+)
+
+@Serializable
 data class HealthValidateResponse(
+    val status: String,
     val database: DependencyStatus,
-    val storage: DependencyStatus,
-) {
-    val healthy: Boolean get() = database.status == "ok" && storage.status == "ok"
-}
+    val storage: StorageStatus,
+)
 
 @Singleton
 class HealthCheckService {
@@ -48,49 +54,52 @@ class HealthCheckService {
         }
     }
 
-    fun checkStorage(): DependencyStatus {
-        return try {
-            val creds = StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
-            )
-            val s3Config = S3Configuration.builder()
-                .pathStyleAccessEnabled(true)
-                .build()
+    fun checkStorage(): StorageStatus {
+        val creds = StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
+        )
+        val s3Config = S3Configuration.builder()
+            .pathStyleAccessEnabled(true)
+            .build()
 
-            val s3Client = S3AsyncClient.builder()
-                .region(Region.EU_WEST_1)
-                .endpointOverride(URI.create(MinioConfig.endpoint))
-                .credentialsProvider(creds)
-                .httpClientBuilder(NettyNioAsyncHttpClient.builder())
-                .serviceConfiguration(s3Config)
-                .build()
+        val s3Client = S3AsyncClient.builder()
+            .region(Region.EU_WEST_1)
+            .endpointOverride(URI.create(MinioConfig.endpoint))
+            .credentialsProvider(creds)
+            .httpClientBuilder(NettyNioAsyncHttpClient.builder())
+            .serviceConfiguration(s3Config)
+            .build()
 
-            // Check read access: verify the bucket exists (HEAD bucket)
+        // Check read access: list buckets / head bucket
+        val readStatus = try {
             val headRequest = HeadBucketRequest.builder()
                 .bucket(MinioConfig.bucketName)
                 .build()
-
             try {
                 s3Client.headBucket(headRequest).join()
             } catch (_: Exception) {
-                // Bucket may not exist yet; verify connectivity by listing buckets instead
                 s3Client.listBuckets().join()
             }
+            DependencyStatus(status = "ok")
+        } catch (e: Exception) {
+            logger.warn("Storage read health check failed: {}", e.message)
+            DependencyStatus(status = "error", detail = e.message)
+        }
 
-            // Check write access: upload a small probe object and delete it
-            val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
-            val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
-                .bucket(MinioConfig.bucketName)
-                .key(probeKey)
-                .build()
-
-            // Ensure bucket exists before writing
+        // Check write access: upload and delete a small probe object
+        val writeStatus = try {
             val bucketExists = s3Client.listBuckets().join().buckets()
                 .any { it.name() == MinioConfig.bucketName }
 
             if (!bucketExists) {
                 s3Client.createBucket { it.bucket(MinioConfig.bucketName) }.join()
             }
+
+            val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
+            val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                .bucket(MinioConfig.bucketName)
+                .key(probeKey)
+                .build()
 
             s3Client.putObject(
                 putRequest,
@@ -99,12 +108,18 @@ class HealthCheckService {
 
             s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }.join()
 
-            s3Client.close()
             DependencyStatus(status = "ok")
         } catch (e: Exception) {
-            logger.warn("Storage health check failed: {}", e.message)
+            logger.warn("Storage write health check failed: {}", e.message)
             DependencyStatus(status = "error", detail = e.message)
         }
+
+        s3Client.close()
+        val storageOk = readStatus.status == "ok" && writeStatus.status == "ok"
+        return StorageStatus(
+            status = if (storageOk) "ok" else "error",
+            read = readStatus,
+            write = writeStatus,
+        )
     }
 }
-
