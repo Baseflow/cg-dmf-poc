@@ -62,23 +62,29 @@ ServiceAccount name to use.
 
 {{/*
 Name of the Secret that holds database credentials.
+Set settings.database.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-database.
 */}}
 {{- define "cg-dmf.databaseSecretName" -}}
-{{- printf "%s-database" (include "cg-dmf.fullname" .) }}
+{{- .Values.settings.database.existingSecret | default (printf "%s-database" (include "cg-dmf.fullname" .)) }}
 {{- end }}
 
 {{/*
 Name of the Secret that holds S3/MinIO credentials.
+Set settings.s3.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-s3.
 */}}
 {{- define "cg-dmf.s3SecretName" -}}
-{{- printf "%s-s3" (include "cg-dmf.fullname" .) }}
+{{- .Values.settings.s3.existingSecret | default (printf "%s-s3" (include "cg-dmf.fullname" .)) }}
 {{- end }}
 
 {{/*
 Name of the Secret that holds OpenZaak credentials.
+Set settings.openzaak.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-openzaak.
 */}}
 {{- define "cg-dmf.openzaakSecretName" -}}
-{{- printf "%s-openzaak" (include "cg-dmf.fullname" .) }}
+{{- .Values.settings.openzaak.existingSecret | default (printf "%s-openzaak" (include "cg-dmf.fullname" .)) }}
 {{- end }}
 
 {{/*

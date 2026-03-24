@@ -92,13 +92,26 @@ ingress:
 
 ## Supplying credentials from an external secret manager
 
-The chart always creates its own Kubernetes Secrets from the values you provide.
+The chart by default creates its own Kubernetes Secrets from the values you provide.
+
 If you manage secrets externally (e.g. Azure Key Vault via the AKV-to-K8s operator,
-Sealed Secrets, or External Secrets Operator), create the three secrets yourself with
-the correct keys before installing the chart, then override `settings.database.password`,
-`settings.s3.accessKey`, `settings.s3.secretKey`, and `settings.openzaak.clientSecret`
-with dummy non-empty placeholder values to satisfy the `required` validation — the real values
-will come from whichever secret you inject via `extraEnvVars` or by patching the pod spec.
+Sealed Secrets, or External Secrets Operator), create the secrets yourself with the
+correct keys and then set `existingSecret` to the **name of your pre-existing Secret**.
+The chart will skip creating its own Secret and reference the name you provided instead:
+
+```yaml
+settings:
+  database:
+    existingSecret: "my-db-secret"       # must contain: DB_URL, DB_USER, DB_PASSWORD
+  s3:
+    existingSecret: "my-s3-secret"       # must contain: MINIO_ACCESS_KEY, MINIO_SECRET_KEY
+  openzaak:
+    existingSecret: "my-openzaak-secret" # must contain: OPENZAAK_CLIENT_SECRET
+```
+
+Leave `existingSecret` empty or `null` (the default) to have the chart create and manage the
+Secret automatically. The chart-managed names follow the pattern `<fullname>-database`,
+`<fullname>-s3`, and `<fullname>-openzaak`.
 
 Alternatively, set the actual secret values through your CD pipeline using `--set`:
 
@@ -245,11 +258,12 @@ extraVolumeMounts:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| `settings.database.existingSecret` | string | `null` | Name of a pre-existing Secret containing database credentials (keys: `DB_URL`, `DB_USER`, `DB_PASSWORD`). When set, the chart skips Secret creation and references this name. Defaults to the chart-managed Secret `<fullname>-database` when empty/null. |
 | `settings.database.url` | string | `jdbc:postgresql://postgres:5432/documenten` | JDBC connection URL for PostgreSQL. |
 | `settings.database.username` | string | `documenten` | Database username. |
-| `settings.database.password` | string | **required** | Database password. Stored in the `<release>-database` Secret. |
+| `settings.database.password` | string | **required** | Database password. Stored in the `<fullname>-database` Secret. |
 
-#### S3 / MinIO (`settings.s3`)
+#### S3 (`settings.s3`)
 
 > The helm values use the `s3` prefix in preparation for a future rename of the app's `MINIO_*`
 > environment variables to `S3_*`. Until that migration happens, these values are mapped to
@@ -257,35 +271,34 @@ extraVolumeMounts:
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `settings.s3.endpoint` | string | `http://minio:9000` | S3/MinIO endpoint URL. |
+| `settings.s3.existingSecret` | string | `null` | Name of a pre-existing Secret containing S3 credentials (keys: `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`). When set, the chart skips Secret creation and references this name. Defaults to the chart-managed Secret `<fullname>-s3` when empty/null. |
+| `settings.s3.endpoint` | string | `http://minio:9000` | S3 endpoint URL. |
 | `settings.s3.bucket` | string | `cg-dmf` | Bucket used to store uploaded document files. |
-| `settings.s3.accessKey` | string | **required** | S3/MinIO access key. Stored in the `<release>-s3` Secret. |
-| `settings.s3.secretKey` | string | **required** | S3/MinIO secret key. Stored in the `<release>-s3` Secret. |
+| `settings.s3.accessKey` | string | **required** | S3 access key. Stored in the `<fullname>-s3` Secret. |
+| `settings.s3.secretKey` | string | **required** | S3 secret key. Stored in the `<fullname>-s3` Secret. |
 
 #### OpenZaak integration (`settings.openzaak`)
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| `settings.openzaak.existingSecret` | string | `null` | Name of a pre-existing Secret containing OpenZaak credentials (key: `OPENZAAK_CLIENT_SECRET`). When set, the chart skips Secret creation and references this name. Defaults to the chart-managed Secret `<fullname>-openzaak` when empty/null. |
 | `settings.openzaak.endpoint` | string | `https://openzaak.example.com` | Base URL of the OpenZaak instance. |
 | `settings.openzaak.clientId` | string | `cg-dmf` | OAuth2 client ID used when calling OpenZaak. |
-| `settings.openzaak.clientSecret` | string | **required** | OAuth2 client secret. Stored in the `<release>-openzaak` Secret. |
+| `settings.openzaak.clientSecret` | string | **required** | OAuth2 client secret. Stored in the `<fullname>-openzaak` Secret. |
 | `settings.openzaak.validationEnabled` | bool | `false` | Whether to validate object references against OpenZaak. Set to `true` in production. |
 
 ## Secrets
 
-The chart creates three Kubernetes Secrets:
+Unless `existingSecret` is set, the chart creates three Kubernetes Secrets. The names follow the
+pattern `<fullname>-<component>` (where `<fullname>` is the computed release full name):
 
 | Secret name | Keys |
 |-------------|------|
-| `<release>-database` | `DB_URL`, `DB_USER`, `DB_PASSWORD` |
-| `<release>-s3` | `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` |
-| `<release>-openzaak` | `OPENZAAK_CLIENT_SECRET` |
+| `<fullname>-database` | `DB_URL`, `DB_USER`, `DB_PASSWORD` |
+| `<fullname>-s3` | `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` |
+| `<fullname>-openzaak` | `OPENZAAK_CLIENT_SECRET` |
+
+When using externally-managed secrets, set `existingSecret` to the name of your Secret — the chart
+will skip creation and reference that name directly in the Deployment.
 
 All three are annotated with `helm.sh/resource-policy: keep` so they survive a `helm uninstall`.
-
-
-
-
-
-
-
