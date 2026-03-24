@@ -13,9 +13,12 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException
+import software.amazon.awssdk.services.s3.model.S3Exception
 import java.net.URI
 import java.time.Duration
 import java.util.UUID
+import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
@@ -116,42 +119,63 @@ open class HealthCheckService {
                 DependencyStatus(status = "error", detail = e.message)
             }
 
-            // Check write access: upload and delete a small probe object
+            // Check write access: attempt a probe PutObject directly without first
+            // calling listBuckets(), which would require the ListAllMyBuckets permission
+            // and could produce false-negative results when only PutObject/DeleteObject
+            // permissions are granted.  NoSuchBucket and AccessDenied are handled
+            // explicitly so the caller gets a meaningful error detail.
             val writeStatus = try {
-                val bucketExists = s3Client.listBuckets()
-                    .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                    .join()
-                    .buckets()
-                    .any { it.name() == MinioConfig.bucketName }
-
-                if (!bucketExists) {
-                    s3Client.createBucket { it.bucket(MinioConfig.bucketName) }
-                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                        .join()
-                }
-
                 val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
                 val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
                     .bucket(MinioConfig.bucketName)
                     .key(probeKey)
                     .build()
 
-                s3Client.putObject(
-                    putRequest,
-                    software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
-                ).orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS).join()
+                try {
+                    s3Client.putObject(
+                        putRequest,
+                        software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
+                    ).orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS).join()
+                } catch (e: CompletionException) {
+                    // Unwrap and rethrow so the typed catch-blocks below can match
+                    throw e.cause ?: e
+                }
 
-                s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }
-                    .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                    .join()
+                try {
+                    s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }
+                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .join()
+                } catch (_: Exception) {
+                    // Best-effort cleanup; a delete failure does not invalidate the write check.
+                    logger.warn("Storage write health check: probe object cleanup failed (key={})", probeKey)
+                }
 
                 DependencyStatus(status = "ok")
             } catch (e: TimeoutException) {
                 logger.warn("Storage write health check timed out: {}", e.message)
                 DependencyStatus(
                     status = "error",
-                    detail = "Storage write timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s"
+                    detail = "Storage write timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s",
                 )
+            } catch (_: NoSuchBucketException) {
+                logger.warn("Storage write health check failed – bucket not found: {}", MinioConfig.bucketName)
+                DependencyStatus(
+                    status = "error",
+                    detail = "Bucket '${MinioConfig.bucketName}' does not exist",
+                )
+            } catch (e: S3Exception) {
+                if (e.statusCode() == 403) {
+                    logger.warn("Storage write health check failed – access denied: {}", e.message)
+                    DependencyStatus(
+                        status = "error",
+                        detail = "Access denied for bucket '${MinioConfig.bucketName}': ${
+                            e.awsErrorDetails()?.errorMessage() ?: e.message
+                        }",
+                    )
+                } else {
+                    logger.warn("Storage write health check failed: {}", e.message)
+                    DependencyStatus(status = "error", detail = e.message)
+                }
             } catch (e: Exception) {
                 logger.warn("Storage write health check failed: {}", e.message)
                 DependencyStatus(status = "error", detail = e.message)
