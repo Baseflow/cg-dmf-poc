@@ -5,12 +5,22 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten?creatiedatum__gt=2026-01-23
   body: none
   auth: inherit
 }
 
 params:query {
+  creatiedatum__gt: 2026-01-23
+  ~creatiedatum__gte: 
+  ~creatiedatum__lt: 
+  ~creatiedatum__lte: 
+  ~registratiedatum__lt: 
+  ~registratiedatum__lte: 
+  ~registratiedatum__gt: 
+  ~registratiedatum__gte: 
+  ~beschrijving: Bruno
+  ~auteur: dj
   ~identificatie: DOC-001
   ~bronorganisatie: 012345678
   ~page: 1

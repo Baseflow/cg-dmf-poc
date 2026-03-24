@@ -471,7 +471,7 @@ class EnkelvoudigInformatieObjectService(
         }
 
         filters.auteur?.let { auteur ->
-            op = op and (EIOVersions.auteur eq auteur)
+            op = op and (EIOVersions.auteur.lowerCase() like "%${auteur.lowercase()}%")
         }
 
         filters.status?.let { status ->
