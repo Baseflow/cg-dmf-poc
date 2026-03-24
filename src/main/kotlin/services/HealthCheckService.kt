@@ -10,12 +10,14 @@ import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
-import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 import java.net.URI
+import java.time.Duration
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 @Serializable
 data class DependencyStatus(
@@ -42,6 +44,12 @@ open class HealthCheckService {
 
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
 
+    companion object {
+        /** Maximum time to wait for any single S3 operation during a health check. */
+        private val S3_HEALTH_TIMEOUT: Duration = Duration.ofSeconds(5)
+        private val S3_HEALTH_TIMEOUT_SECONDS = S3_HEALTH_TIMEOUT.toSeconds()
+    }
+
     open fun checkDatabase(): DependencyStatus {
         return try {
             transaction {
@@ -64,11 +72,17 @@ open class HealthCheckService {
                 .pathStyleAccessEnabled(true)
                 .build()
 
+            // Configure Netty HTTP client with explicit connection and read timeouts so
+            // that the underlying TCP layer does not block longer than S3_HEALTH_TIMEOUT.
+            val httpClientBuilder = NettyNioAsyncHttpClient.builder()
+                .connectionTimeout(S3_HEALTH_TIMEOUT)
+                .readTimeout(S3_HEALTH_TIMEOUT)
+
             s3Client = S3AsyncClient.builder()
-                .region(Region.EU_WEST_1)
+                .region(MinioConfig.region)
                 .endpointOverride(URI.create(MinioConfig.endpoint))
                 .credentialsProvider(creds)
-                .httpClientBuilder(NettyNioAsyncHttpClient.builder())
+                .httpClientBuilder(httpClientBuilder)
                 .serviceConfiguration(s3Config)
                 .build()
 
@@ -78,11 +92,23 @@ open class HealthCheckService {
                     .bucket(MinioConfig.bucketName)
                     .build()
                 try {
-                    s3Client.headBucket(headRequest).join()
+                    s3Client.headBucket(headRequest)
+                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .join()
+                } catch (_: TimeoutException) {
+                    throw TimeoutException("headBucket timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s")
                 } catch (_: Exception) {
-                    s3Client.listBuckets().join()
+                    s3Client.listBuckets()
+                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .join()
                 }
                 DependencyStatus(status = "ok")
+            } catch (e: TimeoutException) {
+                logger.warn("Storage read health check timed out: {}", e.message)
+                DependencyStatus(
+                    status = "error",
+                    detail = "Storage read timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s"
+                )
             } catch (e: Exception) {
                 logger.warn("Storage read health check failed: {}", e.message)
                 DependencyStatus(status = "error", detail = e.message)
@@ -90,11 +116,16 @@ open class HealthCheckService {
 
             // Check write access: upload and delete a small probe object
             val writeStatus = try {
-                val bucketExists = s3Client.listBuckets().join().buckets()
+                val bucketExists = s3Client.listBuckets()
+                    .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .join()
+                    .buckets()
                     .any { it.name() == MinioConfig.bucketName }
 
                 if (!bucketExists) {
-                    s3Client.createBucket { it.bucket(MinioConfig.bucketName) }.join()
+                    s3Client.createBucket { it.bucket(MinioConfig.bucketName) }
+                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .join()
                 }
 
                 val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
@@ -106,11 +137,19 @@ open class HealthCheckService {
                 s3Client.putObject(
                     putRequest,
                     software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
-                ).join()
+                ).orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS).join()
 
-                s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }.join()
+                s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }
+                    .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    .join()
 
                 DependencyStatus(status = "ok")
+            } catch (e: TimeoutException) {
+                logger.warn("Storage write health check timed out: {}", e.message)
+                DependencyStatus(
+                    status = "error",
+                    detail = "Storage write timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s"
+                )
             } catch (e: Exception) {
                 logger.warn("Storage write health check failed: {}", e.message)
                 DependencyStatus(status = "error", detail = e.message)

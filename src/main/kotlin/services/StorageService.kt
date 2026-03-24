@@ -12,12 +12,10 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
-import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
-import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
 import java.net.URI
@@ -45,17 +43,10 @@ open class StorageService {
         .build()
 
     private val s3Client: S3AsyncClient = S3AsyncClient.builder()
-        .region(Region.EU_WEST_1)
+        .region(MinioConfig.region)
         .endpointOverride(URI.create(MinioConfig.endpoint))
         .credentialsProvider(creds)
         .httpClientBuilder(NettyNioAsyncHttpClient.builder())
-        .serviceConfiguration(s3Config)
-        .build()
-
-    private val presigner: S3Presigner = S3Presigner.builder()
-        .region(Region.EU_WEST_1)
-        .endpointOverride(URI.create(MinioConfig.endpoint))
-        .credentialsProvider(creds)
         .serviceConfiguration(s3Config)
         .build()
 
