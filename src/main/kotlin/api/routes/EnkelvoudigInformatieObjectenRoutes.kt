@@ -138,7 +138,13 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
         params["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumGte =
         params["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val locked = params["locked"]?.let { runCatching { it.toBoolean() }.getOrNull() }
+    val locked = params["locked"]?.let { value ->
+        when (value.lowercase()) {
+            "true" -> true
+            "false" -> false
+            else -> null
+        }
+    }
     val ordering = params["ordering"]
         ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
         ?.mapNotNull { EIOOrdering.fromValue(it) }
