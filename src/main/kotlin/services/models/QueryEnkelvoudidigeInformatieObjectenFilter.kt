@@ -4,6 +4,31 @@ package com.baseflow.services.models
 
 import kotlinx.datetime.LocalDate
 
+/**
+ * Defines the valid ordering options for EnkelvoudigInformatieObject queries.
+ * Prefix with '-' for descending order (e.g. "-auteur").
+ */
+enum class EIOOrdering(val value: String) {
+    AUTEUR_ASC("auteur"),
+    AUTEUR_DESC("-auteur"),
+    BESTANDSOMVANG_ASC("bestandsomvang"),
+    BESTANDSOMVANG_DESC("-bestandsomvang"),
+    CREATIEDATUM_ASC("creatiedatum"),
+    CREATIEDATUM_DESC("-creatiedatum"),
+    FORMAAT_ASC("formaat"),
+    FORMAAT_DESC("-formaat"),
+    STATUS_ASC("status"),
+    STATUS_DESC("-status"),
+    TITEL_ASC("titel"),
+    TITEL_DESC("-titel"),
+    VERTROUWELIJKHEIDAANDUIDING_ASC("vertrouwelijkheidaanduiding"),
+    VERTROUWELIJKHEIDAANDUIDING_DESC("-vertrouwelijkheidaanduiding");
+
+    companion object {
+        fun fromValue(value: String): EIOOrdering? = entries.firstOrNull { it.value == value }
+    }
+}
+
 class QueryEnkelvoudigeInformatieObjectenFilter(
     val bronOrganisatie: String? = null,
     val trefwoorden: List<String> = emptyList(),
@@ -50,4 +75,6 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     val registratiedatumGte: LocalDate? = null,
     /** EXPERIMENTEEL: locked (boolean) indication whether the information object is locked for editing */
     val locked: Boolean? = null,
+    /** EXPERIMENTEEL: Ordering of the results. Prefix with '-' for descending order. */
+    val ordering: List<EIOOrdering> = emptyList(),
 )

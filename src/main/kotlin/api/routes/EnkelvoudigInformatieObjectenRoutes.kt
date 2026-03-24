@@ -10,6 +10,7 @@ import com.baseflow.api.models.*
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
+import com.baseflow.services.models.EIOOrdering
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
@@ -106,38 +107,42 @@ private suspend fun RoutingContext.zoek() {
 
 private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
     val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-    val queryParameters = call.request.queryParameters
-    val bronOrganisatie = queryParameters["bronorganisatie"]
-    val trefwoorden = queryParameters.getAll("trefwoorden") ?: emptyList()
-    val identificatie = queryParameters["identificatie"]
-    val page = queryParameters["page"]?.toIntOrNull() ?: 1
+    val params = call.request.queryParameters
+    val bronOrganisatie = params["bronorganisatie"]
+    val trefwoorden = params.getAll("trefwoorden") ?: emptyList()
+    val identificatie = params["identificatie"]
+    val page = params["page"]?.toIntOrNull() ?: 1
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-    val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: 100
+    val pageSize = params["pageSize"]?.toIntOrNull() ?: 100
 
     // EXPERIMENTEEL filters
-    val objectUrl = queryParameters["objectinformatieobjecten__object"]
-    val objectType = queryParameters["objectinformatieobjecten__objectType"]
-    val informatieobjecttype = queryParameters["informatieobjecttype"]
-    val vertrouwelijkheidaanduiding = queryParameters["vertrouwelijkheidaanduiding"]
+    val objectUrl = params["objectinformatieobjecten__object"]
+    val objectType = params["objectinformatieobjecten__objectType"]
+    val informatieobjecttype = params["informatieobjecttype"]
+    val vertrouwelijkheidaanduiding = params["vertrouwelijkheidaanduiding"]
         ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
         ?: emptyList()
-    val titel = queryParameters["titel"]
-    val auteur = queryParameters["auteur"]
-    val status = queryParameters["status"]
-    val beschrijving = queryParameters["beschrijving"]
-    val creatiedatumLt = queryParameters["creatiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val creatiedatumLte = queryParameters["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val creatiedatumGt = queryParameters["creatiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val creatiedatumGte = queryParameters["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val titel = params["titel"]
+    val auteur = params["auteur"]
+    val status = params["status"]
+    val beschrijving = params["beschrijving"]
+    val creatiedatumLt = params["creatiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumLte = params["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGt = params["creatiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGte = params["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumLt =
-        queryParameters["registratiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumLte =
-        queryParameters["registratiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumGt =
-        queryParameters["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumGte =
-        queryParameters["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val locked = queryParameters["locked"]?.let { runCatching { it.toBoolean() }.getOrNull() }
+        params["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val locked = params["locked"]?.let { runCatching { it.toBoolean() }.getOrNull() }
+    val ordering = params["ordering"]
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?.mapNotNull { EIOOrdering.fromValue(it) }
+        ?: emptyList()
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = uuidIn,
@@ -163,6 +168,7 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
         registratiedatumGt = registratiedatumGt,
         registratiedatumGte = registratiedatumGte,
         locked = locked,
+        ordering = ordering,
     )
     return Triple(page, pageSize, filter)
 }

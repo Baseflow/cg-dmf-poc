@@ -179,6 +179,34 @@ class EnkelvoudigInformatieObjectService(
                 if (condition != Op.TRUE) {
                     andWhere { condition }
                 }
+                if (filters.ordering.isNotEmpty()) {
+                    val orderClauses = filters.ordering.map { ordering ->
+                        val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
+                        when (ordering) {
+                            EIOOrdering.AUTEUR_ASC, EIOOrdering.AUTEUR_DESC ->
+                                EIOVersions.auteur to sortOrder
+
+                            EIOOrdering.BESTANDSOMVANG_ASC, EIOOrdering.BESTANDSOMVANG_DESC ->
+                                EIOVersions.bestandsomvang to sortOrder
+
+                            EIOOrdering.CREATIEDATUM_ASC, EIOOrdering.CREATIEDATUM_DESC ->
+                                EIOVersions.creatieDatum to sortOrder
+
+                            EIOOrdering.FORMAAT_ASC, EIOOrdering.FORMAAT_DESC ->
+                                EIOVersions.formaat to sortOrder
+
+                            EIOOrdering.STATUS_ASC, EIOOrdering.STATUS_DESC ->
+                                EIOVersions.status to sortOrder
+
+                            EIOOrdering.TITEL_ASC, EIOOrdering.TITEL_DESC ->
+                                EIOVersions.titel to sortOrder
+
+                            EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC ->
+                                EIOVersions.vertrouwlijkheidsAanduiding to sortOrder
+                        }
+                    }
+                    orderBy(*orderClauses.toTypedArray())
+                }
             }
 
             val totalCount = query.count()
