@@ -167,18 +167,39 @@ class EnkelvoudigInformatieObjectService(
             val offset = (page - 1L) * pageSize
 
             // Base query: Record + Version, filtered and ordered by versie desc
-            var query = EIORecords.innerJoin(EIOVersions)
-                .selectAll()
+            // Alias for correlated subquery to ensure we only select the latest version per record
+            val otherVersions = EIOVersions.alias("other_versions")
+            val otherRecordId = otherVersions[EIOVersions.recordId]
+            val otherVersie = otherVersions[EIOVersions.versie]
 
-            if (filters.objectUrl != null || filters.objectType != null) {
-                query = EIORecords.innerJoin(EIOVersions).innerJoin(OIORecords)
-                    .selectAll()
+            // Build base join, optionally including OIORecords when object filters are used
+            val baseJoin = if (filters.objectUrl != null || filters.objectType != null) {
+                EIORecords.innerJoin(EIOVersions).innerJoin(OIORecords)
+            } else {
+                EIORecords.innerJoin(EIOVersions)
             }
+
+            val query = baseJoin
+                .selectAll()
 
             query.apply {
                 if (condition != Op.TRUE) {
                     andWhere { condition }
                 }
+
+                // Keep only the latest version per record:
+                // there must be no other version with the same recordId and a higher versie.
+                andWhere {
+                    notExists(
+                        otherVersions
+                            .selectAll()
+                            .where {
+                                (otherRecordId eq EIOVersions.recordId) and
+                                    (otherVersie greater EIOVersions.versie)
+                            },
+                    )
+                }
+
                 if (filters.ordering.isNotEmpty()) {
                     val orderClauses = filters.ordering.map { ordering ->
                         val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
