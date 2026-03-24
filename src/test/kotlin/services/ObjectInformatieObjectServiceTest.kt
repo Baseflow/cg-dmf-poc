@@ -443,4 +443,6 @@ class ObjectInformatieObjectServiceTest {
 
         assertTrue(results.isEmpty())
     }
+
+    
 }
