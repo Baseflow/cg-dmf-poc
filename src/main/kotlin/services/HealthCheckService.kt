@@ -38,11 +38,11 @@ data class HealthValidateResponse(
 )
 
 @Singleton
-class HealthCheckService {
+open class HealthCheckService {
 
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
 
-    fun checkDatabase(): DependencyStatus {
+    open fun checkDatabase(): DependencyStatus {
         return try {
             transaction {
                 exec("SELECT 1")
@@ -54,7 +54,7 @@ class HealthCheckService {
         }
     }
 
-    fun checkStorage(): StorageStatus {
+    open fun checkStorage(): StorageStatus {
         var s3Client: S3AsyncClient? = null
         return try {
             val creds = StaticCredentialsProvider.create(
