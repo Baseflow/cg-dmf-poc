@@ -274,7 +274,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val auditContext = AuditContext()
         val customService = EnkelvoudigInformatieObjectService(
-            StorageService(),
+            mockk<StorageService>(relaxed = true),
             ApplicationConfig,
             mockCatalogusService,
             AuditTrailService(auditContext),
@@ -686,7 +686,8 @@ class EnkelvoudigInformatieObjectServiceTest {
         )
     }
 
-    @Test fun `update file location if content has changed`() = runBlocking {
+    @Test
+    fun `update file location if content has changed`() = runBlocking {
         val req = generateTestDocument(bestandsnaam = "doc.pdf")
         val reqWithContent = req.copy(inhoud = PDF_CONTENT, formaat = "application/pdf", bestandsomvang = 595L)
         val resp = service.create(reqWithContent)

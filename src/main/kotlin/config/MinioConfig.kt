@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.config
 
 import org.slf4j.LoggerFactory
+import software.amazon.awssdk.regions.Region
 import java.time.Duration
 
 /**
@@ -17,14 +18,16 @@ internal object MinioConfig : Config() {
     val accessKey: String = envOrSystem("MINIO_ACCESS_KEY", "minioadmin")
     val secretKey: String = envOrThrow("MINIO_SECRET_KEY")
     val bucketName: String = envOrSystem("MINIO_BUCKET", "default-bucket")
+    val region: Region = Region.of(envOrSystem("MINIO_REGION", "eu-west-1"))
 
     override fun printConfig() {
         logger.info(
-            "MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}",
+            "MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}, region={}",
             endpoint,
             accessKey,
             bucketName,
             urlExpiry,
+            region,
         )
         logger.debug("MinioConfig: secretKey is set: {}", secretKey.isNotEmpty())
     }

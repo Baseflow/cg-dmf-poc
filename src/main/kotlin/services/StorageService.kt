@@ -1,26 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
 import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3ClientFactory
 import org.koin.core.annotation.Singleton
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
 import org.slf4j.LoggerFactory
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
-import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
-import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
-import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
-import java.net.URI
 import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipInputStream
@@ -30,34 +24,13 @@ import java.util.zip.ZipInputStream
  * provided by MinioConfigProvider.
  */
 @Singleton
-open class StorageService {
+open class StorageService(s3ClientFactory: S3ClientFactory) {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
 
     private val bucketName = MinioConfig.bucketName
 
-    private val creds = StaticCredentialsProvider.create(
-        AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
-    )
-
-    private val s3Config = S3Configuration.builder()
-        .pathStyleAccessEnabled(true)
-        .build()
-
-    private val s3Client: S3AsyncClient = S3AsyncClient.builder()
-        .region(Region.EU_WEST_1)
-        .endpointOverride(URI.create(MinioConfig.endpoint))
-        .credentialsProvider(creds)
-        .httpClientBuilder(NettyNioAsyncHttpClient.builder())
-        .serviceConfiguration(s3Config)
-        .build()
-
-    private val presigner: S3Presigner = S3Presigner.builder()
-        .region(Region.EU_WEST_1)
-        .endpointOverride(URI.create(MinioConfig.endpoint))
-        .credentialsProvider(creds)
-        .serviceConfiguration(s3Config)
-        .build()
+    private val s3Client: S3AsyncClient = s3ClientFactory.create()
 
     init {
         logger.info("Created S3 client for bucket {}", bucketName)
