@@ -461,13 +461,13 @@ class EnkelvoudigInformatieObjectService(
             op = op and (EIOVersions.informatieobject_type eq iot)
         }
 
-        if (filters.vertrouwelijkheidaanduidingIn.isNotEmpty()) {
-            val normalized = filters.vertrouwelijkheidaanduidingIn.map { it.lowercase() }
+        if (filters.vertrouwelijkheidaanduiding.isNotEmpty()) {
+            val normalized = filters.vertrouwelijkheidaanduiding.map { it.lowercase() }
             op = op and (EIOVersions.vertrouwlijkheidsAanduiding.lowerCase() inList normalized)
         }
 
         filters.titel?.let { titel ->
-            op = op and (EIOVersions.titel eq titel)
+            op = op and (EIOVersions.titel.lowerCase() like "%${titel.lowercase()}%")
         }
 
         filters.auteur?.let { auteur ->
@@ -491,6 +491,14 @@ class EnkelvoudigInformatieObjectService(
         filters.registratiedatumLte?.let { op = op and (EIOVersions.beginRegistratie.date() lessEq it) }
         filters.registratiedatumGt?.let { op = op and (EIOVersions.beginRegistratie.date() greater it) }
         filters.registratiedatumGte?.let { op = op and (EIOVersions.beginRegistratie.date() greaterEq it) }
+
+        filters.locked?.let { locked ->
+            if (locked) {
+                op = op and (EIORecords.lockToken.isNotNull())
+            } else {
+                op = op and (EIORecords.lockToken.isNull())
+            }
+        }
 
         return op
     }

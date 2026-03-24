@@ -69,59 +69,7 @@ private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
 
 private suspend fun RoutingContext.list() {
-    val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
-    val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
-    val identificatie = call.request.queryParameters["identificatie"]
-    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-    // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
-
-    // EXPERIMENTEEL filters
-    val params = call.request.queryParameters
-    val objectUrl = params["objectinformatieobjecten__object"]
-    val objectType = params["objectinformatieobjecten__objectType"]
-    val informatieobjecttype = params["informatieobjecttype"]
-    val vertrouwelijkheidaanduidingIn = params["vertrouwelijkheidaanduiding__in"]
-        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
-        ?: emptyList()
-    val titel = params["titel"]
-    val auteur = params["auteur"]
-    val status = params["status"]
-    val beschrijving = params["beschrijving"]
-    val creatiedatumLt = params["creatiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val creatiedatumLte = params["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val creatiedatumGt = params["creatiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val creatiedatumGte = params["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val registratiedatumLt = params["registratiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val registratiedatumLte = params["registratiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val registratiedatumGt = params["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-    val registratiedatumGte = params["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-
-    val filter = QueryEnkelvoudigeInformatieObjectenFilter(
-        bronOrganisatie = bronOrganisatie,
-        trefwoorden = trefwoorden,
-        identificatie = identificatie,
-        page = page,
-        pageSize = pageSize,
-        objectUrl = objectUrl,
-        objectType = objectType,
-        informatieobjecttype = informatieobjecttype,
-        vertrouwelijkheidaanduidingIn = vertrouwelijkheidaanduidingIn,
-        titel = titel,
-        auteur = auteur,
-        status = status,
-        beschrijving = beschrijving,
-        creatiedatumLt = creatiedatumLt,
-        creatiedatumLte = creatiedatumLte,
-        creatiedatumGt = creatiedatumGt,
-        creatiedatumGte = creatiedatumGte,
-        registratiedatumLt = registratiedatumLt,
-        registratiedatumLte = registratiedatumLte,
-        registratiedatumGt = registratiedatumGt,
-        registratiedatumGte = registratiedatumGte,
-    )
-
+    val (page, pageSize, filter) = getFilters()
     val (items, totalCount) = service.getAll(filter)
     call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
 }
@@ -148,8 +96,20 @@ private suspend fun RoutingContext.create() {
 
 private suspend fun RoutingContext.zoek() {
     val request = call.receive<EIOZoekRequest>()
-    val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
+    val (page, pageSize, filter) = getFilters(request.uuidIn)
+
+    val (items, totalCount) = service.getAll(filter)
+    val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
+
+    call.respond(response)
+}
+
+private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
+    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
     val queryParameters = call.request.queryParameters
+    val bronOrganisatie = queryParameters["bronorganisatie"]
+    val trefwoorden = queryParameters.getAll("trefwoorden") ?: emptyList()
+    val identificatie = queryParameters["identificatie"]
     val page = queryParameters["page"]?.toIntOrNull() ?: 1
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
     val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: 100
@@ -158,7 +118,7 @@ private suspend fun RoutingContext.zoek() {
     val objectUrl = queryParameters["objectinformatieobjecten__object"]
     val objectType = queryParameters["objectinformatieobjecten__objectType"]
     val informatieobjecttype = queryParameters["informatieobjecttype"]
-    val vertrouwelijkheidaanduidingIn = queryParameters["vertrouwelijkheidaanduiding__in"]
+    val vertrouwelijkheidaanduiding = queryParameters["vertrouwelijkheidaanduiding"]
         ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
         ?: emptyList()
     val titel = queryParameters["titel"]
@@ -177,15 +137,19 @@ private suspend fun RoutingContext.zoek() {
         queryParameters["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumGte =
         queryParameters["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val locked = queryParameters["locked"]?.let { runCatching { it.toBoolean() }.getOrNull() }
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
-        uuids = request.uuidIn,
+        uuids = uuidIn,
+        bronOrganisatie = bronOrganisatie,
+        trefwoorden = trefwoorden,
+        identificatie = identificatie,
         page = page,
         pageSize = pageSize,
         objectUrl = objectUrl,
         objectType = objectType,
         informatieobjecttype = informatieobjecttype,
-        vertrouwelijkheidaanduidingIn = vertrouwelijkheidaanduidingIn,
+        vertrouwelijkheidaanduiding = vertrouwelijkheidaanduiding,
         titel = titel,
         auteur = auteur,
         status = status,
@@ -198,12 +162,9 @@ private suspend fun RoutingContext.zoek() {
         registratiedatumLte = registratiedatumLte,
         registratiedatumGt = registratiedatumGt,
         registratiedatumGte = registratiedatumGte,
+        locked = locked,
     )
-
-    val (items, totalCount) = service.getAll(filter)
-    val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
-
-    call.respond(response)
+    return Triple(page, pageSize, filter)
 }
 
 private suspend fun RoutingContext.head() {

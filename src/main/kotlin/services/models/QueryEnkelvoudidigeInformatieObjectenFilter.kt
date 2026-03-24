@@ -23,7 +23,7 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     /** EXPERIMENTEEL: URL-referentie naar het INFORMATIEOBJECTTYPE */
     val informatieobjecttype: String? = null,
     /** EXPERIMENTEEL: Comma-separated list of vertrouwelijkheidaanduiding values */
-    val vertrouwelijkheidaanduidingIn: List<String> = emptyList(),
+    val vertrouwelijkheidaanduiding: List<String> = emptyList(),
     /** EXPERIMENTEEL: Titel van het informatieobject (exact match) */
     val titel: String? = null,
     /** EXPERIMENTEEL: Auteur van het informatieobject (exact match) */
@@ -48,4 +48,6 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     val registratiedatumGt: LocalDate? = null,
     /** EXPERIMENTEEL: beginRegistratie (registratiedatum) on or after this datetime (ISO-8601) */
     val registratiedatumGte: LocalDate? = null,
+    /** EXPERIMENTEEL: locked (boolean) indication whether the information object is locked for editing */
+    val locked: Boolean? = null,
 )
