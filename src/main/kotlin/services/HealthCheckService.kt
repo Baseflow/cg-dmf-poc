@@ -3,20 +3,14 @@
 package com.baseflow.services
 
 import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3ClientFactory
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
-import software.amazon.awssdk.services.s3.S3AsyncClient
-import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 import software.amazon.awssdk.services.s3.model.S3Exception
-import java.net.URI
-import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.CompletionException
 import java.util.concurrent.TimeUnit
@@ -43,38 +37,12 @@ data class HealthValidateResponse(
 )
 
 @Singleton
-open class HealthCheckService {
+open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
 
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
 
-    companion object {
-        /** Maximum time to wait for any single S3 operation during a health check. */
-        private val S3_HEALTH_TIMEOUT: Duration = Duration.ofSeconds(5)
-        private val S3_HEALTH_TIMEOUT_SECONDS = S3_HEALTH_TIMEOUT.toSeconds()
-    }
-
-    private val s3Client: S3AsyncClient by lazy {
-        val creds = StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
-        )
-        val s3Config = S3Configuration.builder()
-            .pathStyleAccessEnabled(true)
-            .build()
-
-        // Configure Netty HTTP client with explicit connection and read timeouts so
-        // that the underlying TCP layer does not block longer than S3_HEALTH_TIMEOUT.
-        val httpClientBuilder = NettyNioAsyncHttpClient.builder()
-            .connectionTimeout(S3_HEALTH_TIMEOUT)
-            .readTimeout(S3_HEALTH_TIMEOUT)
-
-        S3AsyncClient.builder()
-            .region(MinioConfig.region)
-            .endpointOverride(URI.create(MinioConfig.endpoint))
-            .credentialsProvider(creds)
-            .httpClientBuilder(httpClientBuilder)
-            .serviceConfiguration(s3Config)
-            .build()
-    }
+    private val s3Client = s3ClientFactory.create()
+    private val s3TimeoutSeconds = S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds()
 
     open fun checkDatabase(): DependencyStatus {
         return try {
@@ -98,13 +66,13 @@ open class HealthCheckService {
                     .build()
                 try {
                     s3Client.headBucket(headRequest)
-                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
                         .join()
                 } catch (_: TimeoutException) {
-                    throw TimeoutException("headBucket timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s")
+                    throw TimeoutException("headBucket timed out after ${s3TimeoutSeconds}s")
                 } catch (_: Exception) {
                     s3Client.listBuckets()
-                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
                         .join()
                 }
                 DependencyStatus(status = "ok")
@@ -112,7 +80,7 @@ open class HealthCheckService {
                 logger.warn("Storage read health check timed out: {}", e.message)
                 DependencyStatus(
                     status = "error",
-                    detail = "Storage read timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s"
+                    detail = "Storage read timed out after ${s3TimeoutSeconds}s"
                 )
             } catch (e: Exception) {
                 logger.warn("Storage read health check failed: {}", e.message)
@@ -135,7 +103,7 @@ open class HealthCheckService {
                     s3Client.putObject(
                         putRequest,
                         software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
-                    ).orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS).join()
+                    ).orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS).join()
                 } catch (e: CompletionException) {
                     // Unwrap and rethrow so the typed catch-blocks below can match
                     throw e.cause ?: e
@@ -143,7 +111,7 @@ open class HealthCheckService {
 
                 try {
                     s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }
-                        .orTimeout(S3_HEALTH_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
                         .join()
                 } catch (_: Exception) {
                     // Best-effort cleanup; a delete failure does not invalidate the write check.
@@ -155,7 +123,7 @@ open class HealthCheckService {
                 logger.warn("Storage write health check timed out: {}", e.message)
                 DependencyStatus(
                     status = "error",
-                    detail = "Storage write timed out after ${S3_HEALTH_TIMEOUT_SECONDS}s",
+                    detail = "Storage write timed out after ${s3TimeoutSeconds}s",
                 )
             } catch (_: NoSuchBucketException) {
                 logger.warn("Storage write health check failed – bucket not found: {}", MinioConfig.bucketName)

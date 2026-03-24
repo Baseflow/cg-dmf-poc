@@ -4,9 +4,12 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.healthModule
+import com.baseflow.config.S3ClientFactory
 import com.baseflow.services.DependencyStatus
 import com.baseflow.services.HealthCheckService
 import com.baseflow.services.StorageStatus
+import io.mockk.every
+import io.mockk.mockk
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -34,6 +37,15 @@ class HealthRoutesTest {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Returns a [S3ClientFactory] stub whose [S3ClientFactory.create] method returns a
+     * relaxed mock.  Used by test doubles that extend [HealthCheckService] but override
+     * every method that touches S3, so the real client is never invoked.
+     */
+    private fun noOpS3Factory(): S3ClientFactory = mockk<S3ClientFactory>(relaxed = true).also {
+        every { it.create() } returns mockk(relaxed = true)
+    }
 
     private fun okDependency() = DependencyStatus(status = "ok")
     private fun errorDependency(detail: String = "connection refused") =
@@ -80,7 +92,7 @@ class HealthRoutesTest {
 
     @Test
     fun `validate returns 200 and status ok when both database and storage are healthy`() = testApplication {
-        val stubService = object : HealthCheckService() {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
             override fun checkDatabase() = okDependency()
             override fun checkStorage() = okStorage()
         }
@@ -96,7 +108,7 @@ class HealthRoutesTest {
 
     @Test
     fun `validate returns 503 when database is unhealthy`() = testApplication {
-        val stubService = object : HealthCheckService() {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
             override fun checkDatabase() = errorDependency("db unreachable")
             override fun checkStorage() = okStorage()
         }
@@ -112,7 +124,7 @@ class HealthRoutesTest {
 
     @Test
     fun `validate returns 503 when storage read is unhealthy`() = testApplication {
-        val stubService = object : HealthCheckService() {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
             override fun checkDatabase() = okDependency()
             override fun checkStorage() = storageWithFailedRead()
         }
@@ -128,7 +140,7 @@ class HealthRoutesTest {
 
     @Test
     fun `validate returns 503 when storage write is unhealthy`() = testApplication {
-        val stubService = object : HealthCheckService() {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
             override fun checkDatabase() = okDependency()
             override fun checkStorage() = storageWithFailedWrite()
         }
@@ -144,7 +156,7 @@ class HealthRoutesTest {
 
     @Test
     fun `validate response JSON includes separate storage read and write statuses when all ok`() = testApplication {
-        val stubService = object : HealthCheckService() {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
             override fun checkDatabase() = okDependency()
             override fun checkStorage() = okStorage()
         }
@@ -171,7 +183,7 @@ class HealthRoutesTest {
     @Test
     fun `validate response JSON includes separate storage read and write statuses when write fails`() =
         testApplication {
-            val stubService = object : HealthCheckService() {
+            val stubService = object : HealthCheckService(noOpS3Factory()) {
                 override fun checkDatabase() = okDependency()
                 override fun checkStorage() = storageWithFailedWrite()
             }
@@ -198,7 +210,7 @@ class HealthRoutesTest {
 
     @Test
     fun `validate response JSON includes database status`() = testApplication {
-        val stubService = object : HealthCheckService() {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
             override fun checkDatabase() = okDependency()
             override fun checkStorage() = okStorage()
         }

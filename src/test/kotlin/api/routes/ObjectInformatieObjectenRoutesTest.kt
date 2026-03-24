@@ -16,6 +16,7 @@ import com.baseflow.services.AuditTrailService
 import com.baseflow.services.CatalogusService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.StorageService
+import io.mockk.mockk
 import com.baseflow.testutils.TestDataFactory
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -40,7 +41,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val auditContext = AuditContext()
         val service = EnkelvoudigInformatieObjectService(
-            StorageService(),
+            mockk<StorageService>(relaxed = true),
             ApplicationConfig,
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
@@ -81,7 +82,11 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         val responseBody = response.bodyAsText()
 
-        assertEquals(HttpStatusCode.Created, response.status, "Expected 201 Created but got ${response.status}. Body: $responseBody")
+        assertEquals(
+            HttpStatusCode.Created,
+            response.status,
+            "Expected 201 Created but got ${response.status}. Body: $responseBody"
+        )
         assertEquals(DOCUMENTEN_API_VERSION, response.headers["API-version"])
         assertTrue(response.headers.contains(HttpHeaders.Location))
 
