@@ -92,7 +92,8 @@ ingress:
 
 ## Supplying credentials from an external secret manager
 
-The chart always creates its own Kubernetes Secrets from the values you provide.
+The chart by default creates its own Kubernetes Secrets from the values you provide.
+
 If you manage secrets externally (e.g. Azure Key Vault via the AKV-to-K8s operator,
 Sealed Secrets, or External Secrets Operator), create the three secrets yourself with
 the correct keys before installing the chart, and disable the secret creation by setting
@@ -272,7 +273,7 @@ extraVolumeMounts:
 
 ## Secrets
 
-The chart creates three Kubernetes Secrets:
+Unless existingSecret is set, the chart creates three Kubernetes Secrets:
 
 | Secret name | Keys |
 |-------------|------|
@@ -281,10 +282,3 @@ The chart creates three Kubernetes Secrets:
 | `<release>-openzaak` | `OPENZAAK_CLIENT_SECRET` |
 
 All three are annotated with `helm.sh/resource-policy: keep` so they survive a `helm uninstall`.
-
-
-
-
-
-
-

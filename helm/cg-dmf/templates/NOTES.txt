@@ -24,7 +24,7 @@
   kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:8080
 {{- end }}
 
-2. The Documenten API (OpenAPI spec) is available at: <base-url>/api/v1/
+2. The Documenten API (OpenAPI spec) is available at: <base-url>/documenten/api/v1/
 
 3. Credentials are stored in:
    - database:  {{ include "cg-dmf.databaseSecretName" . }}
