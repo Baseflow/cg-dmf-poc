@@ -167,9 +167,10 @@ settings:
   # Database
   # ---------------------------------------------------------------------------
   database:
-    # -- Specifies whether there is an existing Secret with database credentials.
-    # If true, the Secret must be created manually and contain the keys DB_URL, DB_USER, and DB_PASSWORD.
-    existingSecret: false
+    # -- Name of an existing Secret containing database credentials (keys: DB_URL, DB_USER, DB_PASSWORD).
+    # When set, the chart will not create a Secret and will reference this name instead.
+    # Leave empty/null to let the chart manage the Secret (named <fullname>-database).
+    existingSecret: null
     # -- JDBC connection URL.
     url: "jdbc:postgresql://postgres:5432/documenten"
     # -- Database username.
@@ -182,9 +183,10 @@ settings:
   # S3 / MinIO object storage
   # ---------------------------------------------------------------------------
   s3:
-    # -- Specifies whether there is an existing Secret with S3/MinIO credentials.
-    # If true, the Secret must be created manually and contain the keys MINIO_ACCESS_KEY and MINIO_SECRET_KEY.
-    existingSecret: false
+    # -- Name of an existing Secret containing S3/MinIO credentials (keys: MINIO_ACCESS_KEY, MINIO_SECRET_KEY).
+    # When set, the chart will not create a Secret and will reference this name instead.
+    # Leave empty/null to let the chart manage the Secret (named <fullname>-s3).
+    existingSecret: null
     # -- S3/MinIO endpoint URL.
     endpoint: "http://minio:9000"
     # -- Bucket name used to store document files.
@@ -199,9 +201,10 @@ settings:
   # OpenZaak integration
   # ---------------------------------------------------------------------------
   openzaak:
-    # -- Specifies whether there is an existing Secret with OpenZaak credentials.
-    # If true, the Secret must be created manually and contain the key OPENZAAK_CLIENT_SECRET.
-    existingSecret: false
+    # -- Name of an existing Secret containing OpenZaak credentials (key: OPENZAAK_CLIENT_SECRET).
+    # When set, the chart will not create a Secret and will reference this name instead.
+    # Leave empty/null to let the chart manage the Secret (named <fullname>-openzaak).
+    existingSecret: null
     # -- OpenZaak base endpoint URL.
     endpoint: "https://openzaak.example.com"
     # -- OAuth2 / ZGW client ID used to call OpenZaak.
