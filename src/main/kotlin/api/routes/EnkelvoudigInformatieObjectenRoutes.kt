@@ -19,6 +19,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
 
@@ -131,13 +132,13 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
     val creatiedatumGt = params["creatiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val creatiedatumGte = params["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumLt =
-        params["registratiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__lt"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     val registratiedatumLte =
-        params["registratiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__lte"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     val registratiedatumGt =
-        params["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__gt"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     val registratiedatumGte =
-        params["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        params["registratiedatum__gte"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     val locked = params["locked"]?.let { value ->
         when (value.lowercase()) {
             "true" -> true

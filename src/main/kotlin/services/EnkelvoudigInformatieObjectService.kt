@@ -526,10 +526,10 @@ class EnkelvoudigInformatieObjectService(
         filters.creatiedatumGt?.let { op = op and (EIOVersions.creatieDatum greater it) }
         filters.creatiedatumGte?.let { op = op and (EIOVersions.creatieDatum greaterEq it) }
 
-        filters.registratiedatumLt?.let { op = op and (EIOVersions.beginRegistratie.date() less it) }
-        filters.registratiedatumLte?.let { op = op and (EIOVersions.beginRegistratie.date() lessEq it) }
-        filters.registratiedatumGt?.let { op = op and (EIOVersions.beginRegistratie.date() greater it) }
-        filters.registratiedatumGte?.let { op = op and (EIOVersions.beginRegistratie.date() greaterEq it) }
+        filters.registratiedatumLt?.let { op = op and (EIOVersions.beginRegistratie less it) }
+        filters.registratiedatumLte?.let { op = op and (EIOVersions.beginRegistratie lessEq it) }
+        filters.registratiedatumGt?.let { op = op and (EIOVersions.beginRegistratie greater it) }
+        filters.registratiedatumGte?.let { op = op and (EIOVersions.beginRegistratie greaterEq it) }
 
         filters.locked?.let { locked ->
             if (locked) {
