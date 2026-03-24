@@ -17,6 +17,7 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
 
@@ -77,8 +78,25 @@ private suspend fun RoutingContext.list() {
     val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
     // EXPERIMENTEEL filters
-    val objectUrl = call.request.queryParameters["objectinformatieobjecten__object"]
-    val objectType = call.request.queryParameters["objectinformatieobjecten__objectType"]
+    val params = call.request.queryParameters
+    val objectUrl = params["objectinformatieobjecten__object"]
+    val objectType = params["objectinformatieobjecten__objectType"]
+    val informatieobjecttype = params["informatieobjecttype"]
+    val vertrouwelijkheidaanduidingIn = params["vertrouwelijkheidaanduiding__in"]
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?: emptyList()
+    val titel = params["titel"]
+    val auteur = params["auteur"]
+    val status = params["status"]
+    val beschrijving = params["beschrijving"]
+    val creatiedatumLt = params["creatiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumLte = params["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGt = params["creatiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGte = params["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumLt = params["registratiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumLte = params["registratiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumGt = params["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumGte = params["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         bronOrganisatie = bronOrganisatie,
@@ -88,6 +106,20 @@ private suspend fun RoutingContext.list() {
         pageSize = pageSize,
         objectUrl = objectUrl,
         objectType = objectType,
+        informatieobjecttype = informatieobjecttype,
+        vertrouwelijkheidaanduidingIn = vertrouwelijkheidaanduidingIn,
+        titel = titel,
+        auteur = auteur,
+        status = status,
+        beschrijving = beschrijving,
+        creatiedatumLt = creatiedatumLt,
+        creatiedatumLte = creatiedatumLte,
+        creatiedatumGt = creatiedatumGt,
+        creatiedatumGte = creatiedatumGte,
+        registratiedatumLt = registratiedatumLt,
+        registratiedatumLte = registratiedatumLte,
+        registratiedatumGt = registratiedatumGt,
+        registratiedatumGte = registratiedatumGte,
     )
 
     val (items, totalCount) = service.getAll(filter)
@@ -105,7 +137,9 @@ private suspend fun RoutingContext.create() {
         call.respond(HttpStatusCode.Created, response)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
+
             HttpStatusCode.BadRequest,
+
             badRequest(e.message ?: "Validation failed", call.request.path()),
         )
         return
@@ -123,6 +157,26 @@ private suspend fun RoutingContext.zoek() {
     // EXPERIMENTEEL filters
     val objectUrl = queryParameters["objectinformatieobjecten__object"]
     val objectType = queryParameters["objectinformatieobjecten__objectType"]
+    val informatieobjecttype = queryParameters["informatieobjecttype"]
+    val vertrouwelijkheidaanduidingIn = queryParameters["vertrouwelijkheidaanduiding__in"]
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?: emptyList()
+    val titel = queryParameters["titel"]
+    val auteur = queryParameters["auteur"]
+    val status = queryParameters["status"]
+    val beschrijving = queryParameters["beschrijving"]
+    val creatiedatumLt = queryParameters["creatiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumLte = queryParameters["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGt = queryParameters["creatiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGte = queryParameters["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumLt =
+        queryParameters["registratiedatum__lt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumLte =
+        queryParameters["registratiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumGt =
+        queryParameters["registratiedatum__gt"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumGte =
+        queryParameters["registratiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = request.uuidIn,
@@ -130,6 +184,20 @@ private suspend fun RoutingContext.zoek() {
         pageSize = pageSize,
         objectUrl = objectUrl,
         objectType = objectType,
+        informatieobjecttype = informatieobjecttype,
+        vertrouwelijkheidaanduidingIn = vertrouwelijkheidaanduidingIn,
+        titel = titel,
+        auteur = auteur,
+        status = status,
+        beschrijving = beschrijving,
+        creatiedatumLt = creatiedatumLt,
+        creatiedatumLte = creatiedatumLte,
+        creatiedatumGt = creatiedatumGt,
+        creatiedatumGte = creatiedatumGte,
+        registratiedatumLt = registratiedatumLt,
+        registratiedatumLte = registratiedatumLte,
+        registratiedatumGt = registratiedatumGt,
+        registratiedatumGte = registratiedatumGte,
     )
 
     val (items, totalCount) = service.getAll(filter)

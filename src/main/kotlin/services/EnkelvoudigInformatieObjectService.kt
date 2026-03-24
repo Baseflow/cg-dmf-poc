@@ -16,6 +16,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.dao.with
+import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -241,7 +242,10 @@ class EnkelvoudigInformatieObjectService(
             val uploadResultaat =
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
             val bestandsFormaat =
-                mergeNullable(partial, request.formaat, uploadResultaat.bestandsFormaat ?: latestVersion?.formaat)
+                mergeNullable(partial, request.formaat,
+                uploadResultaat.bestandsFormaat
+                    ?: latestVersion?.formaat
+            )
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) {
@@ -265,9 +269,13 @@ class EnkelvoudigInformatieObjectService(
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = mergeOptionalString(partial, request.link, latestVersion?.link)
                 creatieDatum = mergeNullable(partial, request.creatiedatum, latestVersion?.creatieDatum)
-                    ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+                    ?: Clock.System.now()
+                                .toLocalDateTime(TimeZone.UTC).date
                 formaat = bestandsFormaat
-                bestandsomvang = mergeNullable(partial, request.bestandsomvang, latestVersion?.bestandsomvang) ?: 0
+                bestandsomvang = mergeNullable(partial, request.bestandsomvang ,
+                    latestVersion?.bestandsomvang
+                       ) ?: 0
+
                 integriteitAlgoritme = mergeOptionalString(
                     partial,
                     request.integriteit?.algoritme?.toString(),
@@ -292,9 +300,10 @@ class EnkelvoudigInformatieObjectService(
                 status = mergeOptionalString(partial, request.status?.toString(), latestVersion?.status)
                 beschrijving = mergeOptionalString(partial, request.beschrijving, latestVersion?.beschrijving)
                 indicatieGebruiksrecht =
-                    mergeNullable(partial, request.indicatieGebruiksrecht, latestVersion?.indicatieGebruiksrecht)
-                        ?: false
-                ondertekening_soort = mergeOptionalString(
+                    mergeNullable(partial, request.indicatieGebruiksrecht ,
+                        latestVersion?.indicatieGebruiksrecht
+                            ) ?: false
+                    ondertekening_soort = mergeOptionalString(
                     partial,
                     request.ondertekening?.soort?.toString(),
                     latestVersion?.ondertekening_soort
@@ -446,6 +455,42 @@ class EnkelvoudigInformatieObjectService(
         filters.objectType?.let { objType ->
             op = op and (OIORecords.subjectType eq objType.lowercase())
         }
+
+        // EXPERIMENTEEL filters
+        filters.informatieobjecttype?.let { iot ->
+            op = op and (EIOVersions.informatieobject_type eq iot)
+        }
+
+        if (filters.vertrouwelijkheidaanduidingIn.isNotEmpty()) {
+            val normalized = filters.vertrouwelijkheidaanduidingIn.map { it.lowercase() }
+            op = op and (EIOVersions.vertrouwlijkheidsAanduiding.lowerCase() inList normalized)
+        }
+
+        filters.titel?.let { titel ->
+            op = op and (EIOVersions.titel eq titel)
+        }
+
+        filters.auteur?.let { auteur ->
+            op = op and (EIOVersions.auteur eq auteur)
+        }
+
+        filters.status?.let { status ->
+            op = op and (EIOVersions.status eq status)
+        }
+
+        filters.beschrijving?.let { beschrijving ->
+            op = op and (EIOVersions.beschrijving.lowerCase() like "%${beschrijving.lowercase()}%")
+        }
+
+        filters.creatiedatumLt?.let { op = op and (EIOVersions.creatieDatum less it) }
+        filters.creatiedatumLte?.let { op = op and (EIOVersions.creatieDatum lessEq it) }
+        filters.creatiedatumGt?.let { op = op and (EIOVersions.creatieDatum greater it) }
+        filters.creatiedatumGte?.let { op = op and (EIOVersions.creatieDatum greaterEq it) }
+
+        filters.registratiedatumLt?.let { op = op and (EIOVersions.beginRegistratie.date() less it) }
+        filters.registratiedatumLte?.let { op = op and (EIOVersions.beginRegistratie.date() lessEq it) }
+        filters.registratiedatumGt?.let { op = op and (EIOVersions.beginRegistratie.date() greater it) }
+        filters.registratiedatumGte?.let { op = op and (EIOVersions.beginRegistratie.date() greaterEq it) }
 
         return op
     }
