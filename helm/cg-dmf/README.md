@@ -96,7 +96,7 @@ The chart always creates its own Kubernetes Secrets from the values you provide.
 If you manage secrets externally (e.g. Azure Key Vault via the AKV-to-K8s operator,
 Sealed Secrets, or External Secrets Operator), create the three secrets yourself with
 the correct keys before installing the chart, and disable the secret creation by setting
-`settings.database.existingSecret`, `settings.s3.existingSecret` & 
+`settings.database.existingSecret`, `settings.s3.existingSecret` &
 `settings.openzaak.existingSecret` to true.
 
 Alternatively, set the actual secret values through your CD pipeline using `--set`:
