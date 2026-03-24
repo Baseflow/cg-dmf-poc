@@ -15,9 +15,9 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.dao.with
 import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -166,7 +166,8 @@ class EnkelvoudigInformatieObjectService(
             val page = if (filters.page > 0) filters.page else 1
             val offset = (page - 1L) * pageSize
 
-            // Base query: Record + Version, filtered and ordered by versie desc
+            // Build the base join. Each row in this query represents (record, latestVersion).
+            // We restrict to only the latest version per record via a correlated subquery.
             var query = EIORecords.innerJoin(EIOVersions)
                 .selectAll()
 
@@ -175,7 +176,19 @@ class EnkelvoudigInformatieObjectService(
                     .selectAll()
             }
 
+            // Alias for the inner subquery table so the correlated reference to the outer EIORecords.id
+            // is unambiguous — without this alias both inner and outer reference the same table name,
+            // and PostgreSQL evaluates the subquery as non-correlated (returning a single global MAX).
+            val innerVersions = EIOVersions.alias("inner_eio_versions")
+
             query.apply {
+                // Restrict to only the latest version row per record via a correlated subquery:
+                // WHERE versie = (SELECT MAX(inner.versie) FROM eio_versions AS inner WHERE inner.record_id = eio_records.id)
+                andWhere {
+                    EIOVersions.versie eqSubQuery innerVersions
+                        .select(innerVersions[EIOVersions.versie].max())
+                        .where { innerVersions[EIOVersions.recordId] eq EIORecords.id }
+                }
                 if (condition != Op.TRUE) {
                     andWhere { condition }
                 }
@@ -211,17 +224,12 @@ class EnkelvoudigInformatieObjectService(
 
             val totalCount = query.count()
 
-            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(
-                query.limit(pageSize).offset(offset),
-            )
-                .with(EIORecordEntity::versions)
-                .toList()
-
-            // get the latest version for each record
-            val results = records.mapNotNull { rec ->
-                val version = rec.versions.maxByOrNull { it.versie }
-                    ?: return@mapNotNull null
-                rec.toResponse(version)
+            // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
+            // Each row already contains exactly one record + its latest version due to the subquery filter.
+            val results = query.limit(pageSize).offset(offset).mapNotNull { row ->
+                val record = EIORecordEntity.wrapRow(row)
+                val version = EIOVersionEntity.wrapRow(row)
+                record.toResponse(version)
             }
 
             results to totalCount
@@ -270,10 +278,11 @@ class EnkelvoudigInformatieObjectService(
             val uploadResultaat =
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
             val bestandsFormaat =
-                mergeNullable(partial, request.formaat,
-                uploadResultaat.bestandsFormaat
-                    ?: latestVersion?.formaat
-            )
+                mergeNullable(
+                    partial, request.formaat,
+                    uploadResultaat.bestandsFormaat
+                        ?: latestVersion?.formaat
+                )
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) {
@@ -298,11 +307,12 @@ class EnkelvoudigInformatieObjectService(
                 link = mergeOptionalString(partial, request.link, latestVersion?.link)
                 creatieDatum = mergeNullable(partial, request.creatiedatum, latestVersion?.creatieDatum)
                     ?: Clock.System.now()
-                                .toLocalDateTime(TimeZone.UTC).date
+                        .toLocalDateTime(TimeZone.UTC).date
                 formaat = bestandsFormaat
-                bestandsomvang = mergeNullable(partial, request.bestandsomvang ,
+                bestandsomvang = mergeNullable(
+                    partial, request.bestandsomvang,
                     latestVersion?.bestandsomvang
-                       ) ?: 0
+                ) ?: 0
 
                 integriteitAlgoritme = mergeOptionalString(
                     partial,
@@ -328,10 +338,11 @@ class EnkelvoudigInformatieObjectService(
                 status = mergeOptionalString(partial, request.status?.toString(), latestVersion?.status)
                 beschrijving = mergeOptionalString(partial, request.beschrijving, latestVersion?.beschrijving)
                 indicatieGebruiksrecht =
-                    mergeNullable(partial, request.indicatieGebruiksrecht ,
+                    mergeNullable(
+                        partial, request.indicatieGebruiksrecht,
                         latestVersion?.indicatieGebruiksrecht
-                            ) ?: false
-                    ondertekening_soort = mergeOptionalString(
+                    ) ?: false
+                ondertekening_soort = mergeOptionalString(
                     partial,
                     request.ondertekening?.soort?.toString(),
                     latestVersion?.ondertekening_soort

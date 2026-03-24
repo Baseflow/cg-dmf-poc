@@ -15,6 +15,7 @@ import com.baseflow.config.OpenZaakConfig
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.LockResult
+import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT
@@ -732,5 +733,32 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertNotNull(eio)
         assertEquals(eio.versie, 3)
         assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
+    }
+
+    @Test
+    fun `getAll should return only the latest version for records with multiple versions`() = runBlocking {
+        // Create a record
+        val reqV1 = generateTestDocument(taal = "dut", bestandsnaam = "doc-v1.pdf")
+        val created = service.create(reqV1)
+        val recordId = UUID.fromString(created.id)
+
+        // Add two more versions
+        val reqV2 = generateTestDocument(taal = "eng", bestandsnaam = "doc-v2.pdf")
+        val v2 = service.update(recordId, reqV2)
+        assertNotNull(v2)
+        val reqV3 = generateTestDocument(taal = "ger", bestandsnaam = "doc-v3.pdf")
+        val v3 = service.update(recordId, reqV3)
+        assertNotNull(v3)
+
+        // Call getAll
+        val (results, total) = service.getAll(QueryEnkelvoudigeInformatieObjectenFilter())
+        // There should be only one record (since we only created one)
+        assertEquals(1, results.size)
+        // The returned version should be the latest (3)
+        val result = results.first()
+        assertEquals(recordId.toString(), result.id)
+        assertEquals(3, result.versie)
+        assertEquals("ger", result.taal)
+        assertEquals("doc-v3.pdf", result.bestandsnaam)
     }
 }
