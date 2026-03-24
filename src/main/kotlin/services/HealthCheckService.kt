@@ -50,6 +50,29 @@ open class HealthCheckService {
         private val S3_HEALTH_TIMEOUT_SECONDS = S3_HEALTH_TIMEOUT.toSeconds()
     }
 
+    private val s3Client: S3AsyncClient by lazy {
+        val creds = StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
+        )
+        val s3Config = S3Configuration.builder()
+            .pathStyleAccessEnabled(true)
+            .build()
+
+        // Configure Netty HTTP client with explicit connection and read timeouts so
+        // that the underlying TCP layer does not block longer than S3_HEALTH_TIMEOUT.
+        val httpClientBuilder = NettyNioAsyncHttpClient.builder()
+            .connectionTimeout(S3_HEALTH_TIMEOUT)
+            .readTimeout(S3_HEALTH_TIMEOUT)
+
+        S3AsyncClient.builder()
+            .region(MinioConfig.region)
+            .endpointOverride(URI.create(MinioConfig.endpoint))
+            .credentialsProvider(creds)
+            .httpClientBuilder(httpClientBuilder)
+            .serviceConfiguration(s3Config)
+            .build()
+    }
+
     open fun checkDatabase(): DependencyStatus {
         return try {
             transaction {
@@ -63,28 +86,7 @@ open class HealthCheckService {
     }
 
     open fun checkStorage(): StorageStatus {
-        var s3Client: S3AsyncClient? = null
         return try {
-            val creds = StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
-            )
-            val s3Config = S3Configuration.builder()
-                .pathStyleAccessEnabled(true)
-                .build()
-
-            // Configure Netty HTTP client with explicit connection and read timeouts so
-            // that the underlying TCP layer does not block longer than S3_HEALTH_TIMEOUT.
-            val httpClientBuilder = NettyNioAsyncHttpClient.builder()
-                .connectionTimeout(S3_HEALTH_TIMEOUT)
-                .readTimeout(S3_HEALTH_TIMEOUT)
-
-            s3Client = S3AsyncClient.builder()
-                .region(MinioConfig.region)
-                .endpointOverride(URI.create(MinioConfig.endpoint))
-                .credentialsProvider(creds)
-                .httpClientBuilder(httpClientBuilder)
-                .serviceConfiguration(s3Config)
-                .build()
 
             // Check read access: list buckets / head bucket
             val readStatus = try {
@@ -169,12 +171,6 @@ open class HealthCheckService {
                 read = DependencyStatus(status = "error", detail = detail),
                 write = DependencyStatus(status = "error", detail = detail),
             )
-        } finally {
-            try {
-                s3Client?.close()
-            } catch (closeException: Exception) {
-                logger.debug("Failed to close S3 client in health check: {}", closeException.message)
-            }
         }
     }
 }
