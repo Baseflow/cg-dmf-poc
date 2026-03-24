@@ -14,6 +14,8 @@ data:
   # S3 / MinIO (non-sensitive) — env var names kept as MINIO_* until app is migrated to S3_*
   MINIO_ENDPOINT: {{ .Values.settings.s3.endpoint | quote }}
   MINIO_BUCKET: {{ .Values.settings.s3.bucket | quote }}
+  S3_DISABLE_CHECKSUMS: {{ .Values.settings.s3.disableChecksums | quote }}
+  S3_DISABLE_CHUNKED_ENCODING: {{ .Values.settings.s3.disableChunkedEncoding | quote }}
   # OpenZaak (non-sensitive)
   OPENZAAK_ENDPOINT: {{ .Values.settings.openzaak.endpoint | quote }}
   OPENZAAK_CLIENT_ID: {{ .Values.settings.openzaak.clientId | quote }}

@@ -196,6 +196,12 @@ settings:
     # -- S3/MinIO secret key.
     # @sensitive
     secretKey: ""
+    # -- Disable automatic request/response checksum negotiation (S3_DISABLE_CHECKSUMS).
+    # Set to true when the S3-compatible endpoint does not support AWS checksum extensions.
+    disableChecksums: false
+    # -- Disable chunked encoding on S3 requests (S3_DISABLE_CHUNKED_ENCODING).
+    # Set to true when the endpoint or an intermediate proxy does not support chunked transfer encoding.
+    disableChunkedEncoding: false
 
   # ---------------------------------------------------------------------------
   # OpenZaak integration

@@ -19,15 +19,19 @@ internal object MinioConfig : Config() {
     val secretKey: String = envOrThrow("MINIO_SECRET_KEY")
     val bucketName: String = envOrSystem("MINIO_BUCKET", "default-bucket")
     val region: Region = Region.of(envOrSystem("MINIO_REGION", "eu-west-1"))
+    val disableChecksums: Boolean = envOrSystem("S3_DISABLE_CHECKSUMS", "false").toBoolean()
+    val disableChunkedEncoding: Boolean = envOrSystem("S3_DISABLE_CHUNKED_ENCODING", "false").toBoolean()
 
     override fun printConfig() {
         logger.info(
-            "MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}, region={}",
+            "MinioConfig: endpoint={}, accessKey={}, bucketName={}, urlExpiry={}, region={}, disableChecksums={}, disableChunkedEncoding={}",
             endpoint,
             accessKey,
             bucketName,
             urlExpiry,
             region,
+            disableChecksums,
+            disableChunkedEncoding,
         )
         logger.debug("MinioConfig: secretKey is set: {}", secretKey.isNotEmpty())
     }
