@@ -145,6 +145,9 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
             else -> null
         }
     }
+    // NOTE: The `ordering` query parameter (and related extended filters such as date ranges and `locked`)
+    // are experimental extensions to the standard Documenten API and are not yet reflected in
+    // docs/documenten-1.5.0.yaml. Update the OpenAPI spec when these filters are considered stable.
     val ordering = params["ordering"]
         ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
         ?.mapNotNull { EIOOrdering.fromValue(it) }
