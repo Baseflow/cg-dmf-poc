@@ -49,9 +49,9 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     val informatieobjecttype: String? = null,
     /** EXPERIMENTEEL: Comma-separated list of vertrouwelijkheidaanduiding values */
     val vertrouwelijkheidaanduiding: List<String> = emptyList(),
-    /** EXPERIMENTEEL: Titel van het informatieobject (exact match) */
+    /** EXPERIMENTEEL: Titel van het informatieobject (case-insensitive contains) */
     val titel: String? = null,
-    /** EXPERIMENTEEL: Auteur van het informatieobject (exact match) */
+    /** EXPERIMENTEEL: Auteur van het informatieobject (case-insensitive contains) */
     val auteur: String? = null,
     /** EXPERIMENTEEL: Status van het informatieobject (exact match) */
     val status: String? = null,
