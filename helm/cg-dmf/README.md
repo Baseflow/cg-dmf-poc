@@ -276,6 +276,8 @@ extraVolumeMounts:
 | `settings.s3.bucket` | string | `cg-dmf` | Bucket used to store uploaded document files. |
 | `settings.s3.accessKey` | string | **required** | S3 access key. Stored in the `<fullname>-s3` Secret. |
 | `settings.s3.secretKey` | string | **required** | S3 secret key. Stored in the `<fullname>-s3` Secret. |
+| `settings.s3.disableChecksums` | bool | `false` | Disable automatic request/response checksum negotiation (`S3_DISABLE_CHECKSUMS`). Set to `true` when the S3-compatible endpoint does not support AWS checksum extensions. |
+| `settings.s3.disableChunkedEncoding` | bool | `false` | Disable chunked encoding on S3 requests (`S3_DISABLE_CHUNKED_ENCODING`). Set to `true` when the endpoint or an intermediate proxy does not support chunked transfer encoding. |
 
 #### OpenZaak integration (`settings.openzaak`)
 

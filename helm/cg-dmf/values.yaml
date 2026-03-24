@@ -196,11 +196,13 @@ settings:
     # -- S3/MinIO secret key.
     # @sensitive
     secretKey: ""
-    # -- Disable automatic request/response checksum negotiation (S3_DISABLE_CHECKSUMS).
+    # -- Disable automatic request/response checksum negotiation.
     # Set to true when the S3-compatible endpoint does not support AWS checksum extensions.
+    # Maps to the S3_DISABLE_CHECKSUMS environment variable.
     disableChecksums: false
-    # -- Disable chunked encoding on S3 requests (S3_DISABLE_CHUNKED_ENCODING).
+    # -- Disable chunked encoding on S3 requests.
     # Set to true when the endpoint or an intermediate proxy does not support chunked transfer encoding.
+    # Maps to the S3_DISABLE_CHUNKED_ENCODING environment variable.
     disableChunkedEncoding: false
 
   # ---------------------------------------------------------------------------
