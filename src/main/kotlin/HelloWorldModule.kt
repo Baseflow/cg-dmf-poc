@@ -8,6 +8,12 @@ import io.ktor.server.routing.*
 
 fun Application.helloWorldModule() {
     routing {
+        /**
+         * Hello world endpoint.
+         *
+         * Responses:
+         *   - 200 Prints 'hello world'.
+         */
         get("/") {
             call.respondText("hello world")
         }

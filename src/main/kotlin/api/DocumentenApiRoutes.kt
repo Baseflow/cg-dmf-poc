@@ -42,7 +42,14 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
             version(ApiConditionalHeadersProvider)
         }
 
-        // Health check endpoint
+        /**
+         * Documenten API root.
+         *
+         * Geeft versie-informatie en beschikbare endpoints van de Documenten API.
+         *
+         * Responses:
+         *   - 200 Service info.
+         */
         get("/") {
             call.respond(
                 mapOf(

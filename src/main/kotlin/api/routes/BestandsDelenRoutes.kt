@@ -14,7 +14,25 @@ import io.ktor.server.routing.*
  * Part of the 1.1.0+ workflow for handling files larger than the 4GB minimum.
  */
 fun Route.bestandsDelenRoutes() {
-    // Upload a file chunk
+    /**
+     * Upload een bestandsdeel.
+     *
+     * Based on DRF mixin but without partial_update.
+     * Part of the 1.1.0+ workflow for handling files larger than the 4GB minimum.
+     *
+     * Responses:
+     *   - 200 OK.
+     *   - 400 Bad request.
+     *   - 401 Unauthorized.
+     *   - 403 Forbidden.
+     *   - 404 Not found.
+     *   - 406 Not acceptable.
+     *   - 409 Conflict.
+     *   - 410 Gone.
+     *   - 415 Unsupported media type.
+     *   - 429 Too many requests.
+     *   - 500 Internal server error.
+     */
     put("/{uuid}") {
         val uuid = call.parameters["uuid"]
         call.respond(mapOf("message" to "Upload BestandsDeel $uuid - to be implemented"))

@@ -8,6 +8,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.53.0"
     // KSP plugin for annotation processing (required by koin-annotations)
     id("com.google.devtools.ksp") version "2.3.6"
+    id("io.ktor.plugin") version "3.4.1"
     // Code formatting with Spotless and ktlint
     id("com.diffplug.spotless") version "8.4.0"
 }
@@ -86,6 +87,10 @@ dependencies {
     implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
     ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
 
+    // Open-API specification generation
+    implementation("io.ktor:ktor-server-routing-openapi:3.4.1")
+    implementation("io.ktor:ktor-server-openapi:3.4.1")
+
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
         // dependency of flyway-core and ktor-server-auth-jwt
@@ -96,6 +101,12 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-core:2.21.1") {
             because("Minimum version from transitive dependencies")
         }
+    }
+}
+ktor {
+    openApi {
+        enabled = true
+        onlyCommented = false
     }
 }
 

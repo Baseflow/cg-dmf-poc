@@ -13,6 +13,22 @@ fun Route.auditTrailRoutes() {
     val service: AuditTrailService by inject()
 
     route("/{uuid}/audittrail/{auditTrailUuid}") {
+        /**
+         * Een specifieke audit trail regel opvragen.
+         *
+         * Responses:
+         *   - 200 OK.
+         *   - 400 Bad request (invalid UUID).
+         *   - 401 Unauthorized.
+         *   - 403 Forbidden.
+         *   - 404 Not found.
+         *   - 406 Not acceptable.
+         *   - 409 Conflict.
+         *   - 410 Gone.
+         *   - 415 Unsupported media type.
+         *   - 429 Too many requests.
+         *   - 500 Internal server error.
+         */
         get {
             val resourceUuid = call.parameters["uuid"]
                 ?.let { UUID.fromString(it) }
@@ -30,6 +46,21 @@ fun Route.auditTrailRoutes() {
     }
 
     route("/{uuid}/audittrail") {
+        /**
+         * Alle audit trail regels behorend bij het INFORMATIEOBJECT.
+         *
+         * Responses:
+         *   - 200 OK.
+         *   - 400 Bad request (invalid UUID).
+         *   - 401 Unauthorized.
+         *   - 403 Forbidden.
+         *   - 406 Not acceptable.
+         *   - 409 Conflict.
+         *   - 410 Gone.
+         *   - 415 Unsupported media type.
+         *   - 429 Too many requests.
+         *   - 500 Internal server error.
+         */
         get {
             val resourceUuid = call.parameters["uuid"]
                 ?.let { UUID.fromString(it) }

@@ -45,22 +45,105 @@ open class ObjectInformatieObjectenRoutes(
             // Ensure API-version header is added for all responses
             install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
 
-            // List all document-object relations (with optional filters)
+            /**
+             * Alle OBJECT-INFORMATIEOBJECT relaties opvragen.
+             *
+             * Deze lijst kan gefilterd worden met query-string parameters.
+             *
+             * Query parameters:
+             *   - `informatieobject`: Filter op URL-referentie naar het INFORMATIEOBJECT.
+             *   - `object`: Filter op URL-referentie naar het gerelateerde OBJECT.
+             *   - `expand`: Velden om te expanderen.
+             *   - `page`: Paginanummer.
+             *   - `pageSize`: Aantal resultaten per pagina.
+             *
+             * Responses:
+             *   - 200 Lijst van OBJECT-INFORMATIEOBJECT relaties.
+             *   - 400 Bad request.
+             *   - 401 Unauthorized.
+             *   - 403 Forbidden.
+             *   - 406 Not acceptable.
+             *   - 409 Conflict.
+             *   - 410 Gone.
+             *   - 415 Unsupported media type.
+             *   - 429 Too many requests.
+             *   - 500 Internal server error.
+             */
             get { list() }
 
-            // Create new document-object relation
+            /**
+             * Maak een OBJECT-INFORMATIEOBJECT relatie aan.
+             *
+             * **LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken.**
+             * Andere API's, zoals de Zaken API en de Besluiten API, gebruiken dit endpoint
+             * bij het synchroniseren van relaties.
+             *
+             * Responses:
+             *   - 201 Created.
+             *   - 400 Bad request.
+             *   - 401 Unauthorized.
+             *   - 403 Forbidden.
+             *   - 406 Not acceptable.
+             *   - 409 Conflict.
+             *   - 410 Gone.
+             *   - 415 Unsupported media type.
+             *   - 429 Too many requests.
+             *   - 500 Internal server error.
+             */
             post { create() }
 
             // Single relation operations
             route("/{uuid}") {
                 val resourceTitle = resourceSegment.title
-                // HEAD - existence check
+
+                /**
+                 * De headers voor een specifiek(e) OBJECT-INFORMATIEOBJECT opvragen.
+                 *
+                 * Vraag de headers op die je bij een GET request zou krijgen.
+                 *
+                 * Responses:
+                 *   - 200 OK.
+                 *   - 400 (missing/invalid UUID).
+                 *   - 404 Not found.
+                 */
                 head { head(resourceTitle) }
 
-                // Get single relation
+                /**
+                 * Een specifieke OBJECT-INFORMATIEOBJECT relatie opvragen.
+                 *
+                 * Responses:
+                 *   - 200 OK.
+                 *   - 401 Unauthorized.
+                 *   - 403 Forbidden.
+                 *   - 404 Not found.
+                 *   - 406 Not acceptable.
+                 *   - 409 Conflict.
+                 *   - 410 Gone.
+                 *   - 415 Unsupported media type.
+                 *   - 429 Too many requests.
+                 *   - 500 Internal server error.
+                 */
                 get { get(resourceTitle) }
 
-                // Delete relation
+                /**
+                 * Verwijder een OBJECT-INFORMATIEOBJECT relatie.
+                 *
+                 * **LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken.**
+                 * Andere API's, zoals de Zaken API en de Besluiten API, gebruiken dit endpoint
+                 * bij het synchroniseren van relaties.
+                 *
+                 * Responses:
+                 *   - 204 No content.
+                 *   - 401 Unauthorized.
+                 *   - 403 Forbidden.
+                 *   - 404 Not found.
+                 *   - 406 Not acceptable.
+                 *   - 409 Conflict.
+                 *   - 410 Gone.
+                 *   - 415 Unsupported media type.
+                 *   - 429 Too many requests.
+                 *   - 500 Internal server error.
+                 */
                 delete { delete(resourceTitle) }
             }
         }
@@ -97,13 +180,15 @@ open class ObjectInformatieObjectenRoutes(
 
         when (val result = service.create(request)) {
             is CreateOIOResult.Success -> {
-                val locationUrl = ApiUrlBuilder.absolute(
-                    resourceSegment.value,
-                    result.payload.url?.substringAfterLast("/") ?: "",
-                )
+                val locationUrl =
+                    ApiUrlBuilder.absolute(
+                        resourceSegment.value,
+                        result.payload.url?.substringAfterLast("/") ?: "",
+                    )
                 call.response.headers.append(HttpHeaders.Location, locationUrl)
                 call.respond(HttpStatusCode.Created, result.payload)
             }
+
             is CreateOIOResult.Conflict -> {
                 call.respondProblem(
                     HttpStatusCode.BadRequest,
@@ -117,7 +202,9 @@ open class ObjectInformatieObjectenRoutes(
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
+
                 HttpStatusCode.BadRequest,
+
                 badRequest("UUID parameter is required", call.request.path()),
             )
             return
@@ -142,7 +229,9 @@ open class ObjectInformatieObjectenRoutes(
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
+
                 HttpStatusCode.BadRequest,
+
                 badRequest("UUID parameter is required", call.request.path()),
             )
             return
@@ -169,7 +258,9 @@ open class ObjectInformatieObjectenRoutes(
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
+
                 HttpStatusCode.BadRequest,
+
                 badRequest("UUID parameter is required", call.request.path()),
             )
             return
