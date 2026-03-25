@@ -2,7 +2,7 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3Config
 import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -27,18 +27,18 @@ import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 
 /**
- * StorageService interacts with the MinIO storage backend using the configuration
- * provided by MinioConfigProvider.
+ * StorageService interacts with the S3 storage backend using the configuration
+ * provided by S3ConfigProvider.
  */
 @Singleton
 open class StorageService {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
 
-    private val bucketName = MinioConfig.bucketName
+    private val bucketName = S3Config.bucketName
 
     private val creds = StaticCredentialsProvider.create(
-        AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey)
+        AwsBasicCredentials.create(S3Config.accessKey, S3Config.secretKey)
     )
 
     private val s3Config = S3Configuration.builder()
@@ -47,7 +47,7 @@ open class StorageService {
 
     private val s3Client: S3AsyncClient = S3AsyncClient.builder()
         .region(Region.EU_WEST_1)
-        .endpointOverride(URI.create(MinioConfig.endpoint))
+        .endpointOverride(URI.create(S3Config.endpoint))
         .credentialsProvider(creds)
         .httpClientBuilder(NettyNioAsyncHttpClient.builder())
         .serviceConfiguration(s3Config)
@@ -55,7 +55,7 @@ open class StorageService {
 
     private val presigner: S3Presigner = S3Presigner.builder()
         .region(Region.EU_WEST_1)
-        .endpointOverride(URI.create(MinioConfig.endpoint))
+        .endpointOverride(URI.create(S3Config.endpoint))
         .credentialsProvider(creds)
         .serviceConfiguration(s3Config)
         .build()
@@ -197,7 +197,7 @@ open class StorageService {
             .build()
 
         val presignReq = GetObjectPresignRequest.builder()
-            .signatureDuration(MinioConfig.urlExpiry)
+            .signatureDuration(S3Config.urlExpiry)
             .getObjectRequest(getReq)
             .build()
 
