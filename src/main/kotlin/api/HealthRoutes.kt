@@ -26,6 +26,8 @@ fun Application.healthModule() {
              *
              * Responses:
              *   - 200 Application is alive.
+             *
+             * @tag Health
              */
             get("/liveness") {
                 call.respond(HttpStatusCode.OK)
@@ -38,6 +40,8 @@ fun Application.healthModule() {
              *
              * Responses:
              *   - 200 Application is ready.
+             *
+             * @tag Health
              */
             get("/readiness") {
                 call.respond(HttpStatusCode.OK)

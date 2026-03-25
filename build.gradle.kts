@@ -89,7 +89,6 @@ dependencies {
 
     // Open-API specification generation
     implementation("io.ktor:ktor-server-routing-openapi:3.4.1")
-    implementation("io.ktor:ktor-server-openapi:3.4.1")
 
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {

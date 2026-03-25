@@ -57,6 +57,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      *   - 415 Unsupported media type.
      *   - 429 Too many requests.
      *   - 500 Internal server error.
+     *
+     * @tag EnkelvoudigInformatieObjecten
      */
     get { list() }
 
@@ -79,6 +81,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      *   - 415 Unsupported media type.
      *   - 429 Too many requests.
      *   - 500 Internal server error.
+     *
+     * @tag EnkelvoudigInformatieObjecten
      */
     post { create() }
 
@@ -99,6 +103,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      *   - 415 Unsupported media type.
      *   - 429 Too many requests.
      *   - 500 Internal server error.
+     *
+     * @tag EnkelvoudigInformatieObjecten
      */
     post("/_zoek") { zoek() }
 
@@ -113,6 +119,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 200 OK.
          *   - 400 missing/invalid UUID-parameter.
          *   - 404 Not found.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         head { head() }
 
@@ -134,6 +142,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         get { get() }
 
@@ -154,6 +164,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         put { put() }
 
@@ -174,6 +186,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         patch { patch() }
 
@@ -195,6 +209,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         delete { delete() }
 
@@ -211,6 +227,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         get("/download") { download() }
 
@@ -232,6 +250,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         post("/lock") { lock() }
 
@@ -251,6 +271,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag EnkelvoudigInformatieObjecten
          */
         post("/unlock") { unlock() }
     }

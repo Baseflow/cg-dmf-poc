@@ -32,6 +32,8 @@ fun Route.bestandsDelenRoutes() {
      *   - 415 Unsupported media type.
      *   - 429 Too many requests.
      *   - 500 Internal server error.
+     *
+     * @tag BestandsDelen
      */
     put("/{uuid}") {
         val uuid = call.parameters["uuid"]

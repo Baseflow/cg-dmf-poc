@@ -68,6 +68,8 @@ open class ObjectInformatieObjectenRoutes(
              *   - 415 Unsupported media type.
              *   - 429 Too many requests.
              *   - 500 Internal server error.
+             *
+             * @tag ObjectInformatieObjecten
              */
             get { list() }
 
@@ -89,6 +91,8 @@ open class ObjectInformatieObjectenRoutes(
              *   - 415 Unsupported media type.
              *   - 429 Too many requests.
              *   - 500 Internal server error.
+             *
+             * @tag ObjectInformatieObjecten
              */
             post { create() }
 
@@ -105,6 +109,8 @@ open class ObjectInformatieObjectenRoutes(
                  *   - 200 OK.
                  *   - 400 (missing/invalid UUID).
                  *   - 404 Not found.
+                 *
+                 * @tag ObjectInformatieObjecten
                  */
                 head { head(resourceTitle) }
 
@@ -122,6 +128,8 @@ open class ObjectInformatieObjectenRoutes(
                  *   - 415 Unsupported media type.
                  *   - 429 Too many requests.
                  *   - 500 Internal server error.
+                 *
+                 * @tag ObjectInformatieObjecten
                  */
                 get { get(resourceTitle) }
 
@@ -143,6 +151,8 @@ open class ObjectInformatieObjectenRoutes(
                  *   - 415 Unsupported media type.
                  *   - 429 Too many requests.
                  *   - 500 Internal server error.
+                 *
+                 * @tag ObjectInformatieObjecten
                  */
                 delete { delete(resourceTitle) }
             }

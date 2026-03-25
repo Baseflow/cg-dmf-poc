@@ -28,6 +28,8 @@ fun Route.auditTrailRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag AuditTrail
          */
         get {
             val resourceUuid = call.parameters["uuid"]
@@ -60,6 +62,8 @@ fun Route.auditTrailRoutes() {
          *   - 415 Unsupported media type.
          *   - 429 Too many requests.
          *   - 500 Internal server error.
+         *
+         * @tag AuditTrail
          */
         get {
             val resourceUuid = call.parameters["uuid"]
