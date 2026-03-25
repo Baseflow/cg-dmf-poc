@@ -6,7 +6,7 @@ import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.DatabaseConfig
-import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3Config
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
@@ -23,7 +23,7 @@ import org.koin.ktor.plugin.Koin
 fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
-    MinioConfig.printConfig()
+    S3Config.printConfig()
 
     Database.connect(
         url = DatabaseConfig.url,

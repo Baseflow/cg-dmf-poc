@@ -2,7 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3Config
 import com.baseflow.config.S3ClientFactory
 import org.koin.core.annotation.Singleton
 import org.reactivestreams.Subscriber
@@ -20,15 +20,15 @@ import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipInputStream
 
 /**
- * StorageService interacts with the MinIO storage backend using the configuration
- * provided by MinioConfigProvider.
+ * StorageService interacts with the S3 storage backend using the configuration
+ * provided by S3ConfigProvider.
  */
 @Singleton
 open class StorageService(s3ClientFactory: S3ClientFactory) {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
 
-    private val bucketName = MinioConfig.bucketName
+    private val bucketName = S3Config.bucketName
 
     private val s3Client: S3AsyncClient = s3ClientFactory.create()
 

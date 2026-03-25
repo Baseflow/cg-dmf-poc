@@ -43,12 +43,12 @@ class S3ClientFactory {
      */
     fun create(): S3AsyncClient {
         val creds = StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(MinioConfig.accessKey, MinioConfig.secretKey),
+            AwsBasicCredentials.create(S3Config.accessKey, S3Config.secretKey),
         )
 
         val s3Config = S3Configuration.builder()
             .pathStyleAccessEnabled(true)
-            .chunkedEncodingEnabled(!MinioConfig.disableChunkedEncoding)
+            .chunkedEncodingEnabled(!S3Config.disableChunkedEncoding)
             .build()
 
         val httpClientBuilder = NettyNioAsyncHttpClient.builder()
@@ -56,13 +56,13 @@ class S3ClientFactory {
             .readTimeout(S3_OPERATION_TIMEOUT)
 
         val clientBuilder = S3AsyncClient.builder()
-            .region(MinioConfig.region)
-            .endpointOverride(URI.create(MinioConfig.endpoint))
+            .region(S3Config.region)
+            .endpointOverride(URI.create(S3Config.endpoint))
             .credentialsProvider(creds)
             .httpClientBuilder(httpClientBuilder)
             .serviceConfiguration(s3Config)
 
-        if (MinioConfig.disableChecksums) {
+        if (S3Config.disableChecksums) {
             clientBuilder
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
