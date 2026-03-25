@@ -7,10 +7,15 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.interfaces.JWTVerifier
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.parseAuthorizationHeader
+import io.ktor.openapi.HttpSecurityScheme
+import io.ktor.openapi.OAuth2SecurityScheme
+import io.ktor.openapi.OAuthFlow
+import io.ktor.openapi.OAuthFlows
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.openapi.registerSecurityScheme
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.util.concurrent.TimeUnit
@@ -70,6 +75,19 @@ fun Application.authenticationModule() {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
                 logger.info("[ZGW] Raw Authorization header: {}", header)
+                // <!-- FIXME unsafe -->
+                // Bypass: accept the literal token value "bypass" without any JWT validation.
+                if (header?.trim() == "Bearer bypass") {
+                    logger.warn(
+                        "[ZGW] UNSAFE BYPASS AUTH: request authenticated via hardcoded bypass token. " +
+                            "This must not be used in production.",
+                    )
+                    // Return a minimal syntactically-valid bearer header so the JWT machinery
+                    // hands control to our validate block, where we detect and accept it.
+                    return@authHeader parseAuthorizationHeader(
+                        "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJieXBhc3MiOnRydWV9.",
+                    )
+                }
                 header?.let { parseAuthorizationHeader(it) }
             }
 
@@ -82,6 +100,14 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
+                // <!-- FIXME unsafe --> Accept the hardcoded bypass token.
+                if (token.getClaim("bypass").asBoolean() == true) {
+                    logger.warn(
+                        "[ZGW] UNSAFE BYPASS AUTH: bypass principal granted. " +
+                            "This must not be used in production.",
+                    )
+                    return@validate JWTPrincipal(token)
+                }
                 val clientId = token.getClaim("client_id").asString()
                 logger.info(
                     "[ZGW] JWT token received - issuer: {}, client_id: {}, claims: {}",
@@ -105,4 +131,48 @@ fun Application.authenticationModule() {
             }
         }
     }
+
+    // Register OpenAPI security schemes under the same names as the Ktor auth providers above.
+    // Ktor's routing-openapi `+` operator infers per-operation `security` requirements from the
+    // `authenticate(...)` route selectors by matching provider names to registered scheme names.
+    // This means Swagger UI knows which lock icon to use and sends the Authorization header.
+    //
+    // auth-jwt → OAuth2 Authorization Code + PKCE: Swagger UI shows an interactive Keycloak login button.
+    // auth-zgw → HTTP Bearer (paste-in): Swagger UI shows a plain text box for a ZGW/GZAC token.
+    registerSecurityScheme(
+        providerName = "auth-jwt",
+        securityScheme = OAuth2SecurityScheme(
+            description = "OIDC login via Keycloak (Authorization Code + PKCE). " +
+                "Klik 'Authorize', log in met uw Keycloak-account en het token wordt automatisch gebruikt.",
+            flows = OAuthFlows(
+                authorizationCode = OAuthFlow(
+                    authorizationUrl = "$issuer/protocol/openid-connect/auth",
+                    tokenUrl = "$issuer/protocol/openid-connect/token",
+                    refreshUrl = "$issuer/protocol/openid-connect/token",
+                    scopes = mapOf(
+                        "openid" to "OpenID Connect scope",
+                        "profile" to "Profiel informatie",
+                        "email" to "E-mailadres",
+                    ),
+                ),
+            ),
+        ),
+    )
+    // <!-- FIXME unsafe -->
+    // The bypass token is accepted by this same provider: type the literal value `bypass`
+    // in the Swagger UI bearer box — it will be sent as `Authorization: Bearer bypass` and
+    // the auth-zgw handler will accept it without any JWT validation.
+    // FOR DEVELOPMENT / TESTING ONLY — never use this in production.
+    registerSecurityScheme(
+        providerName = "auth-zgw",
+        securityScheme = HttpSecurityScheme(
+            scheme = "bearer",
+            bearerFormat = "JWT",
+            description = "ZGW-stijl HS256 JWT (GZAC/OpenZaak/Valtimo). " +
+                "Plak een token gegenereerd via de ZGW token-tool. " +
+                "Het token wordt niet op handtekening gecontroleerd; alleen client_id wordt gevalideerd.\n\n" +
+                "⚠️ UNSAFE BYPASS: typ de letterlijke waarde `bypass` om alle JWT-validatie over te slaan. " +
+                "Uitsluitend bedoeld voor lokale ontwikkeling en testen. NOOIT gebruiken in productie.",
+        ),
+    )
 }

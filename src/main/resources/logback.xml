@@ -11,7 +11,7 @@
     <appender-ref ref="CONSOLE"/>
   </root>
 
-  <!-- Example: Adjust logging levels for specific packages -->
+  <!-- Adjust logging levels for specific application packages -->
   <logger name="com.baseflow" level="DEBUG"/>
   <logger name="io.ktor" level="WARN"/>
 

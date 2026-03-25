@@ -15,6 +15,8 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.koin.core.parameter.parametersOf
 import java.util.*
 
@@ -40,10 +42,13 @@ open class ObjectInformatieObjectenRoutes(
     private val resourceSegment: ResourceSegments,
     private val experimental: Boolean = false,
 ) {
+    @OptIn(ExperimentalKtorApi::class)
     fun register() {
         with(route) {
             // Ensure API-version header is added for all responses
             install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
+
+            val tag = resourceSegment.value
 
             /**
              * Alle OBJECT-INFORMATIEOBJECT relaties opvragen.
@@ -72,6 +77,25 @@ open class ObjectInformatieObjectenRoutes(
              * @tag ObjectInformatieObjecten
              */
             get { list() }
+                .describe {
+                    operationId = "${tag}_list"
+                    tag(tag)
+                    summary = "Alle ${resourceSegment.title} relaties opvragen."
+                    description = "Geeft een lijst van object-informatieobject relaties, gefilterd via query-parameters."
+                    parameters {
+                        query("informatieobject") { description = "Filter op URL-referentie naar het INFORMATIEOBJECT." }
+                        query("object") { description = "Filter op URL-referentie naar het gerelateerde OBJECT." }
+                        query("expand") { description = "Velden om te expanderen." }
+                        query("page") { description = "Paginanummer." }
+                        query("pageSize") { description = "Aantal resultaten per pagina." }
+                    }
+                    responses {
+                        response(200) { description = "Lijst van ${resourceSegment.title} relaties." }
+                        response(400) { description = "Bad request." }
+                        response(401) { description = "Unauthorized." }
+                        response(403) { description = "Forbidden." }
+                    }
+                }
 
             /**
              * Maak een OBJECT-INFORMATIEOBJECT relatie aan.
@@ -95,6 +119,26 @@ open class ObjectInformatieObjectenRoutes(
              * @tag ObjectInformatieObjecten
              */
             post { create() }
+                .describe {
+                    operationId = "${tag}_create"
+                    tag(tag)
+                    summary = "Maak een ${resourceSegment.title} relatie aan."
+                    description =
+                        "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
+                        "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                    responses {
+                        response(201) {
+                            description = "Aangemaakt."
+                            headers {
+                                header("Location") { description = "URL van de aangemaakte relatie." }
+                                header("API-version") { description = "Geeft de specifieke API-versie aan." }
+                            }
+                        }
+                        response(400) { description = "Bad request." }
+                        response(401) { description = "Unauthorized." }
+                        response(403) { description = "Forbidden." }
+                    }
+                }
 
             // Single relation operations
             route("/{uuid}") {
@@ -113,6 +157,19 @@ open class ObjectInformatieObjectenRoutes(
                  * @tag ObjectInformatieObjecten
                  */
                 head { head(resourceTitle) }
+                    .describe {
+                        operationId = "${tag}_headers"
+                        tag(tag)
+                        summary = "De headers voor een specifieke ${resourceSegment.title} opvragen."
+                        parameters {
+                            path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                        }
+                        responses {
+                            response(200) { description = "OK." }
+                            response(400) { description = "Bad request: ontbrekende of ongeldige UUID." }
+                            response(404) { description = "Not found." }
+                        }
+                    }
 
                 /**
                  * Een specifieke OBJECT-INFORMATIEOBJECT relatie opvragen.
@@ -132,6 +189,20 @@ open class ObjectInformatieObjectenRoutes(
                  * @tag ObjectInformatieObjecten
                  */
                 get { get(resourceTitle) }
+                    .describe {
+                        operationId = "${tag}_read"
+                        tag(tag)
+                        summary = "Een specifieke ${resourceSegment.title} relatie opvragen."
+                        parameters {
+                            path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                        }
+                        responses {
+                            response(200) { description = "OK." }
+                            response(401) { description = "Unauthorized." }
+                            response(403) { description = "Forbidden." }
+                            response(404) { description = "Not found." }
+                        }
+                    }
 
                 /**
                  * Verwijder een OBJECT-INFORMATIEOBJECT relatie.
@@ -155,6 +226,23 @@ open class ObjectInformatieObjectenRoutes(
                  * @tag ObjectInformatieObjecten
                  */
                 delete { delete(resourceTitle) }
+                    .describe {
+                        operationId = "${tag}_delete"
+                        tag(tag)
+                        summary = "Verwijder een ${resourceSegment.title} relatie."
+                        description =
+                            "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
+                            "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                        parameters {
+                            path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                        }
+                        responses {
+                            response(204) { description = "No content." }
+                            response(401) { description = "Unauthorized." }
+                            response(403) { description = "Forbidden." }
+                            response(404) { description = "Not found." }
+                        }
+                    }
             }
         }
     }

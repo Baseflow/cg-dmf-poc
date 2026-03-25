@@ -1,14 +1,12 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
-import org.jetbrains.kotlin.gradle.internal.builtins.StandardNames.FqNames.target
 
 plugins {
-    kotlin("jvm") version "2.3.20"
+    kotlin("jvm") version "2.3.0"
     application
-    kotlin("plugin.serialization") version "2.3.20"
+    kotlin("plugin.serialization") version "2.3.0"
     id("com.github.ben-manes.versions") version "0.53.0"
     // KSP plugin for annotation processing (required by koin-annotations)
     id("com.google.devtools.ksp") version "2.3.6"
-    id("io.ktor.plugin") version "3.4.1"
     // Code formatting with Spotless and ktlint
     id("com.diffplug.spotless") version "8.4.0"
 }
@@ -87,7 +85,7 @@ dependencies {
     implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
     ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
 
-    // Open-API specification generation
+    // Open-API specification generation + routing annotations
     implementation("io.ktor:ktor-server-routing-openapi:3.4.1")
 
     // Security. override to secure versions to fix CVEs in transitive dependencies
@@ -102,6 +100,7 @@ dependencies {
         }
     }
 }
+
 ktor {
     openApi {
         enabled = true
@@ -144,6 +143,59 @@ spotless {
 application {
     mainClass.set("com.baseflow.MainKt")
 }
+
+// ── Swagger UI ────────────────────────────────────────────────────────────────
+// Install swagger-ui-dist from npm and copy the required assets into a build
+// directory that is then added as an extra resource root, so the assets are
+// bundled with the server JAR without touching src/main/resources.
+
+val swaggerUiSrc = layout.projectDirectory.dir("frontend/node_modules/swagger-ui-dist")
+val swaggerUiDest = layout.buildDirectory.dir("generated/swagger-ui/static/swagger-ui")
+
+val npmInstallSwaggerUi by tasks.registering(Exec::class) {
+    group = "swagger-ui"
+    description = "Install swagger-ui-dist via npm"
+    workingDir = layout.projectDirectory.dir("frontend").asFile
+    commandLine("npm", "install", "--prefer-offline")
+    // Only re-run when package.json changes
+    inputs.file(layout.projectDirectory.file("frontend/package.json"))
+    outputs.dir(swaggerUiSrc)
+}
+
+val copySwaggerUi by tasks.registering(Copy::class) {
+    group = "swagger-ui"
+    description = "Copy swagger-ui-dist assets into the build resources directory"
+    dependsOn(npmInstallSwaggerUi)
+    from(swaggerUiSrc) {
+        include(
+            "swagger-ui-bundle.js",
+            "swagger-ui-bundle.js.map",
+            "swagger-ui.css",
+            "swagger-ui.css.map",
+            "favicon-16x16.png",
+            "favicon-32x32.png",
+            "oauth2-redirect.html",
+            "oauth2-redirect.js",
+        )
+    }
+    into(swaggerUiDest)
+}
+
+// Also copy our hand-written index.html into the same build directory
+val copySwaggerUiIndex by tasks.registering(Copy::class) {
+    group = "swagger-ui"
+    description = "Copy the Swagger UI index.html into the build resources directory"
+    from(layout.projectDirectory.file("frontend/swagger-ui/index.html"))
+    into(swaggerUiDest)
+}
+
+// Add the generated directory as an extra resource source so it ends up on the classpath
+sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/swagger-ui"))
+
+tasks.named("processResources") {
+    dependsOn(copySwaggerUi, copySwaggerUiIndex)
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 tasks.withType<JavaCompile>().configureEach {
     options.release = 21

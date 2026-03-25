@@ -8,6 +8,9 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.server.routing.openapi.hide
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.koin.ktor.ext.inject
 
 /**
@@ -15,6 +18,7 @@ import org.koin.ktor.ext.inject
  *
  * Provides health and readiness endpoints for Kubernetes and monitoring systems.
  */
+@OptIn(ExperimentalKtorApi::class)
 fun Application.healthModule() {
     routing {
         route("/health") {
@@ -32,6 +36,15 @@ fun Application.healthModule() {
             get("/liveness") {
                 call.respond(HttpStatusCode.OK)
             }
+                .describe {
+                    operationId = "health_liveness"
+                    summary = "Liveness probe."
+                    description = "Controleert of de applicatie actief is. Gebruikt door Kubernetes om de pod te herstarten indien nodig."
+                    responses {
+                        HttpStatusCode.OK { description = "Applicatie is actief." }
+                    }
+                }
+                .hide()
 
             /**
              * Readiness probe - checks if the application is ready to serve traffic.
@@ -46,6 +59,15 @@ fun Application.healthModule() {
             get("/readiness") {
                 call.respond(HttpStatusCode.OK)
             }
+                .describe {
+                    operationId = "health_readiness"
+                    summary = "Readiness probe."
+                    description = "Controleert of de applicatie klaar is om verkeer te ontvangen."
+                    responses {
+                        HttpStatusCode.OK { description = "Applicatie is gereed." }
+                    }
+                }
+                .hide()
 
             // Validate probe - checks connectivity to external dependencies (database & S3 storage)
             get("/validate") {
@@ -63,6 +85,15 @@ fun Application.healthModule() {
                 val statusCode = if (response.status == "ok") HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable
                 call.respond(statusCode, response)
             }
+                .describe {
+                    operationId = "health_validate"
+                    summary = "Valideer configuratie"
+                    description = "Controleert of de applicatie kan communiceren met dependencies"
+                    responses {
+                        HttpStatusCode.OK { description = "Applicatie is gereed." }
+                    }
+                }
+                .hide()
         }
     }
 }

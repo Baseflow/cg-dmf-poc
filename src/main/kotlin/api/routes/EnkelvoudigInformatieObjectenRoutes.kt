@@ -17,6 +17,8 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
 
@@ -26,6 +28,7 @@ import java.util.*
 
 val RESOURCE_SEGMENT = ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value
 
+@OptIn(ExperimentalKtorApi::class)
 fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Ensure API-version header is added for all responses under this subtree,
     // including tests that don't install the plugin at the parent route.
@@ -61,6 +64,32 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      * @tag EnkelvoudigInformatieObjecten
      */
     get { list() }
+        .describe {
+            operationId = "enkelvoudiginformatieobjecten_list"
+            tag("enkelvoudiginformatieobjecten")
+            summary = "Alle (enkelvoudige) informatieobjecten opvragen."
+            description =
+                "Geeft een gepagineerde lijst van enkelvoudige informatieobjecten. " +
+                "Alleen de laatste versie van elk informatieobject wordt getoond."
+            parameters {
+                query("bronorganisatie") { description = "Filter op RSIN van de bronorganisatie." }
+                query("trefwoorden") { description = "Filter op trefwoorden." }
+                query("identificatie") { description = "Filter op identificatie." }
+                query("expand") { description = "Velden om te expanderen." }
+                query("page") { description = "Paginanummer." }
+                query("pageSize") { description = "Aantal resultaten per pagina." }
+                query("objectinformatieobjecten__object") {
+                    description = "EXPERIMENTEEL: Filter op URL-referentie naar het gerelateerde object."
+                }
+                query("objectinformatieobjecten__objectType") { description = "EXPERIMENTEEL: Filter op objecttype." }
+            }
+            responses {
+                response(200) { description = "Lijst van enkelvoudige informatieobjecten." }
+                response(400) { description = "Bad request." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden." }
+            }
+        }
 
     /**
      * Maak een (ENKELVOUDIG) INFORMATIEOBJECT aan.
@@ -85,6 +114,24 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      * @tag EnkelvoudigInformatieObjecten
      */
     post { create() }
+        .describe {
+            operationId = "enkelvoudiginformatieobjecten_create"
+            tag("enkelvoudiginformatieobjecten")
+            summary = "Maak een enkelvoudig informatieobject aan."
+            description = "Maak een (ENKELVOUDIG) INFORMATIEOBJECT aan."
+            responses {
+                response(201) {
+                    description = "Aangemaakt."
+                    headers {
+                        header("Location") { description = "URL van het aangemaakte informatieobject." }
+                        header("API-version") { description = "Geeft de specifieke API-versie aan." }
+                    }
+                }
+                response(400) { description = "Bad request." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden." }
+            }
+        }
 
     /**
      * Voer een zoekopdracht uit op (ENKELVOUDIG) INFORMATIEOBJECTen.
@@ -107,6 +154,18 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      * @tag EnkelvoudigInformatieObjecten
      */
     post("/_zoek") { zoek() }
+        .describe {
+            operationId = "enkelvoudiginformatieobjecten_zoek"
+            tag("enkelvoudiginformatieobjecten")
+            summary = "Voer een zoekopdracht uit op enkelvoudige informatieobjecten."
+            description = "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
+            responses {
+                response(200) { description = "Lijst van gevonden enkelvoudige informatieobjecten." }
+                response(400) { description = "Bad request." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden." }
+            }
+        }
 
     // Single document operations
     route("/{uuid}") {
@@ -123,6 +182,19 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         head { head() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_headers"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "De headers voor een specifiek enkelvoudig informatieobject opvragen."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(200) { description = "OK." }
+                    response(400) { description = "Bad request: ontbrekende of ongeldige UUID." }
+                    response(404) { description = "Not found." }
+                }
+            }
 
         /**
          * Een specifiek (ENKELVOUDIG) INFORMATIEOBJECT opvragen.
@@ -146,6 +218,23 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         get { get() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_read"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Een specifiek enkelvoudig informatieobject opvragen."
+                description = "Geeft het informatieobject terug. Standaard de laatste versie."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                    query("versie") { description = "Specifieke versie van het informatieobject." }
+                    query("registratieOp") { description = "Filtert op de registratiedatum." }
+                }
+                responses {
+                    response(200) { description = "OK." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                }
+            }
 
         /**
          * Werk een (ENKELVOUDIG) INFORMATIEOBJECT in zijn geheel bij.
@@ -168,6 +257,22 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         put { put() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_update"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Werk een enkelvoudig informatieobject in zijn geheel bij."
+                description = "Dit creëert altijd een nieuwe versie van het informatieobject."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(200) { description = "OK." }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                }
+            }
 
         /**
          * Werk een (ENKELVOUDIG) INFORMATIEOBJECT deels bij.
@@ -190,6 +295,22 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         patch { patch() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_partial_update"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Werk een enkelvoudig informatieobject deels bij."
+                description = "Dit creëert altijd een nieuwe versie van het informatieobject."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(200) { description = "OK." }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                }
+            }
 
         /**
          * Verwijder een (ENKELVOUDIG) INFORMATIEOBJECT.
@@ -213,6 +334,24 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         delete { delete() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_delete"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Verwijder een enkelvoudig informatieobject."
+                description =
+                    "Verwijdert het informatieobject en alle bijbehorende versies. " +
+                    "Alleen mogelijk als er geen objectinformatieobjecten aan gerelateerd zijn."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(204) { description = "No content." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict: informatieobject is vergrendeld." }
+                }
+            }
 
         /**
          * Download de binaire data van het (ENKELVOUDIG) INFORMATIEOBJECT.
@@ -231,6 +370,26 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         get("/download") { download() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_download"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Download de binaire data van het informatieobject."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(200) {
+                        description = "OK — binaire bestandsinhoud."
+                        headers {
+                            header("Content-Disposition") { description = "Bestandsnaam voor de download." }
+                            header("Content-Type") { description = "MIME-type van het bestand." }
+                        }
+                    }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                }
+            }
 
         /**
          * Vergrendel een (ENKELVOUDIG) INFORMATIEOBJECT.
@@ -254,6 +413,24 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         post("/lock") { lock() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_lock"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Vergrendel een enkelvoudig informatieobject."
+                description =
+                    "Voert een checkout uit waardoor het informatieobject vergrendeld wordt met een lock-waarde."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(200) { description = "OK — lock-waarde teruggegeven." }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict: informatieobject is al vergrendeld." }
+                }
+            }
 
         /**
          * Ontgrendel een (ENKELVOUDIG) INFORMATIEOBJECT.
@@ -275,6 +452,23 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
          * @tag EnkelvoudigInformatieObjecten
          */
         post("/unlock") { unlock() }
+            .describe {
+                operationId = "enkelvoudiginformatieobjecten_unlock"
+                tag("enkelvoudiginformatieobjecten")
+                summary = "Ontgrendel een enkelvoudig informatieobject."
+                description = "Heft de checkout op waardoor het informatieobject ontgrendeld wordt."
+                parameters {
+                    path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                responses {
+                    response(204) { description = "No content." }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict: ongeldige lock-waarde of niet vergrendeld." }
+                }
+            }
     }
 }
 
