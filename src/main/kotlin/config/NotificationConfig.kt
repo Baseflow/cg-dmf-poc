@@ -22,10 +22,16 @@ object NotificationConfig : Config() {
     val url: String? = envOrSystem("NOTIFICATION_API_URL", "").ifBlank { null }
 
     /**
-     * Bearer token for authenticating with the Open Notificaties API.
-     * This token should have the 'notificaties.publiceren' scope.
+     * Client ID used to sign JWT tokens for the Open Notificaties API.
+     * Must match the client registered in the Open Notificaties service.
      */
-    val bearerToken: String? = envOrSystem("NOTIFICATION_API_TOKEN", "").ifBlank { null }
+    val clientId: String? = envOrSystem("NOTIFICATION_API_CLIENT_ID", "").ifBlank { null }
+
+    /**
+     * Client secret (shared key) used to sign JWT tokens for the Open Notificaties API
+     * using the HS256 algorithm.
+     */
+    val clientSecret: String? = envOrSystem("NOTIFICATION_API_CLIENT_SECRET", "").ifBlank { null }
 
     /**
      * The name of the notification channel (kanaal).
@@ -41,10 +47,10 @@ object NotificationConfig : Config() {
 
     /**
      * Whether notifications are enabled.
-     * Returns true only if both URL and token are configured.
+     * Returns true only if URL, client ID and client secret are all configured.
      */
     val isEnabled: Boolean
-        get() = !url.isNullOrBlank() && !bearerToken.isNullOrBlank()
+        get() = !url.isNullOrBlank() && !clientId.isNullOrBlank() && !clientSecret.isNullOrBlank()
 
     override fun printConfig() {
         logger.info(
@@ -55,7 +61,7 @@ object NotificationConfig : Config() {
             source,
         )
         if (!isEnabled) {
-            logger.warn("Notifications are disabled. Set NOTIFICATION_API_URL and NOTIFICATION_API_TOKEN to enable.")
+            logger.warn("Notifications are disabled. Set NOTIFICATION_API_URL, NOTIFICATION_API_CLIENT_ID and NOTIFICATION_API_CLIENT_SECRET to enable.")
         }
     }
 }
