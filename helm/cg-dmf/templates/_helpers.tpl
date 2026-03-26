@@ -88,6 +88,15 @@ leave empty/null for the chart to create one named <fullname>-openzaak.
 {{- end }}
 
 {{/*
+Name of the Secret that holds Azure Blob Storage credentials.
+Set settings.azure.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-azure.
+*/}}
+{{- define "cg-dmf.azureSecretName" -}}
+{{- .Values.settings.azure.existingSecret | default (printf "%s-azure" (include "cg-dmf.fullname" .)) }}
+{{- end }}
+
+{{/*
 Renders a value that contains a template.
 Usage:
   {{ include "cg-dmf.tplvalues.render" (dict "value" .Values.path.to.value "context" $) }}

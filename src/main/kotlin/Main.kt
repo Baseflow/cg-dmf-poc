@@ -8,6 +8,7 @@ import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.MinioConfig
 import com.baseflow.config.NotificationConfig
+import com.baseflow.config.StorageConfig
 import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
 import com.baseflow.services.NotificationService
@@ -23,7 +24,10 @@ import org.koin.ktor.plugin.Koin
 fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
-    MinioConfig.printConfig()
+    StorageConfig.printConfig()
+    if (StorageConfig.backend == StorageConfig.Backend.S3) {
+        MinioConfig.printConfig()
+    }
 
     Database.connect(
         url = DatabaseConfig.url,

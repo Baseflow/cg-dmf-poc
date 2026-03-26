@@ -56,6 +56,10 @@ spec:
                 name: {{ include "cg-dmf.s3SecretName" . }}
             - secretRef:
                 name: {{ include "cg-dmf.openzaakSecretName" . }}
+            {{- if eq (.Values.settings.storageBackend | default "s3") "azure" }}
+            - secretRef:
+                name: {{ include "cg-dmf.azureSecretName" . }}
+            {{- end }}
             - configMapRef:
                 name: {{ include "cg-dmf.fullname" . }}
           {{- if .Values.extraEnvVars }}

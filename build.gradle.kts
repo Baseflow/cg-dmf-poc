@@ -76,6 +76,9 @@ dependencies {
     implementation("software.amazon.awssdk:s3:2.42.17")
     implementation("software.amazon.awssdk:netty-nio-client:2.42.17")
 
+    // Azure Blob Storage
+    implementation("com.azure:azure-storage-blob:12.29.1")
+
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 

@@ -12,23 +12,34 @@ import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
-import java.io.ByteArrayInputStream
+import software.amazon.awssdk.services.s3.model.S3Exception
 import java.io.OutputStream
 import java.nio.ByteBuffer
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
-import java.util.zip.ZipInputStream
+import java.util.concurrent.CompletionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
- * StorageService interacts with the MinIO storage backend using the configuration
- * provided by MinioConfigProvider.
+ * S3-compatible storage backend (MinIO, AWS S3, …).
+ *
+ * The backend is selected at startup via the `STORAGE_BACKEND` environment variable.
+ * Set `STORAGE_BACKEND=s3` (default) to use this implementation.
+ *
+ * @see IStorageService
+ * @see AzureStorageService
  */
 @Singleton
-open class StorageService(s3ClientFactory: S3ClientFactory) {
+open class S3StorageService(s3ClientFactory: S3ClientFactory) : IStorageService {
 
-    private val logger = LoggerFactory.getLogger(StorageService::class.java)
+    private val logger = LoggerFactory.getLogger(S3StorageService::class.java)
 
     private val bucketName = MinioConfig.bucketName
+    private val s3TimeoutSeconds = S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds()
 
     private val s3Client: S3AsyncClient = s3ClientFactory.create()
 
@@ -36,7 +47,7 @@ open class StorageService(s3ClientFactory: S3ClientFactory) {
         logger.info("Created S3 client for bucket {}", bucketName)
     }
 
-    fun uploadFile(objectName: String, content: ByteArray) {
+    override fun uploadFile(objectName: String, content: ByteArray) {
         try {
             if (!s3Client.listBuckets().join().buckets()
                     .any { it.name() == bucketName }
@@ -80,7 +91,7 @@ open class StorageService(s3ClientFactory: S3ClientFactory) {
     /**
      * Streams an object directly to the provided OutputStream without loading it fully into memory.
      */
-    fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
+    override fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
         logger.debug(
             "Streaming download of {} from bucket {}",
             objectName,
@@ -114,7 +125,6 @@ open class StorageService(s3ClientFactory: S3ClientFactory) {
                             val bytes = ByteArray(buffer.remaining())
                             buffer.get(bytes)
                             output.write(bytes)
-                            // Optionally flush to push data downstream promptly
                             output.flush()
                             subscription.request(1)
                         } catch (e: Exception) {
@@ -140,270 +150,90 @@ open class StorageService(s3ClientFactory: S3ClientFactory) {
         return result
     }
 
-    companion object {
-        /*
-        Detecteert het formaat van een bestand op basis van de eerste bytes.
-        Retourneert de MIME-type string als het formaat herkend wordt, anders null.
-         */
-        internal fun detectFileFormat(bytes: ByteArray): String? = when {
-            bytes.isEmpty() -> null
-            bytes.hasPrefix(0x25, 0x50, 0x44, 0x46) -> "application/pdf"
-            // Legacy .office files
-            bytes.hasPrefix(
-                0xD0,
-                0xCF,
-                0x11,
-                0xE0,
-            ) -> "application/vnd.ms-office"
-            // modern office files
-            // word
-            bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) && bytes.isDocxPackage() ->
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            // powerpoint
-            bytes.hasPrefix(
-                0x50,
-                0x4B,
-                0x03,
-                0x04,
-            ) &&
-                bytes.isOpcPackageWithEntry("ppt/presentation.xml") ->
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            // excel
-            bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) && bytes.isOpcPackageWithEntry("xl/workbook.xml") ->
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-            bytes.hasPrefix(0x50, 0x4B, 0x03, 0x04) -> "application/zip"
-            bytes.hasPrefix(
-                0x89,
-                0x50,
-                0x4E,
-                0x47,
-                0x0D,
-                0x0A,
-                0x1A,
-                0x0A,
-            ) -> "image/png"
-
-            bytes.hasPrefix(0xFF, 0xD8, 0xFF) -> "image/jpeg"
-            bytes.hasPrefix(0x47, 0x49, 0x46, 0x38) -> "image/gif"
-            bytes.hasPrefix(0x42, 0x4D) -> "image/bmp"
-            bytes.hasPrefix(0x4F, 0x67, 0x67, 0x53) -> "application/ogg"
-            bytes.hasPrefix(0x49, 0x44, 0x33) ||
-                bytes.hasPrefix(
-                    0xFF,
-                    0xFB,
-                ) -> "audio/mpeg"
-
-            bytes.hasPrefix(0x66, 0x4C, 0x61, 0x43) -> "audio/flac"
-            bytes.hasPrefix(0x1A, 0x45, 0xDF, 0xA3) -> "video/x-matroska"
-            bytes.hasPrefix(0x1F, 0x8B, 0x08) -> "application/gzip"
-            bytes.hasPrefix(0x42, 0x5A, 0x68) -> "application/x-bzip2"
-            bytes.hasPrefix(
-                0x37,
-                0x7A,
-                0xBC,
-                0xAF,
-                0x27,
-                0x1C,
-            ) -> "application/x-7z-compressed"
-
-            bytes.hasPrefix(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00) ||
-                bytes.hasPrefix(
-                    0x52,
-                    0x61,
-                    0x72,
-                    0x21,
-                    0x1A,
-                    0x07,
-                    0x01,
-                    0x00,
-                ) -> "application/vnd.rar"
-
-            bytes.hasPrefix(0x49, 0x49, 0x2A, 0x00) ||
-                bytes.hasPrefix(
-                    0x4D,
-                    0x4D,
-                    0x00,
-                    0x2A,
-                ) -> "image/tiff"
-
-            bytes.hasIsoBmffBrand(
-                "heic",
-                "heif",
-                "hevc",
-                "mif1",
-                "msf1",
-            ) -> "image/heic"
-
-            bytes.startsWithAscii("<svg") -> "image/svg+xml"
-            bytes.hasIsoBmffBrand(
-                "isom",
-                "iso2",
-                "mp41",
-                "mp42",
-                "avc1",
-                "dash",
-            ) -> "video/mp4"
-
-            bytes.hasRiffType("AVI ") -> "video/x-msvideo"
-            bytes.hasRiffType("WEBP") -> "image/webp"
-            bytes.hasRiffType("WAVE") -> "audio/wav"
-
-            bytes.hasTarMagic() -> "application/x-tar"
-
-            bytes.hasPrefix(0x41, 0x43, 0x31, 0x30) -> "application/acad"
-            bytes.startsWithAscii("0\nsection") -> "application/dxf"
-            bytes.hasPrefix(
-                0xD0,
-                0xCF,
-                0x11,
-                0xE0,
-            ) &&
-                bytes.containsAscii("PowerPoint Document") ->
-                "application/vnd.ms-powerpoint"
-
-            else -> null
-        }
-
-        /*
-        Controleert of de gegeven bytes een voorvoegsel hebben die overeenkomt met de opgegeven signatures.
-        Retourneert true als alle signatures overeenkomen, anders false.
-         */
-        private fun ByteArray.hasPrefix(vararg signature: Int): Boolean {
-            if (size < signature.size) {
-                return false
-            }
-            signature.forEachIndexed { index, value ->
-                if (this[index] != value.toByte()) return false
-            }
-            return true
-        }
-
-        /*
-        Controleert of de gegeven bytes een RIFF-header hebben met het opgegeven type.
-         */
-        private fun ByteArray.hasRiffType(expected: String): Boolean {
-            if (size < 12 || expected.length != 4) {
-                return false
-            }
-            return hasPrefix(0x52, 0x49, 0x46, 0x46) &&
-                copyOfRange(
-                    8,
-                    12,
-                ).contentEquals(expected.toByteArray())
-        }
-
-        /*
-        Controleert of de gegeven bytes een ISO/IEC 14496-12:2015 BMFF-header hebben met het opgegeven type.
-         */
-        private fun ByteArray.hasIsoBmffBrand(vararg brands: String): Boolean {
-            if (size < 12) {
-                return false
-            }
-            if (!copyOfRange(4, 8).contentEquals(
-                    byteArrayOf(
-                        0x66,
-                        0x74,
-                        0x79,
-                        0x70,
-                    ),
-                )
-            ) {
-                return false
-            }
-            val brand = copyOfRange(8, 12).decodeToString().lowercase()
-            return brands.any { brand == it.lowercase() }
-        }
-
-        /*
-        Controleert of de gegeven bytes een tar-header hebben.
-         */
-        private fun ByteArray.hasTarMagic(): Boolean = size >= 262 &&
-            copyOfRange(
-                257,
-                262,
-            ).contentEquals("ustar".toByteArray())
-
-        /*
-        Controleert of de gegeven bytes een ASCII-tekst hebben met het opgegeven voorvoegsel.
-         */
-        private fun ByteArray.startsWithAscii(prefix: String): Boolean {
-            if (isEmpty()) {
-                return false
+    override fun checkHealth(): StorageStatus {
+        return try {
+            val readStatus = try {
+                val headRequest = HeadBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build()
+                try {
+                    s3Client.headBucket(headRequest)
+                        .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
+                        .join()
+                } catch (_: TimeoutException) {
+                    throw TimeoutException("headBucket timed out after ${s3TimeoutSeconds}s")
+                } catch (_: Exception) {
+                    s3Client.listBuckets()
+                        .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
+                        .join()
+                }
+                DependencyStatus(status = "ok")
+            } catch (e: TimeoutException) {
+                logger.warn("Storage read health check timed out: {}", e.message)
+                DependencyStatus(status = "error", detail = "Storage read timed out after ${s3TimeoutSeconds}s")
+            } catch (e: Exception) {
+                logger.warn("Storage read health check failed: {}", e.message)
+                DependencyStatus(status = "error", detail = e.message)
             }
 
-            var offset =
-                if (size >= 3 && this[0] == 0xEF.toByte() && this[1] == 0xBB.toByte() && this[2] == 0xBF.toByte()) {
-                    3
+            val writeStatus = try {
+                val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
+                val putRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(probeKey)
+                    .build()
+                try {
+                    s3Client.putObject(
+                        putRequest,
+                        AsyncRequestBody.fromBytes(byteArrayOf()),
+                    ).orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS).join()
+                } catch (e: CompletionException) {
+                    throw e.cause ?: e
+                }
+                try {
+                    s3Client.deleteObject { it.bucket(bucketName).key(probeKey) }
+                        .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
+                        .join()
+                } catch (_: Exception) {
+                    logger.warn("Storage write health check: probe object cleanup failed (key={})", probeKey)
+                }
+                DependencyStatus(status = "ok")
+            } catch (e: TimeoutException) {
+                logger.warn("Storage write health check timed out: {}", e.message)
+                DependencyStatus(status = "error", detail = "Storage write timed out after ${s3TimeoutSeconds}s")
+            } catch (_: NoSuchBucketException) {
+                logger.warn("Storage write health check failed – bucket not found: {}", bucketName)
+                DependencyStatus(status = "error", detail = "Bucket '$bucketName' does not exist")
+            } catch (e: S3Exception) {
+                if (e.statusCode() == 403) {
+                    logger.warn("Storage write health check failed – access denied: {}", e.message)
+                    DependencyStatus(
+                        status = "error",
+                        detail = "Access denied for bucket '$bucketName': ${e.awsErrorDetails()?.errorMessage() ?: e.message}",
+                    )
                 } else {
-                    0
+                    logger.warn("Storage write health check failed: {}", e.message)
+                    DependencyStatus(status = "error", detail = e.message)
                 }
-            while (offset < size &&
-                this[offset].toInt().toChar()
-                    .isWhitespace()
-            ) {
-                offset++
+            } catch (e: Exception) {
+                logger.warn("Storage write health check failed: {}", e.message)
+                DependencyStatus(status = "error", detail = e.message)
             }
-            if (size - offset < prefix.length) {
-                return false
-            }
-            val head =
-                copyOfRange(offset, offset + prefix.length).decodeToString()
-                    .lowercase()
-            return head == prefix.lowercase()
-        }
 
-        private fun ByteArray.isDocxPackage(): Boolean = try {
-            ZipInputStream(ByteArrayInputStream(this)).use { zip ->
-                var hasWordDoc = false
-                var hasContentTypes = false
-                var entry =
-                    zip.nextEntry
-                while (entry != null && !(hasWordDoc && hasContentTypes)) {
-                    val name = entry.name.lowercase()
-                    if (name == "[content_types].xml") hasContentTypes = true
-                    if (name == "word/document.xml") hasWordDoc = true
-                    entry = zip.nextEntry
-                }
-                hasWordDoc && hasContentTypes
-            }
-        } catch (_: Exception) {
-            false
-        }
-
-        /*
-        Controleert of de gegeven bytes een ASCII-tekst bevat met het opgegeven voorvoegsel.
-        Zoeken wordt beperkt tot de eerste 1024 bytes voor efficiëntie.
-         */
-        private fun ByteArray.containsAscii(search: String, limit: Int = 1024): Boolean {
-            val needle = search.toByteArray()
-            if (needle.isEmpty() || this.isEmpty()) return false
-
-            val max = minOf(this.size, limit)
-            if (needle.size > max) return false
-
-            // naive scan; fast enough for small limits
-            for (i in 0..(max - needle.size)) {
-                var j = 0
-                while (j < needle.size && this[i + j] == needle[j]) j++
-                if (j == needle.size) return true
-            }
-            return false
-        }
-
-        private fun ByteArray.isOpcPackageWithEntry(requiredEntry: String): Boolean = try {
-            ZipInputStream(ByteArrayInputStream(this)).use { zip ->
-                var entry = zip.nextEntry
-                while (entry != null) {
-                    if (entry.name.equals(requiredEntry, ignoreCase = true)) {
-                        return true
-                    }
-                    entry = zip.nextEntry
-                }
-                false
-            }
-        } catch (_: Exception) {
-            false
+            val storageOk = readStatus.status == "ok" && writeStatus.status == "ok"
+            StorageStatus(
+                status = if (storageOk) "ok" else "error",
+                read = readStatus,
+                write = writeStatus,
+            )
+        } catch (e: Exception) {
+            logger.warn("Storage health check failed: {}", e.message)
+            val detail = e.message
+            StorageStatus(
+                status = "error",
+                read = DependencyStatus(status = "error", detail = detail),
+                write = DependencyStatus(status = "error", detail = detail),
+            )
         }
     }
 }

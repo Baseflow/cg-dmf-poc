@@ -47,7 +47,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             AllTables.createMissing()
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        val mockStorageService = mockk<StorageService>()
+        val mockStorageService = mockk<IStorageService>()
         every { mockStorageService.uploadFile(any(), any()) } returns Unit
         val auditContext = AuditContext()
         service = EnkelvoudigInformatieObjectService(
@@ -274,7 +274,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val auditContext = AuditContext()
         val customService = EnkelvoudigInformatieObjectService(
-            mockk<StorageService>(relaxed = true),
+            mockk<IStorageService>(relaxed = true),
             ApplicationConfig,
             mockCatalogusService,
             AuditTrailService(auditContext),

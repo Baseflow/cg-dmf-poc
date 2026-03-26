@@ -35,7 +35,7 @@ import kotlin.time.ExperimentalTime
 @Scope(RequestScope::class)
 @Scoped
 class EnkelvoudigInformatieObjectService(
-    private val storageService: StorageService,
+    private val storageService: IStorageService,
     private val applicationConfig: ApplicationConfig,
     private val catalogusService: CatalogusService,
     private val auditTrailService: AuditTrailService,
@@ -123,7 +123,7 @@ class EnkelvoudigInformatieObjectService(
     ): UploadResultaat {
         if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
-            val fileType = StorageService.detectFileFormat(content)
+            val fileType = StorageUtils.detectFileFormat(content)
             require(bestandsLocatie.isNotBlank()) {
                 "bestandsLocatie must not be blank when inhoud is present"
             }

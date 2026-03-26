@@ -12,7 +12,7 @@ class StorageServiceTest {
             "Missing test resource: $inputFileName"
         }
         val bytes = resource.readBytes()
-        val result = StorageService.detectFileFormat(bytes)
+        val result = StorageUtils.detectFileFormat(bytes)
         assert(result == expectedFormat)
     }
 

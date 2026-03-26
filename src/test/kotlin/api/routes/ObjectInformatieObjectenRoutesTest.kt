@@ -15,7 +15,7 @@ import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.AuditTrailService
 import com.baseflow.services.CatalogusService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
-import com.baseflow.services.StorageService
+import com.baseflow.services.IStorageService
 import io.mockk.mockk
 import com.baseflow.testutils.TestDataFactory
 import io.ktor.client.request.*
@@ -41,7 +41,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val auditContext = AuditContext()
         val service = EnkelvoudigInformatieObjectService(
-            mockk<StorageService>(relaxed = true),
+            mockk<IStorageService>(relaxed = true),
             ApplicationConfig,
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
