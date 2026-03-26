@@ -7,7 +7,7 @@ import software.amazon.awssdk.regions.Region
 import java.time.Duration
 
 /**
- * S3ConfigProvider reads S3 configuration from environment variables
+ * S3Config reads S3 configuration from environment variables
  * and provides it to services like StorageService.
  */
 internal object S3Config : Config() {
