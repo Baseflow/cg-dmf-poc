@@ -21,7 +21,7 @@ import java.util.zip.ZipInputStream
 
 /**
  * StorageService interacts with the S3 storage backend using the configuration
- * provided by S3ConfigProvider.
+ * provided by S3Config.
  */
 @Singleton
 open class StorageService(s3ClientFactory: S3ClientFactory) {
