@@ -3,6 +3,7 @@
 package com.baseflow.tooling
 
 import com.baseflow.entities.AuditTrails
+import com.baseflow.entities.BlobStorageRepositories
 import com.baseflow.entities.EIORecords
 import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecords
@@ -18,6 +19,7 @@ object AllTables {
         EIOVersions,
         OIORecords,
         AuditTrails,
+        BlobStorageRepositories,
     )
 
     fun createMissing() {

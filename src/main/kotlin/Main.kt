@@ -6,11 +6,13 @@ import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.api.openApiModule
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.S3Config
 import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
+import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -39,6 +41,10 @@ fun main() {
         .dataSource(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
         .load()
         .migrate()
+
+    // Register blob storage repositories from env vars into database
+    BlobStorageConfig.printConfig()
+    BlobStorageRegistrar.initialise()
 
     // Ensure notification kanaal exists
     NotificationConfig.printConfig()
