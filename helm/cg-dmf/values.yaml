@@ -13,7 +13,7 @@ image:
   tag: ""
 
 # -- Image pull secrets (list of secret names).
-imagePullSecrets: [ ]
+imagePullSecrets: []
 
 # -- Override the chart name used in resource names.
 nameOverride: ""
@@ -24,15 +24,15 @@ serviceAccount:
   # -- Whether to create a dedicated ServiceAccount.
   create: true
   # -- Annotations to add to the ServiceAccount.
-  annotations: { }
+  annotations: {}
   # -- Name of the ServiceAccount to use. Auto-generated when empty.
   name: ""
 
 # -- Annotations added to every pod.
-podAnnotations: { }
+podAnnotations: {}
 
 # -- Labels added to every pod.
-podLabels: { }
+podLabels: {}
 
 # -- Pod-level security context.
 podSecurityContext:
@@ -62,7 +62,7 @@ ingress:
   # -- Ingress class name.
   ingressClassName: "nginx"
   # -- Ingress annotations.
-  annotations: { }
+  annotations: {}
     # nginx.ingress.kubernetes.io/proxy-body-size: "0"
     # nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     # nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
@@ -73,13 +73,13 @@ ingress:
         - path: /
           pathType: ImplementationSpecific
   # -- TLS configuration for the Ingress.
-  tls: [ ]
+  tls: []
   #  - secretName: cg-dmf-tls-secret
   #    hosts:
   #      - cg-dmf.example.com
 
 # -- Resources for cg-dmf. We recommend not setting defaults so this is a conscious choice per environment.
-resources: { }
+resources: {}
   # limits:
   #   cpu: 500m
   #   memory: 512Mi
@@ -120,23 +120,23 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 # -- Node selector for pod placement.
-nodeSelector: { }
+nodeSelector: {}
 
 # -- Tolerations for pod placement.
-tolerations: [ ]
+tolerations: []
 
 # -- Affinity rules for pod placement.
-affinity: { }
+affinity: {}
 
 # -- Array with extra environment variables to add to the container.
-extraEnvVars: [ ]
+extraEnvVars: []
 # e.g:
 # extraEnvVars:
 #   - name: FOO
 #     value: "bar"
 
 # -- Optionally specify extra list of additional volumes for the pod.
-extraVolumes: [ ]
+extraVolumes: []
 # e.g:
 # extraVolumes:
 #   - name: extra-certs
@@ -144,7 +144,7 @@ extraVolumes: [ ]
 #       name: extra-certs
 
 # -- Optionally specify extra list of additional volumeMounts for the container.
-extraVolumeMounts: [ ]
+extraVolumeMounts: []
 # e.g:
 # extraVolumeMounts:
 #   - name: extra-certs
@@ -183,7 +183,7 @@ settings:
   # S3 / MinIO object storage
   # ---------------------------------------------------------------------------
   s3:
-    # -- Name of an existing Secret containing S3/MinIO credentials (keys: MINIO_ACCESS_KEY, S3_SECRET_KEY).
+    # -- Name of an existing Secret containing S3/MinIO credentials (keys: S3_ACCESS_KEY, S3_SECRET_KEY).
     # When set, the chart will not create a Secret and will reference this name instead.
     # Leave empty/null to let the chart manage the Secret (named <fullname>-s3).
     existingSecret: null
