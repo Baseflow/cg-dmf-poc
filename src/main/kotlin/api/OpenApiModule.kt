@@ -132,8 +132,8 @@ fun Application.openApiModule() {
             // Index page with links to all documentation endpoints
             get {
                 val html = checkNotNull(
-                    Application::class.java.classLoader.getResourceAsStream("docs-index.html"),
-                ) { "docs-index.html not found on classpath" }.bufferedReader().readText()
+                    javaClass.classLoader.getResource("docs-index.html"),
+                ) { "docs-index.html not found on classpath" }.readText()
                 call.respondText(html, contentType = io.ktor.http.ContentType.Text.Html)
             }.hide()
 

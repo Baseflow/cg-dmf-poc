@@ -93,10 +93,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-fun Application.documentenApiModule(
-    useAuthentication: Boolean = true,
-    openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()
-) {
+fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // Configure StatusPages for global exception handling
     configureStatusPages()
 

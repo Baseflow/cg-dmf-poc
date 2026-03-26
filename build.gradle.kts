@@ -87,6 +87,7 @@ dependencies {
 
     // Open-API specification generation + routing annotations
     implementation("io.ktor:ktor-server-routing-openapi:3.4.1")
+    implementation("io.ktor:ktor-server-openapi:3.4.1")
 
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
@@ -98,13 +99,6 @@ dependencies {
         implementation("com.fasterxml.jackson.core:jackson-core:2.21.1") {
             because("Minimum version from transitive dependencies")
         }
-    }
-}
-
-ktor {
-    openApi {
-        enabled = true
-        onlyCommented = false
     }
 }
 
@@ -156,7 +150,15 @@ val npmInstallSwaggerUi by tasks.registering(Exec::class) {
     group = "swagger-ui"
     description = "Install swagger-ui-dist via npm"
     workingDir = layout.projectDirectory.dir("frontend").asFile
-    commandLine("npm", "install", "--prefer-offline")
+    // Resolve npm via PATH at configuration time so it works in IDEs that don't inherit the shell PATH (e.g. nvm).
+    val npmExecutable =
+        providers
+            .exec {
+                commandLine("bash", "-lc", "which npm")
+            }.standardOutput.asText
+            .map { it.trim() }
+            .getOrElse("npm")
+    commandLine(npmExecutable, "install", "--prefer-offline")
     // Only re-run when package.json changes
     inputs.file(layout.projectDirectory.file("frontend/package.json"))
     outputs.dir(swaggerUiSrc)

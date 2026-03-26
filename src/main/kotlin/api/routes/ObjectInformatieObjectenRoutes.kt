@@ -12,6 +12,7 @@ import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
 import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -126,6 +127,13 @@ open class ObjectInformatieObjectenRoutes(
                     description =
                         "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
                         "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                    requestBody {
+                        required = true
+                        description = "Gegevens van de aan te maken relatie."
+                        content {
+                            schema = jsonSchema<CreateOIORequest>()
+                        }
+                    }
                     responses {
                         response(201) {
                             description = "Aangemaakt."

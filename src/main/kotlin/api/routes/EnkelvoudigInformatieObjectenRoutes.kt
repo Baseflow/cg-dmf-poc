@@ -14,6 +14,7 @@ import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -119,6 +120,13 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             tag("enkelvoudiginformatieobjecten")
             summary = "Maak een enkelvoudig informatieobject aan."
             description = "Maak een (ENKELVOUDIG) INFORMATIEOBJECT aan."
+            requestBody {
+                required = true
+                description = "Gegevens van het aan te maken informatieobject."
+                content {
+                    schema = jsonSchema<EnkelvoudigInformatieObjectRequest>()
+                }
+            }
             responses {
                 response(201) {
                     description = "Aangemaakt."
@@ -159,6 +167,13 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             tag("enkelvoudiginformatieobjecten")
             summary = "Voer een zoekopdracht uit op enkelvoudige informatieobjecten."
             description = "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
+            requestBody {
+                required = true
+                description = "Zoekcriteria."
+                content {
+                    schema = jsonSchema<EIOZoekRequest>()
+                }
+            }
             responses {
                 response(200) { description = "Lijst van gevonden enkelvoudige informatieobjecten." }
                 response(400) { description = "Bad request." }
@@ -265,6 +280,13 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
+                requestBody {
+                    required = true
+                    description = "Bijgewerkte gegevens van het informatieobject."
+                    content {
+                        schema = jsonSchema<EnkelvoudigInformatieObjectRequest>()
+                    }
+                }
                 responses {
                     response(200) { description = "OK." }
                     response(400) { description = "Bad request." }
@@ -302,6 +324,13 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 description = "Dit creëert altijd een nieuwe versie van het informatieobject."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                }
+                requestBody {
+                    required = false
+                    description = "Gedeeltelijk bijgewerkte gegevens van het informatieobject."
+                    content {
+                        schema = jsonSchema<EnkelvoudigInformatieObjectRequest>()
+                    }
                 }
                 responses {
                     response(200) { description = "OK." }
