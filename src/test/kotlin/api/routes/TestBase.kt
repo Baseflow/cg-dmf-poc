@@ -3,7 +3,6 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.documentenApiModule
-import com.baseflow.config.OpenZaakConfig
 import com.baseflow.config.appModule
 import com.baseflow.tooling.AllTables
 import io.ktor.server.application.Application
@@ -42,8 +41,6 @@ open class TestBase(dbNamePrefix: String) {
             modules(appModule)
             modules(defaultModule)
         }
-
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         documentenApiModule(useAuthentication = false)
     }
 }

@@ -28,16 +28,13 @@ fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
 
-    // Only initialize/print S3 configuration when appropriate:
-    // - If no BLOB_STORAGE_* env vars are present, we assume legacy S3-only mode and require S3.
-    // - If S3_SECRET_KEY is present, S3 is explicitly configured (even in multi-repo setups).
-    val env = System.getenv()
-    val hasBlobStorageEnv = env.keys.any { it.startsWith("BLOB_STORAGE_") }
-    val hasS3Secret = env["S3_SECRET_KEY"] != null
-    if (!hasBlobStorageEnv || hasS3Secret) {
-        S3Config.printConfig()
-    } else {
+    // Decide which storage configuration to initialize/print based on the merged config layer:
+    // - If BlobStorageConfig has repositories configured, we are in blob storage mode.
+    // - Otherwise, we assume legacy S3-only mode and require S3 configuration.
+    if (BlobStorageConfig.repositories.isNotEmpty()) {
         BlobStorageConfig.printConfig()
+    } else {
+        S3Config.printConfig()
     }
     Database.connect(
         url = DatabaseConfig.url,
