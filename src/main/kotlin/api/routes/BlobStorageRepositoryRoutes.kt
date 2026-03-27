@@ -85,8 +85,11 @@ fun Route.blobStorageRepositoryRoutes() {
                 BlobStorageRepositoryEntity.all()
                     .firstOrNull { it.repoName == body.name }
                     ?.toResponse()
-            }
-            call.respond(HttpStatusCode.OK, updated!!)
+            } ?: return@put call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("Blob storage repository with name '${body.name}' not found.", call.request.path()),
+            )
+            call.respond(HttpStatusCode.OK, updated)
         }
 
         // GET /admin/blob-storage-repositories/{id}
