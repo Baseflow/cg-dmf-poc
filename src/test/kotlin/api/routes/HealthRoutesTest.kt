@@ -8,8 +8,6 @@ import com.baseflow.config.S3ClientFactory
 import com.baseflow.services.DependencyStatus
 import com.baseflow.services.HealthCheckService
 import com.baseflow.services.StorageStatus
-import io.mockk.every
-import io.mockk.mockk
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -17,6 +15,8 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.testing.*
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -48,8 +48,7 @@ class HealthRoutesTest {
     }
 
     private fun okDependency() = DependencyStatus(status = "ok")
-    private fun errorDependency(detail: String = "connection refused") =
-        DependencyStatus(status = "error", detail = detail)
+    private fun errorDependency(detail: String = "connection refused") = DependencyStatus(status = "error", detail = detail)
 
     private fun okStorage() = StorageStatus(
         status = "ok",
@@ -181,32 +180,31 @@ class HealthRoutesTest {
     }
 
     @Test
-    fun `validate response JSON includes separate storage read and write statuses when write fails`() =
-        testApplication {
-            val stubService = object : HealthCheckService(noOpS3Factory()) {
-                override fun checkDatabase() = okDependency()
-                override fun checkStorage() = storageWithFailedWrite()
-            }
-            setupWithHealthService(stubService)
-
-            val response = client.get("/health/validate")
-
-            assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
-
-            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            val storage = body["storage"]?.jsonObject
-            assertNotNull(storage)
-            assertEquals("error", storage["status"]?.jsonPrimitive?.content)
-
-            val read = storage["read"]?.jsonObject
-            assertNotNull(read)
-            assertEquals("ok", read["status"]?.jsonPrimitive?.content)
-
-            val write = storage["write"]?.jsonObject
-            assertNotNull(write)
-            assertEquals("error", write["status"]?.jsonPrimitive?.content)
-            assertEquals("write denied", write["detail"]?.jsonPrimitive?.content)
+    fun `validate response JSON includes separate storage read and write statuses when write fails`() = testApplication {
+        val stubService = object : HealthCheckService(noOpS3Factory()) {
+            override fun checkDatabase() = okDependency()
+            override fun checkStorage() = storageWithFailedWrite()
         }
+        setupWithHealthService(stubService)
+
+        val response = client.get("/health/validate")
+
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+
+        val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        val storage = body["storage"]?.jsonObject
+        assertNotNull(storage)
+        assertEquals("error", storage["status"]?.jsonPrimitive?.content)
+
+        val read = storage["read"]?.jsonObject
+        assertNotNull(read)
+        assertEquals("ok", read["status"]?.jsonPrimitive?.content)
+
+        val write = storage["write"]?.jsonObject
+        assertNotNull(write)
+        assertEquals("error", write["status"]?.jsonPrimitive?.content)
+        assertEquals("write denied", write["detail"]?.jsonPrimitive?.content)
+    }
 
     @Test
     fun `validate response JSON includes database status`() = testApplication {
@@ -224,4 +222,3 @@ class HealthRoutesTest {
         assertEquals("ok", database["status"]?.jsonPrimitive?.content)
     }
 }
-

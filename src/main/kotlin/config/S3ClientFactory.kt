@@ -5,11 +5,11 @@ package com.baseflow.config
 import org.koin.core.annotation.Singleton
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
-import software.amazon.awssdk.core.checksums.RequestChecksumCalculation
-import software.amazon.awssdk.core.checksums.ResponseChecksumValidation
 import java.net.URI
 import java.time.Duration
 
@@ -71,4 +71,3 @@ class S3ClientFactory {
         return clientBuilder.build()
     }
 }
-

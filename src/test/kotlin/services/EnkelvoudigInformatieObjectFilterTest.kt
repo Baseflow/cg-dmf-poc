@@ -766,4 +766,3 @@ class EnkelvoudigInformatieObjectFilterTest {
         assertEquals(listOf("A", "C"), results.map { it.titel })
     }
 }
-
