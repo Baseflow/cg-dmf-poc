@@ -139,35 +139,15 @@ application {
 }
 
 // ── Swagger UI ────────────────────────────────────────────────────────────────
-// Install swagger-ui-dist from npm and copy the required assets into a build
-// directory that is then added as an extra resource root, so the assets are
-// bundled with the server JAR without touching src/main/resources.
+// Copy swagger-ui-dist assets (committed to git) into the build resources directory,
+// so they are bundled with the server JAR.
 
 val swaggerUiSrc = layout.projectDirectory.dir("frontend/node_modules/swagger-ui-dist")
 val swaggerUiDest = layout.buildDirectory.dir("generated/swagger-ui/static/swagger-ui")
 
-val npmInstallSwaggerUi by tasks.registering(Exec::class) {
-    group = "swagger-ui"
-    description = "Install swagger-ui-dist via npm"
-    workingDir = layout.projectDirectory.dir("frontend").asFile
-    // Resolve npm via PATH at configuration time so it works in IDEs that don't inherit the shell PATH (e.g. nvm).
-    val npmExecutable =
-        providers
-            .exec {
-                commandLine("bash", "-lc", "which npm")
-            }.standardOutput.asText
-            .map { it.trim() }
-            .getOrElse("npm")
-    commandLine(npmExecutable, "install", "--prefer-offline")
-    // Only re-run when package.json changes
-    inputs.file(layout.projectDirectory.file("frontend/package.json"))
-    outputs.dir(swaggerUiSrc)
-}
-
 val copySwaggerUi by tasks.registering(Copy::class) {
     group = "swagger-ui"
     description = "Copy swagger-ui-dist assets into the build resources directory"
-    dependsOn(npmInstallSwaggerUi)
     from(swaggerUiSrc) {
         include(
             "swagger-ui-bundle.js",
