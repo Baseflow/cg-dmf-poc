@@ -46,4 +46,3 @@ object JwtTokenProvider {
             .sign(algorithm)
     }
 }
-

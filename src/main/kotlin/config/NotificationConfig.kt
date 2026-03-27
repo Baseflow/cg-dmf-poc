@@ -61,7 +61,9 @@ object NotificationConfig : Config() {
             source,
         )
         if (!isEnabled) {
-            logger.warn("Notifications are disabled. Set NOTIFICATION_API_URL, NOTIFICATION_API_CLIENT_ID and NOTIFICATION_API_CLIENT_SECRET to enable.")
+            logger.warn(
+                "Notifications are disabled. Set NOTIFICATION_API_URL, NOTIFICATION_API_CLIENT_ID and NOTIFICATION_API_CLIENT_SECRET to enable.",
+            )
         }
     }
 }

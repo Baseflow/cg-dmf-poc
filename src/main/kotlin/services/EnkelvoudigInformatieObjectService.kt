@@ -49,62 +49,61 @@ class EnkelvoudigInformatieObjectService(
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse =
-        suspendTransaction {
-            request.controleerVerplichteVelden()
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse = suspendTransaction {
+        request.controleerVerplichteVelden()
 
-            val record = EIORecordEntity.new {
-            }
-
-            // Validate informatieobjecttype against catalogus
-            val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
-            val version = 1
-
-            val uploadResultaat = getUploadResultaat(request, record, version)
-            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
-            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
-
-            if (!request.inhoud.isNullOrEmpty()) {
-                require(bestandsFormaat != null) {
-                    "Unable to determine file format from content. Please specify the 'formaat' field in the request."
-                }
-            }
-
-            val eioVersion = EIOVersionEntity.new {
-                recordId = record
-                versie = version
-                bronOrganisatie = request.bronorganisatie!!
-                informatieobject_type = request.informatieobjecttype
-                taal = request.taal!!
-                bestandsnaam = request.bestandsnaam.orEmpty()
-                titel = request.titel!!
-                auteur = request.auteur!!
-                creatieDatum = request.creatiedatum!!
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                formaat = bestandsFormaat
-                bestandsomvang = bestandsOmvang
-                link = request.link.orEmpty()
-                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
-                integriteitWaarde = request.integriteit?.waarde.orEmpty()
-                integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
-                verschijningsVorm = request.verschijningsvorm.orEmpty()
-                trefwoorden = request.trefwoorden ?: emptyList()
-                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
-                    ?: ioType?.vertrouwelijkheidaanduiding
-                        ?: ""
-                status = request.status?.toString().orEmpty()
-                beschrijving = request.beschrijving.orEmpty()
-                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
-                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
-                ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
-                identificatie = request.identificatie.orEmpty()
-                bestandsLocatie = uploadResultaat.bestandsLocatie
-            }
-
-            val response = record.toResponse(eioVersion)
-            auditContext.captureNew(response, eioVersion)
-            response as EnkelvoudigInformatieObjectResponse
+        val record = EIORecordEntity.new {
         }
+
+        // Validate informatieobjecttype against catalogus
+        val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
+        val version = 1
+
+        val uploadResultaat = getUploadResultaat(request, record, version)
+        val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+        val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
+
+        if (!request.inhoud.isNullOrEmpty()) {
+            require(bestandsFormaat != null) {
+                "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+            }
+        }
+
+        val eioVersion = EIOVersionEntity.new {
+            recordId = record
+            versie = version
+            bronOrganisatie = request.bronorganisatie!!
+            informatieobject_type = request.informatieobjecttype
+            taal = request.taal!!
+            bestandsnaam = request.bestandsnaam.orEmpty()
+            titel = request.titel!!
+            auteur = request.auteur!!
+            creatieDatum = request.creatiedatum!!
+            beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            formaat = bestandsFormaat
+            bestandsomvang = bestandsOmvang
+            link = request.link.orEmpty()
+            integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
+            integriteitWaarde = request.integriteit?.waarde.orEmpty()
+            integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
+            verschijningsVorm = request.verschijningsvorm.orEmpty()
+            trefwoorden = request.trefwoorden ?: emptyList()
+            vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
+                ?: ioType?.vertrouwelijkheidaanduiding
+                ?: ""
+            status = request.status?.toString().orEmpty()
+            beschrijving = request.beschrijving.orEmpty()
+            indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
+            ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
+            ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
+            identificatie = request.identificatie.orEmpty()
+            bestandsLocatie = uploadResultaat.bestandsLocatie
+        }
+
+        val response = record.toResponse(eioVersion)
+        auditContext.captureNew(response, eioVersion)
+        response as EnkelvoudigInformatieObjectResponse
+    }
 
     private fun getUploadResultaat(
         request: EnkelvoudigInformatieObjectRequest,
@@ -119,10 +118,7 @@ class EnkelvoudigInformatieObjectService(
         return storeFileVersion(request, loc)
     }
 
-    private fun storeFileVersion(
-        request: EnkelvoudigInformatieObjectRequest,
-        bestandsLocatie: String
-    ): UploadResultaat {
+    private fun storeFileVersion(request: EnkelvoudigInformatieObjectRequest, bestandsLocatie: String): UploadResultaat {
         if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content)
@@ -159,82 +155,80 @@ class EnkelvoudigInformatieObjectService(
      * Gets all EnkelvoudigInformatieObjects with their latest versions
      * Returns the latest versions of all records
      */
-    fun getAll(filters: QueryEnkelvoudigeInformatieObjectenFilter): Pair<List<EnkelvoudigInformatieObjectResponse>, Long> {
-        return transaction {
-            val condition = buildFilterOp(filters)
+    fun getAll(filters: QueryEnkelvoudigeInformatieObjectenFilter): Pair<List<EnkelvoudigInformatieObjectResponse>, Long> = transaction {
+        val condition = buildFilterOp(filters)
 
-            val pageSize = filters.pageSize
-            val page = if (filters.page > 0) filters.page else 1
-            val offset = (page - 1L) * pageSize
+        val pageSize = filters.pageSize
+        val page = if (filters.page > 0) filters.page else 1
+        val offset = (page - 1L) * pageSize
 
-            // Build the base join. Each row in this query represents (record, latestVersion).
-            // We restrict to only the latest version per record via a correlated subquery.
-            var query = EIORecords.innerJoin(EIOVersions)
+        // Build the base join. Each row in this query represents (record, latestVersion).
+        // We restrict to only the latest version per record via a correlated subquery.
+        var query = EIORecords.innerJoin(EIOVersions)
+            .selectAll()
+
+        if (filters.objectUrl != null || filters.objectType != null) {
+            query = EIORecords.innerJoin(EIOVersions).innerJoin(OIORecords)
                 .selectAll()
-
-            if (filters.objectUrl != null || filters.objectType != null) {
-                query = EIORecords.innerJoin(EIOVersions).innerJoin(OIORecords)
-                    .selectAll()
-            }
-
-            // Alias for the inner subquery table so the correlated reference to the outer EIORecords.id
-            // is unambiguous — without this alias both inner and outer reference the same table name,
-            // and PostgreSQL evaluates the subquery as non-correlated (returning a single global MAX).
-            val innerVersions = EIOVersions.alias("inner_eio_versions")
-
-            query.apply {
-                // Restrict to only the latest version row per record via a correlated subquery:
-                // WHERE versie = (SELECT MAX(inner.versie) FROM eio_versions AS inner WHERE inner.record_id = eio_records.id)
-                andWhere {
-                    EIOVersions.versie eqSubQuery innerVersions
-                        .select(innerVersions[EIOVersions.versie].max())
-                        .where { innerVersions[EIOVersions.recordId] eq EIORecords.id }
-                }
-                if (condition != Op.TRUE) {
-                    andWhere { condition }
-                }
-                if (filters.ordering.isNotEmpty()) {
-                    val orderClauses = filters.ordering.map { ordering ->
-                        val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
-                        when (ordering) {
-                            EIOOrdering.AUTEUR_ASC, EIOOrdering.AUTEUR_DESC ->
-                                EIOVersions.auteur to sortOrder
-
-                            EIOOrdering.BESTANDSOMVANG_ASC, EIOOrdering.BESTANDSOMVANG_DESC ->
-                                EIOVersions.bestandsomvang to sortOrder
-
-                            EIOOrdering.CREATIEDATUM_ASC, EIOOrdering.CREATIEDATUM_DESC ->
-                                EIOVersions.creatieDatum to sortOrder
-
-                            EIOOrdering.FORMAAT_ASC, EIOOrdering.FORMAAT_DESC ->
-                                EIOVersions.formaat to sortOrder
-
-                            EIOOrdering.STATUS_ASC, EIOOrdering.STATUS_DESC ->
-                                EIOVersions.status to sortOrder
-
-                            EIOOrdering.TITEL_ASC, EIOOrdering.TITEL_DESC ->
-                                EIOVersions.titel to sortOrder
-
-                            EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC ->
-                                EIOVersions.vertrouwlijkheidsAanduiding to sortOrder
-                        }
-                    }
-                    orderBy(*orderClauses.toTypedArray())
-                }
-            }
-
-            val totalCount = query.count()
-
-            // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
-            // Each row already contains exactly one record + its latest version due to the subquery filter.
-            val results = query.limit(pageSize).offset(offset).mapNotNull { row ->
-                val record = EIORecordEntity.wrapRow(row)
-                val version = EIOVersionEntity.wrapRow(row)
-                record.toResponse(version)
-            }
-
-            results to totalCount
         }
+
+        // Alias for the inner subquery table so the correlated reference to the outer EIORecords.id
+        // is unambiguous — without this alias both inner and outer reference the same table name,
+        // and PostgreSQL evaluates the subquery as non-correlated (returning a single global MAX).
+        val innerVersions = EIOVersions.alias("inner_eio_versions")
+
+        query.apply {
+            // Restrict to only the latest version row per record via a correlated subquery:
+            // WHERE versie = (SELECT MAX(inner.versie) FROM eio_versions AS inner WHERE inner.record_id = eio_records.id)
+            andWhere {
+                EIOVersions.versie eqSubQuery innerVersions
+                    .select(innerVersions[EIOVersions.versie].max())
+                    .where { innerVersions[EIOVersions.recordId] eq EIORecords.id }
+            }
+            if (condition != Op.TRUE) {
+                andWhere { condition }
+            }
+            if (filters.ordering.isNotEmpty()) {
+                val orderClauses = filters.ordering.map { ordering ->
+                    val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
+                    when (ordering) {
+                        EIOOrdering.AUTEUR_ASC, EIOOrdering.AUTEUR_DESC ->
+                            EIOVersions.auteur to sortOrder
+
+                        EIOOrdering.BESTANDSOMVANG_ASC, EIOOrdering.BESTANDSOMVANG_DESC ->
+                            EIOVersions.bestandsomvang to sortOrder
+
+                        EIOOrdering.CREATIEDATUM_ASC, EIOOrdering.CREATIEDATUM_DESC ->
+                            EIOVersions.creatieDatum to sortOrder
+
+                        EIOOrdering.FORMAAT_ASC, EIOOrdering.FORMAAT_DESC ->
+                            EIOVersions.formaat to sortOrder
+
+                        EIOOrdering.STATUS_ASC, EIOOrdering.STATUS_DESC ->
+                            EIOVersions.status to sortOrder
+
+                        EIOOrdering.TITEL_ASC, EIOOrdering.TITEL_DESC ->
+                            EIOVersions.titel to sortOrder
+
+                        EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC ->
+                            EIOVersions.vertrouwlijkheidsAanduiding to sortOrder
+                    }
+                }
+                orderBy(*orderClauses.toTypedArray())
+            }
+        }
+
+        val totalCount = query.count()
+
+        // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
+        // Each row already contains exactly one record + its latest version due to the subquery filter.
+        val results = query.limit(pageSize).offset(offset).mapNotNull { row ->
+            val record = EIORecordEntity.wrapRow(row)
+            val version = EIOVersionEntity.wrapRow(row)
+            record.toResponse(version)
+        }
+
+        results to totalCount
     }
 
     /**
@@ -280,9 +274,10 @@ class EnkelvoudigInformatieObjectService(
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
             val bestandsFormaat =
                 mergeNullable(
-                    partial, request.formaat,
+                    partial,
+                    request.formaat,
                     uploadResultaat.bestandsFormaat
-                        ?: latestVersion?.formaat
+                        ?: latestVersion?.formaat,
                 )
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
@@ -311,21 +306,22 @@ class EnkelvoudigInformatieObjectService(
                         .toLocalDateTime(TimeZone.UTC).date
                 formaat = bestandsFormaat
                 bestandsomvang = mergeNullable(
-                    partial, request.bestandsomvang,
-                    latestVersion?.bestandsomvang
+                    partial,
+                    request.bestandsomvang,
+                    latestVersion?.bestandsomvang,
                 ) ?: 0
 
                 integriteitAlgoritme = mergeOptionalString(
                     partial,
                     request.integriteit?.algoritme?.toString(),
-                    latestVersion?.integriteitAlgoritme
+                    latestVersion?.integriteitAlgoritme,
                 )
                 integriteitWaarde =
                     mergeOptionalString(partial, request.integriteit?.waarde, latestVersion?.integriteitWaarde)
                 integriteitsDatum = mergeNullable(
                     partial,
                     request.integriteit?.datum?.atTime(0, 0, 0, 0),
-                    latestVersion?.integriteitsDatum
+                    latestVersion?.integriteitsDatum,
                 )
                 verschijningsVorm =
                     mergeOptionalString(partial, request.verschijningsvorm, latestVersion?.verschijningsVorm)
@@ -334,24 +330,25 @@ class EnkelvoudigInformatieObjectService(
                 vertrouwlijkheidsAanduiding = mergeOptionalString(
                     partial,
                     request.vertrouwelijkheidaanduiding?.toString(),
-                    latestVersion?.vertrouwlijkheidsAanduiding
+                    latestVersion?.vertrouwlijkheidsAanduiding,
                 )
                 status = mergeOptionalString(partial, request.status?.toString(), latestVersion?.status)
                 beschrijving = mergeOptionalString(partial, request.beschrijving, latestVersion?.beschrijving)
                 indicatieGebruiksrecht =
                     mergeNullable(
-                        partial, request.indicatieGebruiksrecht,
-                        latestVersion?.indicatieGebruiksrecht
+                        partial,
+                        request.indicatieGebruiksrecht,
+                        latestVersion?.indicatieGebruiksrecht,
                     ) ?: false
                 ondertekening_soort = mergeOptionalString(
                     partial,
                     request.ondertekening?.soort?.toString(),
-                    latestVersion?.ondertekening_soort
+                    latestVersion?.ondertekening_soort,
                 )
                 ondertekenings_datum = mergeNullable(
                     partial,
                     request.ondertekening?.datum?.atTime(0, 0, 0, 0),
-                    latestVersion?.ondertekenings_datum
+                    latestVersion?.ondertekenings_datum,
                 )
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
             }
@@ -418,7 +415,7 @@ class EnkelvoudigInformatieObjectService(
             id = this.id.value.toString(),
             url = ApiUrlBuilder.absolute(
                 ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
-                this.id.value.toString()
+                this.id.value.toString(),
             ),
             identificatie = version.identificatie,
             bronorganisatie = version.bronOrganisatie,

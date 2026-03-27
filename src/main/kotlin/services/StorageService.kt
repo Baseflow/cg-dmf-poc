@@ -2,8 +2,8 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.S3Config
 import com.baseflow.config.S3ClientFactory
+import com.baseflow.config.S3Config
 import org.koin.core.annotation.Singleton
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription

@@ -285,9 +285,4 @@ class NotificationService(private val context: AuditContext) {
 }
 
 @Serializable
-data class Kanaal(
-    val url: String,
-    val naam: String,
-    val documentatieLink: String? = null,
-    val filters: List<String>? = null
-)
+data class Kanaal(val url: String, val naam: String, val documentatieLink: String? = null, val filters: List<String>? = null)
