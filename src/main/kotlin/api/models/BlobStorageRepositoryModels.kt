@@ -23,6 +23,4 @@ data class BlobStorageRepositoryResponse(
 )
 
 @Serializable
-data class SetDefaultRepositoryRequest(
-    val name: String,
-)
+data class SetDefaultRepositoryRequest(val name: String)

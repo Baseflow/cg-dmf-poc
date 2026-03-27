@@ -47,4 +47,3 @@ class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var createdAt by BlobStorageRepositories.createdAt
     var updatedAt by BlobStorageRepositories.updatedAt
 }
-

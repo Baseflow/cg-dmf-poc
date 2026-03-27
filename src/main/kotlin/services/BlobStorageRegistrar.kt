@@ -122,6 +122,25 @@ object BlobStorageRegistrar {
         logger.info("Default blob storage repository changed to '{}'", name)
     }
 
+    // ---- test helpers (internal visibility keeps them out of prod call-sites) ----
+
+    /**
+     * Directly registers [provider] under its [BlobStorageProvider.name].
+     * Intended for unit tests only – bypasses env config and database.
+     */
+    internal fun registerForTesting(provider: BlobStorageProvider, isDefault: Boolean = false) {
+        providers[provider.name] = provider
+        if (isDefault || defaultProviderName == null) {
+            defaultProviderName = provider.name
+        }
+    }
+
+    /** Clears all registered providers and resets the default pointer. For unit tests only. */
+    internal fun resetForTesting() {
+        providers.clear()
+        defaultProviderName = null
+    }
+
     // ---- internal helpers ---------------------------------------------------
 
     private fun upsertRepository(cfg: BlobStorageRepoConfig) {

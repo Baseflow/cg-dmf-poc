@@ -35,7 +35,7 @@ import io.ktor.utils.io.ExperimentalKtorApi
  * relations with objects beyond just Zaken (cases).
  */
 @OptIn(ExperimentalKtorApi::class)
-fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+fun Route.documentenApiRoutes() {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
         install(NotificationPlugin)
@@ -108,13 +108,13 @@ fun Application.documentenApiModule(
     routing {
         if (useAuthentication) {
             authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
-                documentenApiRoutes(openZaakConfig)
+                documentenApiRoutes()
                 route("/admin") {
                     blobStorageRepositoryRoutes()
                 }
             }
         } else {
-            documentenApiRoutes(openZaakConfig)
+            documentenApiRoutes()
             route("/admin") {
                 blobStorageRepositoryRoutes()
             }

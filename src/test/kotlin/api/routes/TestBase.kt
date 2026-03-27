@@ -28,7 +28,7 @@ open class TestBase(dbNamePrefix: String) {
     }
 
     @BeforeTest
-    fun beforeTest() {
+    open fun beforeTest() {
         connectDb()
         transaction {
             AllTables.createMissing()
