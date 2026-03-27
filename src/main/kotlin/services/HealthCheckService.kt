@@ -42,9 +42,9 @@ open class HealthCheckService(
      * availability via [BlobStorageRegistrar] / [BlobStorageProvider.isHealthy].
      *
      * - **Read**: delegates to [BlobStorageProvider.isHealthy].
-     * - **Write**: uploads a tiny probe object via [StorageService.uploadFile], then
-     *   downloads it back to confirm round-trip availability, and finally deletes it
-     *   (best-effort).
+     * - **Write**: uploads a tiny probe object directly via the active [BlobStorageProvider]
+     *   (`provider.uploadFile(...)`), then downloads it back to confirm round-trip availability,
+     *   and finally deletes it (best-effort).
      *
      * When no provider is configured the check returns an error status immediately.
      */
