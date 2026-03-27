@@ -1,0 +1,17 @@
+meta {
+  name: Get default repository
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/admin/blob-storage-repositories/default
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

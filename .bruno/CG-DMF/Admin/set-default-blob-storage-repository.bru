@@ -1,0 +1,23 @@
+meta {
+  name: Set default repository
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/admin/blob-storage-repositories/default
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "minio-local"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

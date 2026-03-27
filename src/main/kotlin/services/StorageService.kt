@@ -72,9 +72,8 @@ open class StorageService(
     /**
      * Stream a file from the default (or named) repository.
      */
-    fun downloadFileTo(objectName: String, output: OutputStream, repoName: String? = null): CompletableFuture<Void> {
-        return resolveProvider(repoName).downloadFileTo(objectName, output)
-    }
+    fun downloadFileTo(objectName: String, output: OutputStream, repoName: String? = null): CompletableFuture<Void> =
+        resolveProvider(repoName).downloadFileTo(objectName, output)
 
     companion object {
         /*

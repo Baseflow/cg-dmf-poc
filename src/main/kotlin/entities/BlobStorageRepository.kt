@@ -25,6 +25,7 @@ object BlobStorageRepositories : UUIDTable("blob_storage_repositories") {
     val disableChecksums = bool("disable_checksums").default(false)
     val disableChunkedEncoding = bool("disable_chunked_encoding").default(false)
     val extraProperties = text("extra_properties").default("{}")
+    val isDefault = bool("is_default").default(false)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 }
@@ -42,6 +43,7 @@ class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var disableChecksums by BlobStorageRepositories.disableChecksums
     var disableChunkedEncoding by BlobStorageRepositories.disableChunkedEncoding
     var extraProperties by BlobStorageRepositories.extraProperties
+    var isDefault by BlobStorageRepositories.isDefault
     var createdAt by BlobStorageRepositories.createdAt
     var updatedAt by BlobStorageRepositories.updatedAt
 }

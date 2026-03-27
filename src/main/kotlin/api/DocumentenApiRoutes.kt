@@ -93,7 +93,10 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+fun Application.documentenApiModule(
+    useAuthentication: Boolean = true,
+    openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()
+) {
     // Configure StatusPages for global exception handling
     configureStatusPages()
 
@@ -106,9 +109,15 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakC
         if (useAuthentication) {
             authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 documentenApiRoutes(openZaakConfig)
+                route("/admin") {
+                    blobStorageRepositoryRoutes()
+                }
             }
         } else {
             documentenApiRoutes(openZaakConfig)
+            route("/admin") {
+                blobStorageRepositoryRoutes()
+            }
         }
     }
 }

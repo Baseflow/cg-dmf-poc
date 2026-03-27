@@ -1,0 +1,17 @@
+meta {
+  name: List repositories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/admin/blob-storage-repositories
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

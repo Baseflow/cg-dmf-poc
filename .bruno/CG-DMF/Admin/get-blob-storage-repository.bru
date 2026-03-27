@@ -1,0 +1,17 @@
+meta {
+  name: Get repository by id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/admin/blob-storage-repositories/{{repositoryId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

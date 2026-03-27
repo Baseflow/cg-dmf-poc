@@ -21,6 +21,14 @@ import java.security.MessageDigest
  *
  * Also exposes the live [BlobStorageProvider] instances for the rest of the
  * application to use.
+ *
+ * The **default** repository is the one that [StorageService] uses when no
+ * explicit repository name is given.  The default is determined by:
+ * 1. The `is_default = true` row in [BlobStorageRepositories] (survives restarts).
+ * 2. If none is marked, the first configured repository is used.
+ *
+ * Call [setDefaultProvider] to change the default at runtime – the change is
+ * persisted immediately to the database.
  */
 object BlobStorageRegistrar {
 
@@ -28,6 +36,10 @@ object BlobStorageRegistrar {
 
     /** Provider instances keyed by repository name. */
     private val providers = mutableMapOf<String, BlobStorageProvider>()
+
+    /** Name of the currently designated default provider (may be `null` before [initialise]). */
+    @Volatile
+    private var defaultProviderName: String? = null
 
     /**
      * Call once during application startup (after Flyway migration).
@@ -45,23 +57,70 @@ object BlobStorageRegistrar {
             for (cfg in configs) {
                 upsertRepository(cfg)
             }
+
+            // Determine the default: prefer the row already marked is_default=true in the DB,
+            // fall back to the first configured repository.
+            val markedDefault = BlobStorageRepositoryEntity
+                .find { BlobStorageRepositories.isDefault eq true }
+                .firstOrNull()
+
+            if (markedDefault != null) {
+                defaultProviderName = markedDefault.repoName
+            } else {
+                // Mark the first config as default
+                val firstName = configs.first().name
+                defaultProviderName = firstName
+                BlobStorageRepositoryEntity
+                    .find { BlobStorageRepositories.repoName eq firstName }
+                    .firstOrNull()
+                    ?.let { it.isDefault = true }
+            }
         }
 
         for (cfg in configs) {
             providers[cfg.name] = createProvider(cfg)
         }
 
-        logger.info("Registered {} blob storage provider(s): {}", providers.size, providers.keys)
+        logger.info(
+            "Registered {} blob storage provider(s): {} — default: {}",
+            providers.size,
+            providers.keys,
+            defaultProviderName,
+        )
     }
 
     /** Returns the provider for the given repository name, or `null` when not found. */
     fun providerByName(name: String): BlobStorageProvider? = providers[name]
 
-    /** Returns the first (default) provider, or `null` when none configured. */
-    fun defaultProvider(): BlobStorageProvider? = providers.values.firstOrNull()
+    /** Returns the currently designated default provider, or `null` when none configured. */
+    fun defaultProvider(): BlobStorageProvider? = defaultProviderName?.let { providers[it] }
 
-    /** Returns all registered providers. */
-    fun allProviders(): Collection<BlobStorageProvider> = providers.values
+    /**
+     * Designates [name] as the new default provider.
+     * Persists the change to [BlobStorageRepositories] immediately.
+     *
+     * @throws IllegalArgumentException when [name] does not match a registered provider.
+     */
+    fun setDefaultProvider(name: String) {
+        require(providers.containsKey(name)) {
+            "Cannot set default: no provider registered with name '$name'."
+        }
+        transaction {
+            // Clear old default(s)
+            BlobStorageRepositoryEntity.all()
+                .filter { it.isDefault }
+                .forEach { it.isDefault = false }
+
+            // Set new default
+            BlobStorageRepositoryEntity
+                .find { BlobStorageRepositories.repoName eq name }
+                .firstOrNull()
+                ?.let { it.isDefault = true }
+                ?: error("Repository '$name' not found in database.")
+        }
+        defaultProviderName = name
+        logger.info("Default blob storage repository changed to '{}'", name)
+    }
 
     // ---- internal helpers ---------------------------------------------------
 
@@ -117,4 +176,3 @@ object BlobStorageRegistrar {
             .joinToString("") { "%02x".format(it) }
     }
 }
-
