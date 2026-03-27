@@ -2,7 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3Config
 import com.baseflow.config.S3ClientFactory
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -62,7 +62,7 @@ open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
             // Check read access: list buckets / head bucket
             val readStatus = try {
                 val headRequest = HeadBucketRequest.builder()
-                    .bucket(MinioConfig.bucketName)
+                    .bucket(S3Config.bucketName)
                     .build()
                 try {
                     s3Client.headBucket(headRequest)
@@ -95,7 +95,7 @@ open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
             val writeStatus = try {
                 val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
                 val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
-                    .bucket(MinioConfig.bucketName)
+                    .bucket(S3Config.bucketName)
                     .key(probeKey)
                     .build()
 
@@ -110,7 +110,7 @@ open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
                 }
 
                 try {
-                    s3Client.deleteObject { it.bucket(MinioConfig.bucketName).key(probeKey) }
+                    s3Client.deleteObject { it.bucket(S3Config.bucketName).key(probeKey) }
                         .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
                         .join()
                 } catch (_: Exception) {
@@ -126,17 +126,17 @@ open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
                     detail = "Storage write timed out after ${s3TimeoutSeconds}s",
                 )
             } catch (_: NoSuchBucketException) {
-                logger.warn("Storage write health check failed – bucket not found: {}", MinioConfig.bucketName)
+                logger.warn("Storage write health check failed – bucket not found: {}", S3Config.bucketName)
                 DependencyStatus(
                     status = "error",
-                    detail = "Bucket '${MinioConfig.bucketName}' does not exist",
+                    detail = "Bucket '${S3Config.bucketName}' does not exist",
                 )
             } catch (e: S3Exception) {
                 if (e.statusCode() == 403) {
                     logger.warn("Storage write health check failed – access denied: {}", e.message)
                     DependencyStatus(
                         status = "error",
-                        detail = "Access denied for bucket '${MinioConfig.bucketName}': ${
+                        detail = "Access denied for bucket '${S3Config.bucketName}': ${
                             e.awsErrorDetails()?.errorMessage() ?: e.message
                         }",
                     )

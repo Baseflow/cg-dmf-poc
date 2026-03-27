@@ -1,9 +1,10 @@
-FROM gradle:9.4.0-jdk21 AS build
+FROM gradle:9.4.1-jdk21 AS build
 
 WORKDIR /app
 
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY src ./src
+COPY frontend ./frontend
 
 RUN gradle clean installDist --no-daemon
 

@@ -5,6 +5,7 @@ package com.baseflow.services
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.getResourceSegment
+import com.baseflow.config.JwtTokenProvider
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.RequestScope
 import io.ktor.client.*
@@ -126,7 +127,9 @@ class NotificationService(private val context: AuditContext) {
             }
 
             val url = NotificationConfig.url ?: return false
-            val token = NotificationConfig.bearerToken ?: return false
+            val clientId = NotificationConfig.clientId ?: return false
+            val clientSecret = NotificationConfig.clientSecret ?: return false
+            val token = JwtTokenProvider.generate(clientId, clientSecret)
             val kanaalName = NotificationConfig.kanaal
 
             try {
@@ -244,7 +247,9 @@ class NotificationService(private val context: AuditContext) {
      */
     private suspend fun sendNotification(message: NotificationMessage) {
         val url = NotificationConfig.url ?: return
-        val token = NotificationConfig.bearerToken ?: return
+        val clientId = NotificationConfig.clientId ?: return
+        val clientSecret = NotificationConfig.clientSecret ?: return
+        val token = JwtTokenProvider.generate(clientId, clientSecret)
 
         try {
             logger.info(
@@ -280,4 +285,9 @@ class NotificationService(private val context: AuditContext) {
 }
 
 @Serializable
-data class Kanaal(val url: String, val naam: String, val documentatieLink: String? = null, val filters: List<String>? = null)
+data class Kanaal(
+    val url: String,
+    val naam: String,
+    val documentatieLink: String? = null,
+    val filters: List<String>? = null
+)

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api
 
 import com.baseflow.api.middleware.*
@@ -13,6 +13,8 @@ import io.ktor.server.plugins.conditionalheaders.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.hide
+import io.ktor.utils.io.ExperimentalKtorApi
 
 /**
  * Documenten API Routing Module
@@ -32,6 +34,7 @@ import io.ktor.server.routing.*
  * Note: This implementation extends the standard Documenten API to support
  * relations with objects beyond just Zaken (cases).
  */
+@OptIn(ExperimentalKtorApi::class)
 fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
@@ -42,7 +45,16 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
             version(ApiConditionalHeadersProvider)
         }
 
-        // Health check endpoint
+        /**
+         * Documenten API root.
+         *
+         * Geeft versie-informatie en beschikbare endpoints van de Documenten API.
+         *
+         * Responses:
+         *   - 200 Service info.
+         *
+         * @tag DocumentenAPI
+         */
         get("/") {
             call.respond(
                 mapOf(
@@ -52,6 +64,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
                 ),
             )
         }
+            .hide()
 
         // EnkelvoudigInformatieObject endpoints
         // These handle the core document CRUD operations

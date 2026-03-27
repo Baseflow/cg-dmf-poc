@@ -4,9 +4,10 @@ package com.baseflow
 
 import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
+import com.baseflow.api.openApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.DatabaseConfig
-import com.baseflow.config.MinioConfig
+import com.baseflow.config.S3Config
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
@@ -14,6 +15,7 @@ import com.baseflow.services.NotificationService
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -23,7 +25,7 @@ import org.koin.ktor.plugin.Koin
 fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
-    MinioConfig.printConfig()
+    S3Config.printConfig()
 
     Database.connect(
         url = DatabaseConfig.url,
@@ -50,6 +52,7 @@ fun main() {
     }.start(wait = true)
 }
 
+@OptIn(ExperimentalKtorApi::class)
 fun Application.module() {
     // Install Koin for dependency injection
     install(Koin) {
@@ -61,4 +64,5 @@ fun Application.module() {
     helloWorldModule() // Keep for basic health check at /
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
+    openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }

@@ -1,15 +1,14 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
-import org.jetbrains.kotlin.gradle.internal.builtins.StandardNames.FqNames.target
 
 plugins {
-    kotlin("jvm") version "2.3.10"
+    kotlin("jvm") version "2.3.20"
     application
-    kotlin("plugin.serialization") version "2.3.10"
+    kotlin("plugin.serialization") version "2.3.20"
     id("com.github.ben-manes.versions") version "0.53.0"
     // KSP plugin for annotation processing (required by koin-annotations)
     id("com.google.devtools.ksp") version "2.3.6"
     // Code formatting with Spotless and ktlint
-    id("com.diffplug.spotless") version "8.3.0"
+    id("com.diffplug.spotless") version "8.4.0"
 }
 
 group = "com.baseflow"
@@ -56,8 +55,8 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.10")
 
     // Database migrations
-    implementation("org.flywaydb:flyway-core:12.1.1")
-    implementation("org.flywaydb:flyway-database-postgresql:12.1.1")
+    implementation("org.flywaydb:flyway-core:12.2.0")
+    implementation("org.flywaydb:flyway-database-postgresql:12.2.0")
 
     // Kotlin coroutines and datetime
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -73,18 +72,22 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.23.0")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.17")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.17")
+    implementation("software.amazon.awssdk:s3:2.42.22")
+    implementation("software.amazon.awssdk:netty-nio-client:2.42.22")
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
-    implementation("io.insert-koin:koin-core:4.1.1")
-    implementation("io.insert-koin:koin-ktor:4.1.1")
-    implementation("io.insert-koin:koin-logger-slf4j:4.1.1")
+    implementation("io.insert-koin:koin-core:4.2.0")
+    implementation("io.insert-koin:koin-ktor:4.2.0")
+    implementation("io.insert-koin:koin-logger-slf4j:4.2.0")
     implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
     ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
+
+    // Open-API specification generation + routing annotations
+    implementation("io.ktor:ktor-server-routing-openapi:3.4.1")
+    implementation("io.ktor:ktor-server-openapi:3.4.1")
 
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
@@ -93,7 +96,7 @@ dependencies {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.1") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.2") {
             because("Minimum version from transitive dependencies")
         }
     }
@@ -134,6 +137,47 @@ spotless {
 application {
     mainClass.set("com.baseflow.MainKt")
 }
+
+// ── Swagger UI ────────────────────────────────────────────────────────────────
+// Copy swagger-ui-dist assets (committed to git) into the build resources directory,
+// so they are bundled with the server JAR.
+
+val swaggerUiSrc = layout.projectDirectory.dir("frontend/node_modules/swagger-ui-dist")
+val swaggerUiDest = layout.buildDirectory.dir("generated/swagger-ui/static/swagger-ui")
+
+val copySwaggerUi by tasks.registering(Copy::class) {
+    group = "swagger-ui"
+    description = "Copy swagger-ui-dist assets into the build resources directory"
+    from(swaggerUiSrc) {
+        include(
+            "swagger-ui-bundle.js",
+            "swagger-ui-bundle.js.map",
+            "swagger-ui.css",
+            "swagger-ui.css.map",
+            "favicon-16x16.png",
+            "favicon-32x32.png",
+            "oauth2-redirect.html",
+            "oauth2-redirect.js",
+        )
+    }
+    into(swaggerUiDest)
+}
+
+// Also copy our hand-written index.html into the same build directory
+val copySwaggerUiIndex by tasks.registering(Copy::class) {
+    group = "swagger-ui"
+    description = "Copy the Swagger UI index.html into the build resources directory"
+    from(layout.projectDirectory.file("frontend/swagger-ui/index.html"))
+    into(swaggerUiDest)
+}
+
+// Add the generated directory as an extra resource source so it ends up on the classpath
+sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/swagger-ui"))
+
+tasks.named("processResources") {
+    dependsOn(copySwaggerUi, copySwaggerUiIndex)
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 tasks.withType<JavaCompile>().configureEach {
     options.release = 21

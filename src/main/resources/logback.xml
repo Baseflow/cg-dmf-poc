@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!-- Console appender with JSON encoder -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-    </appender>
+  <!-- Console appender with JSON encoder -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+  </appender>
 
-    <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-    </root>
+  <!-- Root logger -->
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
 
-    <!-- Example: Adjust logging levels for specific packages -->
-    <logger name="com.baseflow" level="DEBUG" />
-    <logger name="io.ktor" level="WARN" />
+  <!-- Adjust logging levels for specific application packages -->
+  <logger name="com.baseflow" level="DEBUG"/>
+  <logger name="io.ktor" level="WARN"/>
+
 
 </configuration>
