@@ -474,6 +474,10 @@ class EnkelvoudigInformatieObjectService(
             op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
         }
 
+        if (filters.trefwoordenOverlap.isNotEmpty()) {
+            op = op and arrayOverlap(EIOVersions.trefwoorden, filters.trefwoordenOverlap)
+        }
+
         if (filters.uuids.isNotEmpty()) {
             val uuids = filters.uuids.mapNotNull {
                 try {
@@ -521,14 +525,10 @@ class EnkelvoudigInformatieObjectService(
             op = op and (EIOVersions.beschrijving.lowerCase() like "%${beschrijving.lowercase()}%")
         }
 
-        filters.creatiedatumLt?.let { op = op and (EIOVersions.creatieDatum less it) }
         filters.creatiedatumLte?.let { op = op and (EIOVersions.creatieDatum lessEq it) }
-        filters.creatiedatumGt?.let { op = op and (EIOVersions.creatieDatum greater it) }
         filters.creatiedatumGte?.let { op = op and (EIOVersions.creatieDatum greaterEq it) }
 
-        filters.registratiedatumLt?.let { op = op and (EIOVersions.beginRegistratie less it) }
         filters.registratiedatumLte?.let { op = op and (EIOVersions.beginRegistratie lessEq it) }
-        filters.registratiedatumGt?.let { op = op and (EIOVersions.beginRegistratie greater it) }
         filters.registratiedatumGte?.let { op = op and (EIOVersions.beginRegistratie greaterEq it) }
 
         filters.locked?.let { locked ->
@@ -542,31 +542,72 @@ class EnkelvoudigInformatieObjectService(
         return op
     }
 
-    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> =
-        object : Op<Boolean>() {
+    private fun isH2(): Boolean = TransactionManager.current().db.vendor.contains("h2", ignoreCase = true)
+
+    /** column @> ARRAY[v1, v2, ...] — all values must be present (PostgreSQL) or ARRAY_CONTAINS per value (H2) */
+    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> {
+        if (isH2()) {
+            // H2: ARRAY_CONTAINS(column, value) for each value, combined with AND
+            return values
+                .map { value -> arrayContainsH2(column, value) }
+                .reduce { acc, op -> acc and op }
+        }
+        return object : Op<Boolean>() {
             override fun toQueryBuilder(queryBuilder: QueryBuilder) {
                 val arrayType = column.columnType as ArrayColumnType<String, *>
                 val elementType = arrayType.delegate
-
                 queryBuilder {
                     append(column)
-                    append(" @> ")
-                    append("ARRAY[")
-
+                    append(" @> ARRAY[")
                     values.forEachIndexed { index, value ->
                         if (index > 0) append(", ")
-                        append(
-                            QueryParameter(
-                                value,
-                                elementType,
-                            ),
-                        )
+                        append(QueryParameter(value, elementType))
                     }
-
                     append("]")
                 }
             }
         }
+    }
+
+    /** column && ARRAY[v1, v2, ...] — at least one value must be present (PostgreSQL) or ARRAY_CONTAINS per value OR-ed (H2) */
+    private fun arrayOverlap(column: Column<List<String>>, values: List<String>): Op<Boolean> {
+        if (isH2()) {
+            // H2: ARRAY_CONTAINS(column, value) for each value, combined with OR
+            return values
+                .map { value -> arrayContainsH2(column, value) }
+                .reduce { acc, op -> acc or op }
+        }
+        return object : Op<Boolean>() {
+            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                val arrayType = column.columnType as ArrayColumnType<String, *>
+                val elementType = arrayType.delegate
+                queryBuilder {
+                    append(column)
+                    append(" && ARRAY[")
+                    values.forEachIndexed { index, value ->
+                        if (index > 0) append(", ")
+                        append(QueryParameter(value, elementType))
+                    }
+                    append("]")
+                }
+            }
+        }
+    }
+
+    /** H2-compatible: ARRAY_CONTAINS(column, value) */
+    private fun arrayContainsH2(column: Column<List<String>>, value: String): Op<Boolean> = object : Op<Boolean>() {
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+            val arrayType = column.columnType as ArrayColumnType<String, *>
+            val elementType = arrayType.delegate
+            queryBuilder {
+                append("ARRAY_CONTAINS(")
+                append(column)
+                append(", ")
+                append(QueryParameter(value, elementType))
+                append(")")
+            }
+        }
+    }
 
     fun lock(id: UUID): LockResult? {
         return transaction {

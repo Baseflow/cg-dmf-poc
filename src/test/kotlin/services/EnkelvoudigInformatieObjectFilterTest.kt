@@ -16,6 +16,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -107,21 +108,22 @@ class EnkelvoudigInformatieObjectFilterTest {
     }
 
     @Test
-    fun `filter op meerdere vertrouwelijkheidaanduiding waarden geeft alle overeenkomende documenten terug`() =
-        runBlocking {
-            service.create(generateTestDocument(titel = "Openbaar").copy(vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR))
-            service.create(generateTestDocument(titel = "Intern").copy(vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.INTERN))
-            service.create(generateTestDocument(titel = "Geheim").copy(vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.GEHEIM))
+    fun `filter op meerdere vertrouwelijkheidaanduiding waarden geeft alle overeenkomende documenten terug`() = runBlocking {
+        service.create(
+            generateTestDocument(titel = "Openbaar").copy(vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.OPENBAAR),
+        )
+        service.create(generateTestDocument(titel = "Intern").copy(vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.INTERN))
+        service.create(generateTestDocument(titel = "Geheim").copy(vertrouwelijkheidaanduiding = Vertrouwelijkheidaanduiding.GEHEIM))
 
-            val (results, count) = service.getAll(
-                QueryEnkelvoudigeInformatieObjectenFilter(vertrouwelijkheidaanduiding = listOf("openbaar", "intern")),
-            )
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(vertrouwelijkheidaanduiding = listOf("openbaar", "intern")),
+        )
 
-            assertEquals(2L, count)
-            val titels = results.map { it.titel }.toSet()
-            assertTrue("Openbaar" in titels)
-            assertTrue("Intern" in titels)
-        }
+        assertEquals(2L, count)
+        val titels = results.map { it.titel }.toSet()
+        assertTrue("Openbaar" in titels)
+        assertTrue("Intern" in titels)
+    }
 
     @Test
     fun `filter op vertrouwelijkheidaanduiding is hoofdletterongevoelig`() = runBlocking {
@@ -287,19 +289,6 @@ class EnkelvoudigInformatieObjectFilterTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `filter creatiedatum__lt geeft documenten voor de opgegeven datum terug`() = runBlocking {
-        service.create(generateTestDocument(titel = "Oud").copy(creatiedatum = LocalDate(2024, 1, 1)))
-        service.create(generateTestDocument(titel = "Nieuw").copy(creatiedatum = LocalDate(2025, 6, 1)))
-
-        val (results, count) = service.getAll(
-            QueryEnkelvoudigeInformatieObjectenFilter(creatiedatumLt = LocalDate(2025, 1, 1)),
-        )
-
-        assertEquals(1L, count)
-        assertEquals("Oud", results.single().titel)
-    }
-
-    @Test
     fun `filter creatiedatum__lte geeft documenten op en voor de opgegeven datum terug`() = runBlocking {
         service.create(generateTestDocument(titel = "Op datum").copy(creatiedatum = LocalDate(2025, 1, 1)))
         service.create(generateTestDocument(titel = "Voor datum").copy(creatiedatum = LocalDate(2024, 12, 31)))
@@ -313,19 +302,6 @@ class EnkelvoudigInformatieObjectFilterTest {
         val titels = results.map { it.titel }.toSet()
         assertTrue("Op datum" in titels)
         assertTrue("Voor datum" in titels)
-    }
-
-    @Test
-    fun `filter creatiedatum__gt geeft documenten na de opgegeven datum terug`() = runBlocking {
-        service.create(generateTestDocument(titel = "Oud").copy(creatiedatum = LocalDate(2024, 1, 1)))
-        service.create(generateTestDocument(titel = "Nieuw").copy(creatiedatum = LocalDate(2025, 6, 1)))
-
-        val (results, count) = service.getAll(
-            QueryEnkelvoudigeInformatieObjectenFilter(creatiedatumGt = LocalDate(2025, 1, 1)),
-        )
-
-        assertEquals(1L, count)
-        assertEquals("Nieuw", results.single().titel)
     }
 
     @Test
@@ -348,17 +324,136 @@ class EnkelvoudigInformatieObjectFilterTest {
     fun `filter creatiedatum bereik geeft alleen documenten binnen het bereik terug`() = runBlocking {
         service.create(generateTestDocument(titel = "Te oud").copy(creatiedatum = LocalDate(2023, 12, 31)))
         service.create(generateTestDocument(titel = "In bereik").copy(creatiedatum = LocalDate(2024, 6, 15)))
-        service.create(generateTestDocument(titel = "Te nieuw").copy(creatiedatum = LocalDate(2025, 1, 1)))
+        service.create(generateTestDocument(titel = "Te nieuw").copy(creatiedatum = LocalDate(2025, 1, 2)))
 
         val (results, count) = service.getAll(
             QueryEnkelvoudigeInformatieObjectenFilter(
                 creatiedatumGte = LocalDate(2024, 1, 1),
-                creatiedatumLt = LocalDate(2025, 1, 1),
+                creatiedatumLte = LocalDate(2025, 1, 1),
             ),
         )
 
         assertEquals(1L, count)
         assertEquals("In bereik", results.single().titel)
+    }
+
+    // -------------------------------------------------------------------------
+    // trefwoorden (array contains all — alle opgegeven trefwoorden moeten aanwezig zijn)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `filter op trefwoorden geeft documenten terug die alle opgegeven trefwoorden bevatten`() = runBlocking {
+        service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat", "milieu", "energie")))
+        service.create(generateTestDocument(titel = "B").copy(trefwoorden = listOf("klimaat", "milieu")))
+        service.create(generateTestDocument(titel = "C").copy(trefwoorden = listOf("energie")))
+
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(trefwoorden = listOf("klimaat", "milieu")),
+        )
+
+        assertEquals(2L, count)
+        val titels = results.map { it.titel }.toSet()
+        assertTrue("A" in titels)
+        assertTrue("B" in titels)
+    }
+
+    @Test
+    fun `filter op trefwoorden geeft geen resultaat als niet alle trefwoorden aanwezig zijn`() = runBlocking {
+        service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat")))
+
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(trefwoorden = listOf("klimaat", "milieu")),
+        )
+
+        assertEquals(0L, count)
+        assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `filter op lege trefwoorden lijst geeft alle documenten terug`() = runBlocking {
+        service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat")))
+        service.create(generateTestDocument(titel = "B").copy(trefwoorden = emptyList()))
+
+        val (_, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(trefwoorden = emptyList()),
+        )
+
+        assertEquals(2L, count)
+    }
+
+    // -------------------------------------------------------------------------
+    // trefwoorden__overlap (array overlap — ten minste één trefwoord moet aanwezig zijn)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `filter op trefwoorden__overlap geeft documenten terug met ten minste één overeenkomend trefwoord`() = runBlocking {
+        service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat", "energie")))
+        service.create(generateTestDocument(titel = "B").copy(trefwoorden = listOf("milieu")))
+        service.create(generateTestDocument(titel = "C").copy(trefwoorden = listOf("financiën")))
+
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(trefwoordenOverlap = listOf("klimaat", "milieu")),
+        )
+
+        assertEquals(2L, count)
+        val titels = results.map { it.titel }.toSet()
+        assertTrue("A" in titels)
+        assertTrue("B" in titels)
+    }
+
+    @Test
+    fun `filter op trefwoorden__overlap geeft geen resultaat als geen enkel trefwoord overeenkomt`() = runBlocking {
+        service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat")))
+
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(trefwoordenOverlap = listOf("financiën")),
+        )
+
+        assertEquals(0L, count)
+        assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `filter op lege trefwoorden__overlap lijst geeft alle documenten terug`() = runBlocking {
+        service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat")))
+        service.create(generateTestDocument(titel = "B").copy(trefwoorden = emptyList()))
+
+        val (_, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(trefwoordenOverlap = emptyList()),
+        )
+
+        assertEquals(2L, count)
+    }
+
+    // -------------------------------------------------------------------------
+    // registratiedatum
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `filter registratiedatum__lte geeft alle documenten terug als alle voor de opgegeven datum zijn`() = runBlocking {
+        service.create(generateTestDocument(titel = "A"))
+        service.create(generateTestDocument(titel = "B"))
+        val futureTime = LocalDateTime(2099, 1, 1, 0, 0, 0)
+
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(registratiedatumLte = futureTime),
+        )
+
+        assertEquals(2L, count)
+        assertEquals(2, results.size)
+    }
+
+    @Test
+    fun `filter registratiedatum__gte geeft geen documenten als alle documenten voor de opgegeven datum zijn`() = runBlocking {
+        service.create(generateTestDocument(titel = "Oud"))
+        val futureTime = LocalDateTime(2099, 1, 1, 0, 0, 0)
+
+        val (results, count) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(registratiedatumGte = futureTime),
+        )
+
+        assertEquals(0L, count)
+        assertTrue(results.isEmpty())
     }
 
     // -------------------------------------------------------------------------
@@ -586,7 +681,7 @@ class EnkelvoudigInformatieObjectFilterTest {
         assertEquals(EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.fromValue("vertrouwelijkheidaanduiding"))
         assertEquals(
             EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC,
-            EIOOrdering.fromValue("-vertrouwelijkheidaanduiding")
+            EIOOrdering.fromValue("-vertrouwelijkheidaanduiding"),
         )
     }
 
@@ -628,7 +723,7 @@ class EnkelvoudigInformatieObjectFilterTest {
         val (results, count) = service.getAll(
             QueryEnkelvoudigeInformatieObjectenFilter(
                 auteur = "jan",
-                creatiedatumLt = LocalDate(2025, 1, 1),
+                creatiedatumLte = LocalDate(2024, 12, 31),
             ),
         )
 

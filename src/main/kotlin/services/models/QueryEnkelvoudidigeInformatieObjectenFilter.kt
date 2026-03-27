@@ -23,7 +23,8 @@ enum class EIOOrdering(val value: String) {
     TITEL_ASC("titel"),
     TITEL_DESC("-titel"),
     VERTROUWELIJKHEIDAANDUIDING_ASC("vertrouwelijkheidaanduiding"),
-    VERTROUWELIJKHEIDAANDUIDING_DESC("-vertrouwelijkheidaanduiding");
+    VERTROUWELIJKHEIDAANDUIDING_DESC("-vertrouwelijkheidaanduiding"),
+    ;
 
     companion object {
         fun fromValue(value: String): EIOOrdering? = entries.firstOrNull { it.value == value }
@@ -32,6 +33,7 @@ enum class EIOOrdering(val value: String) {
 
 class QueryEnkelvoudigeInformatieObjectenFilter(
     val bronOrganisatie: String? = null,
+    /** All of these trefwoorden must be present (array contains all) */
     val trefwoorden: List<String> = emptyList(),
     val identificatie: String? = null,
     val page: Int = 1,
@@ -48,6 +50,8 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     val objectType: String? = null,
     /** EXPERIMENTEEL: URL-referentie naar het INFORMATIEOBJECTTYPE */
     val informatieobjecttype: String? = null,
+    /** EXPERIMENTEEL: At least one of these trefwoorden must be present (array overlap) */
+    val trefwoordenOverlap: List<String> = emptyList(),
     /** EXPERIMENTEEL: Comma-separated list of vertrouwelijkheidaanduiding values */
     val vertrouwelijkheidaanduiding: List<String> = emptyList(),
     /** EXPERIMENTEEL: Titel van het informatieobject (case-insensitive contains) */
@@ -58,21 +62,13 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     val status: String? = null,
     /** EXPERIMENTEEL: Beschrijving van het informatieobject (case-insensitive contains) */
     val beschrijving: String? = null,
-    /** EXPERIMENTEEL: creatiedatum strictly before this date */
-    val creatiedatumLt: LocalDate? = null,
-    /** EXPERIMENTEEL: creatiedatum on or before this date */
+    /** EXPERIMENTEEL: creatiedatum on or before this date (format: date, YYYY-MM-DD) */
     val creatiedatumLte: LocalDate? = null,
-    /** EXPERIMENTEEL: creatiedatum strictly after this date */
-    val creatiedatumGt: LocalDate? = null,
-    /** EXPERIMENTEEL: creatiedatum on or after this date */
+    /** EXPERIMENTEEL: creatiedatum on or after this date (format: date, YYYY-MM-DD) */
     val creatiedatumGte: LocalDate? = null,
-    /** EXPERIMENTEEL: beginRegistratie (registratiedatum) strictly before this datetime (ISO-8601) */
-    val registratiedatumLt: LocalDateTime? = null,
-    /** EXPERIMENTEEL: beginRegistratie (registratiedatum) on or before this datetime (ISO-8601) */
+    /** EXPERIMENTEEL: beginRegistratie on or before this datetime (format: date-time, ISO 8601) */
     val registratiedatumLte: LocalDateTime? = null,
-    /** EXPERIMENTEEL: beginRegistratie (registratiedatum) strictly after this datetime (ISO-8601) */
-    val registratiedatumGt: LocalDateTime? = null,
-    /** EXPERIMENTEEL: beginRegistratie (registratiedatum) on or after this datetime (ISO-8601) */
+    /** EXPERIMENTEEL: beginRegistratie on or after this datetime (format: date-time, ISO 8601) */
     val registratiedatumGte: LocalDateTime? = null,
     /** EXPERIMENTEEL: locked (boolean) indication whether the information object is locked for editing */
     val locked: Boolean? = null,
