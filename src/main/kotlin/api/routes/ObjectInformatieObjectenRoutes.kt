@@ -12,9 +12,12 @@ import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
 import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.koin.core.parameter.parametersOf
 import java.util.*
 
@@ -40,28 +43,214 @@ open class ObjectInformatieObjectenRoutes(
     private val resourceSegment: ResourceSegments,
     private val experimental: Boolean = false,
 ) {
+    @OptIn(ExperimentalKtorApi::class)
     fun register() {
         with(route) {
             // Ensure API-version header is added for all responses
             install(ApiVersionHeader) { version = DOCUMENTEN_API_VERSION }
 
-            // List all document-object relations (with optional filters)
-            get { list() }
+            val tag = resourceSegment.value
 
-            // Create new document-object relation
+            /**
+             * Alle OBJECT-INFORMATIEOBJECT relaties opvragen.
+             *
+             * Deze lijst kan gefilterd worden met query-string parameters.
+             *
+             * Query parameters:
+             *   - `informatieobject`: Filter op URL-referentie naar het INFORMATIEOBJECT.
+             *   - `object`: Filter op URL-referentie naar het gerelateerde OBJECT.
+             *   - `expand`: Velden om te expanderen.
+             *   - `page`: Paginanummer.
+             *   - `pageSize`: Aantal resultaten per pagina.
+             *
+             * Responses:
+             *   - 200 Lijst van OBJECT-INFORMATIEOBJECT relaties.
+             *   - 400 Bad request.
+             *   - 401 Unauthorized.
+             *   - 403 Forbidden.
+             *   - 406 Not acceptable.
+             *   - 409 Conflict.
+             *   - 410 Gone.
+             *   - 415 Unsupported media type.
+             *   - 429 Too many requests.
+             *   - 500 Internal server error.
+             *
+             * @tag ObjectInformatieObjecten
+             */
+            get { list() }
+                .describe {
+                    operationId = "${tag}_list"
+                    tag(tag)
+                    summary = "Alle ${resourceSegment.title} relaties opvragen."
+                    description = "Geeft een lijst van object-informatieobject relaties, gefilterd via query-parameters."
+                    parameters {
+                        query("informatieobject") { description = "Filter op URL-referentie naar het INFORMATIEOBJECT." }
+                        query("object") { description = "Filter op URL-referentie naar het gerelateerde OBJECT." }
+                        query("expand") { description = "Velden om te expanderen." }
+                        query("page") { description = "Paginanummer." }
+                        query("pageSize") { description = "Aantal resultaten per pagina." }
+                    }
+                    responses {
+                        response(200) { description = "Lijst van ${resourceSegment.title} relaties." }
+                        response(400) { description = "Bad request." }
+                        response(401) { description = "Unauthorized." }
+                        response(403) { description = "Forbidden." }
+                    }
+                }
+
+            /**
+             * Maak een OBJECT-INFORMATIEOBJECT relatie aan.
+             *
+             * **LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken.**
+             * Andere API's, zoals de Zaken API en de Besluiten API, gebruiken dit endpoint
+             * bij het synchroniseren van relaties.
+             *
+             * Responses:
+             *   - 201 Created.
+             *   - 400 Bad request.
+             *   - 401 Unauthorized.
+             *   - 403 Forbidden.
+             *   - 406 Not acceptable.
+             *   - 409 Conflict.
+             *   - 410 Gone.
+             *   - 415 Unsupported media type.
+             *   - 429 Too many requests.
+             *   - 500 Internal server error.
+             *
+             * @tag ObjectInformatieObjecten
+             */
             post { create() }
+                .describe {
+                    operationId = "${tag}_create"
+                    tag(tag)
+                    summary = "Maak een ${resourceSegment.title} relatie aan."
+                    description =
+                        "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
+                        "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                    requestBody {
+                        required = true
+                        description = "Gegevens van de aan te maken relatie."
+                        content {
+                            schema = jsonSchema<CreateOIORequest>()
+                        }
+                    }
+                    responses {
+                        response(201) {
+                            description = "Aangemaakt."
+                            headers {
+                                header("Location") { description = "URL van de aangemaakte relatie." }
+                                header("API-version") { description = "Geeft de specifieke API-versie aan." }
+                            }
+                        }
+                        response(400) { description = "Bad request." }
+                        response(401) { description = "Unauthorized." }
+                        response(403) { description = "Forbidden." }
+                    }
+                }
 
             // Single relation operations
             route("/{uuid}") {
                 val resourceTitle = resourceSegment.title
-                // HEAD - existence check
+
+                /**
+                 * De headers voor een specifiek(e) OBJECT-INFORMATIEOBJECT opvragen.
+                 *
+                 * Vraag de headers op die je bij een GET request zou krijgen.
+                 *
+                 * Responses:
+                 *   - 200 OK.
+                 *   - 400 (missing/invalid UUID).
+                 *   - 404 Not found.
+                 *
+                 * @tag ObjectInformatieObjecten
+                 */
                 head { head(resourceTitle) }
+                    .describe {
+                        operationId = "${tag}_headers"
+                        tag(tag)
+                        summary = "De headers voor een specifieke ${resourceSegment.title} opvragen."
+                        parameters {
+                            path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                        }
+                        responses {
+                            response(200) { description = "OK." }
+                            response(400) { description = "Bad request: ontbrekende of ongeldige UUID." }
+                            response(404) { description = "Not found." }
+                        }
+                    }
 
-                // Get single relation
+                /**
+                 * Een specifieke OBJECT-INFORMATIEOBJECT relatie opvragen.
+                 *
+                 * Responses:
+                 *   - 200 OK.
+                 *   - 401 Unauthorized.
+                 *   - 403 Forbidden.
+                 *   - 404 Not found.
+                 *   - 406 Not acceptable.
+                 *   - 409 Conflict.
+                 *   - 410 Gone.
+                 *   - 415 Unsupported media type.
+                 *   - 429 Too many requests.
+                 *   - 500 Internal server error.
+                 *
+                 * @tag ObjectInformatieObjecten
+                 */
                 get { get(resourceTitle) }
+                    .describe {
+                        operationId = "${tag}_read"
+                        tag(tag)
+                        summary = "Een specifieke ${resourceSegment.title} relatie opvragen."
+                        parameters {
+                            path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                        }
+                        responses {
+                            response(200) { description = "OK." }
+                            response(401) { description = "Unauthorized." }
+                            response(403) { description = "Forbidden." }
+                            response(404) { description = "Not found." }
+                        }
+                    }
 
-                // Delete relation
+                /**
+                 * Verwijder een OBJECT-INFORMATIEOBJECT relatie.
+                 *
+                 * **LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken.**
+                 * Andere API's, zoals de Zaken API en de Besluiten API, gebruiken dit endpoint
+                 * bij het synchroniseren van relaties.
+                 *
+                 * Responses:
+                 *   - 204 No content.
+                 *   - 401 Unauthorized.
+                 *   - 403 Forbidden.
+                 *   - 404 Not found.
+                 *   - 406 Not acceptable.
+                 *   - 409 Conflict.
+                 *   - 410 Gone.
+                 *   - 415 Unsupported media type.
+                 *   - 429 Too many requests.
+                 *   - 500 Internal server error.
+                 *
+                 * @tag ObjectInformatieObjecten
+                 */
                 delete { delete(resourceTitle) }
+                    .describe {
+                        operationId = "${tag}_delete"
+                        tag(tag)
+                        summary = "Verwijder een ${resourceSegment.title} relatie."
+                        description =
+                            "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
+                            "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                        parameters {
+                            path("uuid") { description = "Unieke resource identifier (UUID4)." }
+                        }
+                        responses {
+                            response(204) { description = "No content." }
+                            response(401) { description = "Unauthorized." }
+                            response(403) { description = "Forbidden." }
+                            response(404) { description = "Not found." }
+                        }
+                    }
             }
         }
     }
@@ -97,13 +286,15 @@ open class ObjectInformatieObjectenRoutes(
 
         when (val result = service.create(request)) {
             is CreateOIOResult.Success -> {
-                val locationUrl = ApiUrlBuilder.absolute(
-                    resourceSegment.value,
-                    result.payload.url?.substringAfterLast("/") ?: "",
-                )
+                val locationUrl =
+                    ApiUrlBuilder.absolute(
+                        resourceSegment.value,
+                        result.payload.url?.substringAfterLast("/") ?: "",
+                    )
                 call.response.headers.append(HttpHeaders.Location, locationUrl)
                 call.respond(HttpStatusCode.Created, result.payload)
             }
+
             is CreateOIOResult.Conflict -> {
                 call.respondProblem(
                     HttpStatusCode.BadRequest,
@@ -117,7 +308,9 @@ open class ObjectInformatieObjectenRoutes(
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
+
                 HttpStatusCode.BadRequest,
+
                 badRequest("UUID parameter is required", call.request.path()),
             )
             return
@@ -142,7 +335,9 @@ open class ObjectInformatieObjectenRoutes(
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
+
                 HttpStatusCode.BadRequest,
+
                 badRequest("UUID parameter is required", call.request.path()),
             )
             return
@@ -169,7 +364,9 @@ open class ObjectInformatieObjectenRoutes(
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
+
                 HttpStatusCode.BadRequest,
+
                 badRequest("UUID parameter is required", call.request.path()),
             )
             return
