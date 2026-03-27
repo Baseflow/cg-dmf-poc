@@ -55,8 +55,8 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.10")
 
     // Database migrations
-    implementation("org.flywaydb:flyway-core:12.1.1")
-    implementation("org.flywaydb:flyway-database-postgresql:12.1.1")
+    implementation("org.flywaydb:flyway-core:12.2.0")
+    implementation("org.flywaydb:flyway-database-postgresql:12.2.0")
 
     // Kotlin coroutines and datetime
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
