@@ -63,8 +63,8 @@ services:
       - '9000:9000'
       - '9001:9001'
     environment:
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
       - CONSOLE_ACCESS_KEY=admin
       - CONSOLE_SECRET_KEY=admin
     command: server --address ":9000" --console-address ":9001" /data
