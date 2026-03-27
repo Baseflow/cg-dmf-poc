@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY src ./src
+COPY frontend ./frontend
 
 RUN gradle clean installDist --no-daemon
 
