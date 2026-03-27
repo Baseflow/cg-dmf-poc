@@ -70,5 +70,14 @@ abstract class Config {
                     "Legacy fallback '$legacyKey' was also not found.",
             )
         }
+
+
+        /**
+         * Returns a merged map of all key→value pairs from both the `.env` file (dotenv)
+         * and the process environment ([System.getenv]).
+         * Dotenv entries take precedence over system env entries with the same key,
+         * matching the resolution order used by [envOrSystem].
+         */
+        fun envEntries(): Map<String, String> = System.getenv() + env.entries().associate { it.key to it.value }
     }
 }

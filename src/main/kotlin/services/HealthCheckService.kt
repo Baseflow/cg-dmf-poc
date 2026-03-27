@@ -3,17 +3,12 @@
 package com.baseflow.services
 
 import com.baseflow.config.S3ClientFactory
-import com.baseflow.config.S3Config
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest
-import software.amazon.awssdk.services.s3.model.NoSuchBucketException
-import software.amazon.awssdk.services.s3.model.S3Exception
+import java.io.ByteArrayOutputStream
 import java.util.UUID
-import java.util.concurrent.CompletionException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
 @Serializable
@@ -26,12 +21,11 @@ data class StorageStatus(val status: String, val read: DependencyStatus, val wri
 data class HealthValidateResponse(val status: String, val database: DependencyStatus, val storage: StorageStatus)
 
 @Singleton
-open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
+open class HealthCheckService(
+    @Suppress("unused") s3ClientFactory: S3ClientFactory, // kept for Koin graph compatibility
+) {
 
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
-
-    private val s3Client = s3ClientFactory.create()
-    private val s3TimeoutSeconds = S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds()
 
     open fun checkDatabase(): DependencyStatus = try {
         transaction {
@@ -43,110 +37,74 @@ open class HealthCheckService(s3ClientFactory: S3ClientFactory) {
         DependencyStatus(status = "error", detail = e.message)
     }
 
-    open fun checkStorage(): StorageStatus = try {
-        // Check read access: list buckets / head bucket
-        val readStatus = try {
-            val headRequest = HeadBucketRequest.builder()
-                .bucket(S3Config.bucketName)
-                .build()
-            try {
-                s3Client.headBucket(headRequest)
-                    .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
-                    .join()
-            } catch (_: TimeoutException) {
-                throw TimeoutException("headBucket timed out after ${s3TimeoutSeconds}s")
-            } catch (_: Exception) {
-                s3Client.listBuckets()
-                    .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
-                    .join()
-            }
-            DependencyStatus(status = "ok")
-        } catch (e: TimeoutException) {
-            logger.warn("Storage read health check timed out: {}", e.message)
-            DependencyStatus(
+    /**
+     * Probes the **active default blob storage repository** for read and write
+     * availability via [BlobStorageRegistrar] / [BlobStorageProvider.isHealthy].
+     *
+     * - **Read**: delegates to [BlobStorageProvider.isHealthy].
+     * - **Write**: uploads a tiny probe object via [StorageService.uploadFile], then
+     *   downloads it back to confirm round-trip availability, and finally deletes it
+     *   (best-effort).
+     *
+     * When no provider is configured the check returns an error status immediately.
+     */
+    open fun checkStorage(): StorageStatus {
+        val provider = BlobStorageRegistrar.defaultProvider()
+            ?: return StorageStatus(
                 status = "error",
-                detail = "Storage read timed out after ${s3TimeoutSeconds}s",
+                read = DependencyStatus(status = "error", detail = "No blob storage repository configured"),
+                write = DependencyStatus(status = "error", detail = "No blob storage repository configured"),
             )
+
+        val repoName = provider.name
+
+        val readStatus = try {
+            if (provider.isHealthy()) {
+                DependencyStatus(status = "ok")
+            } else {
+                DependencyStatus(status = "error", detail = "Repository '$repoName' is not reachable")
+            }
         } catch (e: Exception) {
-            logger.warn("Storage read health check failed: {}", e.message)
+            logger.warn("Storage read health check failed for '{}': {}", repoName, e.message)
             DependencyStatus(status = "error", detail = e.message)
         }
 
-        // Check write access: attempt a probe PutObject directly without first
-        // calling listBuckets(), which would require the ListAllMyBuckets permission
-        // and could produce false-negative results when only PutObject/DeleteObject
-        // permissions are granted.  NoSuchBucket and AccessDenied are handled
-        // explicitly so the caller gets a meaningful error detail.
         val writeStatus = try {
             val probeKey = ".healthcheck-probe-${UUID.randomUUID()}"
-            val putRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
-                .bucket(S3Config.bucketName)
-                .key(probeKey)
-                .build()
 
+            // Write
+            provider.uploadFile(probeKey, byteArrayOf())
+
+            // Read back
             try {
-                s3Client.putObject(
-                    putRequest,
-                    software.amazon.awssdk.core.async.AsyncRequestBody.fromBytes(byteArrayOf()),
-                ).orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS).join()
-            } catch (e: CompletionException) {
-                // Unwrap and rethrow so the typed catch-blocks below can match
-                throw e.cause ?: e
+                provider.downloadFileTo(probeKey, ByteArrayOutputStream())
+                    .orTimeout(S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds(), java.util.concurrent.TimeUnit.SECONDS)
+                    .join()
+            } catch (_: TimeoutException) {
+                throw TimeoutException("Download probe timed out after ${S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds()}s")
             }
 
+            // Best-effort cleanup — deleteFile() is a no-op on providers that don't support it.
             try {
-                s3Client.deleteObject { it.bucket(S3Config.bucketName).key(probeKey) }
-                    .orTimeout(s3TimeoutSeconds, TimeUnit.SECONDS)
-                    .join()
+                provider.deleteFile(probeKey)
             } catch (_: Exception) {
-                // Best-effort cleanup; a delete failure does not invalidate the write check.
-                logger.warn("Storage write health check: probe object cleanup failed (key={})", probeKey)
+                logger.warn("Storage write health check: probe cleanup failed (key={})", probeKey)
             }
 
             DependencyStatus(status = "ok")
         } catch (e: TimeoutException) {
-            logger.warn("Storage write health check timed out: {}", e.message)
-            DependencyStatus(
-                status = "error",
-                detail = "Storage write timed out after ${s3TimeoutSeconds}s",
-            )
-        } catch (_: NoSuchBucketException) {
-            logger.warn("Storage write health check failed – bucket not found: {}", S3Config.bucketName)
-            DependencyStatus(
-                status = "error",
-                detail = "Bucket '${S3Config.bucketName}' does not exist",
-            )
-        } catch (e: S3Exception) {
-            if (e.statusCode() == 403) {
-                logger.warn("Storage write health check failed – access denied: {}", e.message)
-                DependencyStatus(
-                    status = "error",
-                    detail = "Access denied for bucket '${S3Config.bucketName}': ${
-                        e.awsErrorDetails()?.errorMessage() ?: e.message
-                    }",
-                )
-            } else {
-                logger.warn("Storage write health check failed: {}", e.message)
-                DependencyStatus(status = "error", detail = e.message)
-            }
+            logger.warn("Storage write health check timed out for '{}': {}", repoName, e.message)
+            DependencyStatus(status = "error", detail = "Storage write timed out: ${e.message}")
         } catch (e: Exception) {
-            logger.warn("Storage write health check failed: {}", e.message)
+            logger.warn("Storage write health check failed for '{}': {}", repoName, e.message)
             DependencyStatus(status = "error", detail = e.message)
         }
 
         val storageOk = readStatus.status == "ok" && writeStatus.status == "ok"
-        StorageStatus(
+        return StorageStatus(
             status = if (storageOk) "ok" else "error",
             read = readStatus,
             write = writeStatus,
-        )
-    } catch (e: Exception) {
-        logger.warn("Storage health check failed: {}", e.message)
-        val detail = e.message
-        StorageStatus(
-            status = "error",
-            read = DependencyStatus(status = "error", detail = detail),
-            write = DependencyStatus(status = "error", detail = detail),
         )
     }
 }

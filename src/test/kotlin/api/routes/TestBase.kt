@@ -44,6 +44,6 @@ open class TestBase(dbNamePrefix: String) {
         }
 
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
+        documentenApiModule(useAuthentication = false)
     }
 }

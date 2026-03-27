@@ -16,6 +16,7 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
@@ -147,6 +148,15 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
         true
     } catch (_: Exception) {
         false
+    }
+
+    override fun deleteFile(objectName: String) {
+        val request = DeleteObjectRequest.builder()
+            .bucket(bucketName)
+            .key(objectName)
+            .build()
+        s3Client.deleteObject(request).get(TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+        logger.debug("Deleted {}/{}", bucketName, objectName)
     }
 
     private fun ensureBucketExists() {

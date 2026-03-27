@@ -102,16 +102,16 @@ object BlobStorageConfig : Config() {
     }
 
     /**
-     * Scans all environment variables for keys matching `BLOB_STORAGE_*<index>`
-     * that are not one of the known suffixes, and returns them as a map.
+     * Scans all environment variables (both `.env` file and process environment) for
+     * keys matching `BLOB_STORAGE_*<index>` that are not one of the known suffixes,
+     * and returns them as a map.
      */
     private fun collectExtraProperties(index: Int): Map<String, String> {
         val prefix = "BLOB_STORAGE_"
         val suffix = "$index"
         val extras = mutableMapOf<String, String>()
 
-        // Check System.getenv for any matching keys
-        System.getenv().forEach { (key, value) ->
+        envEntries().forEach { (key, value) ->
             if (key.startsWith(prefix) && key.endsWith(suffix)) {
                 val middle = key.removePrefix(prefix).removeSuffix(suffix)
                 if (middle !in KNOWN_SUFFIXES) {

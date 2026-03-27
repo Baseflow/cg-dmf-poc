@@ -36,6 +36,8 @@ fun main() {
     val hasS3Secret = env["S3_SECRET_KEY"] != null
     if (!hasBlobStorageEnv || hasS3Secret) {
         S3Config.printConfig()
+    } else {
+        BlobStorageConfig.printConfig()
     }
     Database.connect(
         url = DatabaseConfig.url,
@@ -51,7 +53,6 @@ fun main() {
         .migrate()
 
     // Register blob storage repositories from env vars into database
-    BlobStorageConfig.printConfig()
     BlobStorageRegistrar.initialise()
 
     // Ensure notification kanaal exists

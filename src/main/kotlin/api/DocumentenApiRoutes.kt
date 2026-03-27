@@ -5,7 +5,6 @@ package com.baseflow.api
 import com.baseflow.api.middleware.*
 import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.routes.*
-import com.baseflow.config.OpenZaakConfig
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -93,10 +92,7 @@ fun Route.documentenApiRoutes() {
     }
 }
 
-fun Application.documentenApiModule(
-    useAuthentication: Boolean = true,
-    openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()
-) {
+fun Application.documentenApiModule(useAuthentication: Boolean = true) {
     // Configure StatusPages for global exception handling
     configureStatusPages()
 

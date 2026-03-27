@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture
  * Extra properties recognised from env:
  * - `CONTAINER_NAME` — overrides [BlobStorageRepoConfig.bucket] as the container name.
  */
-class AzureBlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobStorageProvider {
+class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvider {
 
     private val logger = LoggerFactory.getLogger(AzureBlobStorageProvider::class.java)
 
@@ -72,6 +72,11 @@ class AzureBlobStorageProvider(private val config: BlobStorageRepoConfig) : Blob
         true
     } catch (_: Exception) {
         false
+    }
+
+    override fun deleteFile(objectName: String) {
+        containerClient.getBlobClient(objectName).delete()
+        logger.debug("Deleted blob {}/{}", containerName, objectName)
     }
 
     private fun ensureContainerExists() {

@@ -20,6 +20,13 @@ interface BlobStorageProvider {
     /** Stream the object identified by [objectName] directly to [output]. */
     fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void>
 
+    /**
+     * Delete the object identified by [objectName].
+     * Implementations that do not support deletion (or where deletion is not
+     * needed) may no-op. Used for best-effort clean-up of health-check probe objects.
+     */
+    fun deleteFile(objectName: String) {}
+
     /** Quick connectivity / health check. Returns `true` when the backing store is reachable. */
     fun isHealthy(): Boolean
 }
