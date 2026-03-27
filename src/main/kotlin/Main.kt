@@ -27,8 +27,16 @@ import org.koin.ktor.plugin.Koin
 fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
-    S3Config.printConfig()
 
+    // Only initialize/print S3 configuration when appropriate:
+    // - If no BLOB_STORAGE_* env vars are present, we assume legacy S3-only mode and require S3.
+    // - If S3_SECRET_KEY is present, S3 is explicitly configured (even in multi-repo setups).
+    val env = System.getenv()
+    val hasBlobStorageEnv = env.keys.any { it.startsWith("BLOB_STORAGE_") }
+    val hasS3Secret = env["S3_SECRET_KEY"] != null
+    if (!hasBlobStorageEnv || hasS3Secret) {
+        S3Config.printConfig()
+    }
     Database.connect(
         url = DatabaseConfig.url,
         driver = DatabaseConfig.driver,
