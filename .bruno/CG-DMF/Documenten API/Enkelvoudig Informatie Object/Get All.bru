@@ -11,12 +11,26 @@ get {
 }
 
 params:query {
-  ~identificatie: DOC-001
   ~bronorganisatie: 012345678
+  ~identificatie: DOC-001
+  ~trefwoorden: trefwoord1,trefwoord2
+  ~trefwoorden__overlap: trefwoord1,trefwoord2
+  ~expand: informatieobjecttype
   ~page: 1
   ~pageSize: 100
-  ~trefwoorden: trefwoord1,trefwoord2
-  ~objectinformatieobjecten__object: {{zakenBaseUrl}}/zaken/12345
+  ~informatieobjecttype: https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d
+  ~vertrouwelijkheidaanduiding: openbaar
+  ~titel: via patch
+  ~auteur: dj
+  ~status: definitief
+  ~beschrijving: Bruno
+  ~locked: false
+  ~creatiedatum__gte: 2026-01-01
+  ~creatiedatum__lte: 2026-12-31
+  ~registratiedatum__gte: 2026-03-18T15:30:52.930599
+  ~registratiedatum__lte: 2026-12-31T23:59:59.000000
+  ~ordering: auteur,bestandsomvang,creatiedatum,formaat,status,titel,vertrouwelijkheidaanduiding
+  ~objectinformatieobjecten__object: {{zakenBaseUrl}}/zaken/fe1a198a-885e-4782-af0f-e6d521fb9e58
   ~objectinformatieobjecten__objectType: zaak
 }
 

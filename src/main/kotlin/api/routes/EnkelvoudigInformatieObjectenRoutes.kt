@@ -10,6 +10,7 @@ import com.baseflow.api.models.*
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
+import com.baseflow.services.models.EIOOrdering
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
@@ -20,6 +21,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
 
@@ -43,12 +46,27 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      * Alleen de laatste versie van elk (ENKELVOUDIG) INFORMATIEOBJECT wordt getoond.
      *
      * Query parameters:
-     *   - `bronorganisatie`: Filter op bronorganisatie.
-     *   - `trefwoorden`: Filter op trefwoorden.
+     *   - `bronorganisatie`: Filter op RSIN van de bronorganisatie.
      *   - `identificatie`: Filter op identificatie.
+     *   - `trefwoorden`: Filter op trefwoorden (alle opgegeven trefwoorden moeten aanwezig zijn).
      *   - `expand`: Velden om te expanderen.
      *   - `page`: Paginanummer.
      *   - `pageSize`: Aantal resultaten per pagina.
+     *   - `informatieobjecttype`: EXPERIMENTEEL: Filter op URL-referentie naar het informatieobjecttype.
+     *   - `vertrouwelijkheidaanduiding`: EXPERIMENTEEL: Filter op vertrouwelijkheidaanduiding.
+     *   - `titel`: EXPERIMENTEEL: Filter op titel (hoofdletterongevoelig, bevat).
+     *   - `auteur`: EXPERIMENTEEL: Filter op auteur (hoofdletterongevoelig, bevat).
+     *   - `status`: EXPERIMENTEEL: Filter op status.
+     *   - `beschrijving`: EXPERIMENTEEL: Filter op beschrijving (hoofdletterongevoelig, bevat).
+     *   - `trefwoorden__overlap`: EXPERIMENTEEL: Filter op trefwoorden (overlap).
+     *   - `locked`: EXPERIMENTEEL: Filter op vergrendeld/ontgrendeld.
+     *   - `creatiedatum__gte`: EXPERIMENTEEL: Filter op creatiedatum (groter of gelijk, date).
+     *   - `creatiedatum__lte`: EXPERIMENTEEL: Filter op creatiedatum (kleiner of gelijk, date).
+     *   - `registratiedatum__gte`: EXPERIMENTEEL: Filter op beginRegistratie (groter of gelijk, date-time).
+     *   - `registratiedatum__lte`: EXPERIMENTEEL: Filter op beginRegistratie (kleiner of gelijk, date-time).
+     *   - `ordering`: EXPERIMENTEEL: Sortering.
+     *   - `objectinformatieobjecten__object`: EXPERIMENTEEL: Filter op URL-referentie naar het gerelateerde object.
+     *   - `objectinformatieobjecten__objectType`: EXPERIMENTEEL: Filter op objecttype van het gerelateerde object.
      *
      * Responses:
      *   - 200 Lijst van (ENKELVOUDIGe) INFORMATIEOBJECTen.
@@ -73,16 +91,93 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 "Geeft een gepagineerde lijst van enkelvoudige informatieobjecten. " +
                 "Alleen de laatste versie van elk informatieobject wordt getoond."
             parameters {
-                query("bronorganisatie") { description = "Filter op RSIN van de bronorganisatie." }
-                query("trefwoorden") { description = "Filter op trefwoorden." }
-                query("identificatie") { description = "Filter op identificatie." }
-                query("expand") { description = "Velden om te expanderen." }
-                query("page") { description = "Paginanummer." }
-                query("pageSize") { description = "Aantal resultaten per pagina." }
-                query("objectinformatieobjecten__object") {
-                    description = "EXPERIMENTEEL: Filter op URL-referentie naar het gerelateerde object."
+                query("bronorganisatie") {
+                    description =
+                        "Het RSIN van de Niet-natuurlijk persoon zijnde de organisatie die het informatieobject " +
+                        "heeft gecreëerd of heeft ontvangen en als eerste in een samenwerkingsketen heeft vastgelegd."
                 }
-                query("objectinformatieobjecten__objectType") { description = "EXPERIMENTEEL: Filter op objecttype." }
+                query("identificatie") {
+                    description = "Een binnen een gegeven context ondubbelzinnige referentie naar het INFORMATIEOBJECT."
+                }
+                query("trefwoorden") {
+                    description = "Een lijst van trefwoorden gescheiden door comma's. " +
+                        "Geeft alle informatieobjecten terug die álle opgegeven trefwoorden bevatten."
+                }
+                query("expand") { description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in." }
+                query("page") { description = "Een pagina binnen de gepagineerde set resultaten." }
+                query("pageSize") { description = "Het aantal resultaten terug te geven per pagina. (default: 100, maximum: 500)." }
+                // Experimental filter features
+                query("informatieobjecttype") {
+                    description =
+                        "**EXPERIMENTEEL** URL-referentie naar de gerelateerde informatieobjecttype " +
+                        "(in deze of een andere API)."
+                }
+                query("vertrouwelijkheidaanduiding") {
+                    description = "**EXPERIMENTEEL** De vertrouwelijkheidaanduiding van het informatieobject. " +
+                        "Komma-gescheiden lijst van waarden: openbaar, beperkt_openbaar, intern, " +
+                        "zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim."
+                }
+                query("titel") {
+                    description =
+                        "**EXPERIMENTEEL** De titel van het informatieobject " +
+                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                }
+                query("auteur") {
+                    description =
+                        "**EXPERIMENTEEL** De persoon of organisatie die dit informatieobject heeft aangemaakt " +
+                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                }
+                query("status") {
+                    description =
+                        "**EXPERIMENTEEL** Filter op de status van het informatieobject. " +
+                        "Mogelijke waarden: in_bewerking, ter_vaststelling, definitief, gearchiveerd."
+                }
+                query("beschrijving") {
+                    description =
+                        "**EXPERIMENTEEL** De beschrijving van het informatieobject " +
+                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                }
+                query("trefwoorden__overlap") {
+                    description =
+                        "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door comma's. " +
+                        "Geeft alle informatieobjecten terug die ten minste één van de opgegeven trefwoorden hebben."
+                }
+                query("locked") {
+                    description = "**EXPERIMENTEEL** Filter op vergrendeld (true) of ontgrendeld (false)."
+                }
+                query("creatiedatum__gte") {
+                    description =
+                        "**EXPERIMENTEEL** De aanmakingsdatum van het informatieobject " +
+                        "(groter of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
+                }
+                query("creatiedatum__lte") {
+                    description =
+                        "**EXPERIMENTEEL** De aanmakingsdatum van het informatieobject " +
+                        "(kleiner of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
+                }
+                query("registratiedatum__gte") {
+                    description =
+                        "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het informatieobject " +
+                        "(groter of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
+                }
+                query("registratiedatum__lte") {
+                    description =
+                        "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het informatieobject " +
+                        "(kleiner of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
+                }
+                query("ordering") {
+                    description =
+                        "**EXPERIMENTEEL** Sorteer op één of meer velden (komma-gescheiden). " +
+                        "Gebruik een `-` prefix voor aflopende volgorde. " +
+                        "Mogelijke waarden: auteur, bestandsomvang, creatiedatum, formaat, status, titel, " +
+                        "vertrouwelijkheidaanduiding (en hun `-`-varianten)."
+                }
+                query("objectinformatieobjecten__object") {
+                    description = "**EXPERIMENTEEL** URL-referentie naar het gerelateerde object (in deze of een andere API)."
+                }
+                query("objectinformatieobjecten__objectType") {
+                    description = "**EXPERIMENTEEL** Het type van het gerelateerde object. Mogelijke waarden: zaak, besluit, etc."
+                }
             }
             responses {
                 response(200) { description = "Lijst van enkelvoudige informatieobjecten." }
@@ -508,28 +603,7 @@ private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
 
 private suspend fun RoutingContext.list() {
-    val bronOrganisatie = call.request.queryParameters["bronorganisatie"]
-    val trefwoorden = call.request.queryParameters.getAll("trefwoorden") ?: emptyList()
-    val identificatie = call.request.queryParameters["identificatie"]
-    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
-    // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
-
-    // EXPERIMENTEEL filters
-    val objectUrl = call.request.queryParameters["objectinformatieobjecten__object"]
-    val objectType = call.request.queryParameters["objectinformatieobjecten__objectType"]
-
-    val filter = QueryEnkelvoudigeInformatieObjectenFilter(
-        bronOrganisatie = bronOrganisatie,
-        trefwoorden = trefwoorden,
-        identificatie = identificatie,
-        page = page,
-        pageSize = pageSize,
-        objectUrl = objectUrl,
-        objectType = objectType,
-    )
-
+    val (page, pageSize, filter) = getFilters()
     val (items, totalCount) = service.getAll(filter)
     call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
 }
@@ -556,28 +630,81 @@ private suspend fun RoutingContext.create() {
 
 private suspend fun RoutingContext.zoek() {
     val request = call.receive<EIOZoekRequest>()
-    val expand = request.expand?.split(",")?.map { it.trim() } ?: emptyList()
-    val queryParameters = call.request.queryParameters
-    val page = queryParameters["page"]?.toIntOrNull() ?: 1
-    // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
-    val pageSize = queryParameters["pageSize"]?.toIntOrNull() ?: 100
-
-    // EXPERIMENTEEL filters
-    val objectUrl = queryParameters["objectinformatieobjecten__object"]
-    val objectType = queryParameters["objectinformatieobjecten__objectType"]
-
-    val filter = QueryEnkelvoudigeInformatieObjectenFilter(
-        uuids = request.uuidIn,
-        page = page,
-        pageSize = pageSize,
-        objectUrl = objectUrl,
-        objectType = objectType,
-    )
+    val (page, pageSize, filter) = getFilters(request.uuidIn)
 
     val (items, totalCount) = service.getAll(filter)
     val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
 
     call.respond(response)
+}
+
+private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
+    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+    val params = call.request.queryParameters
+    val bronOrganisatie = params["bronorganisatie"]
+    val trefwoorden = params.getAll("trefwoorden") ?: emptyList()
+    val trefwoordenOverlap = params.getAll("trefwoorden__overlap") ?: emptyList()
+    val identificatie = params["identificatie"]
+    val page = params["page"]?.toIntOrNull() ?: 1
+    // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
+    val pageSize = params["pageSize"]?.toIntOrNull() ?: 100
+
+    // EXPERIMENTEEL filters
+    val objectUrl = params["objectinformatieobjecten__object"]
+    val objectType = params["objectinformatieobjecten__objectType"]
+    val informatieobjecttype = params["informatieobjecttype"]
+    val vertrouwelijkheidaanduiding = params["vertrouwelijkheidaanduiding"]
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?: emptyList()
+    val titel = params["titel"]
+    val auteur = params["auteur"]
+    val status = params["status"]
+    val beschrijving = params["beschrijving"]
+    val creatiedatumLte = params["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val creatiedatumGte = params["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    val registratiedatumLte =
+        params["registratiedatum__lte"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+    val registratiedatumGte =
+        params["registratiedatum__gte"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+    val locked = params["locked"]?.let { value ->
+        when (value.lowercase()) {
+            "true" -> true
+            "false" -> false
+            else -> null
+        }
+    }
+    // NOTE: The `ordering` query parameter (and related extended filters such as date ranges and `locked`)
+    // are experimental extensions to the standard Documenten API and are not yet reflected in
+    // docs/documenten-1.5.0.yaml. Update the OpenAPI spec when these filters are considered stable.
+    val ordering = params["ordering"]
+        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?.mapNotNull { EIOOrdering.fromValue(it) }
+        ?: emptyList()
+
+    val filter = QueryEnkelvoudigeInformatieObjectenFilter(
+        uuids = uuidIn,
+        bronOrganisatie = bronOrganisatie,
+        trefwoorden = trefwoorden,
+        trefwoordenOverlap = trefwoordenOverlap,
+        identificatie = identificatie,
+        page = page,
+        pageSize = pageSize,
+        objectUrl = objectUrl,
+        objectType = objectType,
+        informatieobjecttype = informatieobjecttype,
+        vertrouwelijkheidaanduiding = vertrouwelijkheidaanduiding,
+        titel = titel,
+        auteur = auteur,
+        status = status,
+        beschrijving = beschrijving,
+        creatiedatumLte = creatiedatumLte,
+        creatiedatumGte = creatiedatumGte,
+        registratiedatumLte = registratiedatumLte,
+        registratiedatumGte = registratiedatumGte,
+        locked = locked,
+        ordering = ordering,
+    )
+    return Triple(page, pageSize, filter)
 }
 
 private suspend fun RoutingContext.head() {

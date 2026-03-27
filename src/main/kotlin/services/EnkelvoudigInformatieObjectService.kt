@@ -15,9 +15,11 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.dao.with
+import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
@@ -165,7 +167,8 @@ class EnkelvoudigInformatieObjectService(
             val page = if (filters.page > 0) filters.page else 1
             val offset = (page - 1L) * pageSize
 
-            // Base query: Record + Version, filtered and ordered by versie desc
+            // Build the base join. Each row in this query represents (record, latestVersion).
+            // We restrict to only the latest version per record via a correlated subquery.
             var query = EIORecords.innerJoin(EIOVersions)
                 .selectAll()
 
@@ -174,25 +177,60 @@ class EnkelvoudigInformatieObjectService(
                     .selectAll()
             }
 
+            // Alias for the inner subquery table so the correlated reference to the outer EIORecords.id
+            // is unambiguous — without this alias both inner and outer reference the same table name,
+            // and PostgreSQL evaluates the subquery as non-correlated (returning a single global MAX).
+            val innerVersions = EIOVersions.alias("inner_eio_versions")
+
             query.apply {
+                // Restrict to only the latest version row per record via a correlated subquery:
+                // WHERE versie = (SELECT MAX(inner.versie) FROM eio_versions AS inner WHERE inner.record_id = eio_records.id)
+                andWhere {
+                    EIOVersions.versie eqSubQuery innerVersions
+                        .select(innerVersions[EIOVersions.versie].max())
+                        .where { innerVersions[EIOVersions.recordId] eq EIORecords.id }
+                }
                 if (condition != Op.TRUE) {
                     andWhere { condition }
+                }
+                if (filters.ordering.isNotEmpty()) {
+                    val orderClauses = filters.ordering.map { ordering ->
+                        val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
+                        when (ordering) {
+                            EIOOrdering.AUTEUR_ASC, EIOOrdering.AUTEUR_DESC ->
+                                EIOVersions.auteur to sortOrder
+
+                            EIOOrdering.BESTANDSOMVANG_ASC, EIOOrdering.BESTANDSOMVANG_DESC ->
+                                EIOVersions.bestandsomvang to sortOrder
+
+                            EIOOrdering.CREATIEDATUM_ASC, EIOOrdering.CREATIEDATUM_DESC ->
+                                EIOVersions.creatieDatum to sortOrder
+
+                            EIOOrdering.FORMAAT_ASC, EIOOrdering.FORMAAT_DESC ->
+                                EIOVersions.formaat to sortOrder
+
+                            EIOOrdering.STATUS_ASC, EIOOrdering.STATUS_DESC ->
+                                EIOVersions.status to sortOrder
+
+                            EIOOrdering.TITEL_ASC, EIOOrdering.TITEL_DESC ->
+                                EIOVersions.titel to sortOrder
+
+                            EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC ->
+                                EIOVersions.vertrouwlijkheidsAanduiding to sortOrder
+                        }
+                    }
+                    orderBy(*orderClauses.toTypedArray())
                 }
             }
 
             val totalCount = query.count()
 
-            val records: List<EIORecordEntity> = EIORecordEntity.wrapRows(
-                query.limit(pageSize).offset(offset),
-            )
-                .with(EIORecordEntity::versions)
-                .toList()
-
-            // get the latest version for each record
-            val results = records.mapNotNull { rec ->
-                val version = rec.versions.maxByOrNull { it.versie }
-                    ?: return@mapNotNull null
-                rec.toResponse(version)
+            // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
+            // Each row already contains exactly one record + its latest version due to the subquery filter.
+            val results = query.limit(pageSize).offset(offset).mapNotNull { row ->
+                val record = EIORecordEntity.wrapRow(row)
+                val version = EIOVersionEntity.wrapRow(row)
+                record.toResponse(version)
             }
 
             results to totalCount
@@ -241,7 +279,11 @@ class EnkelvoudigInformatieObjectService(
             val uploadResultaat =
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
             val bestandsFormaat =
-                mergeNullable(partial, request.formaat, uploadResultaat.bestandsFormaat ?: latestVersion?.formaat)
+                mergeNullable(
+                    partial, request.formaat,
+                    uploadResultaat.bestandsFormaat
+                        ?: latestVersion?.formaat
+                )
 
             if (!partial && !request.inhoud.isNullOrEmpty()) {
                 require(bestandsFormaat != null) {
@@ -265,9 +307,14 @@ class EnkelvoudigInformatieObjectService(
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = mergeOptionalString(partial, request.link, latestVersion?.link)
                 creatieDatum = mergeNullable(partial, request.creatiedatum, latestVersion?.creatieDatum)
-                    ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+                    ?: Clock.System.now()
+                        .toLocalDateTime(TimeZone.UTC).date
                 formaat = bestandsFormaat
-                bestandsomvang = mergeNullable(partial, request.bestandsomvang, latestVersion?.bestandsomvang) ?: 0
+                bestandsomvang = mergeNullable(
+                    partial, request.bestandsomvang,
+                    latestVersion?.bestandsomvang
+                ) ?: 0
+
                 integriteitAlgoritme = mergeOptionalString(
                     partial,
                     request.integriteit?.algoritme?.toString(),
@@ -292,8 +339,10 @@ class EnkelvoudigInformatieObjectService(
                 status = mergeOptionalString(partial, request.status?.toString(), latestVersion?.status)
                 beschrijving = mergeOptionalString(partial, request.beschrijving, latestVersion?.beschrijving)
                 indicatieGebruiksrecht =
-                    mergeNullable(partial, request.indicatieGebruiksrecht, latestVersion?.indicatieGebruiksrecht)
-                        ?: false
+                    mergeNullable(
+                        partial, request.indicatieGebruiksrecht,
+                        latestVersion?.indicatieGebruiksrecht
+                    ) ?: false
                 ondertekening_soort = mergeOptionalString(
                     partial,
                     request.ondertekening?.soort?.toString(),
@@ -426,6 +475,10 @@ class EnkelvoudigInformatieObjectService(
             op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
         }
 
+        if (filters.trefwoordenOverlap.isNotEmpty()) {
+            op = op and arrayOverlap(EIOVersions.trefwoorden, filters.trefwoordenOverlap)
+        }
+
         if (filters.uuids.isNotEmpty()) {
             val uuids = filters.uuids.mapNotNull {
                 try {
@@ -447,34 +500,115 @@ class EnkelvoudigInformatieObjectService(
             op = op and (OIORecords.subjectType eq objType.lowercase())
         }
 
+        // EXPERIMENTEEL filters
+        filters.informatieobjecttype?.let { iot ->
+            op = op and (EIOVersions.informatieobject_type eq iot)
+        }
+
+        if (filters.vertrouwelijkheidaanduiding.isNotEmpty()) {
+            val normalized = filters.vertrouwelijkheidaanduiding.map { it.lowercase() }
+            op = op and (EIOVersions.vertrouwlijkheidsAanduiding.lowerCase() inList normalized)
+        }
+
+        filters.titel?.let { titel ->
+            op = op and (EIOVersions.titel.lowerCase() like "%${titel.lowercase()}%")
+        }
+
+        filters.auteur?.let { auteur ->
+            op = op and (EIOVersions.auteur.lowerCase() like "%${auteur.lowercase()}%")
+        }
+
+        filters.status?.let { status ->
+            op = op and (EIOVersions.status eq status)
+        }
+
+        filters.beschrijving?.let { beschrijving ->
+            op = op and (EIOVersions.beschrijving.lowerCase() like "%${beschrijving.lowercase()}%")
+        }
+
+        filters.creatiedatumLte?.let { op = op and (EIOVersions.creatieDatum lessEq it) }
+        filters.creatiedatumGte?.let { op = op and (EIOVersions.creatieDatum greaterEq it) }
+
+        filters.registratiedatumLte?.let { op = op and (EIOVersions.beginRegistratie lessEq it) }
+        filters.registratiedatumGte?.let { op = op and (EIOVersions.beginRegistratie greaterEq it) }
+
+        filters.locked?.let { locked ->
+            if (locked) {
+                op = op and (EIORecords.lockToken.isNotNull())
+            } else {
+                op = op and (EIORecords.lockToken.isNull())
+            }
+        }
+
         return op
     }
 
-    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> =
-        object : Op<Boolean>() {
+    private fun isH2(): Boolean = TransactionManager.current().db.vendor.contains("h2", ignoreCase = true)
+
+    /** column @> ARRAY[v1, v2, ...] — all values must be present (PostgreSQL) or ARRAY_CONTAINS per value (H2) */
+    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> {
+        if (isH2()) {
+            // H2: ARRAY_CONTAINS(column, value) for each value, combined with AND
+            return values
+                .map { value -> arrayContainsH2(column, value) }
+                .reduce { acc, op -> acc and op }
+        }
+        return object : Op<Boolean>() {
             override fun toQueryBuilder(queryBuilder: QueryBuilder) {
                 val arrayType = column.columnType as ArrayColumnType<String, *>
                 val elementType = arrayType.delegate
-
                 queryBuilder {
                     append(column)
-                    append(" @> ")
-                    append("ARRAY[")
-
+                    append(" @> ARRAY[")
                     values.forEachIndexed { index, value ->
                         if (index > 0) append(", ")
-                        append(
-                            QueryParameter(
-                                value,
-                                elementType,
-                            ),
-                        )
+                        append(QueryParameter(value, elementType))
                     }
-
                     append("]")
                 }
             }
         }
+    }
+
+    /** column && ARRAY[v1, v2, ...] — at least one value must be present (PostgreSQL) or ARRAY_CONTAINS per value OR-ed (H2) */
+    private fun arrayOverlap(column: Column<List<String>>, values: List<String>): Op<Boolean> {
+        if (isH2()) {
+            // H2: ARRAY_CONTAINS(column, value) for each value, combined with OR
+            return values
+                .map { value -> arrayContainsH2(column, value) }
+                .reduce { acc, op -> acc or op }
+        }
+        return object : Op<Boolean>() {
+            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                val arrayType = column.columnType as ArrayColumnType<String, *>
+                val elementType = arrayType.delegate
+                queryBuilder {
+                    append(column)
+                    append(" && ARRAY[")
+                    values.forEachIndexed { index, value ->
+                        if (index > 0) append(", ")
+                        append(QueryParameter(value, elementType))
+                    }
+                    append("]")
+                }
+            }
+        }
+    }
+
+    /** H2-compatible: ARRAY_CONTAINS(column, value) */
+    private fun arrayContainsH2(column: Column<List<String>>, value: String): Op<Boolean> = object : Op<Boolean>() {
+        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+            val arrayType = column.columnType as ArrayColumnType<String, *>
+            val elementType = arrayType.delegate
+            queryBuilder {
+                append("ARRAY_CONTAINS(")
+                append(column)
+                append(", ")
+                append(QueryParameter(value, elementType))
+                append(")")
+            }
+        }
+    }
 
     fun lock(id: UUID): LockResult? {
         return transaction {
