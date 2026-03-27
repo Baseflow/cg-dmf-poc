@@ -113,7 +113,7 @@ fun Application.openApiModule() {
                 // Expose the current server URL so Swagger UI points at the right host.
                 // Users can also type a custom URL in the Swagger UI "Servers" dropdown.
                 servers = listOf(
-                    Server(url = baseUrl, description = "Dit systeem (${ApplicationConfig.baseUrl})"),
+                    Server(url = baseUrl, description = "Dit systeem ($baseUrl)"),
                     Server(url = "https://cg-dmf.dev.baseflow.com", description = "Baseflow dev"),
                     Server(url = "https://gzac-dmf.commonground.test.utrecht.nl", description = "Utrecht test"),
                 ),
