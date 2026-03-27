@@ -83,3 +83,20 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "docker"
+
+  # npm dependencies for the frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "16:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps(npm)"
+      include: "scope"
+    allow:
+      - dependency-type: "all"
