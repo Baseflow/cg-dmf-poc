@@ -648,10 +648,10 @@ private suspend fun RoutingContext.zoek() {
 
 private fun RoutingContext.getFilters(
     uuidIn: List<String> = emptyList(),
-    expand: String? = null,
+    expandStr: String? = null,
 ): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
     val params = call.request.queryParameters
-    val expand = splitOnComma(expand ?: params["expand"])
+    val expand = splitOnComma(expandStr ?: params["expand"])
     val bronOrganisatie = params["bronorganisatie"]
     val trefwoorden = params.getAll("trefwoorden") ?: emptyList()
     val trefwoordenOverlap = params.getAll("trefwoorden__overlap") ?: emptyList()
@@ -756,7 +756,7 @@ private suspend fun RoutingContext.get() {
         return
     }
 
-    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+    val expand = splitOnComma(call.parameters["expand"])
 
     try {
         val uuid = UUID.fromString(uuidString)

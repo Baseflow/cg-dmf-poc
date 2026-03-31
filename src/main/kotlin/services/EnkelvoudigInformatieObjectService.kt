@@ -158,7 +158,7 @@ class EnkelvoudigInformatieObjectService(
      * Returns the latest versions of all records
      */
     suspend fun getAll(filters: QueryEnkelvoudigeInformatieObjectenFilter): Pair<List<EnkelvoudigInformatieObjectResponse>, Long> {
-        val (results, totalCount) = transaction {
+        val (results, totalCount) = suspendTransaction {
             val condition = buildFilterOp(filters)
 
             val pageSize = filters.pageSize

@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten?expand=informatieobjecttype
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
   body: none
   auth: inherit
 }
 
 params:query {
-  expand: informatieobjecttype
+  ~expand: informatieobjecttype
   ~bronorganisatie: 012345678
   ~identificatie: DOC-001
   ~trefwoorden: trefwoord1,trefwoord2

@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}?expand=informatieobjecttype
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}
   body: none
   auth: inherit
 }
 
 params:query {
-  expand: informatieobjecttype
+  ~expand: informatieobjecttype
 }
 
 settings {
