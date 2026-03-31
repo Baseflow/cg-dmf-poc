@@ -87,7 +87,8 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
      * @throws Exception if the request fails
      */
     suspend fun fetchJsonFromUrl(url: String): JsonObject {
-        require(url.startsWith(config.endpoint)) {
+        val endpoint = if (config.endpoint.endsWith("/")) config.endpoint else "${config.endpoint}/"
+        require(url.startsWith(endpoint)) {
             "URL must start with the configured OpenZaak endpoint: ${config.endpoint}"
         }
 
