@@ -10,7 +10,7 @@ post {
   auth: inherit
 }
 
-query {
+params:query {
   ~page: 1
   ~pageSize: 100
   ~objectinformatieobjecten__object: {{zakenBaseUrl}}/zaken/12345
@@ -19,8 +19,9 @@ query {
 body:json {
   {
     "uuid_In": [
-      "00000000-0000-0000-0000-000000000000"
-    ]
+      "{{createdId}}"
+    ],
+    "expand": "informatieobjecttype"
   }
 }
 

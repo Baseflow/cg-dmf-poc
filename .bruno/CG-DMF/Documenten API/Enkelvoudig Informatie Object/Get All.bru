@@ -5,17 +5,17 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten?expand=informatieobjecttype
   body: none
   auth: inherit
 }
 
 params:query {
+  expand: informatieobjecttype
   ~bronorganisatie: 012345678
   ~identificatie: DOC-001
   ~trefwoorden: trefwoord1,trefwoord2
   ~trefwoorden__overlap: trefwoord1,trefwoord2
-  ~expand: informatieobjecttype
   ~page: 1
   ~pageSize: 100
   ~informatieobjecttype: https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d

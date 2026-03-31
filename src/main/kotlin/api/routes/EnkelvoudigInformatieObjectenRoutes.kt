@@ -638,7 +638,7 @@ private suspend fun RoutingContext.create() {
 
 private suspend fun RoutingContext.zoek() {
     val request = call.receive<EIOZoekRequest>()
-    val (page, pageSize, filter) = getFilters(request.uuidIn)
+    val (page, pageSize, filter) = getFilters(request.uuidIn, request.expand)
 
     val (items, totalCount) = service.getAll(filter)
     val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
@@ -646,9 +646,12 @@ private suspend fun RoutingContext.zoek() {
     call.respond(response)
 }
 
-private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
-    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+private fun RoutingContext.getFilters(
+    uuidIn: List<String> = emptyList(),
+    expand: String? = null
+): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
     val params = call.request.queryParameters
+    val expand = splitOnComma(expand ?: params["expand"])
     val bronOrganisatie = params["bronorganisatie"]
     val trefwoorden = params.getAll("trefwoorden") ?: emptyList()
     val trefwoordenOverlap = params.getAll("trefwoorden__overlap") ?: emptyList()
@@ -715,6 +718,11 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
     )
     return Triple(page, pageSize, filter)
 }
+
+private fun splitOnComma(params: String?): List<String> = (
+    params?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?: emptyList()
+    )
 
 private suspend fun RoutingContext.head() {
     val uuidString = call.parameters["uuid"]

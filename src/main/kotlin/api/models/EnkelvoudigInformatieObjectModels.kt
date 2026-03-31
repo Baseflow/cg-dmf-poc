@@ -265,5 +265,6 @@ data class UnlockEIORequest(val lock: String) : ApiRequest
 data class EIOZoekRequest(
     @SerialName("uuid_In")
     val uuidIn: List<String>,
+    @SerialName("expand")
     val expand: String? = null,
 ) : ApiRequest
