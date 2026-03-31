@@ -74,4 +74,6 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     val locked: Boolean? = null,
     /** EXPERIMENTEEL: Ordering of the results. Prefix with '-' for descending order. */
     val ordering: List<EIOOrdering> = emptyList(),
+    /** Fields to expand in the response (e.g. "informatieobjecttype") */
+    val expand: List<String> = emptyList(),
 )

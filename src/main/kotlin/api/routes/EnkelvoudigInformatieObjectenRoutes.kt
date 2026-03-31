@@ -89,12 +89,12 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             summary = "Alle (enkelvoudige) informatieobjecten opvragen."
             description =
                 "Geeft een gepagineerde lijst van enkelvoudige informatieobjecten. " +
-                "Alleen de laatste versie van elk informatieobject wordt getoond."
+                    "Alleen de laatste versie van elk informatieobject wordt getoond."
             parameters {
                 query("bronorganisatie") {
                     description =
                         "Het RSIN van de Niet-natuurlijk persoon zijnde de organisatie die het informatieobject " +
-                        "heeft gecreëerd of heeft ontvangen en als eerste in een samenwerkingsketen heeft vastgelegd."
+                            "heeft gecreëerd of heeft ontvangen en als eerste in een samenwerkingsketen heeft vastgelegd."
                 }
                 query("identificatie") {
                     description = "Een binnen een gegeven context ondubbelzinnige referentie naar het INFORMATIEOBJECT."
@@ -105,12 +105,14 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 }
                 query("expand") { description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in." }
                 query("page") { description = "Een pagina binnen de gepagineerde set resultaten." }
-                query("pageSize") { description = "Het aantal resultaten terug te geven per pagina. (default: 100, maximum: 500)." }
+                query("pageSize") {
+                    description = "Het aantal resultaten terug te geven per pagina. (default: 100, maximum: 500)."
+                }
                 // Experimental filter features
                 query("informatieobjecttype") {
                     description =
                         "**EXPERIMENTEEL** URL-referentie naar de gerelateerde informatieobjecttype " +
-                        "(in deze of een andere API)."
+                            "(in deze of een andere API)."
                 }
                 query("vertrouwelijkheidaanduiding") {
                     description = "**EXPERIMENTEEL** De vertrouwelijkheidaanduiding van het informatieobject. " +
@@ -120,27 +122,27 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 query("titel") {
                     description =
                         "**EXPERIMENTEEL** De titel van het informatieobject " +
-                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                            "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("auteur") {
                     description =
                         "**EXPERIMENTEEL** De persoon of organisatie die dit informatieobject heeft aangemaakt " +
-                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                            "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("status") {
                     description =
                         "**EXPERIMENTEEL** Filter op de status van het informatieobject. " +
-                        "Mogelijke waarden: in_bewerking, ter_vaststelling, definitief, gearchiveerd."
+                            "Mogelijke waarden: in_bewerking, ter_vaststelling, definitief, gearchiveerd."
                 }
                 query("beschrijving") {
                     description =
                         "**EXPERIMENTEEL** De beschrijving van het informatieobject " +
-                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                            "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("trefwoorden__overlap") {
                     description =
                         "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door comma's. " +
-                        "Geeft alle informatieobjecten terug die ten minste één van de opgegeven trefwoorden hebben."
+                            "Geeft alle informatieobjecten terug die ten minste één van de opgegeven trefwoorden hebben."
                 }
                 query("locked") {
                     description = "**EXPERIMENTEEL** Filter op vergrendeld (true) of ontgrendeld (false)."
@@ -148,35 +150,37 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 query("creatiedatum__gte") {
                     description =
                         "**EXPERIMENTEEL** De aanmakingsdatum van het informatieobject " +
-                        "(groter of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
+                            "(groter of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
                 }
                 query("creatiedatum__lte") {
                     description =
                         "**EXPERIMENTEEL** De aanmakingsdatum van het informatieobject " +
-                        "(kleiner of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
+                            "(kleiner of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
                 }
                 query("registratiedatum__gte") {
                     description =
                         "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het informatieobject " +
-                        "(groter of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
+                            "(groter of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
                 }
                 query("registratiedatum__lte") {
                     description =
                         "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het informatieobject " +
-                        "(kleiner of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
+                            "(kleiner of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
                 }
                 query("ordering") {
                     description =
                         "**EXPERIMENTEEL** Sorteer op één of meer velden (komma-gescheiden). " +
-                        "Gebruik een `-` prefix voor aflopende volgorde. " +
-                        "Mogelijke waarden: auteur, bestandsomvang, creatiedatum, formaat, status, titel, " +
-                        "vertrouwelijkheidaanduiding (en hun `-`-varianten)."
+                            "Gebruik een `-` prefix voor aflopende volgorde. " +
+                            "Mogelijke waarden: auteur, bestandsomvang, creatiedatum, formaat, status, titel, " +
+                            "vertrouwelijkheidaanduiding (en hun `-`-varianten)."
                 }
                 query("objectinformatieobjecten__object") {
-                    description = "**EXPERIMENTEEL** URL-referentie naar het gerelateerde object (in deze of een andere API)."
+                    description =
+                        "**EXPERIMENTEEL** URL-referentie naar het gerelateerde object (in deze of een andere API)."
                 }
                 query("objectinformatieobjecten__objectType") {
-                    description = "**EXPERIMENTEEL** Het type van het gerelateerde object. Mogelijke waarden: zaak, besluit, etc."
+                    description =
+                        "**EXPERIMENTEEL** Het type van het gerelateerde object. Mogelijke waarden: zaak, besluit, etc."
                 }
             }
             responses {
@@ -261,7 +265,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             operationId = "enkelvoudiginformatieobjecten_zoek"
             tag("enkelvoudiginformatieobjecten")
             summary = "Voer een zoekopdracht uit op enkelvoudige informatieobjecten."
-            description = "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
+            description =
+                "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
             requestBody {
                 required = true
                 description = "Zoekcriteria."
@@ -337,6 +342,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                     query("versie") { description = "Specifieke versie van het informatieobject." }
                     query("registratieOp") { description = "Filtert op de registratiedatum." }
+                    query("expand") {
+                        description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in."
+                    }
                 }
                 responses {
                     response(200) { description = "OK." }
@@ -464,7 +472,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 summary = "Verwijder een enkelvoudig informatieobject."
                 description =
                     "Verwijdert het informatieobject en alle bijbehorende versies. " +
-                    "Alleen mogelijk als er geen objectinformatieobjecten aan gerelateerd zijn."
+                        "Alleen mogelijk als er geen objectinformatieobjecten aan gerelateerd zijn."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
@@ -703,6 +711,7 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
         registratiedatumGte = registratiedatumGte,
         locked = locked,
         ordering = ordering,
+        expand = expand,
     )
     return Triple(page, pageSize, filter)
 }
@@ -739,9 +748,11 @@ private suspend fun RoutingContext.get() {
         return
     }
 
+    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+
     try {
         val uuid = UUID.fromString(uuidString)
-        val result = service.getById(uuid)
+        val result = service.getById(uuid, expand)
 
         if (result == null) {
             call.respondProblem(

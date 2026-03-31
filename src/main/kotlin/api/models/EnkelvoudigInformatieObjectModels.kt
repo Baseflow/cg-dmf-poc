@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.models
+
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * EnkelvoudigInformatieObject request model.
@@ -109,7 +111,13 @@ data class Integriteit(val algoritme: IntegriteitAlgoritme, val waarde: String, 
 }
 
 @Serializable
-data class BestandsDeelResponse(val url: String, val volgnummer: Int, val omvang: Long, val voltooid: Boolean, val lock: Boolean)
+data class BestandsDeelResponse(
+    val url: String,
+    val volgnummer: Int,
+    val omvang: Long,
+    val voltooid: Boolean,
+    val lock: Boolean
+)
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
@@ -145,6 +153,8 @@ data class EnkelvoudigInformatieObjectResponse(
     val lock: String,
     @kotlinx.serialization.EncodeDefault
     val locked: Boolean,
+    @SerialName("_expand")
+    val expand: JsonObject? = null,
 ) : ApiEntityResponse
 
 @Serializable
