@@ -30,11 +30,7 @@ abstract class Config {
          * Reads [key], falling back to [legacyKey] if [key] is absent.
          * If the legacy key is used, a deprecation warning is logged.
          */
-        fun envOrSystemWithLegacy(
-            key: String,
-            legacyKey: String,
-            default: String,
-        ): String {
+        fun envOrSystemWithLegacy(key: String, legacyKey: String, default: String): String {
             val primary = env[key] ?: System.getenv(key)
             if (primary != null) return primary
             val legacy = env[legacyKey] ?: System.getenv(legacyKey)
@@ -55,10 +51,7 @@ abstract class Config {
          * Like [envOrThrow], but also accepts the [legacyKey] as a fallback.
          * Logs a deprecation warning when the legacy key is used.
          */
-        fun envOrThrowWithLegacy(
-            key: String,
-            legacyKey: String,
-        ): String {
+        fun envOrThrowWithLegacy(key: String, legacyKey: String): String {
             val primary = env[key] ?: System.getenv(key)
             if (primary != null) return primary
             val legacy = env[legacyKey] ?: System.getenv(legacyKey)
