@@ -4,72 +4,18 @@ This repository is a Proof of Concept (PoC) for a new Document Registration Comp
 landscape. It implements a minimal, functional version of the Documenten API, with additional filtering for new
 relations between non-Zaken objects.
 
-## Document API implementation progress.
+## Configuration
 
-### enkelvoudiginformatieobjecten
+All settings are read from environment variables (or a `.env` file in development).
+Copy `.env.example` to `.env` and adjust the values before starting the application.
 
-| Endpoint                     | Method | Description                                                                               | Status                  | Remarks |
-| ---------------------------- | ------ | ----------------------------------------------------------------------------------------- | ----------------------- | ------- |
-| /                            | GET    | Get a list of enkelvoudiginformatieobjecten based on the given query parameters           | $${\color{green}Done}$$ |         |
-| /                            | POST   | Create a enkelvoudiginformatieobject                                                      | $${\color{green}Done}$$ |         |
-| /{UUID}/audittrail           | GET    | Get all audittrail records for a enkelvoudiginformatieobject                              | $${\color{green}Done}$$ |         |
-| /{UUID}/audittrail/{at_UUID} | GET    | Get a single audittrail record based on enkelvoudiginformatieobject-id and audittrail-id  | $${\color{green}Done}$$ |         |
-| /{UUID}                      | GET    | Get a single enkelvoudigInformatieObject                                                  | $${\color{green}Done}$$ |         |
-| /{UUID}                      | PUT    | Fully updates a enkelvoudiginformatieobject                                               | $${\color{green}Done}$$ |         |
-| /{UUID}                      | PATCH  | Partially updates a enkelvoudiginformatieobject                                           | $${\color{green}Done}$$ |         |
-| /{UUID}                      | DELETE | Deletes a enkelvoudiginformatieobject                                                     | $${\color{green}Done}$$ |         |
-| /{UUID}                      | HEAD   | Retrieves headers for a specific enkelvoudiginformatieobject                              | $${\color{green}Done}$$ |         |
-| /{UUID}/download             | GET    | Download the binary data from the enkelvoudiginformatieobject                             | $${\color{green}Done}$$ |         |
-| /{UUID}/lock                 | POST   | Locks a enkelvoudiginformatieobject                                                       | $${\color{green}Done}$$ |         |
-| /{UUID}/unlock               | POST   | Unlocks enkelvoudiginformatieobject                                                       | $${\color{green}Done}$$ |         |
-| /{UUID}/\_zoek               | POST   | Searches for enkelvoudiginformatieobject records, based on the search body of the request | $${\color{green}Done}$$ |         |
+For more details, see [docs/configuratie.md](docs/configuratie.md).
 
-### gebruiksrechten
+## Documentation
 
-| Endpoint | Method | Description                                                        | Status                                  | Remarks                         |
-| -------- | ------ | ------------------------------------------------------------------ | --------------------------------------- | ------------------------------- |
-| /        | GET    | Get a list of gebruiksrechten based on the given query parameters  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /        | POST   | Create gebruiksrechten                                             | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | GET    | Get a single gebruiksrechten instance based on Id                  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | PUT    | Completely updates a single gebruiksrechten instance based on Id   | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | PATCH  | Partially updates a single gebruiksrechten instance based on Id    | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | DELETE | Deletes a single gebruiksrechten instance based on Id              | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | HEAD   | Gets the headers for a single gebruiksrechten instance based on Id | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-
-### objectinformatieobject
-
-| Endpoint | Method | Description                                                                      | Status                  | Remarks |
-| -------- | ------ | -------------------------------------------------------------------------------- | ----------------------- | ------- |
-| /        | GET    | Get a list of objectinformatieobject records based on the given query parameters | $${\color{green}Done}$$ |         |
-| /        | POST   | Create objectinformatieobject relation                                           | $${\color{green}Done}$$ |         |
-| /{UUID}  | GET    | Get a single objectinformatieobject relation based on Id                         | $${\color{green}Done}$$ |         |
-| /{UUID}  | DELETE | Deletes a single objectinformatieobject relation based on Id                     | $${\color{green}Done}$$ |         |
-| /{UUID}  | HEAD   | Gets the headers for a single objectinformatieobject relation based on Id        | $${\color{green}Done}$$ |         |
-
-### verzendingen
-
-| Endpoint | Method | Description                                                    | Status                                  | Remarks                         |
-| -------- | ------ | -------------------------------------------------------------- | --------------------------------------- | ------------------------------- |
-| /        | GET    | Get a list of verzendingen based on the given query parameters | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /        | POST   | Create verzending                                              | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | GET    | Get a single verzending instance based on Id                   | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | PUT    | Completely updates a single verzending instance based on Id    | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | PATCH  | Partially updates a single verzending instance based on Id     | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | DELETE | Deletes a single verzending instance based on Id               | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-| /{UUID}  | HEAD   | Gets the headers for a single verzending instance based on Id  | $${\color{red}Not \space implemented}$$ | Out of scope for our PoC so far |
-
-### bestandsdelen
-
-| Endpoint | Method | Description           | Status                                  | Remarks |
-| -------- | ------ | --------------------- | --------------------------------------- | ------- |
-| /{UUID}  | PUT    | Upload a bestandsdeel | $${\color{red}Not \space implemented}$$ |         |
-
-### overig
-
-| Functionaliteit | Status                          | Remarks |
-| --------------- | ------------------------------- | ------- |
-| Notificaties    | Out of scope for our PoC so far |         |
-| API scopes      | Out of scope for our PoC so far |         |
+- [Database Migrations](docs/DATABASE.md) - Migration workflow and limitations
+- [API Specification](docs/documenten-1.5.0.yaml) - OpenAPI spec
+- [Document API Implementation](docs/implementatie.md) - Implementation details
 
 ## Prerequisites
 
@@ -154,70 +100,6 @@ See [docs/DATABASE.md](docs/DATABASE.md) for detailed migration workflow.
 - **Migrations:** Flyway
 - **Build:** Gradle
 - **API Spec:** OpenAPI 3.0 (see `docs/documenten-1.5.0.yaml`)
-
-## Configuration
-
-All settings are read from environment variables (or a `.env` file in development).
-Copy `.env.example` to `.env` and adjust the values before starting the application.
-
-### Database
-
-| Variable      | Default                                       | Description                         |
-| ------------- | --------------------------------------------- | ----------------------------------- |
-| `DB_URL`      | `jdbc:postgresql://localhost:5432/documenten` | JDBC URL to the PostgreSQL database |
-| `DB_USER`     | `documenten`                                  | Database user                       |
-| `DB_PASSWORD` | `documenten`                                  | Database password                   |
-| `DB_DRIVER`   | `org.postgresql.Driver`                       | JDBC driver class name (optional)   |
-
-### Application
-
-| Variable | Default | Description                     |
-| -------- | ------- | ------------------------------- |
-| `PORT`   | `8080`  | HTTP port the server listens on |
-
-### MinIO (object storage)
-
-| Variable        | Default                 | Description                                   |
-| --------------- | ----------------------- | --------------------------------------------- |
-| `S3_ENDPOINT`   | `http://localhost:9000` | MinIO / S3-compatible endpoint URL            |
-| `S3_ACCESS_KEY` | `minioadmin`            | Access key (username)                         |
-| `S3_SECRET_KEY` | `minioadmin`            | Secret key (password)                         |
-| `S3_BUCKET`     | `documenten`            | Bucket used for document storage              |
-| `S3_URL_EXPIRY` | `PT15M`                 | Pre-signed URL expiry as an ISO-8601 duration |
-
-### Authentication
-
-| Variable                 | Default                               | Description                                                                                                       |
-| ------------------------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `OIDC_ISSUER`            | `http://localhost:8081/realms/cg-dmf` | Issuer URL of the OIDC provider used to validate incoming JWT tokens                                              |
-| `ZGW_ALLOWED_CLIENT_IDS` | `gzac`                                | Comma-separated list of `client_id` values accepted for ZGW-style JWT authentication (GZAC / Valtimo / Open Zaak) |
-
-### OpenZaak integration
-
-Only needed when `OPENZAAK_VALIDATION_ENABLED=true` (the default).
-
-| Variable                      | Default                             | Description                                             |
-| ----------------------------- | ----------------------------------- | ------------------------------------------------------- |
-| `OPENZAAK_ENDPOINT`           | `https://openzaak.dev.baseflow.com` | Base URL of the Open Zaak instance                      |
-| `OPENZAAK_CLIENT_ID`          | `cg-dmf`                            | Client ID used to authenticate with Open Zaak           |
-| `OPENZAAK_CLIENT_SECRET`      | `baseflow`                          | Client secret used to authenticate with Open Zaak       |
-| `OPENZAAK_VALIDATION_ENABLED` | `true`                              | Set to `false` to skip Open Zaak object-type validation |
-
-### Notifications (Open Notificaties API)
-
-Notifications are **disabled** when `NOTIFICATION_API_URL` or `NOTIFICATION_API_TOKEN` is left blank.
-
-| Variable                 | Default      | Description                                                                           |
-| ------------------------ | ------------ | ------------------------------------------------------------------------------------- |
-| `NOTIFICATION_API_URL`   | _(empty)_    | Base URL of the Open Notificaties API, e.g. `https://notificaties.example.com/api/v1` |
-| `NOTIFICATION_API_TOKEN` | _(empty)_    | Bearer token with the `notificaties.publiceren` scope                                 |
-| `NOTIFICATION_KANAAL`    | `documenten` | Notification channel name (kanaal) as registered in Open Notificaties                 |
-| `NOTIFICATION_SOURCE`    | `drc`        | Source identifier sent with each notification                                         |
-
-## Documentation
-
-- [Database Migrations](docs/DATABASE.md) - Migration workflow and limitations
-- [API Specification](docs/documenten-1.5.0.yaml) - OpenAPI spec
 
 ### Component Diagram
 
