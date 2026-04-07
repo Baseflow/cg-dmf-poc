@@ -92,7 +92,7 @@ dependencies {
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
         // dependency of flyway-core and ktor-server-auth-jwt
-        implementation("tools.jackson.core:jackson-core:3.1.0") {
+        implementation("tools.jackson.core:jackson-core:3.1.1") {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
