@@ -36,12 +36,20 @@ brew install openjdk@21 gradle docker docker-compose
     ```
 
 2. **Start services:**
+    The minimal services required for development can be started with Docker Compose:
+
+    ```bash
+    docker-compose up -d postgres keycloak minio
+    ```
+
+Additional service dependencies for optional features can be started with Docker Compose as well.
 
     ```bash
     docker-compose up -d
     ```
 
 3. **Run migrations:**
+Initialize the database with the initial layout:
 
     ```bash
     ./gradlew flywayMigrate
@@ -52,7 +60,33 @@ brew install openjdk@21 gradle docker docker-compose
     ./gradlew flywayInfo
     ```
 
-## Common Tasks
+5. **Configure**
+Copy the .env.example file to .env and fill in any configuration that you may have modified from the defaults.
+
+
+
+## Common development tasks
+
+### Development
+
+```bash
+# Build
+./gradlew build
+
+# Run tests
+./gradlew test
+
+# Start application
+./gradlew run
+```
+
+### Use the API via Bruno
+You can use [Bruno](https://www.usebruno.com) to test the API. Bruno is a Postman like tool
+
+1. To use Bruno, open the collection located in `.bruno/CG-DMF` with the Bruno application.
+2. Click the "Shield" icon next to the environment selector and switch from Sandbox to Developer mode.
+3. Configure your environment at the top right of the window.
+By default for local development we connect to the openzaak instance of baseflow development cluster.
 
 ### Database Migrations
 
@@ -71,19 +105,6 @@ brew install openjdk@21 gradle docker docker-compose
 ```
 
 See [docs/DATABASE.md](docs/DATABASE.md) for detailed migration workflow.
-
-### Development
-
-```bash
-# Build
-./gradlew build
-
-# Run tests
-./gradlew test
-
-# Start application
-./gradlew run
-```
 
 ## Project Structure
 
