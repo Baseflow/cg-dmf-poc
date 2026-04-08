@@ -180,6 +180,31 @@ tasks.named("processResources") {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Static OpenAPI specs ───────────────────────────────────────────────────
+// Copy the reference YAML specs from docs/ into the build resources so they
+// are bundled with the JAR and served at /docs/openapi/<filename>.
+
+val openApiSpecsDest = layout.buildDirectory.dir("generated/openapi-specs/static/openapi-specs")
+
+val copyOpenApiSpecs by tasks.registering(Copy::class) {
+    group = "documentation"
+    description = "Copy reference OpenAPI YAML specs from docs/ into build resources"
+    from(layout.projectDirectory.dir("docs")) {
+        include(
+            "documenten-1.5.0.yaml",
+            "maykin-documenten-1.5.0.yaml",
+        )
+    }
+    into(openApiSpecsDest)
+}
+
+sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/openapi-specs"))
+
+tasks.named("processResources") {
+    dependsOn(copyOpenApiSpecs)
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 tasks.withType<JavaCompile>().configureEach {
     options.release = 21
 }

@@ -32,10 +32,13 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.routingRoot
 import io.ktor.utils.io.ExperimentalKtorApi
-import java.util.concurrent.atomic.AtomicReference
 import kotlinx.serialization.json.Json
+import java.util.concurrent.atomic.AtomicReference
 
-private val openApiJsonOptions = Json { explicitNulls = false; encodeDefaults = false }
+private val openApiJson = Json {
+    explicitNulls = false
+    encodeDefaults = false
+}
 
 private val apiInfo = OpenApiInfo(
     title = "Documenten API",
@@ -124,9 +127,12 @@ fun Application.openApiModule() {
 
             // OpenAPI spec as YAML — same content converted to YAML
             get("/openapi/documenten-api.yaml") {
-                val json = openApiJsonOptions.encodeToString(cachedDoc.get())
+                val json = openApiJson.encodeToString(cachedDoc.get())
                 call.respondText(convertJsonToYaml(json), contentType = ContentType.parse("application/yaml"))
             }
+
+            // Reference OpenAPI specs from docs/ — served as static files
+            staticResources("/openapi", "static/openapi-specs")
 
             // Swagger UI — static assets served from classpath (copied from swagger-ui-dist by Gradle)
             staticResources("/swaggerui", "static/swagger-ui")
