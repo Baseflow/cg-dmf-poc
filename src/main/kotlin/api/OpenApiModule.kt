@@ -5,6 +5,10 @@
 package com.baseflow.api
 
 import com.baseflow.config.ApplicationConfig
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator
+import io.ktor.http.ContentType
 import io.ktor.openapi.Components
 import io.ktor.openapi.OpenApiDoc
 import io.ktor.openapi.OpenApiInfo
@@ -29,10 +33,13 @@ import io.ktor.server.routing.routing
 import io.ktor.server.routing.routingRoot
 import io.ktor.utils.io.ExperimentalKtorApi
 import java.util.concurrent.atomic.AtomicReference
+import kotlinx.serialization.json.Json
+
+private val openApiJsonOptions = Json { explicitNulls = false; encodeDefaults = false }
 
 private val apiInfo = OpenApiInfo(
     title = "Documenten API",
-    version = "1.5.0",
+    version = DOCUMENTEN_API_VERSION,
     description = """
         Een API om een documentregistratiecomponent (DRC) te benaderen.
 
@@ -82,8 +89,8 @@ private val apiTags = listOf(
  *
  * Schemes are registered in [com.baseflow.config.AuthenticationModule] via [registerSecurityScheme]
  * and discovered here through [findSecuritySchemes]:
- * - "auth-jwt"  → OAuth2 Authorization Code + PKCE (full OIDC login via Keycloak)
- * - "auth-zgw"  → HTTP Bearer (paste-in ZGW/GZAC token)
+ * - "auth-jwt" → OAuth2 Authorization Code + PKCE (full OIDC login via Keycloak)
+ * - "auth-zgw" → HTTP Bearer (paste-in ZGW/GZAC token)
  *
  * Using the exact same names as the Ktor `authenticate(...)` provider names is required so that
  * the routing-openapi `+` operator can inject matching `security` requirements on each operation,
@@ -92,85 +99,95 @@ private val apiTags = listOf(
 private fun Application.buildSecuritySchemes(): Map<String, ReferenceOr<SecurityScheme>> = findSecuritySchemes(useCache = false)
 
 fun Application.openApiModule() {
-    val baseUrl = ApplicationConfig.baseUrl()
-
     // Build the OpenApiDoc once after all routes are registered, then cache it.
     val cachedDoc = AtomicReference<OpenApiDoc>()
     monitor.subscribe(ApplicationStarted) { app ->
-        // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-zgw (Bearer)
-        val securitySchemes = app.buildSecuritySchemes()
-
-        // Global security: OIDC via Keycloak (auth-jwt) OR paste-in ZGW token (auth-zgw).
-        // These names MUST match the keys in securitySchemes above so Swagger UI can resolve them.
-        val globalSecurity: List<SecurityRequirement> = listOf(
-            mapOf("auth-jwt" to listOf("openid", "profile", "email")),
-            mapOf("auth-zgw" to emptyList()),
-        )
-
-        val routeDoc = OpenApiDoc(info = apiInfo, tags = apiTags) + app.routingRoot.descendants()
-        cachedDoc.set(
-            routeDoc.copy(
-                // Expose the current server URL so Swagger UI points at the right host.
-                // Users can also type a custom URL in the Swagger UI "Servers" dropdown.
-                servers = listOf(
-                    Server(url = baseUrl, description = "Dit systeem ($baseUrl)"),
-                    Server(url = "https://cg-dmf.dev.baseflow.com", description = "Baseflow dev"),
-                    Server(url = "https://gzac-dmf.commonground.test.utrecht.nl", description = "Utrecht test"),
-                ),
-                // Register the named schemes so Swagger UI can resolve them.
-                components = (routeDoc.components ?: Components()).copy(
-                    securitySchemes = securitySchemes,
-                ),
-                // Apply global security so every operation shows the Authorize options.
-                security = globalSecurity,
-            ),
-        )
+        cachedDoc.set(app.buildOpenApiDoc())
     }
 
     routing {
+        // Hide all /docs routes from the generated OpenAPI spec (the library checks the full
+        // route lineage, so hiding the parent is enough to hide every child route).
         route("/docs") {
             // Index page with links to all documentation endpoints
             get {
                 val html = checkNotNull(
                     javaClass.classLoader.getResource("docs-index.html"),
                 ) { "docs-index.html not found on classpath" }.readText()
-                call.respondText(html, contentType = io.ktor.http.ContentType.Text.Html)
-            }.hide()
+                call.respondText(html, contentType = ContentType.Text.Html)
+            }
 
             // OpenAPI spec as JSON — used by Swagger UI and other tooling
             get("/openapi/documenten-api.json") {
-                val doc = cachedDoc.get() ?: run {
-                    val app = call.application
-                    val securitySchemes = app.buildSecuritySchemes()
-                    val globalSecurity: List<SecurityRequirement> = listOf(
-                        mapOf("auth-jwt" to listOf("openid", "profile", "email")),
-                        mapOf("auth-zgw" to emptyList()),
-                    )
-                    val routeDoc = OpenApiDoc(info = apiInfo, tags = apiTags) + app.routingRoot.descendants()
-                    routeDoc.copy(
-                        servers = listOf(
-                            Server(url = baseUrl, description = "Dit systeem"),
-                            Server(url = "https://cg-dmf.dev.baseflow.com", description = "Baseflow dev"),
-                            Server(url = "https://gzac-dmf.commonground.test.utrecht.nl", description = "Utrecht test"),
-                        ),
-                        components = (routeDoc.components ?: Components()).copy(
-                            securitySchemes = securitySchemes,
-                        ),
-                        security = globalSecurity,
-                    ).also { cachedDoc.compareAndSet(null, it) }
-                }
-                call.respond(doc)
-            }.hide()
+                call.respond(cachedDoc.get())
+            }
+
+            // OpenAPI spec as YAML — same content converted to YAML
+            get("/openapi/documenten-api.yaml") {
+                val json = openApiJsonOptions.encodeToString(cachedDoc.get())
+                call.respondText(convertJsonToYaml(json), contentType = ContentType.parse("application/yaml"))
+            }
 
             // Swagger UI — static assets served from classpath (copied from swagger-ui-dist by Gradle)
-            staticResources("/swaggerui", "static/swagger-ui").hide()
+            staticResources("/swaggerui", "static/swagger-ui")
 
             // Ktor built-in OpenAPI UI — generated directly from routing annotations
+            // Output is redirected to build/tmp to prevent swagger-codegen from polluting docs/
             openAPI("ktor-openapi") {
+                outputPath = "build/tmp/swagger-codegen"
                 source = OpenApiDocSource.Routing {
                     routingRoot.descendants()
                 }
             }
-        }
+        }.hide()
     }
+}
+
+/**
+ * Definition for building the OpenAPI document.
+ *
+ * Collects route metadata via [plus], then layers on servers, security schemes and global security.
+ */
+private fun Application.buildOpenApiDoc(): OpenApiDoc {
+    val baseUrl = ApplicationConfig.baseUrl()
+
+    // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-zgw (Bearer)
+    val securitySchemes = buildSecuritySchemes()
+
+    // Global security: OIDC via Keycloak (auth-jwt) OR paste-in ZGW token (auth-zgw).
+    // These names MUST match the keys in securitySchemes above so Swagger UI can resolve them.
+    val globalSecurity: List<SecurityRequirement> = listOf(
+        mapOf("auth-jwt" to listOf("openid", "profile", "email")),
+        mapOf("auth-zgw" to emptyList()),
+    )
+
+    val routeDoc = OpenApiDoc(info = apiInfo, tags = apiTags) + routingRoot.descendants()
+    return routeDoc.copy(
+        // Expose the current server URL so Swagger UI points at the right host.
+        // Users can also type a custom URL in the Swagger UI "Servers" dropdown.
+        servers = listOf(
+            Server(url = baseUrl, description = "Dit systeem ($baseUrl)"),
+            Server(url = "https://cg-dmf.dev.baseflow.com", description = "Baseflow dev"),
+            Server(url = "https://gzac-dmf.commonground.test.utrecht.nl", description = "Utrecht test"),
+        ),
+        // Register the named schemes so Swagger UI can resolve them.
+        components = (routeDoc.components ?: Components()).copy(
+            securitySchemes = securitySchemes,
+        ),
+        // Apply global security so every operation shows the Authorize options.
+        security = globalSecurity,
+    )
+}
+
+/**
+ * Converts an openAPI JSON string to YAML
+ */
+internal fun convertJsonToYaml(json: String): String {
+    val tree = ObjectMapper().readTree(json)
+    val yamlFactory =
+        YAMLFactory.builder()
+            .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES)
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER)
+            .build()
+    return ObjectMapper(yamlFactory).writeValueAsString(tree)
 }
