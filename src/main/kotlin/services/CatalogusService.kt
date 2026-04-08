@@ -15,8 +15,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Serializable
 data class InformatieObjectType(val url: String, val omschrijving: String, val vertrouwelijkheidaanduiding: String)
@@ -31,6 +34,17 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
     private val logger = LoggerFactory.getLogger(CatalogusService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
+    @OptIn(ExperimentalTime::class)
+    private data class CacheEntry<T>(val value: T, val expiresAt: Instant)
+
+    @OptIn(ExperimentalTime::class)
+    private val informatieobjecttypeCache = ConcurrentHashMap<String, CacheEntry<InformatieObjectType>>()
+
+    @OptIn(ExperimentalTime::class)
+    private val jsonCache = ConcurrentHashMap<String, CacheEntry<JsonObject>>()
+
+    private val cacheTtl = 5.minutes
+
     /**
      * Validates if the given informatieobjecttype URL exists in the Catalogus API
      *
@@ -42,6 +56,16 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
         if (!config.validationEnabled) {
             logger.debug("Informatieobjecttype validation is disabled, skipping validation for: {}", url)
             return null
+        }
+
+        val now = Clock.System.now()
+        informatieobjecttypeCache[url]?.let { cached ->
+            if (cached.expiresAt > now) {
+                logger.debug("Returning cached informatieobjecttype for: {}", url)
+                return cached.value
+            } else {
+                informatieobjecttypeCache.remove(url)
+            }
         }
 
         val jwtToken = generateJwtToken()
@@ -67,7 +91,9 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
 
             val body = response.bodyAsText()
             logger.debug("Successfully validated informatieobjecttype: {}", url)
-            return json.decodeFromString<InformatieObjectType>(body)
+            val result = json.decodeFromString<InformatieObjectType>(body)
+            informatieobjecttypeCache[url] = CacheEntry(result, now + cacheTtl)
+            return result
         } catch (e: Exception) {
             if (e.message?.contains("Error fetching information object type") == true) {
                 throw e
@@ -92,6 +118,16 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
             "URL must start with the configured OpenZaak endpoint: ${config.endpoint}"
         }
 
+        val now = Clock.System.now()
+        jsonCache[url]?.let { cached ->
+            if (cached.expiresAt > now) {
+                logger.debug("Returning cached JSON for URL: {}", url)
+                return cached.value
+            } else {
+                jsonCache.remove(url)
+            }
+        }
+
         val jwtToken = generateJwtToken()
         logger.debug("Fetching JSON from URL: {}", url)
 
@@ -114,7 +150,9 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
             }
 
             val body = response.bodyAsText()
-            return json.decodeFromString<JsonObject>(body)
+            val result = json.decodeFromString<JsonObject>(body)
+            jsonCache[url] = CacheEntry(result, now + cacheTtl)
+            return result
         } catch (e: Exception) {
             if (e.message?.contains("Error fetching resource") == true) {
                 throw e
