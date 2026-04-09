@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: EUPL-1.2
+# Copyright (C) 2026 Gemeente Utrecht
+#
+# Integration test compose file.
+# Starts postgres, minio, the cg-dmf API and runs the Bruno test suite.
+#
+# Usage (local):
+#   JWT_CLIENT_SECRET=<secret> docker compose -f docker-compose.integration-test.yml up --build --exit-code-from bruno
+#
+# The `bruno` service exits with code 0 on success or non-zero on failure.
+# Test results (JUnit XML + HTML) are written to ./build/bruno-results/.
+
+# Sets the Docker Compose project name, which controls the prefix used for all
+# containers, networks and volumes created by this file (e.g. dmf-integration-test_postgres_1).
+# Override on the command line with: docker compose -p my-name -f ...
+name: dmf-integration-test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: documenten
+      POSTGRES_USER: documenten
+      POSTGRES_PASSWORD: documenten
+    healthcheck:
+      test: [ 'CMD-SHELL', 'pg_isready -U documenten' ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --address ":9000"
+    healthcheck:
+      test: [ 'CMD-SHELL', 'curl -sf http://localhost:9000/minio/health/live' ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:latest
+    entrypoint: /bin/sh
+    command: >-
+      -c "mc alias set local http://minio:9000 minioadmin minioadmin && mc mb --ignore-existing local/documenten"
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  app:
+    # Build the full image from source (same as production).
+    # Locally this may take a few minutes on first run; subsequent runs use the Docker layer cache.
+    build: .
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/documenten
+      DB_USER: documenten
+      DB_PASSWORD: documenten
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: documenten
+      ZGW_ALLOWED_CLIENT_IDS: gzac
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://auth.gzac.baseflow.com/realms/valtimo}
+      OPENZAAK_CLIENT_SECRET: ${OPENZAAK_CLIENT_SECRET:-}
+      BESTANDSDELEN_TRIGGER_SIZE: ${BESTANDSDELEN_TRIGGER_SIZE:-100000}
+      BESTANDSDELEN_CHUNK_SIZE: ${BESTANDSDELEN_CHUNK_SIZE:-100000}
+    healthcheck:
+      test: [ 'CMD-SHELL', 'wget -qO- http://localhost:8080/health/liveness || exit 1' ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  bruno:
+    image: node:20-alpine
+    working_dir: /collection/CG-DMF
+    volumes:
+      - ./.bruno:/collection
+      - ./build/bruno-results:/results
+    environment:
+      JWT_CLIENT_SECRET: ${JWT_CLIENT_SECRET:?JWT_CLIENT_SECRET is required}
+      # Set to 'false' in CI so the container exits after the tests finish (needed for --exit-code-from).
+      BRUNO_KEEP_ALIVE: ${BRUNO_KEEP_ALIVE:-false}
+    # Install dependencies and run the collection against the CI environment.
+    # Results are written to /results (mapped to ./build/bruno-results/ on the host).
+    entrypoint: /bin/sh
+    command: >-
+      -c "npm install &&
+      npx @usebruno/cli run --env CI --sandbox=developer --env-var 'jwt.clientSecret=$$JWT_CLIENT_SECRET' --reporter-junit /results/results.xml --reporter-html /results/output.html;
+      if [ \"$$BRUNO_KEEP_ALIVE\" = 'true' ]; then tail -f /dev/null; fi"
+    depends_on:
+      app:
+        condition: service_healthy

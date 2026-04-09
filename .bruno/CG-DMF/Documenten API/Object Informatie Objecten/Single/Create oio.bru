@@ -1,5 +1,5 @@
 meta {
-  name: Create
+  name: Create oio
   type: http
   seq: 2
 }
@@ -34,22 +34,6 @@ script:pre-request {
   
   bru.setVar("zaak_id", generateUUID());
   
-  // Fetch the first EIO to use in the request
-  const response = await bru.runRequest(
-    "Documenten API/Enkelvoudig Informatie Object/Get All"
-  );
-  
-  if (!response) {
-    throw new Error("Get All request returned no response");
-  }
-  
-  const data = response.data;
-  if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
-    throw new Error("No results returned from Get All");
-  }
-  
-  const firstId = data.results[0].id;
-  bru.setVar("eio_id", firstId);
 }
 
 script:post-response {

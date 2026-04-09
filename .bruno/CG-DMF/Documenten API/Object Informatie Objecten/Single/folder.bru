@@ -5,22 +5,3 @@ meta {
 auth {
   mode: inherit
 }
-
-script:pre-request {
-  const response = await bru.runRequest(
-    "Documenten API/Object Informatie Objecten/Get All"
-  );
-  
-  if (!response) {
-    throw new Error("Get All request returned no response");
-  }
-  
-  const data = response.data;
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    throw new Error("No results returned from Get All");
-  }
-  
-  const firstId = data[0].id;
-  bru.setVar("firstId", firstId);
-  
-}

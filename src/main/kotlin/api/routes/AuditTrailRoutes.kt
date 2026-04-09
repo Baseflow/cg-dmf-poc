@@ -16,7 +16,6 @@ private val RoutingContext.service: AuditTrailService
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.auditTrailRoutes() {
-
     route("/{uuid}/audittrail/{auditTrailUuid}") {
         /**
          * Een specifieke audit trail regel opvragen.
