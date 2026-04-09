@@ -23,7 +23,7 @@ services:
       POSTGRES_USER: documenten
       POSTGRES_PASSWORD: documenten
     healthcheck:
-      test: [ 'CMD-SHELL', 'pg_isready -U documenten' ]
+      test: ['CMD-SHELL', 'pg_isready -U documenten']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -35,19 +35,10 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --address ":9000"
     healthcheck:
-      test: [ 'CMD-SHELL', 'curl -sf http://localhost:9000/minio/health/live' ]
+      test: ['CMD-SHELL', 'curl -sf http://localhost:9000/minio/health/live']
       interval: 5s
       timeout: 5s
       retries: 10
-
-  minio-init:
-    image: minio/mc:latest
-    entrypoint: /bin/sh
-    command: >-
-      -c "mc alias set local http://minio:9000 minioadmin minioadmin && mc mb --ignore-existing local/documenten"
-    depends_on:
-      minio:
-        condition: service_healthy
 
   app:
     # Build the full image from source (same as production).
@@ -67,15 +58,19 @@ services:
       BESTANDSDELEN_TRIGGER_SIZE: ${BESTANDSDELEN_TRIGGER_SIZE:-100000}
       BESTANDSDELEN_CHUNK_SIZE: ${BESTANDSDELEN_CHUNK_SIZE:-100000}
     healthcheck:
-      test: [ 'CMD-SHELL', 'wget -qO- http://localhost:8080/health/liveness || exit 1' ]
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://localhost:8080/health/liveness || exit 1',
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
     depends_on:
       postgres:
         condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
 
   bruno:
     image: node:20-alpine
