@@ -16,34 +16,11 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: helm lint
-        id: helm_lint
         run: |
           helm lint ./helm/cg-dmf \
-            -f ./helm/cg-dmf/values.local.yaml \
-            --strict
-        continue-on-error: true
-
-      - name: Annotate PR on failure
-        if: steps.helm_lint.outcome == 'failure'
-        continue-on-error: true
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const body = [
-              '## ⚠️ Helm lint check failed',
-              '',
-              '`helm lint` failed on `./helm/cg-dmf`. Check the workflow logs for details.',
-            ].join('\n');
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body,
-            });
-
-      - name: Fail job when helm lint failed
-        if: steps.helm_lint.outcome == 'failure'
-        run: |
-          echo "::error::helm lint failed. See annotations above for details."
-          exit 1
+            --strict \
+            --set settings.zgwAllowedClientIds=ci \
+            --set settings.database.password=ci \
+            --set settings.s3.accessKey=ci \
+            --set settings.s3.secretKey=ci \
+            --set settings.openzaak.clientSecret=ci
