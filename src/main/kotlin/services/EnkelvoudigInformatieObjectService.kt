@@ -236,12 +236,18 @@ class EnkelvoudigInformatieObjectService(
 
             val totalCount = query.count()
 
+            // Materialise the page rows first so we can collect all version IDs for a
+            // single batch bestandsdelen query instead of one query per row (N+1).
+            val pageRows = query.limit(pageSize).offset(offset).toList()
+            val versionIds = pageRows.map { EIOVersionEntity.wrapRow(it).id.value }
+            val bestandsDelenByVersion = bestandsDeelService.getBestandsDelenForVersions(versionIds)
+
             // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
             // Each row already contains exactly one record + its latest version due to the subquery filter.
-            val results = query.limit(pageSize).offset(offset).mapNotNull { row ->
+            val results = pageRows.mapNotNull { row ->
                 val record = EIORecordEntity.wrapRow(row)
                 val version = EIOVersionEntity.wrapRow(row)
-                val bestandsdelen = bestandsDeelService.getBestandsDelen(version)
+                val bestandsdelen = bestandsDelenByVersion[version.id.value] ?: emptyList()
                 record.toResponse(version, bestandsdelen)
             }
 

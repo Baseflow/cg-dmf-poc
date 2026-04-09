@@ -10,6 +10,7 @@ import com.baseflow.entities.BestandsDeelEntity
 import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.EIOVersionEntity
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
@@ -67,6 +68,28 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
             .find { BestandsDelen.versionId eq version.id }
             .sortedBy { it.volgnummer }
             .map { it.toResponse() }
+    }
+
+    /**
+     * Retrieves bestandsdelen for a batch of version IDs in a single
+     * `WHERE version_id IN (...)` query, then groups the results in-memory.
+     *
+     * Use this instead of calling [getBestandsDelen] in a loop to avoid the
+     * N+1 query pattern on list endpoints.
+     *
+     * @return A map from version UUID to its (sorted) list of [BestandsDeelResponse] objects.
+     *         Versions that have no parts are absent from the map.
+     */
+    fun getBestandsDelenForVersions(versionIds: List<UUID>): Map<UUID, List<BestandsDeelResponse>> {
+        if (versionIds.isEmpty()) return emptyMap()
+        return transaction {
+            BestandsDeelEntity
+                .find { BestandsDelen.versionId inList versionIds }
+                .groupBy { it.versionId.id.value }
+                .mapValues { (_, parts) ->
+                    parts.sortedBy { it.volgnummer }.map { it.toResponse() }
+                }
+        }
     }
 
     /**

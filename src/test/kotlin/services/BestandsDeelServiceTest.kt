@@ -6,6 +6,7 @@ import com.baseflow.api.middleware.AuditContext
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BestandsDeelConfig
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.entities.BestandsDeelEntity
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.tooling.AllTables
 import io.mockk.every
@@ -206,6 +207,87 @@ class BestandsDeelServiceTest {
         val repeat = bestandsDeelService.markVoltooid(uuid, firstPart.lock)
         assertIs<MarkVoltooidResult.Success>(repeat)
         assertTrue(repeat.response.voltooid)
+    }
+
+    // ── getBestandsDelenForVersions ───────────────────────────────────────────
+
+    @Test
+    fun `getBestandsDelenForVersions returns empty map for empty input`() {
+        val result = bestandsDeelService.getBestandsDelenForVersions(emptyList())
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getBestandsDelenForVersions returns empty map when no versions have parts`() = runBlocking {
+        // bestandsomvang below trigger → no bestandsdelen rows created, so map is empty
+        eioService.create(generateTestDocument().copy(bestandsomvang = 5L))
+        val nonExistentVersionId = UUID.randomUUID()
+
+        val result = bestandsDeelService.getBestandsDelenForVersions(listOf(nonExistentVersionId))
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `getBestandsDelenForVersions returns parts grouped by version id`() = runBlocking {
+        // Two EIOs each producing 3 chunks: [4, 4, 3]
+        val eio1 = eioService.create(generateTestDocument().copy(bestandsomvang = 11L))
+        val eio2 = eioService.create(generateTestDocument().copy(bestandsomvang = 11L))
+
+        val version1Id = partUuidToVersionId(eio1.bestandsdelen.first().url)
+        val version2Id = partUuidToVersionId(eio2.bestandsdelen.first().url)
+
+        val result = bestandsDeelService.getBestandsDelenForVersions(listOf(version1Id, version2Id))
+
+        assertEquals(2, result.size)
+        val parts1 = result[version1Id]!!
+        val parts2 = result[version2Id]!!
+        assertEquals(3, parts1.size)
+        assertEquals(3, parts2.size)
+        // Parts must be sorted by volgnummer
+        assertEquals(listOf(1, 2, 3), parts1.map { it.volgnummer })
+        assertEquals(listOf(1, 2, 3), parts2.map { it.volgnummer })
+        // No URL overlap between the two versions
+        val urlsForVersion1 = parts1.map { it.url }.toSet()
+        val urlsForVersion2 = parts2.map { it.url }.toSet()
+        assertTrue(urlsForVersion1.intersect(urlsForVersion2).isEmpty())
+    }
+
+    @Test
+    fun `getBestandsDelenForVersions ignores unknown version ids`() = runBlocking {
+        val eio = eioService.create(generateTestDocument().copy(bestandsomvang = 11L))
+        val knownVersionId = partUuidToVersionId(eio.bestandsdelen.first().url)
+        val unknownId = UUID.randomUUID()
+
+        val result = bestandsDeelService.getBestandsDelenForVersions(listOf(knownVersionId, unknownId))
+
+        assertEquals(1, result.size)
+        assertTrue(result.containsKey(knownVersionId))
+        assertFalse(result.containsKey(unknownId))
+    }
+
+    @Test
+    fun `getBestandsDelenForVersions returns correct chunk sizes and ordering`() = runBlocking {
+        // 11 bytes with chunkSize=4 → chunks [4, 4, 3]
+        val eio = eioService.create(generateTestDocument().copy(bestandsomvang = 11L))
+        val versionId = partUuidToVersionId(eio.bestandsdelen.first().url)
+
+        val result = bestandsDeelService.getBestandsDelenForVersions(listOf(versionId))
+        val parts = result[versionId]!!
+
+        assertEquals(listOf(4L, 4L, 3L), parts.map { it.omvang })
+        parts.forEach { assertFalse(it.voltooid) }
+    }
+
+    /**
+     * Resolves the version UUID that owns the bestandsdeel whose URL ends in [partUrl].
+     * Used by tests to translate a response URL to the DB version primary key.
+     */
+    private fun partUuidToVersionId(partUrl: String): UUID {
+        val partId = UUID.fromString(partUrl.substringAfterLast("/"))
+        return transaction {
+            BestandsDeelEntity.findById(partId)!!.versionId.id.value
+        }
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
