@@ -14,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.UUID
 import kotlin.test.*
 
 class BestandsDeelServiceTest {
@@ -140,6 +141,71 @@ class BestandsDeelServiceTest {
         val request = generateTestDocument().copy(bestandsomvang = 5L) // below trigger of 10
         val response = eioService.create(request)
         assertTrue(response.bestandsdelen.isEmpty())
+    }
+
+    // ── markVoltooid ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `markVoltooid returns Success and sets voltooid to true for correct lock`() = runBlocking {
+        val request = generateTestDocument().copy(bestandsomvang = 11L)
+        val eio = eioService.create(request)
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
+
+        val result = bestandsDeelService.markVoltooid(uuid, part.lock)
+
+        assertIs<MarkVoltooidResult.Success>(result)
+        assertTrue(result.response.voltooid)
+        assertEquals(uuid.toString(), result.response.url.substringAfterLast("/"))
+    }
+
+    @Test
+    fun `markVoltooid returns InvalidLock when lock token does not match`(): Unit = runBlocking {
+        val request = generateTestDocument().copy(bestandsomvang = 11L)
+        val eio = eioService.create(request)
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
+
+        val result = bestandsDeelService.markVoltooid(uuid, "wrong-token")
+
+        assertIs<MarkVoltooidResult.InvalidLock>(result)
+    }
+
+    @Test
+    fun `markVoltooid returns NotFound for unknown UUID`() {
+        val result = bestandsDeelService.markVoltooid(UUID.randomUUID(), "any-token")
+
+        assertIs<MarkVoltooidResult.NotFound>(result)
+    }
+
+    @Test
+    fun `markVoltooid does not mutate other parts when one part is marked voltooid`() = runBlocking {
+        // 11 bytes → 3 chunks: [4, 4, 3]; mark only the first part as voltooid
+        val request = generateTestDocument().copy(bestandsomvang = 11L)
+        val eio = eioService.create(request)
+        val firstPart = eio.bestandsdelen[0]
+        val uuid = UUID.fromString(firstPart.url.substringAfterLast("/"))
+
+        bestandsDeelService.markVoltooid(uuid, firstPart.lock)
+
+        // The other two parts must still be voltooid = false
+        val secondUuid = UUID.fromString(eio.bestandsdelen[1].url.substringAfterLast("/"))
+        val thirdUuid = UUID.fromString(eio.bestandsdelen[2].url.substringAfterLast("/"))
+
+        val secondResult = bestandsDeelService.markVoltooid(secondUuid, eio.bestandsdelen[1].lock)
+        assertIs<MarkVoltooidResult.Success>(secondResult)
+        assertFalse(
+            (
+                bestandsDeelService.markVoltooid(
+                    thirdUuid,
+                    eio.bestandsdelen[2].lock,
+                ) as MarkVoltooidResult.Success
+                ).response.voltooid.not(),
+        )
+        // Calling markVoltooid on already-voltooid part should still succeed (idempotent)
+        val repeat = bestandsDeelService.markVoltooid(uuid, firstPart.lock)
+        assertIs<MarkVoltooidResult.Success>(repeat)
+        assertTrue(repeat.response.voltooid)
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
