@@ -13,7 +13,10 @@ CREATE TABLE bestandsdelen
   omvang     BIGINT       NOT NULL,
   voltooid   BOOLEAN      NOT NULL DEFAULT FALSE,
   lock       VARCHAR(100) NOT NULL DEFAULT '',
-  CONSTRAINT pk_bestandsdelen PRIMARY KEY (id)
+  CONSTRAINT pk_bestandsdelen PRIMARY KEY (id),
+  CONSTRAINT uq_bestandsdelen_version_volgnummer UNIQUE (version_id, volgnummer),
+  CONSTRAINT chk_bestandsdelen_volgnummer CHECK (volgnummer > 0),
+  CONSTRAINT chk_bestandsdelen_omvang CHECK (omvang > 0)
 );
 
 CREATE INDEX idx_bestandsdelen_version_id ON bestandsdelen (version_id);
