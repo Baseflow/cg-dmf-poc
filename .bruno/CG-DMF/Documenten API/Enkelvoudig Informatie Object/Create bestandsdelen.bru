@@ -1,7 +1,7 @@
 meta {
   name: Create BestandsDelen
   type: http
-  seq: 5
+  seq: 3
 }
 
 post {
@@ -30,7 +30,7 @@ body:json {
 vars:pre-request {
   file_base64: VGVzdGZpbGUgd2l0aCBqdXN0IHNvbWUgc2ltcGxlIGRhdGEKV2UgYmUgdGVzdGluZwo=
   file_sha256: 29331452e10453e92b66362e359a0a8d5dbee081ab366541e3f870a3fe3f8ecd
-  file_size:
+  file_size: 
   file_name: dj_test1
   local_date: 2025-12-16
 }
@@ -38,51 +38,51 @@ vars:pre-request {
 script:pre-request {
   const fs = require("fs");
   const path = require("path");
-
+  
   const fileName = "Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf";
-  const filePath = path.resolve(process.cwd(), ".bruno/data", fileName);
-
+  const filePath = path.resolve(bru.cwd(), "../data", fileName);
+  
   let fileBuffer;
-
+  
   try {
     fileBuffer = fs.readFileSync(filePath);
   } catch (err) {
     console.error("Failed to read file:", filePath, err.message);
-
+  
     bru.setEnvVar("file_error", `Failed to read file: ${err.message}`);
-
+  
     // Optional: abort request if the file is required
     if (typeof onFail === "function") {
       onFail("Pre-request failed: cannot read file: " + filePath);
     }
   }
-
+  
   // Only proceed if file read succeeded
   if (fileBuffer) {
     // -----------------------------------------------------------------
     // Base64
     // -----------------------------------------------------------------
     const base64Content = fileBuffer.toString("base64");
-
+  
     // -----------------------------------------------------------------
     // File size
     // -----------------------------------------------------------------
     const fileSize = fileBuffer.length;
-
+  
     // -----------------------------------------------------------------
     // Store env vars
     // -----------------------------------------------------------------
-    bru.setEnvVar("file_size_eio_parts", fileSize);
+    bru.setVar("file_size_eio_parts", fileSize);
     bru.setVar("file_name_eio_parts", fileName);
     bru.setVar("part_base64", base64Content);
   }
-
+  
 }
 
 script:post-response {
   const createdId = res.body.id;
   bru.setVar("bestandsDelenEioID", createdId);
-
+  
   function saveBestandsDelen(index) {
     const regex = /[^\/]*$/gm
     const bd = res.body.bestandsdelen[index]
@@ -90,9 +90,9 @@ script:post-response {
     const bestandsDeel = regex.exec(url)[0]
     bru.setVar("bestandsDeel" + (index + 1), bestandsDeel)
   }
-
+  
   bru.setVar("lockId", res.body.bestandsdelen[0])
-
+  
   saveBestandsDelen(0)
   saveBestandsDelen(1)
   saveBestandsDelen(2)
