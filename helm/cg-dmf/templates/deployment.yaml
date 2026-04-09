@@ -76,14 +76,20 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.extraVolumeMounts }}
           volumeMounts:
+            # /tmp must be writable for the Ktor OpenAPI plugin to generate its swagger-codegen
+            # output at startup. Required when readOnlyRootFilesystem: true.
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.extraVolumeMounts }}
             {{- include "cg-dmf.tplvalues.render" (dict "value" .Values.extraVolumeMounts "context" $) | nindent 12 }}
-          {{- end }}
-      {{- if .Values.extraVolumes }}
+            {{- end }}
       volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.extraVolumes }}
         {{- include "cg-dmf.tplvalues.render" (dict "value" .Values.extraVolumes "context" $) | nindent 8 }}
-      {{- end }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

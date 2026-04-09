@@ -138,9 +138,10 @@ fun Application.openApiModule() {
             staticResources("/swaggerui", "static/swagger-ui")
 
             // Ktor built-in OpenAPI UI — generated directly from routing annotations
-            // Output is redirected to build/tmp to prevent swagger-codegen from polluting docs/
+            // Output is redirected to a system temp dir so it works in both local and containerised
+            // environments (a relative "build/tmp" path does not exist in Docker/Kubernetes).
             openAPI("ktor-openapi") {
-                outputPath = "build/tmp/swagger-codegen"
+                outputPath = System.getProperty("java.io.tmpdir") + "/swagger-codegen"
                 source = OpenApiDocSource.Routing {
                     routingRoot.descendants()
                 }
