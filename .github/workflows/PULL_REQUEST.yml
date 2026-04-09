@@ -14,6 +14,11 @@ jobs:
       issues: write
     uses: ./.github/workflows/LINT.yml
 
+  helm-lint:
+    permissions:
+      issues: write
+    uses: ./.github/workflows/HELM_LINT.yml
+
   test:
     uses: ./.github/workflows/TEST.yml
     secrets: inherit
