@@ -4,16 +4,17 @@ package com.baseflow.api.routes
 
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.services.BestandsDeelService
-import com.baseflow.services.MarkVoltooidResult
+import com.baseflow.services.StorageService
+import com.baseflow.services.UploadFilePartResult
 import io.ktor.http.*
-import io.ktor.http.content.PartData
-import io.ktor.http.content.forEachPart
+import io.ktor.http.content.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.routing.openapi.describe
-import io.ktor.utils.io.ExperimentalKtorApi
-import java.util.UUID
+import io.ktor.server.routing.openapi.*
+import io.ktor.utils.io.*
+import kotlinx.io.readByteArray
+import java.util.*
 
 /**
  * BestandsDeel routes
@@ -68,14 +69,17 @@ fun Route.bestandsDelenRoutes() {
                 )
             }
 
-        // Parse multipart body to extract lock token.
-        // The 'inhoud' file part is consumed and discarded here; in a production
-        // implementation it would be streamed directly to the storage backend.
+        // Parse multipart body to extract lock token and file content.
+        // The 'inhoud' binary part is read into memory and forwarded to the storage backend.
         var lockToken: String? = null
+        var inhoudBytes: ByteArray? = null
 
         call.receiveMultipart().forEachPart { part ->
-            if (part is PartData.FormItem && part.name == "lock") {
-                lockToken = part.value
+            when {
+                part is PartData.FormItem && part.name == "lock" -> lockToken = part.value
+                part is PartData.FileItem && part.name == "inhoud" ->
+                    inhoudBytes =
+                        part.provider().readRemaining().readByteArray()
             }
             part.dispose()
         }
@@ -87,21 +91,31 @@ fun Route.bestandsDelenRoutes() {
             )
         }
 
-        val service: BestandsDeelService =
-            call.attributes.getOrNull(RequestScopeKey)?.get()
-                ?: return@put call.respond(
-                    HttpStatusCode.InternalServerError,
-                    mapOf("detail" to "Service not available"),
-                )
+        val scope = call.attributes.getOrNull(RequestScopeKey)
+            ?: return@put call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("detail" to "Service not available"),
+            )
 
-        when (val result = service.markVoltooid(id, requireNotNull(lockToken))) {
-            is MarkVoltooidResult.NotFound ->
+        val service: BestandsDeelService = scope.get()
+        val storageService: StorageService = scope.get()
+
+        when (val result = service.uploadFilePart(id, requireNotNull(lockToken), inhoudBytes, storageService)) {
+            is UploadFilePartResult.NotFound ->
                 call.respond(HttpStatusCode.NotFound, mapOf("detail" to "BestandsDeel niet gevonden"))
 
-            is MarkVoltooidResult.InvalidLock ->
+            is UploadFilePartResult.InvalidLock ->
                 call.respond(HttpStatusCode.Forbidden, mapOf("detail" to "Ongeldige lock token"))
 
-            is MarkVoltooidResult.Success ->
+            is UploadFilePartResult.OmvangMismatch ->
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf(
+                        "detail" to "Bestandsomvang komt niet overeen: verwacht ${result.expected} bytes, ontvangen ${result.actual} bytes",
+                    ),
+                )
+
+            is UploadFilePartResult.Success ->
                 call.respond(HttpStatusCode.OK, result.response)
         }
     }

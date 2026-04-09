@@ -87,6 +87,7 @@ class BestandsDeelServiceTest {
 
     private lateinit var eioService: EnkelvoudigInformatieObjectService
     private lateinit var bestandsDeelService: BestandsDeelService
+    private lateinit var mockStorageService: StorageService
 
     @BeforeTest
     fun setupDb() {
@@ -102,7 +103,7 @@ class BestandsDeelServiceTest {
         val smallConfig = testConfig(triggerSize = 10L, chunkSize = 4L)
         bestandsDeelService = BestandsDeelService(smallConfig)
 
-        val mockStorageService = mockk<StorageService>()
+        mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any(), any()) } returns Unit
         val auditContext = AuditContext()
         eioService = EnkelvoudigInformatieObjectService(
@@ -144,68 +145,124 @@ class BestandsDeelServiceTest {
         assertTrue(response.bestandsdelen.isEmpty())
     }
 
-    // ── markVoltooid ─────────────────────────────────────────────────────────
+    // ── uploadFilePart ─────────────────────────────────────────────────────────
 
     @Test
-    fun `markVoltooid returns Success and sets voltooid to true for correct lock`() = runBlocking {
+    fun `uploadFilePart returns Success and sets voltooid to true for correct lock`() = runBlocking {
         val request = generateTestDocument().copy(bestandsomvang = 11L)
         val eio = eioService.create(request)
         val part = eio.bestandsdelen.first()
         val uuid = UUID.fromString(part.url.substringAfterLast("/"))
 
-        val result = bestandsDeelService.markVoltooid(uuid, part.lock)
+        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, null, mockStorageService)
 
-        assertIs<MarkVoltooidResult.Success>(result)
+        assertIs<UploadFilePartResult.Success>(result)
         assertTrue(result.response.voltooid)
         assertEquals(uuid.toString(), result.response.url.substringAfterLast("/"))
     }
 
     @Test
-    fun `markVoltooid returns InvalidLock when lock token does not match`(): Unit = runBlocking {
+    fun `uploadFilePart uploads chunk to storage under correct key`() = runBlocking {
+        val request = generateTestDocument().copy(bestandsomvang = 11L)
+        val eio = eioService.create(request)
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
+        val chunkBytes = ByteArray(4) { it.toByte() }
+
+        val capturedKeys = mutableListOf<String>()
+        val capturedContent = mutableListOf<ByteArray>()
+        every { mockStorageService.uploadFile(capture(capturedKeys), capture(capturedContent)) } returns Unit
+
+        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, chunkBytes, mockStorageService)
+
+        assertIs<UploadFilePartResult.Success>(result)
+        assertEquals(1, capturedKeys.size)
+        // Key must follow pattern: {recordId}/{versie}/parts/{bestandsDeelId}
+        val keyParts = capturedKeys[0].split("/")
+        assertEquals(4, keyParts.size)
+        assertEquals("parts", keyParts[2])
+        assertEquals(uuid.toString(), keyParts[3])
+        assertContentEquals(chunkBytes, capturedContent[0])
+    }
+
+    @Test
+    fun `uploadFilePart does not call storage when no content is provided`() = runBlocking {
         val request = generateTestDocument().copy(bestandsomvang = 11L)
         val eio = eioService.create(request)
         val part = eio.bestandsdelen.first()
         val uuid = UUID.fromString(part.url.substringAfterLast("/"))
 
-        val result = bestandsDeelService.markVoltooid(uuid, "wrong-token")
+        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, null, mockStorageService)
 
-        assertIs<MarkVoltooidResult.InvalidLock>(result)
+        assertIs<UploadFilePartResult.Success>(result)
+        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any()) }
     }
 
     @Test
-    fun `markVoltooid returns NotFound for unknown UUID`() {
-        val result = bestandsDeelService.markVoltooid(UUID.randomUUID(), "any-token")
+    fun `uploadFilePart returns InvalidLock when lock token does not match`(): Unit = runBlocking {
+        val request = generateTestDocument().copy(bestandsomvang = 11L)
+        val eio = eioService.create(request)
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
 
-        assertIs<MarkVoltooidResult.NotFound>(result)
+        val result = bestandsDeelService.uploadFilePart(uuid, "wrong-token", null, mockStorageService)
+
+        assertIs<UploadFilePartResult.InvalidLock>(result)
     }
 
     @Test
-    fun `markVoltooid does not mutate other parts when one part is marked voltooid`() = runBlocking {
+    fun `uploadFilePart returns NotFound for unknown UUID`() {
+        val result = bestandsDeelService.uploadFilePart(UUID.randomUUID(), "any-token", null, mockStorageService)
+
+        assertIs<UploadFilePartResult.NotFound>(result)
+    }
+
+    @Test
+    fun `uploadFilePart returns OmvangMismatch when content size does not match omvang`() = runBlocking {
+        val request = generateTestDocument().copy(bestandsomvang = 11L)
+        val eio = eioService.create(request)
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
+        val wrongSizeBytes = ByteArray(3) { it.toByte() } // part.omvang is 4, not 3
+
+        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, wrongSizeBytes, mockStorageService)
+
+        assertIs<UploadFilePartResult.OmvangMismatch>(result)
+        assertEquals(part.omvang, result.expected)
+        assertEquals(3L, result.actual)
+        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any()) }
+    }
+
+    @Test
+    fun `uploadFilePart does not mutate other parts when one part is marked voltooid`() = runBlocking {
         // 11 bytes → 3 chunks: [4, 4, 3]; mark only the first part as voltooid
         val request = generateTestDocument().copy(bestandsomvang = 11L)
         val eio = eioService.create(request)
         val firstPart = eio.bestandsdelen[0]
         val uuid = UUID.fromString(firstPart.url.substringAfterLast("/"))
 
-        bestandsDeelService.markVoltooid(uuid, firstPart.lock)
+        bestandsDeelService.uploadFilePart(uuid, firstPart.lock, null, mockStorageService)
 
         // The other two parts must still be voltooid = false
         val secondUuid = UUID.fromString(eio.bestandsdelen[1].url.substringAfterLast("/"))
         val thirdUuid = UUID.fromString(eio.bestandsdelen[2].url.substringAfterLast("/"))
 
-        val secondResult = bestandsDeelService.markVoltooid(secondUuid, eio.bestandsdelen[1].lock)
-        assertIs<MarkVoltooidResult.Success>(secondResult)
+        val secondResult =
+            bestandsDeelService.uploadFilePart(secondUuid, eio.bestandsdelen[1].lock, null, mockStorageService)
+        assertIs<UploadFilePartResult.Success>(secondResult)
         assertFalse(
             (
-                bestandsDeelService.markVoltooid(
+                bestandsDeelService.uploadFilePart(
                     thirdUuid,
                     eio.bestandsdelen[2].lock,
-                ) as MarkVoltooidResult.Success
+                    null,
+                    mockStorageService,
+                ) as UploadFilePartResult.Success
                 ).response.voltooid.not(),
         )
-        // Calling markVoltooid on already-voltooid part should still succeed (idempotent)
-        val repeat = bestandsDeelService.markVoltooid(uuid, firstPart.lock)
-        assertIs<MarkVoltooidResult.Success>(repeat)
+        // Calling uploadFilePart on already-voltooid part should still succeed (idempotent)
+        val repeat = bestandsDeelService.uploadFilePart(uuid, firstPart.lock, null, mockStorageService)
+        assertIs<UploadFilePartResult.Success>(repeat)
         assertTrue(repeat.response.voltooid)
     }
 

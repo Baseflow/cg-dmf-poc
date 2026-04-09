@@ -16,6 +16,9 @@ import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import java.util.UUID
 
+/** S3 object key for a bestandsdeel chunk. */
+internal fun bestandsDeelStorageKey(recordId: UUID, versie: Int, bestandsDeelId: UUID): String = "$recordId/$versie/parts/$bestandsDeelId"
+
 /**
  * Service responsible for managing bestandsdelen (file parts) used in the
  * chunked-upload workflow for large files.
@@ -93,15 +96,42 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
     }
 
     /**
-     * Marks a bestandsdeel as completed (voltooid = true).
-     * Returns false when the provided [lockToken] does not match the stored lock.
+     * Uploads a file chunk to S3 and marks the bestandsdeel as completed (voltooid = true).
+     *
+     * The chunk is stored under the key `{recordId}/{versie}/parts/{bestandsDeelId}` so it
+     * can later be reassembled in the correct order when the parent EIO is unlocked.
+     *
+     * @param id          UUID of the [BestandsDeelEntity] to update.
+     * @param lockToken   Lock token that must match the one stored on the part.
+     * @param content     Raw bytes of the uploaded chunk (may be empty/null if no file was sent).
+     * @param storageService  Service used to persist the chunk in S3.
+     * @return [UploadFilePartResult.Success], [UploadFilePartResult.NotFound], [UploadFilePartResult.InvalidLock]
+     *         or [UploadFilePartResult.OmvangMismatch].
      */
-    fun markVoltooid(id: UUID, lockToken: String): MarkVoltooidResult = transaction {
-        val part = BestandsDeelEntity.findById(id) ?: return@transaction MarkVoltooidResult.NotFound
-        if (part.lock != lockToken) return@transaction MarkVoltooidResult.InvalidLock
-        part.voltooid = true
-        MarkVoltooidResult.Success(part.toResponse())
-    }
+    fun uploadFilePart(id: UUID, lockToken: String, content: ByteArray?, storageService: StorageService): UploadFilePartResult =
+        transaction {
+            val part = BestandsDeelEntity.findById(id) ?: return@transaction UploadFilePartResult.NotFound
+            if (part.lock != lockToken) return@transaction UploadFilePartResult.InvalidLock
+
+            if (content != null && content.isNotEmpty()) {
+                if (content.size.toLong() != part.omvang) {
+                    return@transaction UploadFilePartResult.OmvangMismatch(
+                        expected = part.omvang,
+                        actual = content.size.toLong(),
+                    )
+                }
+                val version = part.versionId
+                val storageKey = bestandsDeelStorageKey(
+                    recordId = version.recordId.id.value,
+                    versie = version.versie,
+                    bestandsDeelId = id,
+                )
+                storageService.uploadFile(storageKey, content)
+            }
+
+            part.voltooid = true
+            UploadFilePartResult.Success(part.toResponse())
+        }
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -131,8 +161,9 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
     )
 }
 
-sealed class MarkVoltooidResult {
-    data class Success(val response: BestandsDeelResponse) : MarkVoltooidResult()
-    data object NotFound : MarkVoltooidResult()
-    data object InvalidLock : MarkVoltooidResult()
+sealed class UploadFilePartResult {
+    data class Success(val response: BestandsDeelResponse) : UploadFilePartResult()
+    data object NotFound : UploadFilePartResult()
+    data object InvalidLock : UploadFilePartResult()
+    data class OmvangMismatch(val expected: Long, val actual: Long) : UploadFilePartResult()
 }
