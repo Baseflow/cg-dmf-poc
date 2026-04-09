@@ -155,8 +155,8 @@ class EnkelvoudigInformatieObjectService(
         val response = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
-            val bestandsdelen = bestandsDeelService.getBestandsDelen(version)
-            record.toResponse(version, bestandsdelen)
+            val bestandsDelen = bestandsDeelService.getBestandsDelen(version)
+            record.toResponse(version, bestandsDelen)
         } ?: return null
 
         return resolveExpand(response, expand)
