@@ -111,7 +111,7 @@ data class Integriteit(val algoritme: IntegriteitAlgoritme, val waarde: String, 
 }
 
 @Serializable
-data class BestandsDeelResponse(val url: String, val volgnummer: Int, val omvang: Long, val voltooid: Boolean, val lock: Boolean)
+data class BestandsDeelResponse(val url: String, val volgnummer: Int, val omvang: Long, val voltooid: Boolean, val lock: String)
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
