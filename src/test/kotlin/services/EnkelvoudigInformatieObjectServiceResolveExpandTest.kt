@@ -68,12 +68,13 @@ class EnkelvoudigInformatieObjectServiceResolveExpandTest {
             catalogusService = catalogusService,
             auditTrailService = AuditTrailService(auditContext),
             auditContext = auditContext,
+            bestandsDeelService = BestandsDeelService(),
         )
     }
 
     @BeforeTest
     fun setup() {
-        Database.Companion.connect(
+        Database.connect(
             "jdbc:h2:mem:test_expand;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
             user = "root",
@@ -84,7 +85,7 @@ class EnkelvoudigInformatieObjectServiceResolveExpandTest {
         val mockEngine = MockEngine.Companion {
             respond(
                 content = ByteReadChannel(iotypeJson),
-                status = HttpStatusCode.Companion.OK,
+                status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }

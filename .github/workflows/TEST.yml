@@ -7,8 +7,6 @@ on:
     secrets:
       OPENZAAK_CLIENT_SECRET:
         required: true
-      S3_SECRET_KEY:
-        required: true
 
 jobs:
   test:
@@ -32,7 +30,6 @@ jobs:
         run: ./gradlew test --console=plain --no-daemon
         env:
           OPENZAAK_CLIENT_SECRET: ${{ secrets.OPENZAAK_CLIENT_SECRET }}
-          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
 
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v6
