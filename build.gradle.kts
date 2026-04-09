@@ -137,6 +137,10 @@ spotless {
 
 application {
     mainClass.set("com.baseflow.MainKt")
+    // Netty uses System::loadLibrary (a restricted method) to load native libs for
+    // better I/O performance. Without this flag the JVM emits warnings today and will
+    // block the call entirely in a future release.
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
 // ── Swagger UI ────────────────────────────────────────────────────────────────
