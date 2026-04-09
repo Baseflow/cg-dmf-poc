@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.models
+
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * EnkelvoudigInformatieObject request model.
@@ -145,6 +147,8 @@ data class EnkelvoudigInformatieObjectResponse(
     val lock: String,
     @kotlinx.serialization.EncodeDefault
     val locked: Boolean,
+    @SerialName("_expand")
+    val expand: JsonObject? = null,
 ) : ApiEntityResponse
 
 @Serializable
@@ -255,5 +259,6 @@ data class UnlockEIORequest(val lock: String) : ApiRequest
 data class EIOZoekRequest(
     @SerialName("uuid_In")
     val uuidIn: List<String>,
+    @SerialName("expand")
     val expand: String? = null,
 ) : ApiRequest

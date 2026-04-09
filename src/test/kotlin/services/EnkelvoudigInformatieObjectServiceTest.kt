@@ -114,7 +114,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `getById should return null for unknown id`() {
+    fun `getById should return null for unknown id`() = runBlocking {
         val found = service.getById(UUID.randomUUID())
         assertNull(found)
     }
@@ -751,7 +751,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertNotNull(v3)
 
         // Call getAll
-        val (results, total) = service.getAll(QueryEnkelvoudigeInformatieObjectenFilter())
+        val (results, _) = service.getAll(QueryEnkelvoudigeInformatieObjectenFilter())
         // There should be only one record (since we only created one)
         assertEquals(1, results.size)
         // The returned version should be the latest (3)

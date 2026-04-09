@@ -105,7 +105,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 }
                 query("expand") { description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in." }
                 query("page") { description = "Een pagina binnen de gepagineerde set resultaten." }
-                query("pageSize") { description = "Het aantal resultaten terug te geven per pagina. (default: 100, maximum: 500)." }
+                query("pageSize") {
+                    description = "Het aantal resultaten terug te geven per pagina. (default: 100, maximum: 500)."
+                }
                 // Experimental filter features
                 query("informatieobjecttype") {
                     description =
@@ -173,10 +175,12 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                         "vertrouwelijkheidaanduiding (en hun `-`-varianten)."
                 }
                 query("objectinformatieobjecten__object") {
-                    description = "**EXPERIMENTEEL** URL-referentie naar het gerelateerde object (in deze of een andere API)."
+                    description =
+                        "**EXPERIMENTEEL** URL-referentie naar het gerelateerde object (in deze of een andere API)."
                 }
                 query("objectinformatieobjecten__objectType") {
-                    description = "**EXPERIMENTEEL** Het type van het gerelateerde object. Mogelijke waarden: zaak, besluit, etc."
+                    description =
+                        "**EXPERIMENTEEL** Het type van het gerelateerde object. Mogelijke waarden: zaak, besluit, etc."
                 }
             }
             responses {
@@ -261,7 +265,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             operationId = "enkelvoudiginformatieobjecten_zoek"
             tag("enkelvoudiginformatieobjecten")
             summary = "Voer een zoekopdracht uit op enkelvoudige informatieobjecten."
-            description = "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
+            description =
+                "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
             requestBody {
                 required = true
                 description = "Zoekcriteria."
@@ -337,6 +342,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                     query("versie") { description = "Specifieke versie van het informatieobject." }
                     query("registratieOp") { description = "Filtert op de registratiedatum." }
+                    query("expand") {
+                        description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in."
+                    }
                 }
                 responses {
                     response(200) { description = "OK." }
@@ -630,7 +638,7 @@ private suspend fun RoutingContext.create() {
 
 private suspend fun RoutingContext.zoek() {
     val request = call.receive<EIOZoekRequest>()
-    val (page, pageSize, filter) = getFilters(request.uuidIn)
+    val (page, pageSize, filter) = getFilters(request.uuidIn, request.expand)
 
     val (items, totalCount) = service.getAll(filter)
     val response = PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize)
@@ -638,9 +646,12 @@ private suspend fun RoutingContext.zoek() {
     call.respond(response)
 }
 
-private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
-    val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
+private fun RoutingContext.getFilters(
+    uuidIn: List<String> = emptyList(),
+    expandStr: String? = null,
+): Triple<Int, Int, QueryEnkelvoudigeInformatieObjectenFilter> {
     val params = call.request.queryParameters
+    val expand = splitOnComma(expandStr ?: params["expand"])
     val bronOrganisatie = params["bronorganisatie"]
     val trefwoorden = params.getAll("trefwoorden") ?: emptyList()
     val trefwoordenOverlap = params.getAll("trefwoorden__overlap") ?: emptyList()
@@ -703,9 +714,15 @@ private fun RoutingContext.getFilters(uuidIn: List<String> = emptyList()): Tripl
         registratiedatumGte = registratiedatumGte,
         locked = locked,
         ordering = ordering,
+        expand = expand,
     )
     return Triple(page, pageSize, filter)
 }
+
+private fun splitOnComma(params: String?): List<String> = (
+    params?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?: emptyList()
+    )
 
 private suspend fun RoutingContext.head() {
     val uuidString = call.parameters["uuid"]
@@ -739,9 +756,11 @@ private suspend fun RoutingContext.get() {
         return
     }
 
+    val expand = splitOnComma(call.parameters["expand"])
+
     try {
         val uuid = UUID.fromString(uuidString)
-        val result = service.getById(uuid)
+        val result = service.getById(uuid, expand)
 
         if (result == null) {
             call.respondProblem(
