@@ -36,7 +36,7 @@ brew install openjdk@21 gradle docker docker-compose
     ```
 
 2. **Start services:**
-    The minimal services required for development can be started with Docker Compose:
+   The minimal services required for development can be started with Docker Compose:
 
     ```bash
     docker-compose up -d postgres keycloak minio
@@ -49,7 +49,7 @@ Additional service dependencies for optional features can be started with Docker
     ```
 
 3. **Run migrations:**
-Initialize the database with the initial layout:
+   Initialize the database with the initial layout:
 
     ```bash
     ./gradlew flywayMigrate
@@ -61,9 +61,7 @@ Initialize the database with the initial layout:
     ```
 
 5. **Configure**
-Copy the .env.example file to .env and fill in any configuration that you may have modified from the defaults.
-
-
+   Copy the .env.example file to .env and fill in any configuration that you may have modified from the defaults.
 
 ## Common development tasks
 
@@ -81,12 +79,33 @@ Copy the .env.example file to .env and fill in any configuration that you may ha
 ```
 
 ### Use the API via Bruno
+
 You can use [Bruno](https://www.usebruno.com) to test the API. Bruno is a Postman like tool
 
 1. To use Bruno, open the collection located in `.bruno/CG-DMF` with the Bruno application.
 2. Click the "Shield" icon next to the environment selector and switch from Sandbox to Developer mode.
 3. Configure your environment at the top right of the window.
-By default for local development we connect to the openzaak instance of baseflow development cluster.
+   By default for local development we connect to the openzaak instance of baseflow development cluster.
+
+You can also run the Bruno test collection with the Bruno cli:
+
+1. Install the Bruno cli: `npm install -g @usebruno/cli`
+2. Run the collection:
+   `bru run --sandbox=developer --env localhost --env-var jwt.clientSecret=yoursecret --env-var jwt.clientId=gzac --reporter-junit results.xml`
+    - This collection is also run as part of the CI pipeline, see `.github/workflows/ci.yml` for details
+    - Make sure you set the following environment variables if you want the tests to pass (otherwise no bestandsdelen
+      will be created and the tests will fail):
+
+```
+BESTANDSDELEN_TRIGGER_SIZE=100000
+BESTANDSDELEN_CHUNK_SIZE=100000
+```   
+
+### Run integration tests that are run on build server via Docker Compose
+
+```bash
+JWT_CLIENT_SECRET=your-secret docker compose -f docker-compose.integration-test.yml up bruno --build
+```
 
 ### Database Migrations
 

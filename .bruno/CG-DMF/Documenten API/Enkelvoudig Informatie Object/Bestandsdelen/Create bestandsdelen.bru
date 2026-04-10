@@ -1,7 +1,7 @@
 meta {
   name: Create BestandsDelen
   type: http
-  seq: 3
+  seq: 1
 }
 
 post {
@@ -33,6 +33,15 @@ vars:pre-request {
   file_size: 
   file_name: dj_test1
   local_date: 2025-12-16
+}
+
+vars:post-response {
+  bestandsDelenEioID: res.body.id
+  lockId: res.body.bestandsdelen[0].lock
+}
+
+assert {
+  res.status: eq 201
 }
 
 script:pre-request {
@@ -80,9 +89,6 @@ script:pre-request {
 }
 
 script:post-response {
-  const createdId = res.body.id;
-  bru.setVar("bestandsDelenEioID", createdId);
-  
   function saveBestandsDelen(index) {
     const regex = /[^\/]*$/gm
     const bd = res.body.bestandsdelen[index]
@@ -90,8 +96,6 @@ script:post-response {
     const bestandsDeel = regex.exec(url)[0]
     bru.setVar("bestandsDeel" + (index + 1), bestandsDeel)
   }
-  
-  bru.setVar("lockId", res.body.bestandsdelen[0])
   
   saveBestandsDelen(0)
   saveBestandsDelen(1)

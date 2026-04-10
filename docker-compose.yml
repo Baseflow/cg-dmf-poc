@@ -1,4 +1,4 @@
-name: dmf-dev
+name: cg-dmf-poc
 
 services:
   postgres:

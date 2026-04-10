@@ -88,7 +88,9 @@ services:
     command: >-
       -c "npm install &&
       npx @usebruno/cli run --env CI --sandbox=developer --env-var 'jwt.clientSecret=$$JWT_CLIENT_SECRET' --reporter-junit /results/results.xml --reporter-html /results/output.html;
-      if [ \"$$BRUNO_KEEP_ALIVE\" = 'true' ]; then tail -f /dev/null; fi"
+      BRUNO_EXIT=$$?;
+      if [ \"$$BRUNO_KEEP_ALIVE\" = 'true' ]; then tail -f /dev/null; fi;
+      exit $$BRUNO_EXIT"
     depends_on:
       app:
         condition: service_healthy

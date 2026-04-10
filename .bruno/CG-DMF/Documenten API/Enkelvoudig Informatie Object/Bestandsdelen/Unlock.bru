@@ -1,11 +1,11 @@
 meta {
   name: Unlock
   type: http
-  seq: 8
+  seq: 7
 }
 
 post {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}/unlock
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{bestandsDelenEioID}}/unlock
   body: json
   auth: inherit
 }
@@ -19,7 +19,6 @@ body:json {
 assert {
   res.status: eq 204
 }
-
 
 settings {
   encodeUrl: true

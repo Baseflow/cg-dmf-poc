@@ -1,13 +1,17 @@
 meta {
-  name: Delete
+  name: Delete eio
   type: http
-  seq: 11
+  seq: 12
 }
 
 delete {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}
   body: none
   auth: inherit
+}
+
+assert {
+  res.status: eq 204
 }
 
 settings {

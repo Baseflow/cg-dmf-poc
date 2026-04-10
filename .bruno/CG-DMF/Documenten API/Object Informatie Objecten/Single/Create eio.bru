@@ -41,9 +41,12 @@ vars:pre-request {
   local_date: 2025-12-16
 }
 
-script:post-response {
-  const createdId = res.body.id;
-  bru.setVar("createdId", createdId);
+vars:post-response {
+  createdId: res.body.id
+}
+
+assert {
+  res.status: eq 201
 }
 
 settings {

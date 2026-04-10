@@ -1,20 +1,20 @@
 meta {
-  name: Get
+  name: Delete oio
   type: http
   seq: 3
 }
 
-get {
+delete {
   url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten/{{createdOio}}
   body: none
   auth: inherit
 }
 
+assert {
+  res.status: eq 204
+}
+
 settings {
   encodeUrl: true
   timeout: 0
-}
-
-assert {
-  res.status: eq 200
 }
