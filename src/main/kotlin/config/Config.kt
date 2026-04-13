@@ -71,7 +71,6 @@ abstract class Config {
             )
         }
 
-
         /**
          * Returns a merged map of all key→value pairs from both the `.env` file (dotenv)
          * and the process environment ([System.getenv]).
