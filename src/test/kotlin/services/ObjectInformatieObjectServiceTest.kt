@@ -5,7 +5,7 @@ package com.baseflow.services
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.models.SubjectTypeEnum
+import com.baseflow.api.models.SubjectType
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.entities.OIORecordEntity
@@ -78,7 +78,7 @@ class ObjectInformatieObjectServiceTest {
         informatieobject: String =
             "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/12345678-1234-1234-1234-123456789012",
         subjectObject: String = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-        subjectType: SubjectTypeEnum = SubjectTypeEnum.ZAAK,
+        subjectType: SubjectType = SubjectType("zaak"),
     ): CreateOIORequest = CreateOIORequest(
         informatieobject = informatieobject,
         subjectObject = subjectObject,
@@ -395,17 +395,17 @@ class ObjectInformatieObjectServiceTest {
         val zaakReq = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1",
             subjectObject = "https://example.com/zaken/api/v1/zaken/11111111-1111-1111-1111-111111111111",
-            subjectType = SubjectTypeEnum.ZAAK,
+            subjectType = SubjectType("zaak"),
         )
         val besluitReq = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2",
             subjectObject = "https://example.com/besluiten/api/v1/besluiten/22222222-2222-2222-2222-222222222222",
-            subjectType = SubjectTypeEnum.BESLUIT,
+            subjectType = SubjectType("besluit"),
         )
         val verzoekReq = createTestOIORequest(
             informatieobject = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId3",
             subjectObject = "https://example.com/verzoeken/api/v1/verzoeken/33333333-3333-3333-3333-333333333333",
-            subjectType = SubjectTypeEnum.VERZOEK,
+            subjectType = SubjectType("verzoek"),
         )
 
         val zaakResult = service.create(zaakReq)
@@ -416,9 +416,66 @@ class ObjectInformatieObjectServiceTest {
         assertTrue(besluitResult is CreateOIOResult.Success)
         assertTrue(verzoekResult is CreateOIOResult.Success)
 
-        assertEquals(SubjectTypeEnum.ZAAK, zaakResult.payload.subjectType)
-        assertEquals(SubjectTypeEnum.BESLUIT, besluitResult.payload.subjectType)
-        assertEquals(SubjectTypeEnum.VERZOEK, verzoekResult.payload.subjectType)
+        assertEquals(SubjectType("zaak"), zaakResult.payload.subjectType)
+        assertEquals(SubjectType("besluit"), besluitResult.payload.subjectType)
+        assertEquals(SubjectType("verzoek"), verzoekResult.payload.subjectType)
+    }
+
+    @Test
+    fun `SubjectType should accept non-standard but valid type`() {
+        // A value that is not zaak, verzoek or besluit but matches the format rules should be accepted
+        val subjectType = SubjectType("overig")
+        assertEquals("overig", subjectType.value)
+    }
+
+    @Test
+    fun `SubjectType should accept hyphenated non-standard type`() {
+        val subjectType = SubjectType("mijn-object-type")
+        assertEquals("mijn-object-type", subjectType.value)
+    }
+
+    @Test
+    fun `SubjectType should reject blank value`() {
+        assertFailsWith<IllegalArgumentException> {
+            SubjectType("   ")
+        }
+    }
+
+    @Test
+    fun `SubjectType should reject value with spaces`() {
+        assertFailsWith<IllegalArgumentException> {
+            SubjectType("invalid type")
+        }
+    }
+
+    @Test
+    fun `SubjectType should reject value with leading hyphen`() {
+        assertFailsWith<IllegalArgumentException> {
+            SubjectType("-invalid")
+        }
+    }
+
+    @Test
+    fun `SubjectType should reject value with trailing hyphen`() {
+        assertFailsWith<IllegalArgumentException> {
+            SubjectType("invalid-")
+        }
+    }
+
+    @Test
+    fun `create should succeed with non-standard objectType value`() {
+        val eioId = createTestEIO(versie = 1)
+        val eioUrl = "https://example.com/documenten/api/v1/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId"
+
+        val req = createTestOIORequest(
+            informatieobject = eioUrl,
+            subjectObject = "https://example.com/overige/api/v1/objecten/11111111-1111-1111-1111-111111111111",
+            subjectType = SubjectType("overig"),
+        )
+        val result = service.create(req)
+
+        assertTrue(result is CreateOIOResult.Success)
+        assertEquals(SubjectType("overig"), result.payload.subjectType)
     }
 
     @Test

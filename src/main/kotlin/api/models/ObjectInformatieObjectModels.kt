@@ -2,8 +2,12 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.models
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
 /**
  * ObjectInformatieObject request model for creating a relation
@@ -14,7 +18,7 @@ data class CreateOIORequest(
     @SerialName("object")
     val subjectObject: String,
     @SerialName("objectType")
-    val subjectType: SubjectTypeEnum,
+    val subjectType: SubjectType,
 ) : ApiRequest {
     init {
         require(informatieobject.isNotBlank()) { "Informatieobject mag niet leeg zijn" }
@@ -45,20 +49,36 @@ data class ObjectInformatieObjectResponse(
     @SerialName("object")
     val subjectObject: String,
     @SerialName("objectType")
-    val subjectType: SubjectTypeEnum,
+    val subjectType: SubjectType,
 ) : ApiEntityResponse
 
 /**
- * SubjectType/ObjectType enum according to the API specification
+ * SubjectType is a validated string representing the type of object related to an informatieobject.
+ * It must be a single word (letters, digits, and dashes only; no spaces or other special characters).
+ *
+ * Examples of valid values: "zaak", "besluit", "verzoek", "mijn-object-type"
  */
-@Serializable
-enum class SubjectTypeEnum {
-    @SerialName("besluit")
-    BESLUIT,
+@Serializable(with = SubjectTypeSerializer::class)
+@JvmInline
+value class SubjectType private constructor(val value: String) {
+    init {
+        require(value.isNotBlank()) { "SubjectType mag niet leeg zijn" }
+        require(value.matches(Regex("^[a-z0-9]+(-[a-z0-9]+)*$"))) {
+            "SubjectType mag alleen letters, cijfers en koppeltekens bevatten en mag niet beginnen of eindigen met een koppelteken"
+        }
+    }
 
-    @SerialName("zaak")
-    ZAAK,
+    companion object {
+        operator fun invoke(value: String) = SubjectType(value.lowercase())
+    }
+}
 
-    @SerialName("verzoek")
-    VERZOEK,
+object SubjectTypeSerializer : KSerializer<SubjectType> {
+    override val descriptor = PrimitiveSerialDescriptor("SubjectType", kotlinx.serialization.descriptors.PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: SubjectType) {
+        encoder.encodeString(value.value)
+    }
+
+    override fun deserialize(decoder: Decoder): SubjectType = SubjectType(decoder.decodeString())
 }
