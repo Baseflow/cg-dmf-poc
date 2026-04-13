@@ -85,14 +85,14 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
     }
 
     // -------------------------------------------------------------------------
-    // GET /admin/blob-storage-repositories
+    // GET /admin/storage-repositories
     // -------------------------------------------------------------------------
 
     @Test
     fun `GET list returns empty array when no repositories exist`() = testApplication {
         application { setup() }
 
-        val response = client.get("/admin/blob-storage-repositories")
+        val response = client.get("/admin/storage-repositories")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<List<BlobStorageRepositoryResponse>>(response.bodyAsText())
@@ -105,7 +105,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         insertRepo("alpha")
         insertRepo("beta")
 
-        val response = client.get("/admin/blob-storage-repositories")
+        val response = client.get("/admin/storage-repositories")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<List<BlobStorageRepositoryResponse>>(response.bodyAsText())
@@ -120,7 +120,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         application { setup() }
         insertRepo("alpha")
 
-        val response = client.get("/admin/blob-storage-repositories")
+        val response = client.get("/admin/storage-repositories")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<List<BlobStorageRepositoryResponse>>(response.bodyAsText())
@@ -139,7 +139,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
     }
 
     // -------------------------------------------------------------------------
-    // GET /admin/blob-storage-repositories/{id}
+    // GET /admin/storage-repositories/{id}
     // -------------------------------------------------------------------------
 
     @Test
@@ -147,7 +147,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         application { setup() }
         val id = insertRepo("alpha", url = "http://minio:9000", bucket = "mybucket")
 
-        val response = client.get("/admin/blob-storage-repositories/$id")
+        val response = client.get("/admin/storage-repositories/$id")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
@@ -162,7 +162,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
     fun `GET by id returns 404 for unknown id`() = testApplication {
         application { setup() }
 
-        val response = client.get("/admin/blob-storage-repositories/${UUID.randomUUID()}")
+        val response = client.get("/admin/storage-repositories/${UUID.randomUUID()}")
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
@@ -171,20 +171,20 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
     fun `GET by id returns 400 for malformed UUID`() = testApplication {
         application { setup() }
 
-        val response = client.get("/admin/blob-storage-repositories/not-a-uuid")
+        val response = client.get("/admin/storage-repositories/not-a-uuid")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 
     // -------------------------------------------------------------------------
-    // GET /admin/blob-storage-repositories/default
+    // GET /admin/storage-repositories/default
     // -------------------------------------------------------------------------
 
     @Test
     fun `GET default returns 404 when no provider registered`() = testApplication {
         application { setup() }
 
-        val response = client.get("/admin/blob-storage-repositories/default")
+        val response = client.get("/admin/storage-repositories/default")
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
@@ -197,7 +197,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         BlobStorageRegistrar.registerForTesting(repoAlpha)
         BlobStorageRegistrar.registerForTesting(repoBeta, isDefault = true)
 
-        val response = client.get("/admin/blob-storage-repositories/default")
+        val response = client.get("/admin/storage-repositories/default")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
@@ -214,7 +214,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         BlobStorageRegistrar.registerForTesting(repoAlpha)
         BlobStorageRegistrar.registerForTesting(repoBeta)
 
-        val response = client.get("/admin/blob-storage-repositories/default")
+        val response = client.get("/admin/storage-repositories/default")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
@@ -222,7 +222,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
     }
 
     // -------------------------------------------------------------------------
-    // PUT /admin/blob-storage-repositories/default
+    // PUT /admin/storage-repositories/default
     // -------------------------------------------------------------------------
 
     @Test
@@ -235,7 +235,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
 
         val requestBody =
             Json.encodeToString(SetDefaultRepositoryRequest.serializer(), SetDefaultRepositoryRequest("beta"))
-        val response = client.put("/admin/blob-storage-repositories/default") {
+        val response = client.put("/admin/storage-repositories/default") {
             contentType(ContentType.Application.Json)
             setBody(requestBody)
         }
@@ -265,7 +265,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
 
         val requestBody =
             Json.encodeToString(SetDefaultRepositoryRequest.serializer(), SetDefaultRepositoryRequest("nonexistent"))
-        val response = client.put("/admin/blob-storage-repositories/default") {
+        val response = client.put("/admin/storage-repositories/default") {
             contentType(ContentType.Application.Json)
             setBody(requestBody)
         }
@@ -278,7 +278,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         application { setup() }
 
         val requestBody = Json.encodeToString(SetDefaultRepositoryRequest.serializer(), SetDefaultRepositoryRequest(""))
-        val response = client.put("/admin/blob-storage-repositories/default") {
+        val response = client.put("/admin/storage-repositories/default") {
             contentType(ContentType.Application.Json)
             setBody(requestBody)
         }
@@ -290,7 +290,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
     fun `PUT default returns 400 when body is missing`() = testApplication {
         application { setup() }
 
-        val response = client.put("/admin/blob-storage-repositories/default") {
+        val response = client.put("/admin/storage-repositories/default") {
             contentType(ContentType.Application.Json)
             setBody("{}")
         }
@@ -307,7 +307,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         application { setup() }
         val id = insertRepo("alpha", type = "S3", url = "http://localhost:9000", bucket = "docs")
 
-        val response = client.get("/admin/blob-storage-repositories/$id")
+        val response = client.get("/admin/storage-repositories/$id")
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())

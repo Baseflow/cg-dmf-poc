@@ -19,7 +19,7 @@ import java.util.UUID
 /**
  * Admin routes for managing blob storage repositories.
  *
- * Mounted at `/admin/blob-storage-repositories`.
+ * Mounted at `/admin/storage-repositories`.
  *
  * Endpoints:
  * - `GET  /`          — list all repositories
@@ -28,8 +28,8 @@ import java.util.UUID
  * - `PUT  /default`   — set the default repository (`{"name":"<repo-name>"}`)
  */
 fun Route.blobStorageRepositoryRoutes() {
-    route("/blob-storage-repositories") {
-        // GET /admin/blob-storage-repositories
+    route("/storage-repositories") {
+        // GET /admin/storage-repositories
         get {
             val repos = transaction {
                 BlobStorageRepositoryEntity.all().map { it.toResponse() }
@@ -37,7 +37,7 @@ fun Route.blobStorageRepositoryRoutes() {
             call.respond(repos)
         }
 
-        // GET /admin/blob-storage-repositories/default
+        // GET /admin/storage-repositories/default
         get("/default") {
             val provider = BlobStorageRegistrar.defaultProvider()
                 ?: return@get call.respondProblem(
@@ -57,7 +57,7 @@ fun Route.blobStorageRepositoryRoutes() {
             call.respond(repo)
         }
 
-        // PUT /admin/blob-storage-repositories/default
+        // PUT /admin/storage-repositories/default
         put("/default") {
             val body = runCatching { call.receive<SetDefaultRepositoryRequest>() }.getOrNull()
                 ?: return@put call.respondProblem(
@@ -92,7 +92,7 @@ fun Route.blobStorageRepositoryRoutes() {
             call.respond(HttpStatusCode.OK, updated)
         }
 
-        // GET /admin/blob-storage-repositories/{id}
+        // GET /admin/storage-repositories/{id}
         get("/{id}") {
             val id = call.parameters["id"]
                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
