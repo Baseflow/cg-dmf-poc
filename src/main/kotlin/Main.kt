@@ -6,11 +6,13 @@ import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.api.openApiModule
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.S3Config
 import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
+import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -25,8 +27,15 @@ import org.koin.ktor.plugin.Koin
 fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
-    S3Config.printConfig()
 
+    // Decide which storage configuration to initialize/print based on the merged config layer:
+    // - If BlobStorageConfig has repositories configured, we are in blob storage mode.
+    // - Otherwise, we assume legacy S3-only mode and require S3 configuration.
+    if (BlobStorageConfig.repositories.isNotEmpty()) {
+        BlobStorageConfig.printConfig()
+    } else {
+        S3Config.printConfig()
+    }
     Database.connect(
         url = DatabaseConfig.url,
         driver = DatabaseConfig.driver,
@@ -39,6 +48,9 @@ fun main() {
         .dataSource(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
         .load()
         .migrate()
+
+    // Register blob storage repositories from env vars into database
+    BlobStorageRegistrar.initialise()
 
     // Ensure notification kanaal exists
     NotificationConfig.printConfig()

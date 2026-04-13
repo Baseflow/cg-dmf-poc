@@ -1,0 +1,21 @@
+meta {
+  name: List repositories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/admin/storage-repositories
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  const repoId = res.body[res.body.length - 1].id;
+  bru.setVar("repoId", repoId);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
