@@ -26,6 +26,17 @@ MinIO of een andere S3 opslag worden gebruikt voor objectopslag. Stel de volgend
 | `S3_BUCKET`      | `documenten`            | Bucket gebruikt voor documentopslag           |
 
 
+## Bestandsdelen-configuratie
+
+Bij het aanmaken van een `EnkelvoudigInformatieObject` met een `bestandsomvang` groter dan `BESTANDSDELEN_TRIGGER_SIZE`,
+wordt automatisch de bestandsdelen-workflow geactiveerd. De bestanden worden dan opgesplitst in losse delen
+die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
+
+| Variabele                     | Standaardwaarde | Beschrijving                                                                                                        |
+| ----------------------------- | --------------- |---------------------------------------------------------------------------------------------------------------------|
+| `BESTANDSDELEN_TRIGGER_SIZE`  | `4294967296`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 4 GB) |
+| `BESTANDSDELEN_CHUNK_SIZE`    | `3221225472`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 3 GB)                                          |
+
 ## Keycloak-configuratie
 
 Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u de volgende omgevingsvariabelen:
