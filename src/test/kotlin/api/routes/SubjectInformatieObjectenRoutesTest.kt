@@ -8,7 +8,7 @@ import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.models.SubjectTypeEnum
+import com.baseflow.api.models.SubjectType
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.AuditTrailService
@@ -72,7 +72,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/subjects/123",
-            subjectType = SubjectTypeEnum.ZAAK,
+            subjectType = SubjectType("zaak"),
         )
 
         val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -98,7 +98,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
             val request = CreateOIORequest(
                 informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
                 subjectObject = "https://example.com/subjects/$i",
-                subjectType = SubjectTypeEnum.ZAAK,
+                subjectType = SubjectType("zaak"),
             )
             client.post("$API_BASE/$RESOURCE_SEGMENT") {
                 contentType(ContentType.Application.Json)
@@ -133,7 +133,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/subjects/test",
-            subjectType = SubjectTypeEnum.ZAAK,
+            subjectType = SubjectType("zaak"),
         )
 
         val createResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
@@ -156,7 +156,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
             subjectObject = "https://example.com/subjects/delete",
-            subjectType = SubjectTypeEnum.ZAAK,
+            subjectType = SubjectType("zaak"),
         )
 
         val createResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
