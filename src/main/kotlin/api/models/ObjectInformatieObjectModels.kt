@@ -62,9 +62,9 @@ data class ObjectInformatieObjectResponse(
 @JvmInline
 value class SubjectType private constructor(val value: String) {
     init {
-        require(value.isNotBlank()) { "SubjectType mag niet leeg zijn" }
+        require(value.isNotBlank()) { "objectType mag niet leeg zijn" }
         require(value.matches(Regex("^[a-z0-9]+(-[a-z0-9]+)*$"))) {
-            "SubjectType mag alleen letters, cijfers en koppeltekens bevatten en mag niet beginnen of eindigen met een koppelteken"
+            "objectType moet bestaan uit kleine letters, cijfers en koppeltekens, en mag niet beginnen of eindigen met een koppelteken (bijvoorbeeld: zaak of mijn-object-type)"
         }
     }
 
