@@ -1,8 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 CREATE TABLE blob_storage_repositories
 (
-  id                       UUID         NOT NULL DEFAULT gen_random_uuid(),
+  id                       UUID         NOT NULL,
   name                     VARCHAR(100) NOT NULL,
   storage_type             VARCHAR(50)  NOT NULL,
   url                      VARCHAR(500) NOT NULL,
