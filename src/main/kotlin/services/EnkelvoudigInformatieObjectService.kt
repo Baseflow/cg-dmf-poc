@@ -103,16 +103,16 @@ class EnkelvoudigInformatieObjectService(
 
         // When the declared file size exceeds the trigger threshold, lock the record and
         // create the bestandsdelen rows so the API consumer can upload the parts individually.
-        val bestandsdelen: List<BestandsDeelResponse>
-        if (bestandsDeelService.requiresChunking(bestandsOmvang)) {
+        val bestandsDelen: List<BestandsDeelResponse>
+        if (request.inhoud.isNullOrEmpty() && bestandsDeelService.requiresChunking(request.bestandsomvang)) {
             val lockToken = UUID.randomUUID().toString()
             record.lockToken = lockToken
-            bestandsdelen = bestandsDeelService.createBestandsDelen(eioVersion, bestandsOmvang!!, lockToken)
+            bestandsDelen = bestandsDeelService.createBestandsDelen(eioVersion, bestandsOmvang!!, lockToken)
         } else {
-            bestandsdelen = emptyList()
+            bestandsDelen = emptyList()
         }
 
-        val response = record.toResponse(eioVersion, bestandsdelen)
+        val response = record.toResponse(eioVersion, bestandsDelen)
         auditContext.captureNew(response, eioVersion)
         response as EnkelvoudigInformatieObjectResponse
     }
@@ -382,19 +382,24 @@ class EnkelvoudigInformatieObjectService(
 
             // Determine effective bestandsomvang for the new version and create bestandsdelen if needed.
             val effectiveOmvang = version.bestandsomvang
-            val updateBestandsdelen: List<BestandsDeelResponse>
-            if (bestandsDeelService.requiresChunking(effectiveOmvang)) {
+            val bestandsDelen: List<BestandsDeelResponse>
+            // We only want to create bestandsdelen if bestandsomvang is specified and changed
+            if (request.inhoud.isNullOrEmpty() &&
+                request.bestandsomvang != null &&
+                request.bestandsomvang != latestVersion?.bestandsomvang &&
+                bestandsDeelService.requiresChunking(effectiveOmvang)
+            ) {
                 val lockToken = record.lockToken ?: run {
                     val newToken = UUID.randomUUID().toString()
                     record.lockToken = newToken
                     newToken
                 }
-                updateBestandsdelen = bestandsDeelService.createBestandsDelen(version, effectiveOmvang!!, lockToken)
+                bestandsDelen = bestandsDeelService.createBestandsDelen(version, effectiveOmvang!!, lockToken)
             } else {
-                updateBestandsdelen = emptyList()
+                bestandsDelen = bestandsDeelService.getBestandsDelen(version)
             }
 
-            val response = record.toResponse(version, updateBestandsdelen)
+            val response = record.toResponse(version, bestandsDelen)
             auditContext.captureNew(response, version)
             response
         }

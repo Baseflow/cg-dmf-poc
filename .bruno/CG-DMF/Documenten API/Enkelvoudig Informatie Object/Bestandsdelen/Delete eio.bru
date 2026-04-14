@@ -1,0 +1,20 @@
+meta {
+  name: Delete eio
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{bestandsDelenEioID}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

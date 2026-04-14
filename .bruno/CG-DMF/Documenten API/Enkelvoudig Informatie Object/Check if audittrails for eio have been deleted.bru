@@ -1,7 +1,7 @@
 meta {
-  name: Get audittrails
+  name: Check if audittrails for eio have been deleted
   type: http
-  seq: 9
+  seq: 6
 }
 
 get {
@@ -12,12 +12,7 @@ get {
 
 assert {
   res.status: eq 200
-  res.body.length: eq 3
-}
-
-script:post-response {
-  const firstAudit = res.body[0].uuid;
-  bru.setVar("firstAudit", firstAudit);
+  res.body.length: eq 0
 }
 
 settings {

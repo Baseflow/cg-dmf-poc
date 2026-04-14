@@ -1,7 +1,7 @@
 meta {
   name: Upload filepart (2)
   type: http
-  seq: 2
+  seq: 4
 }
 
 put {
@@ -13,6 +13,10 @@ put {
 body:multipart-form {
   inhoud: @file(../data/Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf-ab)
   lock: {{lockId}}
+}
+
+assert {
+  res.status: eq 200
 }
 
 settings {

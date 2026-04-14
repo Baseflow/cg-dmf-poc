@@ -2,7 +2,10 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.baseflow.config.BlobStorageRepoConfig
+import com.baseflow.config.BlobStorageType
 import com.baseflow.config.S3ClientFactory
+import com.baseflow.config.S3Config
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Singleton
@@ -21,9 +24,7 @@ data class StorageStatus(val status: String, val read: DependencyStatus, val wri
 data class HealthValidateResponse(val status: String, val database: DependencyStatus, val storage: StorageStatus)
 
 @Singleton
-open class HealthCheckService(
-    @Suppress("unused") s3ClientFactory: S3ClientFactory, // kept for Koin graph compatibility
-) {
+open class HealthCheckService {
 
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)
 
@@ -38,34 +39,32 @@ open class HealthCheckService(
     }
 
     /**
-     * Probes the **active default blob storage repository** for read and write
-     * availability via [BlobStorageRegistrar] / [BlobStorageProvider.isHealthy].
+     * Probes S3 storage (configured via [S3Config]) for read and write availability.
      *
-     * - **Read**: delegates to [BlobStorageProvider.isHealthy].
-     * - **Write**: uploads a tiny probe object directly via the active [BlobStorageProvider]
-     *   (`provider.uploadFile(...)`), then downloads it back to confirm round-trip availability,
-     *   and finally deletes it (best-effort).
+     * - **Read**: calls [S3BlobStorageProvider.isHealthy] (HEAD bucket).
+     * - **Write**: uploads a tiny probe object, downloads it back to confirm round-trip
+     *   availability, then deletes it (best-effort).
      *
-     * When no provider is configured the check returns an error status immediately.
+     * Returns an error status immediately when S3 is not configured
+     * (i.e. the required `S3_SECRET_KEY` / `MINIO_SECRET_KEY` env var is absent).
      */
     open fun checkStorage(): StorageStatus {
         val provider = BlobStorageRegistrar.defaultProvider()
+            ?: legacyProvider()
             ?: return StorageStatus(
                 status = "error",
-                read = DependencyStatus(status = "error", detail = "No blob storage repository configured"),
-                write = DependencyStatus(status = "error", detail = "No blob storage repository configured"),
+                read = DependencyStatus(status = "error", detail = "S3 storage is not configured"),
+                write = DependencyStatus(status = "error", detail = "S3 storage is not configured"),
             )
-
-        val repoName = provider.name
 
         val readStatus = try {
             if (provider.isHealthy()) {
                 DependencyStatus(status = "ok")
             } else {
-                DependencyStatus(status = "error", detail = "Repository '$repoName' is not reachable")
+                DependencyStatus(status = "error", detail = "S3 bucket '${S3Config.bucketName}' is not reachable")
             }
         } catch (e: Exception) {
-            logger.warn("Storage read health check failed for '{}': {}", repoName, e.message)
+            logger.warn("Storage read health check failed: {}", e.message)
             DependencyStatus(status = "error", detail = e.message)
         }
 
@@ -84,7 +83,7 @@ open class HealthCheckService(
                 throw TimeoutException("Download probe timed out after ${S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds()}s")
             }
 
-            // Best-effort cleanup — deleteFile() is a no-op on providers that don't support it.
+            // Best-effort cleanup
             try {
                 provider.deleteFile(probeKey)
             } catch (_: Exception) {
@@ -93,10 +92,10 @@ open class HealthCheckService(
 
             DependencyStatus(status = "ok")
         } catch (e: TimeoutException) {
-            logger.warn("Storage write health check timed out for '{}': {}", repoName, e.message)
+            logger.warn("Storage write health check timed out: {}", e.message)
             DependencyStatus(status = "error", detail = "Storage write timed out: ${e.message}")
         } catch (e: Exception) {
-            logger.warn("Storage write health check failed for '{}': {}", repoName, e.message)
+            logger.warn("Storage write health check failed: {}", e.message)
             DependencyStatus(status = "error", detail = e.message)
         }
 
@@ -106,5 +105,22 @@ open class HealthCheckService(
             read = readStatus,
             write = writeStatus,
         )
+    }
+
+    private fun legacyProvider(): S3BlobStorageProvider? {
+        if (!S3Config.isComplete()) return null
+        val cfg = BlobStorageRepoConfig(
+            index = 0,
+            name = "s3",
+            type = BlobStorageType.S3,
+            url = S3Config.endpoint,
+            accessKey = S3Config.accessKey,
+            secretKey = S3Config.secretKey,
+            bucket = S3Config.bucketName,
+            region = S3Config.region.id(),
+            disableChecksums = S3Config.disableChecksums,
+            disableChunkedEncoding = S3Config.disableChunkedEncoding,
+        )
+        return S3BlobStorageProvider(cfg)
     }
 }

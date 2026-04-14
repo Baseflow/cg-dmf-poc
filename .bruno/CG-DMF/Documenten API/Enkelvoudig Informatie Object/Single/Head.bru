@@ -1,7 +1,7 @@
 meta {
   name: Head
   type: http
-  seq: 2
+  seq: 3
 }
 
 head {
@@ -13,4 +13,8 @@ head {
 settings {
   encodeUrl: true
   timeout: 0
+}
+
+assert {
+  res.status: eq 200
 }

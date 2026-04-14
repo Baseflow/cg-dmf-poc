@@ -1,13 +1,17 @@
 meta {
   name: Get bestandsdeel
   type: http
-  seq: 11
+  seq: 2
 }
 
 get {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{bestandsDelenEioID}}
   body: none
   auth: inherit
+}
+
+assert {
+  res.status: eq 200
 }
 
 script:post-response {
@@ -18,9 +22,9 @@ script:post-response {
       const bestandsDeel = regex.exec(url)[0]
       bru.setVar("bestandsDeel" + (index + 1), bestandsDeel)
     }
-    
+  
     bru.setVar("lockId", res.body.bestandsdelen[0].lock)
-    
+  
     saveBestandsDelen(0)
     saveBestandsDelen(1)
     saveBestandsDelen(2)

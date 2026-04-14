@@ -36,13 +36,13 @@ open class StorageService(
                 index = 0,
                 name = "legacy-s3",
                 type = com.baseflow.config.BlobStorageType.S3,
-                url = com.baseflow.config.S3Config.endpoint,
-                accessKey = com.baseflow.config.S3Config.accessKey,
-                secretKey = com.baseflow.config.S3Config.secretKey,
-                bucket = com.baseflow.config.S3Config.bucketName,
-                region = com.baseflow.config.S3Config.region.id(),
-                disableChecksums = com.baseflow.config.S3Config.disableChecksums,
-                disableChunkedEncoding = com.baseflow.config.S3Config.disableChunkedEncoding,
+                url = S3Config.endpoint,
+                accessKey = S3Config.accessKey,
+                secretKey = S3Config.secretKey,
+                bucket = S3Config.bucketName,
+                region = S3Config.region.id(),
+                disableChecksums = S3Config.disableChecksums,
+                disableChunkedEncoding = S3Config.disableChunkedEncoding,
             )
             S3BlobStorageProvider(cfg)
         } catch (e: Exception) {

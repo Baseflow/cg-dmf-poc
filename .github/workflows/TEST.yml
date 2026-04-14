@@ -36,6 +36,8 @@ jobs:
         if: always()
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+          detailed_summary: true
+          include_passed: true
 
       - name: Upload test results
         if: always()
