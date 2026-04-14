@@ -21,7 +21,6 @@ body:json {
     "creatiedatum": "2025-12-10",
     "formaat": "application/pdf",
     "inhoud": "{{file_base64}}",
-    "bestandsomvang": "{{file_size}}",
     "integriteit": {
       "algoritme": "sha_256",
       "waarde": "{{file_sha256}}",
@@ -36,7 +35,6 @@ body:json {
 vars:pre-request {
   file_base64: VGVzdGZpbGUgd2l0aCBqdXN0IHNvbWUgc2ltcGxlIGRhdGEKV2UgYmUgdGVzdGluZwo=
   file_sha256: 29331452e10453e92b66362e359a0a8d5dbee081ab366541e3f870a3fe3f8ecd
-  file_size: 
   file_name: dj_test1
   local_date: 2025-12-16
 }

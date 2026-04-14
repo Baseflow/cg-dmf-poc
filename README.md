@@ -56,6 +56,7 @@ Additional service dependencies for optional features can be started with Docker
     ```
 
 4. **Verify:**
+
     ```bash
     ./gradlew flywayInfo
     ```
@@ -91,15 +92,15 @@ You can also run the Bruno test collection with the Bruno cli:
 
 1. Install the Bruno cli: `npm install -g @usebruno/cli`
 2. Run the collection:
-   `bru run --sandbox=developer --env localhost --env-var jwt.clientSecret=yoursecret --env-var jwt.clientId=gzac --reporter-junit results.xml`
-    - This collection is also run as part of the CI pipeline, see `.github/workflows/ci.yml` for details
+   `bru run --sandbox=developer --env Localhost --env-var jwt.clientSecret=yoursecret --env-var jwt.clientId=gzac --reporter-junit results.xml`
+    - This collection is also run as part of the CI pipeline, see `.github/workflows/INTEGRATION_TEST.yml` for details
     - Make sure you set the following environment variables if you want the tests to pass (otherwise no bestandsdelen
       will be created and the tests will fail):
 
 ```
 BESTANDSDELEN_TRIGGER_SIZE=100000
 BESTANDSDELEN_CHUNK_SIZE=100000
-```   
+```
 
 ### Run integration tests that are run on build server via Docker Compose
 

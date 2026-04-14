@@ -44,14 +44,17 @@ services:
     # Build the full image from source (same as production).
     # Locally this may take a few minutes on first run; subsequent runs use the Docker layer cache.
     build: .
+    ports:
+      - 8080:8080
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/documenten
       DB_USER: documenten
       DB_PASSWORD: documenten
-      S3_ENDPOINT: http://minio:9000
-      S3_ACCESS_KEY: minioadmin
-      S3_SECRET_KEY: minioadmin
-      S3_BUCKET: documenten
+      BLOB_STORAGE_TYPE1: S3
+      BLOB_STORAGE_NAME1: minio-local
+      BLOB_STORAGE_URL1: http://minio:9000
+      BLOB_STORAGE_ACCESS_KEY1: minioadmin
+      BLOB_STORAGE_SECRET_KEY1: minioadmin
       ZGW_ALLOWED_CLIENT_IDS: gzac
       OIDC_ISSUER: ${OIDC_ISSUER:-https://auth.gzac.baseflow.com/realms/valtimo}
       OPENZAAK_CLIENT_SECRET: ${OPENZAAK_CLIENT_SECRET:-}
@@ -79,7 +82,7 @@ services:
       - ./.bruno:/collection
       - ./build/bruno-results:/results
     environment:
-      JWT_CLIENT_SECRET: ${JWT_CLIENT_SECRET:?JWT_CLIENT_SECRET is required}
+      JWT_CLIENT_SECRET: ${JWT_CLIENT_SECRET:-your-secret}
       # Set to 'false' in CI so the container exits after the tests finish (needed for --exit-code-from).
       BRUNO_KEEP_ALIVE: ${BRUNO_KEEP_ALIVE:-false}
     # Install dependencies and run the collection against the CI environment.

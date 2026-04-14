@@ -64,7 +64,7 @@ object BlobStorageConfig : Config() {
             val url = envOrThrow("BLOB_STORAGE_URL$index")
             val accessKey = envOrThrow("BLOB_STORAGE_ACCESS_KEY$index")
             val secretKey = envOrThrow("BLOB_STORAGE_SECRET_KEY$index")
-            val bucket = envOrThrow("BLOB_STORAGE_BUCKET$index")
+            val bucket = envOrNull("BLOB_STORAGE_BUCKET$index") ?: "documenten"
             val region = envOrNull("BLOB_STORAGE_REGION$index")
             val disableChecksums = envOrNull("BLOB_STORAGE_DISABLE_CHECKSUMS$index")?.toBoolean() ?: false
             val disableChunkedEncoding = envOrNull("BLOB_STORAGE_DISABLE_CHUNKED_ENCODING$index")?.toBoolean() ?: false

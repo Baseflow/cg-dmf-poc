@@ -386,7 +386,7 @@ class EnkelvoudigInformatieObjectService(
             // We only want to create bestandsdelen if bestandsomvang is specified and changed
             if (request.inhoud.isNullOrEmpty() &&
                 request.bestandsomvang != null &&
-                request.bestandsomvang != effectiveOmvang &&
+                request.bestandsomvang != latestVersion?.bestandsomvang &&
                 bestandsDeelService.requiresChunking(effectiveOmvang)
             ) {
                 val lockToken = record.lockToken ?: run {
