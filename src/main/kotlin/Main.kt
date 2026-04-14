@@ -98,6 +98,11 @@ fun Application.module() {
  * [Flyway.repair] only in that case. Repair updates **all** checksums, but
  * since V7 is the only amended migration, no other checksums will change.
  *
+ * We use [MigrationInfo.isChecksumMatching] to detect mismatches, because
+ * the [MigrationState] enum does not expose a dedicated "checksum mismatch"
+ * state for versioned migrations — the mismatch is only surfaced as a
+ * validation failure during [Flyway.migrate].
+ *
  * This is a no-op when checksums already match and is safe to leave in place
  * until all environments have been upgraded.
  *
@@ -107,8 +112,10 @@ private fun repairV7ChecksumIfNeeded(flyway: Flyway) {
     val v7Info = flyway.info().all().firstOrNull { it.version?.version == "7" }
         ?: return // V7 not yet applied — nothing to repair
 
-    if (v7Info.state == MigrationState.OUTDATED) {
+    if (!v7Info.isChecksumMatching) {
         println("V7 checksum mismatch detected (pgcrypto removal). Repairing...")
+        println("  Applied checksum : ${v7Info.appliedChecksum}")
+        println("  Resolved checksum: ${v7Info.resolvedChecksum}")
         flyway.repair()
         println("V7 checksum repaired.")
     }
