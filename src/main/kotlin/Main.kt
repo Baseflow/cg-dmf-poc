@@ -20,6 +20,7 @@ import io.ktor.server.netty.*
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
+import org.flywaydb.core.api.MigrationState
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
@@ -44,10 +45,17 @@ fun main() {
     )
 
     // apply migrations
-    Flyway.configure()
+    val flyway = Flyway.configure()
         .dataSource(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
         .load()
-        .migrate()
+
+    // Targeted repair: V7 was amended to remove the pgcrypto dependency.
+    // Systems that already applied the original V7 will have a checksum
+    // mismatch. We detect this specifically and repair only when needed.
+    // TODO: Remove this block once all environments have been upgraded past V10.
+    repairV7ChecksumIfNeeded(flyway)
+
+    flyway.migrate()
 
     // Register blob storage repositories from env vars into database
     BlobStorageRegistrar.initialise()
@@ -77,4 +85,31 @@ fun Application.module() {
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
+}
+
+/**
+ * Targeted checksum repair for V7 (BlobStorageRepositories).
+ *
+ * V7 was amended to remove the pgcrypto extension dependency so that systems
+ * still on V6 can upgrade without requiring pgcrypto. Systems that already
+ * applied the original V7 will have a stale checksum in flyway_schema_history.
+ *
+ * This function detects if V7 specifically has a checksum mismatch and calls
+ * [Flyway.repair] only in that case. Repair updates **all** checksums, but
+ * since V7 is the only amended migration, no other checksums will change.
+ *
+ * This is a no-op when checksums already match and is safe to leave in place
+ * until all environments have been upgraded.
+ *
+ * TODO: Remove once all environments have been upgraded past V10.
+ */
+private fun repairV7ChecksumIfNeeded(flyway: Flyway) {
+    val v7Info = flyway.info().all().firstOrNull { it.version?.version == "7" }
+        ?: return // V7 not yet applied — nothing to repair
+
+    if (v7Info.state == MigrationState.OUTDATED) {
+        println("V7 checksum mismatch detected (pgcrypto removal). Repairing...")
+        flyway.repair()
+        println("V7 checksum repaired.")
+    }
 }
