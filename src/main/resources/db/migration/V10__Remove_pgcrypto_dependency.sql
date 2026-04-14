@@ -11,7 +11,3 @@
 
 -- Remove the DEFAULT if it exists (no-op if already absent)
 ALTER TABLE blob_storage_repositories ALTER COLUMN id DROP DEFAULT;
-
--- Drop pgcrypto extension if nothing else depends on it
-DROP EXTENSION IF EXISTS pgcrypto;
-
