@@ -862,6 +862,14 @@ private suspend fun RoutingContext.delete() {
                 HttpStatusCode.Conflict,
                 conflict("EnkelvoudigInformatieObject is locked", call.request.path()),
             )
+
+            is DeleteResult.HasReferences -> call.respondProblem(
+                HttpStatusCode.BadRequest,
+                conflict(
+                    "EnkelvoudigInformatieObject cannot be deleted because it has related resources",
+                    call.request.path(),
+                ),
+            )
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))

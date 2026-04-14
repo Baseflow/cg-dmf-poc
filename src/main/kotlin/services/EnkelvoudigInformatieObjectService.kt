@@ -712,6 +712,11 @@ class EnkelvoudigInformatieObjectService(
 
     fun delete(id: UUID): DeleteResult {
         return transaction {
+            val oios = OIORecordEntity.find { OIORecords.informatieobject eq id }
+            if (oios.count() > 0) {
+                return@transaction DeleteResult.HasReferences
+            }
+
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
             val latestVersion = record.versions.maxByOrNull { it.versie }
             auditContext.captureOld(record.toResponse(latestVersion), latestVersion)
