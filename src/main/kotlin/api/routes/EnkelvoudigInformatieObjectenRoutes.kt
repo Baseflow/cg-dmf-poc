@@ -865,7 +865,7 @@ private suspend fun RoutingContext.delete() {
 
             is DeleteResult.HasReferences -> call.respondProblem(
                 HttpStatusCode.BadRequest,
-                conflict(
+                badRequest(
                     "EnkelvoudigInformatieObject cannot be deleted because it has related resources",
                     call.request.path(),
                 ),
