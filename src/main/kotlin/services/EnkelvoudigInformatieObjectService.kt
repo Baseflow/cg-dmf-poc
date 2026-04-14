@@ -712,8 +712,25 @@ class EnkelvoudigInformatieObjectService(
 
     fun delete(id: UUID): DeleteResult {
         return transaction {
-            val oios = OIORecordEntity.find { OIORecords.informatieobject eq id }
-            if (oios.count() > 0) {
+            val lockedRecordExists =
+                EIORecords
+                    .selectAll()
+                    .andWhere { EIORecords.id eq id }
+                    .forUpdate()
+                    .singleOrNull() != null
+
+            if (!lockedRecordExists) {
+                return@transaction DeleteResult.NotFound
+            }
+
+            val hasReferences =
+                !OIORecords
+                    .selectAll()
+                    .andWhere { OIORecords.informatieobject eq id }
+                    .limit(1)
+                    .empty()
+
+            if (hasReferences) {
                 return@transaction DeleteResult.HasReferences
             }
 
