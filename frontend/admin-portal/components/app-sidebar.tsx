@@ -76,22 +76,6 @@ const data = {
   },
   navMain: [
     {
-      title: "Back to Home",
-      url: "/",
-      icon: (
-        <HomeIcon
-        />
-      ),
-    },
-    {
-      title: "Dashboard",
-      url: "#",
-      icon: (
-        <LayoutDashboardIcon
-        />
-      ),
-    },
-    {
       title: "Lifecycle",
       url: "#",
       icon: (
@@ -127,7 +111,7 @@ const data = {
   documents: [
     {
       name: "OpenAPI Spec",
-      url: "#",
+      url: "https://cg-dmf.dev.baseflow.com/docs",
       icon: (
         <FileTextIcon />
       ),
