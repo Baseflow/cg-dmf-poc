@@ -35,7 +35,7 @@ body:json {
 vars:pre-request {
   file_base64: VGVzdGZpbGUgd2l0aCBqdXN0IHNvbWUgc2ltcGxlIGRhdGEKV2UgYmUgdGVzdGluZwo=
   file_sha256: 29331452e10453e92b66362e359a0a8d5dbee081ab366541e3f870a3fe3f8ecd
-  file_name: dj_test1
+  file_name: Choorstraat_0291_bouwtekening Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf_(Geanonimiseerd).pdf
   local_date: 2025-12-16
 }
 
@@ -45,6 +45,65 @@ vars:post-response {
 
 assert {
   res.status: eq 201
+}
+
+script:pre-request {
+  const fs = require("fs");
+  const path = require("path");
+  const CryptoJS = require("crypto-js");
+
+  const fileName = bru.getRequestVar('file_name');
+  console.log(fileName)
+  const filePath = path.resolve(bru.cwd(), "../data", fileName);
+
+  let fileBuffer;
+
+  try {
+    fileBuffer = fs.readFileSync(filePath);
+  } catch (err) {
+    console.error("Failed to read file:", filePath, err.message);
+
+    bru.setEnvVar("file_error", `Failed to read file: ${err.message}`);
+
+    // Optional: abort request if the file is required
+    if (typeof onFail === "function") {
+      onFail("Pre-request failed: cannot read file: " + filePath);
+    }
+  }
+
+  // Only proceed if file read succeeded
+  if (fileBuffer) {
+    // -----------------------------------------------------------------
+    // Base64
+    // -----------------------------------------------------------------
+    const base64Content = fileBuffer.toString("base64");
+
+    // -----------------------------------------------------------------
+    // SHA-256 using crypto-js
+    // -----------------------------------------------------------------
+    const wordArray = CryptoJS.lib.WordArray.create(fileBuffer);
+    const sha256 = CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
+
+    // -----------------------------------------------------------------
+    // File size
+    // -----------------------------------------------------------------
+    const fileSize = fileBuffer.length;
+
+    // -----------------------------------------------------------------
+    // Local timestamp (ISO without trailing 'Z')
+    // -----------------------------------------------------------------
+    const today = new Date().toISOString().split('T')[0];
+
+    // -----------------------------------------------------------------
+    // Store env vars
+    // -----------------------------------------------------------------
+    bru.setVar("file_base64", base64Content);
+    bru.setVar("file_sha256", sha256);
+    bru.setVar("file_size", fileSize);
+    bru.setVar("file_name", fileName);
+    bru.setVar("local_date", today);
+  }
+
 }
 
 settings {
