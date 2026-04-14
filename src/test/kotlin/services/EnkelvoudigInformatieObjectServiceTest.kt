@@ -50,6 +50,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any(), any()) } returns Unit
+        every { mockStorageService.deleteFiles(any()) } returns Unit
         val auditContext = AuditContext()
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,

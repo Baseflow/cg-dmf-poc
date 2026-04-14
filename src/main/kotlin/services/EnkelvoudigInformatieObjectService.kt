@@ -711,7 +711,8 @@ class EnkelvoudigInformatieObjectService(
     }
 
     fun delete(id: UUID): DeleteResult {
-        return transaction {
+        val fileLocations = mutableListOf<String>()
+        val result = transaction {
             val lockedRecordExists =
                 EIORecords
                     .selectAll()
@@ -741,8 +742,13 @@ class EnkelvoudigInformatieObjectService(
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked
             }
+            fileLocations.addAll(record.versions.map { it.bestandsLocatie }.filter { it.isNotBlank() }.distinct())
             record.delete()
             DeleteResult.Success
         }
+        if (result == DeleteResult.Success) {
+            storageService.deleteFiles(fileLocations)
+        }
+        return result
     }
 }
