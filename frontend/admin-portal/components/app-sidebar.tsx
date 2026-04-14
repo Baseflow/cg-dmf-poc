@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, HomeIcon } from "lucide-react"
+import { ListIcon, ChartBarIcon, FolderIcon, UsersIcon, FileTextIcon, LucideFileExclamationPoint } from "lucide-react"
 
 function BaseflowAvatar() {
   return (
@@ -129,6 +129,15 @@ const data = {
       ),
     },
   ],
+  NavSecondary: [
+    {
+      title: "Rapporteer problemen",
+      url: "https://github.com/Baseflow/cg-dmf-poc/issues",
+      icon: (
+        <LucideFileExclamationPoint />
+      ),
+    },
+  ],    
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -154,6 +163,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.documents} />
+        <NavSecondary items={data.NavSecondary} className="mt-auto"/>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
