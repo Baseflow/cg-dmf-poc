@@ -3,6 +3,7 @@
 package com.baseflow.tooling
 
 import com.baseflow.entities.AuditTrails
+import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.BlobStorageRepositories
 import com.baseflow.entities.EIORecords
 import com.baseflow.entities.EIOVersions
@@ -19,6 +20,7 @@ object AllTables {
         EIOVersions,
         OIORecords,
         AuditTrails,
+        BestandsDelen,
         BlobStorageRepositories,
     )
 

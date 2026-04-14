@@ -2,29 +2,45 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
+import com.baseflow.api.middleware.RequestScopeKey
+import com.baseflow.services.BestandsDeelService
+import com.baseflow.services.StorageService
+import com.baseflow.services.UploadFilePartResult
+import io.ktor.http.*
+import io.ktor.http.content.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.routing.openapi.describe
-import io.ktor.utils.io.ExperimentalKtorApi
+import io.ktor.server.routing.openapi.*
+import io.ktor.utils.io.*
+import kotlinx.io.readByteArray
+import java.util.*
 
 /**
  * BestandsDeel routes
  *
- * Handles chunked file uploads for large documents (>4GB):
+ * Handles chunked file uploads for large documents (>4GB threshold):
  * - PUT /{uuid} - Upload a file chunk
  *
- * Part of the 1.1.0+ workflow for handling files larger than the 4GB minimum.
+ * Part of the 1.1.0+ workflow for handling files larger than the configured threshold.
+ * The `bestandsdelen` array is returned in the EIO create response when the declared
+ * `bestandsomvang` exceeds the trigger size.
  */
 @OptIn(ExperimentalKtorApi::class)
 fun Route.bestandsDelenRoutes() {
     /**
      * Upload een bestandsdeel.
      *
-     * Based on DRF mixin but without partial_update.
-     * Part of the 1.1.0+ workflow for handling files larger than the 4GB minimum.
+     * Accepts the binary content of one chunk together with the lock token.
+     * The request body must be multipart/form-data with fields:
+     *   - `inhoud`  – binary file content of the chunk
+     *   - `lock`    – lock token obtained when the EIO was created / locked
+     *
+     * When all parts have been successfully uploaded (voltooid == true), the API
+     * consumer should unlock the parent EIO to finalise the document.
      *
      * Responses:
-     *   - 200 OK.
+     *   - 200 OK – returns the updated BestandsDeel.
      *   - 400 Bad request.
      *   - 401 Unauthorized.
      *   - 403 Forbidden.
@@ -39,8 +55,69 @@ fun Route.bestandsDelenRoutes() {
      * @tag BestandsDelen
      */
     put("/{uuid}") {
-        val uuid = call.parameters["uuid"]
-        call.respond(mapOf("message" to "Upload BestandsDeel $uuid - to be implemented"))
+        val uuid =
+            call.parameters["uuid"]
+                ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("detail" to "uuid is required"))
+
+        val id =
+            try {
+                UUID.fromString(uuid)
+            } catch (_: IllegalArgumentException) {
+                return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("detail" to "uuid is not a valid UUID"),
+                )
+            }
+
+        // Parse multipart body to extract lock token and file content.
+        // The 'inhoud' binary part is read into memory and forwarded to the storage backend.
+        var lockToken: String? = null
+        var inhoudBytes: ByteArray? = null
+
+        call.receiveMultipart().forEachPart { part ->
+            when {
+                part is PartData.FormItem && part.name == "lock" -> lockToken = part.value
+                part is PartData.FileItem && part.name == "inhoud" ->
+                    inhoudBytes =
+                        part.provider().readRemaining().readByteArray()
+            }
+            part.dispose()
+        }
+
+        if (lockToken.isNullOrBlank()) {
+            return@put call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("detail" to "lock is required"),
+            )
+        }
+
+        val scope = call.attributes.getOrNull(RequestScopeKey)
+            ?: return@put call.respond(
+                HttpStatusCode.InternalServerError,
+                mapOf("detail" to "Service not available"),
+            )
+
+        val service: BestandsDeelService = scope.get()
+        val storageService: StorageService = scope.get()
+
+        when (val result = service.uploadFilePart(id, requireNotNull(lockToken), inhoudBytes, storageService)) {
+            is UploadFilePartResult.NotFound ->
+                call.respond(HttpStatusCode.NotFound, mapOf("detail" to "BestandsDeel niet gevonden"))
+
+            is UploadFilePartResult.InvalidLock ->
+                call.respond(HttpStatusCode.Forbidden, mapOf("detail" to "Ongeldige lock token"))
+
+            is UploadFilePartResult.OmvangMismatch ->
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf(
+                        "detail" to "Bestandsomvang komt niet overeen: verwacht ${result.expected} bytes, ontvangen ${result.actual} bytes",
+                    ),
+                )
+
+            is UploadFilePartResult.Success ->
+                call.respond(HttpStatusCode.OK, result.response)
+        }
     }
         .describe {
             operationId = "bestandsdelen_update"
@@ -48,15 +125,16 @@ fun Route.bestandsDelenRoutes() {
             summary = "Upload een bestandsdeel."
             description =
                 "Upload een bestandsdeel als onderdeel van de chunked upload workflow voor grote bestanden. " +
-                "Gebaseerd op DRF mixin maar zonder partial_update."
+                "De request body is multipart/form-data met velden 'inhoud' (binary) en 'lock' (string). " +
+                "Wanneer alle delen zijn geupload kan het bovenliggende informatieobject worden ontgrendeld."
             parameters {
                 path("uuid") { description = "Unieke resource identifier (UUID4) van het bestandsdeel." }
             }
             responses {
-                response(200) { description = "OK." }
+                response(200) { description = "OK – bestandsdeel bijgewerkt." }
                 response(400) { description = "Bad request." }
                 response(401) { description = "Unauthorized." }
-                response(403) { description = "Forbidden." }
+                response(403) { description = "Forbidden – ongeldige lock token." }
                 response(404) { description = "Not found." }
             }
         }

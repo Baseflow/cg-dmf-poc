@@ -11,14 +11,15 @@ auth:oauth2 {
   callback_url: http://localhost:8080
   authorization_url: {{oidc.authUrl}}
   access_token_url: {{oidc.tokenUrl}}
-  refresh_token_url:
+  refresh_token_url: 
   client_id: {{oidc.clientId}}
   client_secret: {{oidc.clientSecret}}
-  scope:
-  state:
+  scope: 
+  state: 
   pkce: true
   credentials_placement: body
   credentials_id: credentials
+  token_source: access_token
   token_placement: header
   token_header_prefix: Bearer
   auto_fetch_token: true
@@ -28,25 +29,30 @@ auth:oauth2 {
 vars:pre-request {
   firstId: 7f762fa6-ae89-43c7-9690-d06e4b586c32
   lastId: ""
-  createdId: ""
+  createdId: a6405f8e-acdb-446f-b040-b6aceffae157
+  bestandsDelenEioID: 8c201024-c300-4a6a-8f4a-900be1b77f74
+  bestandsDeel1: ""
+  bestandsDeel2: ""
+  bestandsDeel3: ""
+  bestandsDeel4: ""
 }
 
 script:pre-request {
   const jwt = require("jsonwebtoken");
-
+  
   const clientId = bru.getEnvVar("jwt.clientId");
   const clientSecret = bru.getEnvVar("jwt.clientSecret");
-
+  
   // If neither is set, skip JWT generation entirely (e.g. using OAuth2 instead)
   if (!clientId && !clientSecret) {
     return;
   }
-
+  
   // If only one is set, that's a misconfiguration — warn loudly
   if (!clientId || !clientSecret) {
     throw new Error("Both jwt.clientId and jwt.clientSecret must be set together.");
   }
-
+  
   const payload = {
     iss: clientId,
     iat: Math.floor(Date.now() / 1000),
@@ -54,9 +60,8 @@ script:pre-request {
     user_id: "bruno-gzac@example.com",
     user_representation: "Bruno Client",
   };
-
+  
   const token = jwt.sign(payload, clientSecret, { algorithm: "HS256" });
   bru.setVar("jwtToken", token);
   req.setHeader("Authorization", `Bearer ${token}`);
 }
-

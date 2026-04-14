@@ -12,6 +12,7 @@ import com.baseflow.api.models.SubjectType
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.services.AuditTrailService
+import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.CatalogusService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.StorageService
@@ -43,6 +44,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
             auditContext,
+            BestandsDeelService(),
         )
         val request = TestDataFactory.generateTestDocument(taal = "nld")
         return@runBlocking service.create(request).id

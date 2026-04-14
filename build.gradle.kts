@@ -226,6 +226,9 @@ tasks.jar {
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    // Exclude signature files from signed dependency JARs; merging them into a
+    // fat JAR invalidates their digests and causes a SecurityException at startup.
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "META-INF/*.EC")
 }
 
 // Flyway migration tasks
