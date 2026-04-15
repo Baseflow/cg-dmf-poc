@@ -1,5 +1,5 @@
-// ─── Fill in these three values to connect to your Keycloak instance ───────
-export const KEYCLOAK_URL = "https://YOUR_KEYCLOAK_URL"  // e.g. https://auth.example.com
-export const KEYCLOAK_REALM = "YOUR_REALM"               // e.g. "master" or "myrealm"
-export const KEYCLOAK_CLIENT_ID = "YOUR_CLIENT_ID"       // e.g. "admin-portal"
+// ─── Keycloak connection config ──────────────────────────────────────────────
+export const KEYCLOAK_URL = process.env.NEXT_PUBLIC_KEYCLOAK_URL!
+export const KEYCLOAK_REALM = process.env.NEXT_PUBLIC_KEYCLOAK_REALM!
+export const KEYCLOAK_CLIENT_ID = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID!
 // ────────────────────────────────────────────────────────────────────────────
