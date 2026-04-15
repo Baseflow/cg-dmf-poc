@@ -1,11 +1,9 @@
 "use client"
 
 import * as React from "react"
-
 import {
   Avatar,
   AvatarFallback,
-  AvatarImage,
 } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -16,44 +14,71 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import {
+  CircleUserRoundIcon,
+  EllipsisVerticalIcon,
+  LogInIcon,
+  LogOutIcon,
+} from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: React.ReactNode | string
-  }
-}) {
+export function NavUser() {
   const { isMobile } = useSidebar()
-  const fallback = user.name.slice(0, 2).toUpperCase()
+  const { authenticated, isLoading, user, keycloak } = useAuth()
 
-  function renderAvatarContent() {
-    if (typeof user.avatar === "string") {
-      return (
-        <>
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback className="rounded-lg">{fallback}</AvatarFallback>
-        </>
-      )
-    }
-
+  // ── Loading state ────────────────────────────────────────────────────────
+  if (isLoading) {
     return (
-      <div className="flex size-full items-center justify-center rounded-lg bg-foreground text-background [&>svg]:size-4">
-        {user.avatar}
-      </div>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <div className="grid flex-1 gap-1">
+              <Skeleton className="h-3 w-24 rounded" />
+              <Skeleton className="h-3 w-32 rounded" />
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
     )
   }
 
+  // ── Unauthenticated state ─────────────────────────────────────────────────
+  if (!authenticated || !user) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            size="lg"
+            onClick={() => keycloak.login()}
+            tooltip="Sign in"
+          >
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarFallback className="rounded-lg bg-muted">
+                <CircleUserRoundIcon className="size-4 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">Sign in</span>
+              <span className="truncate text-xs text-muted-foreground">
+                Click to log in
+              </span>
+            </div>
+            <LogInIcon className="ml-auto size-4 text-muted-foreground" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
+  // ── Authenticated state ───────────────────────────────────────────────────
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -63,13 +88,10 @@ export function NavUser({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar
-                className={cn(
-                  "h-8 w-8 rounded-lg",
-                  typeof user.avatar === "string" && "grayscale"
-                )}
-              >
-                {renderAvatarContent()}
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg">
+                  {user.initials || user.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -89,7 +111,9 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  {renderAvatarContent()}
+                  <AvatarFallback className="rounded-lg">
+                    {user.initials || user.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
@@ -102,25 +126,16 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <CircleUserRoundIcon
-                />
+                <CircleUserRoundIcon />
                 Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon
-                />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon
-                />
-                Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOutIcon
-              />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => keycloak.logout()}
+            >
+              <LogOutIcon />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
