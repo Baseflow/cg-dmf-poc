@@ -57,3 +57,9 @@ File-based routing via the `/app` directory (App Router). Components are Server 
 ## Testing
 
 Tests use **Vitest** (not yet set up). Run tests with `npm run test` once configured.
+
+## Claude Workflow Rules
+
+- **Never auto-commit**: Do not run `git commit` unless the user explicitly asks. Make code changes and stop — committing is always the developer's decision.
+- **No co-author in commits**: When creating a git commit, do **not** add a `Co-Authored-By` trailer. Commit messages must not include any Claude/AI co-authorship attribution.
+- **No co-author in pull requests**: When creating a pull request, do **not** add Claude as an author. Pull requests must not include any Claude/AI co-authorship attribution.
