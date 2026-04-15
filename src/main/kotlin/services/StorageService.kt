@@ -6,12 +6,6 @@ import com.baseflow.config.S3ClientFactory
 import com.baseflow.config.S3Config
 import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
-import software.amazon.awssdk.core.async.AsyncRequestBody
-import software.amazon.awssdk.core.async.AsyncResponseTransformer
-import software.amazon.awssdk.services.s3.S3AsyncClient
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
-import software.amazon.awssdk.services.s3.model.GetObjectRequest
-import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
@@ -82,17 +76,17 @@ open class StorageService(
         resolveProvider(repoName).downloadFileTo(objectName, output)
 
     /**
-     * Deletes one or more objects from S3. Empty or blank keys are silently skipped.
+     * Deletes one or more objects from blob storage. Empty or blank keys are silently skipped.
      * Errors are logged but do not throw, so a missing file will not abort a delete operation.
      */
     fun deleteFiles(objectNames: List<String>, repoName: String? = null) {
-        objectNames.filter { it.isNotBlank() }.forEach { objectName ->
-            try {
-                resolveProvider(repoName).deleteFile(objectName)
-                logger.info("Deleted file {}", objectName)
-            } catch (e: Exception) {
-                logger.error("Failed to delete file {}: {}", objectName, e.message, e)
-            }
+        val keys = objectNames.filter { it.isNotBlank() }
+        if (keys.isEmpty()) return
+        try {
+            resolveProvider(repoName).deleteFiles(keys)
+            logger.info("Deleted {} file(s): {}", keys.size, keys)
+        } catch (e: Exception) {
+            logger.error("Failed to batch-delete {} file(s): {}", keys.size, e.message, e)
         }
     }
 

@@ -34,6 +34,8 @@ import kotlin.test.*
 
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
+    private lateinit var mockStorageService: StorageService
+    private lateinit var mockAuditTrailService: AuditTrailService
 
     @BeforeTest
     fun setup() {
@@ -48,15 +50,17 @@ class EnkelvoudigInformatieObjectServiceTest {
             AllTables.createMissing()
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        val mockStorageService = mockk<StorageService>()
+        mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any(), any()) } returns Unit
         every { mockStorageService.deleteFiles(any()) } returns Unit
         val auditContext = AuditContext()
+        mockAuditTrailService = mockk<AuditTrailService>()
+        every { mockAuditTrailService.removeAuditTrailsForResource(any()) } returns Unit
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
             CatalogusService(openZaakConfig),
-            AuditTrailService(auditContext),
+            mockAuditTrailService,
             auditContext,
             BestandsDeelService(),
         )
@@ -206,26 +210,32 @@ class EnkelvoudigInformatieObjectServiceTest {
     fun `delete should return NotFound for unknown id`() {
         val res = service.delete(UUID.randomUUID())
         assertTrue(res is DeleteResult.NotFound)
+        verify(exactly = 0) { mockStorageService.deleteFiles(any()) }
+        verify(exactly = 0) { mockAuditTrailService.removeAuditTrailsForResource(any()) }
     }
 
     @Test
     fun `delete should return Locked when record has lockToken`() = runBlocking {
-        val created = service.create(generateTestDocument())
+        val created = service.create(generateTestDocument(withContent = true))
         val id = UUID.fromString(created.id)
         // lock it
         service.lock(id)
         val res = service.delete(id)
         assertTrue(res is DeleteResult.Locked)
+        verify(exactly = 0) { mockStorageService.deleteFiles(any()) }
+        verify(exactly = 0) { mockAuditTrailService.removeAuditTrailsForResource(any()) }
     }
 
     @Test
     fun `delete should return Success when record exists and is not locked`() = runBlocking {
-        val created = service.create(generateTestDocument())
+        val created = service.create(generateTestDocument(withContent = true))
         val id = UUID.fromString(created.id)
         val res = service.delete(id)
         assertTrue(res is DeleteResult.Success)
         // and now it should not exist
         assertFalse(service.exists(id))
+        verify { mockStorageService.deleteFiles(match { it.contains("$id/1/test.pdf") }) }
+        verify { mockAuditTrailService.removeAuditTrailsForResource(id) }
     }
 
     @Test
