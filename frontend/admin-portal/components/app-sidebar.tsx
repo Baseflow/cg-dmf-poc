@@ -69,11 +69,6 @@ function DockerIcon() {
 }
 
 const data = {
-  user: {
-    name: "Baseflow",
-    email: "hello@baseflow.com",
-    avatar: <BaseflowAvatar />,
-  },
   navMain: [
     {
       title: "Lifecycle",
@@ -166,7 +161,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.NavSecondary} className="mt-auto"/>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )
