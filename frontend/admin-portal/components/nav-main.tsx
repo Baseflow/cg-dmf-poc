@@ -8,6 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/contexts/auth-context"
 
 export function NavMain({
   items,
@@ -18,6 +19,13 @@ export function NavMain({
     icon?: React.ReactNode
   }[]
 }) {
+
+  const {authenticated, isLoading} = useAuth()
+  
+  if (isLoading || !authenticated) {
+    return null
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
