@@ -45,6 +45,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initialized.current) return
     initialized.current = true
 
+    // Skip init if the config placeholders haven't been filled in yet
+    const isConfigured =
+      KEYCLOAK_URL !== "https://YOUR_KEYCLOAK_URL" &&
+      KEYCLOAK_REALM !== "YOUR_REALM" &&
+      KEYCLOAK_CLIENT_ID !== "YOUR_CLIENT_ID"
+
+    if (!isConfigured) {
+      setIsLoading(false)
+      return
+    }
+
     keycloak
       .init({
         onLoad: "check-sso",
@@ -69,7 +80,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
       })
       .catch((err) => {
-        if (process.env.NODE_ENV !== "production") {
+        // Keycloak throws a timeout error when check-sso iframe doesn't respond
+        // (e.g. Keycloak server unreachable, 3rd-party cookies blocked).
+        // This is not a crash — we just show the sign-in button.
+        if (
+          process.env.NODE_ENV !== "production" &&
+          !String(err).includes("Timeout when waiting for 3rd party check iframe message")
+        ) {
           console.error("[AuthProvider] keycloak.init failed:", err)
         }
         setIsLoading(false)
