@@ -8,14 +8,14 @@ import {
   KEYCLOAK_CLIENT_ID,
 } from "@/lib/keycloak-config"
 
-interface User {
+export interface User {
   name: string
   email: string
   username: string
   initials: string
 }
 
-interface AuthContextValue {
+export interface AuthContextValue {
   authenticated: boolean
   isLoading: boolean
   user: User | null
@@ -54,13 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((auth) => {
         setAuthenticated(auth)
         if (auth && keycloak.tokenParsed) {
-          const parsed = keycloak.tokenParsed as Record<string, string>
-          const givenName = parsed["given_name"] ?? ""
-          const familyName = parsed["family_name"] ?? ""
+          const parsed = keycloak.tokenParsed
+          const givenName = typeof parsed?.given_name === "string" ? parsed.given_name : ""
+          const familyName = typeof parsed?.family_name === "string" ? parsed.family_name : ""
           setUser({
-            name: parsed["name"] ?? parsed["preferred_username"] ?? "",
-            email: parsed["email"] ?? "",
-            username: parsed["preferred_username"] ?? "",
+            name: typeof parsed?.name === "string" ? parsed.name : (parsed?.preferred_username ?? ""),
+            email: typeof parsed?.email === "string" ? parsed.email : "",
+            username: typeof parsed?.preferred_username === "string" ? parsed.preferred_username : "",
             initials:
               (givenName[0] ?? "").toUpperCase() +
               (familyName[0] ?? "").toUpperCase(),
@@ -68,9 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setIsLoading(false)
       })
-      .catch(() => {
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") {
+          console.error("[AuthProvider] keycloak.init failed:", err)
+        }
         setIsLoading(false)
       })
+
+    return () => {
+      initialized.current = false
+    }
   }, [keycloak])
 
   return (
