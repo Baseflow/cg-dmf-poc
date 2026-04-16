@@ -1,7 +1,7 @@
 meta {
   name: Create
   type: http
-  seq: 2
+  seq: 1
 }
 
 post {
@@ -41,13 +41,21 @@ vars:pre-request {
   local_date: 2025-12-16
 }
 
+vars:post-response {
+  createdId: res.body.id
+}
+
+assert {
+  res.status: eq 201
+}
+
 script:pre-request {
   const fs = require("fs");
   const path = require("path");
   const CryptoJS = require("crypto-js");
 
   const fileName = "Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf";
-  const filePath = path.resolve(process.cwd(), ".bruno/data", fileName);
+  const filePath = path.resolve(bru.cwd(), "../data", fileName);
 
   let fileBuffer;
 
@@ -86,7 +94,6 @@ script:pre-request {
     // Local timestamp (ISO without trailing 'Z')
     // -----------------------------------------------------------------
     const today = new Date().toISOString().split('T')[0];
-    console.log(today);
 
     // -----------------------------------------------------------------
     // Store env vars

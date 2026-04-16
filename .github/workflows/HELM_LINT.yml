@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: EUPL-1.2
+# Copyright (C) 2026 Gemeente Utrecht
+name: 'Helm Lint'
+
+on:
+  workflow_call:
+
+jobs:
+  helm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+
+      - name: helm lint
+        run: |
+          helm lint ./helm/cg-dmf \
+            --strict \
+            --set settings.zgwAllowedClientIds=ci \
+            --set settings.database.password=ci \
+            --set settings.s3.accessKey=ci \
+            --set settings.s3.secretKey=ci \
+            --set settings.openzaak.clientSecret=ci

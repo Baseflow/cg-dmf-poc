@@ -3,13 +3,16 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.documentenApiModule
-import com.baseflow.config.OpenZaakConfig
 import com.baseflow.config.appModule
+import com.baseflow.services.StorageService
 import com.baseflow.tooling.AllTables
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.mockk.every
+import io.mockk.mockk
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.dsl.module
 import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
 import java.util.UUID
@@ -28,7 +31,7 @@ open class TestBase(dbNamePrefix: String) {
     }
 
     @BeforeTest
-    fun beforeTest() {
+    open fun beforeTest() {
         connectDb()
         transaction {
             AllTables.createMissing()
@@ -38,12 +41,22 @@ open class TestBase(dbNamePrefix: String) {
     fun Application.setup() {
         connectDb()
 
-        install(Koin) {
-            modules(appModule)
-            modules(defaultModule)
+        val mockStorageService = mockk<StorageService>(relaxed = true).also {
+            every { it.uploadFile(any(), any()) } returns Unit
         }
 
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = false, openZaakConfig = openZaakConfig)
+        install(Koin) {
+            allowOverride(true)
+            modules(appModule)
+            modules(defaultModule)
+            // Override the real StorageService (which requires S3) with a no-op mock
+            // so route tests never attempt to connect to S3.
+            modules(
+                module {
+                    single<StorageService> { mockStorageService }
+                },
+            )
+        }
+        documentenApiModule(useAuthentication = false)
     }
 }

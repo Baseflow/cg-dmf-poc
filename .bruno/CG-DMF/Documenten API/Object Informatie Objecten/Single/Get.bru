@@ -1,7 +1,7 @@
 meta {
   name: Get
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
@@ -13,4 +13,8 @@ get {
 settings {
   encodeUrl: true
   timeout: 0
+}
+
+assert {
+  res.status: eq 200
 }

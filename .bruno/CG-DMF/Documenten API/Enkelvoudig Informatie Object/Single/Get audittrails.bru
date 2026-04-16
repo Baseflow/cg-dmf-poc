@@ -10,6 +10,11 @@ get {
   auth: inherit
 }
 
+assert {
+  res.status: eq 200
+  res.body.length: eq 3
+}
+
 script:post-response {
   const firstAudit = res.body[0].uuid;
   bru.setVar("firstAudit", firstAudit);

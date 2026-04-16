@@ -10,6 +10,14 @@ post {
   auth: inherit
 }
 
+vars:post-response {
+  lockId: res.body.lock
+}
+
+assert {
+  res.status: eq 200
+}
+
 settings {
   encodeUrl: true
   timeout: 0

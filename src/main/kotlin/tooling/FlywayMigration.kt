@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
@@ -61,6 +61,13 @@ fun main(args: Array<String>) {
 
     when (args.firstOrNull()) {
         "migrate" -> {
+            // Targeted repair for V7 pgcrypto removal (see Main.kt for details)
+            // TODO: Remove once all environments have been upgraded past V10.
+            val v7Info = flyway.info().all().firstOrNull { it.version?.version == "7" }
+            if (v7Info != null && !v7Info.isChecksumMatching) {
+                println("V7 checksum mismatch detected (pgcrypto removal). Repairing...")
+                flyway.repair()
+            }
             println("Running migrations...")
             val result = flyway.migrate()
             println("Successfully applied ${result.migrationsExecuted} migration(s)")

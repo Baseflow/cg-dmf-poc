@@ -35,4 +35,6 @@ internal object S3Config : Config() {
         )
         logger.debug("S3Config: secretKey is set: {}", secretKey.isNotEmpty())
     }
+
+    fun isComplete(): Boolean = endpoint.isNotEmpty() && accessKey.isNotEmpty() && secretKey.isNotEmpty() && bucketName.isNotEmpty()
 }

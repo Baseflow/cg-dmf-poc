@@ -52,6 +52,7 @@ class EnkelvoudigInformatieObjectFilterTest {
             CatalogusService(OpenZaakConfig(validationEnabled = false)),
             AuditTrailService(auditContext),
             auditContext,
+            BestandsDeelService(),
         )
     }
 

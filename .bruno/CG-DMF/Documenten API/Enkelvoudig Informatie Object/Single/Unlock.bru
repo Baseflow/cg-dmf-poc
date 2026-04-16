@@ -6,9 +6,20 @@ meta {
 
 post {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}/unlock
-  body: none
+  body: json
   auth: inherit
 }
+
+body:json {
+  {
+    "lock": "{{lockId}}"
+  }
+}
+
+assert {
+  res.status: eq 204
+}
+
 
 settings {
   encodeUrl: true

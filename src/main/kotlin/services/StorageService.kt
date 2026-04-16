@@ -5,140 +5,75 @@ package com.baseflow.services
 import com.baseflow.config.S3ClientFactory
 import com.baseflow.config.S3Config
 import org.koin.core.annotation.Singleton
-import org.reactivestreams.Subscriber
-import org.reactivestreams.Subscription
 import org.slf4j.LoggerFactory
-import software.amazon.awssdk.core.async.AsyncRequestBody
-import software.amazon.awssdk.core.async.AsyncResponseTransformer
-import software.amazon.awssdk.services.s3.S3AsyncClient
-import software.amazon.awssdk.services.s3.model.GetObjectRequest
-import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.ByteArrayInputStream
 import java.io.OutputStream
-import java.nio.ByteBuffer
 import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipInputStream
 
 /**
- * StorageService interacts with the S3 storage backend using the configuration
- * provided by S3Config.
+ * StorageService delegates file operations to the [BlobStorageProvider] instances
+ * registered by [BlobStorageRegistrar].
+ *
+ * When a specific repository name is not supplied, the *default* (first configured)
+ * provider is used.  A legacy fallback using the old `S3_*` env vars is kept so the
+ * application still works when no `BLOB_STORAGE_*` env vars are defined.
  */
 @Singleton
-open class StorageService(s3ClientFactory: S3ClientFactory) {
+open class StorageService(
+    @Suppress("unused") s3ClientFactory: S3ClientFactory, // kept for Koin graph compatibility
+) {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
 
-    private val bucketName = S3Config.bucketName
-
-    private val s3Client: S3AsyncClient = s3ClientFactory.create()
-
-    init {
-        logger.info("Created S3 client for bucket {}", bucketName)
-    }
-
-    fun uploadFile(objectName: String, content: ByteArray) {
+    /**
+     * Lazy legacy provider – only built when [BlobStorageRegistrar] has no
+     * providers and the old `S3_*` env vars are still in use.
+     */
+    private val legacyProvider: BlobStorageProvider? by lazy {
         try {
-            if (!s3Client.listBuckets().join().buckets()
-                    .any { it.name() == bucketName }
-            ) {
-                logger.info("Bucket {} does not exist, creating it", bucketName)
-                val createBucketResponse =
-                    s3Client.createBucket { it.bucket(bucketName) }.join()
-                logger.debug("Bucket created: {}", createBucketResponse)
-            }
-
-            logger.debug(
-                "Uploading file {} to bucket {} (size: {} bytes)",
-                objectName,
-                bucketName,
-                content.size,
+            val cfg = com.baseflow.config.BlobStorageRepoConfig(
+                index = 0,
+                name = "legacy-s3",
+                type = com.baseflow.config.BlobStorageType.S3,
+                url = S3Config.endpoint,
+                accessKey = S3Config.accessKey,
+                secretKey = S3Config.secretKey,
+                bucket = S3Config.bucketName,
+                region = S3Config.region.id(),
+                disableChecksums = S3Config.disableChecksums,
+                disableChunkedEncoding = S3Config.disableChunkedEncoding,
             )
-            val putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(objectName).build()
-            val requestBody = AsyncRequestBody.fromBytes(content)
-            val putObjectResponse =
-                s3Client.putObject(putObjectRequest, requestBody).join()
-            logger.info(
-                "Successfully uploaded data to {}/{} (ETag: {})",
-                bucketName,
-                objectName,
-                putObjectResponse.eTag(),
-            )
+            S3BlobStorageProvider(cfg)
         } catch (e: Exception) {
-            logger.error(
-                "Failed to upload file {} to bucket {}: {}",
-                objectName,
-                bucketName,
-                e.message,
-                e,
-            )
-            throw e
+            logger.warn("Legacy S3Config could not be initialised – no fallback available: {}", e.message)
+            null
         }
     }
 
-    /**
-     * Streams an object directly to the provided OutputStream without loading it fully into memory.
-     */
-    fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void> {
-        logger.debug(
-            "Streaming download of {} from bucket {}",
-            objectName,
-            bucketName,
-        )
-        val getObjectRequest = GetObjectRequest.builder()
-            .bucket(bucketName)
-            .key(objectName)
-            .build()
-
-        val result = CompletableFuture<Void>()
-
-        s3Client
-            .getObject(getObjectRequest, AsyncResponseTransformer.toPublisher())
-            .whenComplete { responsePublisher, throwable ->
-                if (throwable != null) {
-                    result.completeExceptionally(throwable)
-                    return@whenComplete
-                }
-
-                responsePublisher.subscribe(object : Subscriber<ByteBuffer> {
-                    private lateinit var subscription: Subscription
-
-                    override fun onSubscribe(s: Subscription) {
-                        subscription = s
-                        s.request(1)
-                    }
-
-                    override fun onNext(buffer: ByteBuffer) {
-                        try {
-                            val bytes = ByteArray(buffer.remaining())
-                            buffer.get(bytes)
-                            output.write(bytes)
-                            // Optionally flush to push data downstream promptly
-                            output.flush()
-                            subscription.request(1)
-                        } catch (e: Exception) {
-                            subscription.cancel()
-                            result.completeExceptionally(e)
-                        }
-                    }
-
-                    override fun onError(t: Throwable) {
-                        result.completeExceptionally(t)
-                    }
-
-                    override fun onComplete() {
-                        try {
-                            output.flush()
-                        } catch (_: Exception) {
-                        }
-                        result.complete(null)
-                    }
-                })
-            }
-
-        return result
+    private fun resolveProvider(repoName: String? = null): BlobStorageProvider {
+        val provider = if (repoName != null) {
+            BlobStorageRegistrar.providerByName(repoName)
+                ?: throw IllegalArgumentException("No blob storage repository registered with name '$repoName'")
+        } else {
+            BlobStorageRegistrar.defaultProvider() ?: legacyProvider
+        }
+        return provider
+            ?: throw IllegalStateException("No blob storage provider available. Configure BLOB_STORAGE_* env vars or legacy S3_* env vars.")
     }
+
+    /**
+     * Upload a file to the default (or named) repository.
+     */
+    fun uploadFile(objectName: String, content: ByteArray, repoName: String? = null) {
+        resolveProvider(repoName).uploadFile(objectName, content)
+    }
+
+    /**
+     * Stream a file from the default (or named) repository.
+     */
+    fun downloadFileTo(objectName: String, output: OutputStream, repoName: String? = null): CompletableFuture<Void> =
+        resolveProvider(repoName).downloadFileTo(objectName, output)
 
     companion object {
         /*

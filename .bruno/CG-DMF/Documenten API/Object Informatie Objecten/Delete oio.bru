@@ -1,0 +1,20 @@
+meta {
+  name: Delete oio
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten/{{createdOio}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

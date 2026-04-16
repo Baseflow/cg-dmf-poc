@@ -8,7 +8,7 @@ import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.models.SubjectTypeEnum
+import com.baseflow.api.models.SubjectType
 import com.baseflow.config.RequestScope
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
@@ -144,7 +144,7 @@ open class ObjectInformatieObjectService(
                 informatieobject = eioRecord
                 informatieobjectVersie = versionEntity
                 subjectObject = request.subjectObject
-                subjectType = request.subjectType.name.lowercase()
+                subjectType = request.subjectType.value
                 createdAt = now
                 updatedAt = now
             }
@@ -190,7 +190,7 @@ open class ObjectInformatieObjectService(
             url = url,
             informatieobject = informatieobjectUrl,
             subjectObject = this.subjectObject,
-            subjectType = SubjectTypeEnum.valueOf(this.subjectType.uppercase()),
+            subjectType = SubjectType(this.subjectType),
         )
     }
 }

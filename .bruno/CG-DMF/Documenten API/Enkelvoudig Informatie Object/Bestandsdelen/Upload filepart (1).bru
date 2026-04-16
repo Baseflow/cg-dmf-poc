@@ -1,0 +1,25 @@
+meta {
+  name: Upload filepart (1)
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/documenten/api/v1/bestandsdelen/{{bestandsDeel1}}
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  inhoud: @file(../data/Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf-aa)
+  lock: {{lockId}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

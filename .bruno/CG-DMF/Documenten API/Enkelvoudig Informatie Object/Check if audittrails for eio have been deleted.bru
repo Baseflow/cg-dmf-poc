@@ -1,0 +1,21 @@
+meta {
+  name: Check if audittrails for eio have been deleted
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}/audittrail
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.length: eq 0
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

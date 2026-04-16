@@ -42,6 +42,7 @@ class EnkelvoudigInformatieObjectService(
     private val catalogusService: CatalogusService,
     private val auditTrailService: AuditTrailService,
     private val auditContext: AuditContext,
+    private val bestandsDeelService: BestandsDeelService,
 ) {
 
     /**
@@ -100,7 +101,18 @@ class EnkelvoudigInformatieObjectService(
             bestandsLocatie = uploadResultaat.bestandsLocatie
         }
 
-        val response = record.toResponse(eioVersion)
+        // When the declared file size exceeds the trigger threshold, lock the record and
+        // create the bestandsdelen rows so the API consumer can upload the parts individually.
+        val bestandsDelen: List<BestandsDeelResponse>
+        if (request.inhoud.isNullOrEmpty() && bestandsDeelService.requiresChunking(request.bestandsomvang)) {
+            val lockToken = UUID.randomUUID().toString()
+            record.lockToken = lockToken
+            bestandsDelen = bestandsDeelService.createBestandsDelen(eioVersion, bestandsOmvang!!, lockToken)
+        } else {
+            bestandsDelen = emptyList()
+        }
+
+        val response = record.toResponse(eioVersion, bestandsDelen)
         auditContext.captureNew(response, eioVersion)
         response as EnkelvoudigInformatieObjectResponse
     }
@@ -143,7 +155,8 @@ class EnkelvoudigInformatieObjectService(
         val response = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
-            record.toResponse(version)
+            val bestandsDelen = bestandsDeelService.getBestandsDelen(version)
+            record.toResponse(version, bestandsDelen)
         } ?: return null
 
         return resolveExpand(response, expand)
@@ -223,12 +236,19 @@ class EnkelvoudigInformatieObjectService(
 
             val totalCount = query.count()
 
+            // Materialise the page rows first so we can collect all version IDs for a
+            // single batch bestandsdelen query instead of one query per row (N+1).
+            val pageRows = query.limit(pageSize).offset(offset).toList()
+            val versionIds = pageRows.map { EIOVersionEntity.wrapRow(it).id.value }
+            val bestandsDelenByVersion = bestandsDeelService.getBestandsDelenForVersions(versionIds)
+
             // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
             // Each row already contains exactly one record + its latest version due to the subquery filter.
-            val results = query.limit(pageSize).offset(offset).mapNotNull { row ->
+            val results = pageRows.mapNotNull { row ->
                 val record = EIORecordEntity.wrapRow(row)
                 val version = EIOVersionEntity.wrapRow(row)
-                record.toResponse(version)
+                val bestandsdelen = bestandsDelenByVersion[version.id.value] ?: emptyList()
+                record.toResponse(version, bestandsdelen)
             }
 
             results to totalCount
@@ -359,7 +379,27 @@ class EnkelvoudigInformatieObjectService(
                 )
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
             }
-            val response = record.toResponse(version)
+
+            // Determine effective bestandsomvang for the new version and create bestandsdelen if needed.
+            val effectiveOmvang = version.bestandsomvang
+            val bestandsDelen: List<BestandsDeelResponse>
+            // We only want to create bestandsdelen if bestandsomvang is specified and changed
+            if (request.inhoud.isNullOrEmpty() &&
+                request.bestandsomvang != null &&
+                request.bestandsomvang != latestVersion?.bestandsomvang &&
+                bestandsDeelService.requiresChunking(effectiveOmvang)
+            ) {
+                val lockToken = record.lockToken ?: run {
+                    val newToken = UUID.randomUUID().toString()
+                    record.lockToken = newToken
+                    newToken
+                }
+                bestandsDelen = bestandsDeelService.createBestandsDelen(version, effectiveOmvang!!, lockToken)
+            } else {
+                bestandsDelen = bestandsDeelService.getBestandsDelen(version)
+            }
+
+            val response = record.toResponse(version, bestandsDelen)
             auditContext.captureNew(response, version)
             response
         }
@@ -387,7 +427,10 @@ class EnkelvoudigInformatieObjectService(
         if (partial && newValue.isNullOrEmpty()) fallback.orEmpty() else newValue.orEmpty()
 
     @OptIn(ExperimentalTime::class)
-    private fun EIORecordEntity.toResponse(version: EIOVersionEntity?): EnkelvoudigInformatieObjectResponse? {
+    private fun EIORecordEntity.toResponse(
+        version: EIOVersionEntity?,
+        bestandsdelen: List<BestandsDeelResponse> = emptyList(),
+    ): EnkelvoudigInformatieObjectResponse? {
         if (version == null) return null
 
         val integriteit = when {
@@ -458,9 +501,7 @@ class EnkelvoudigInformatieObjectService(
                 .toInstant(TimeZone.UTC)
                 .toString(),
             lock = this.lockToken.orEmpty(),
-
-            // TODO, check bestandsdelen response with sizes > 3GB
-            bestandsdelen = emptyList(),
+            bestandsdelen = bestandsdelen,
         )
     }
 

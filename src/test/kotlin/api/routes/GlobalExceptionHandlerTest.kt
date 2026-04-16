@@ -39,15 +39,15 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
     }
 
     @Test
-    fun `test invalid enum value in JSON returns specific error message`() = testApplication {
+    fun `test invalid objectType value in JSON returns specific error message`() = testApplication {
         application { setup() }
 
-        // OIO request with "ZAAK" instead of "zaak"
+        // OIO request with an objectType containing spaces, which is invalid per SubjectType validation
         val invalidJson = """
             {
                 "informatieobject": "https://example.com/documenten/api/v1/enkelvoudiginformatieobjecten/12345678-1234-1234-1234-123456789012",
                 "object": "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321",
-                "objectType": "ZAAK"
+                "objectType": "INVALID TYPE WITH SPACES"
             }
         """
 
@@ -58,7 +58,7 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val body = response.bodyAsText()
-        println("[DEBUG_LOG] Response Body for invalid enum: $body")
+        println("[DEBUG_LOG] Response Body for invalid objectType: $body")
         val problem = Json.parseToJsonElement(body).jsonObject
 
         val detail = problem["detail"]?.jsonPrimitive?.content ?: ""

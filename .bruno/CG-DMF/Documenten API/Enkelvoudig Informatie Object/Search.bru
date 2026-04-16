@@ -1,7 +1,7 @@
 meta {
   name: Search
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
@@ -23,6 +23,10 @@ body:json {
     ],
     "expand": "informatieobjecttype"
   }
+}
+
+assert {
+  res.status: eq 200
 }
 
 settings {

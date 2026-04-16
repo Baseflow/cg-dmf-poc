@@ -5,7 +5,6 @@ package com.baseflow.api
 import com.baseflow.api.middleware.*
 import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.routes.*
-import com.baseflow.config.OpenZaakConfig
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -35,7 +34,7 @@ import io.ktor.utils.io.ExperimentalKtorApi
  * relations with objects beyond just Zaken (cases).
  */
 @OptIn(ExperimentalKtorApi::class)
-fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+fun Route.documentenApiRoutes() {
     // API root - provides version info and available endpoints
     route(DOCUMENTEN_API_BASE_PATH) {
         install(NotificationPlugin)
@@ -93,7 +92,7 @@ fun Route.documentenApiRoutes(openZaakConfig: OpenZaakConfig = OpenZaakConfig.fr
     }
 }
 
-fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakConfig: OpenZaakConfig = OpenZaakConfig.fromEnv()) {
+fun Application.documentenApiModule(useAuthentication: Boolean = true) {
     // Configure StatusPages for global exception handling
     configureStatusPages()
 
@@ -105,10 +104,16 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true, openZaakC
     routing {
         if (useAuthentication) {
             authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
-                documentenApiRoutes(openZaakConfig)
+                documentenApiRoutes()
+                route("/admin") {
+                    blobStorageRepositoryRoutes()
+                }
             }
         } else {
-            documentenApiRoutes(openZaakConfig)
+            documentenApiRoutes()
+            route("/admin") {
+                blobStorageRepositoryRoutes()
+            }
         }
     }
 }

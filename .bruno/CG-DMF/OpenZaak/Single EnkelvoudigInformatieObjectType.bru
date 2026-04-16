@@ -13,3 +13,9 @@ get {
 settings {
   encodeUrl: true
 }
+
+tests {
+  test("status is 200 or 401 (external OpenZaak server)", function() {
+    expect(res.status).to.be.oneOf([200, 401, 403]);
+  });
+}

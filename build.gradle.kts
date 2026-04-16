@@ -62,7 +62,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // Logging
     implementation("ch.qos.logback:logback-classic:1.5.32")
@@ -72,17 +72,20 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.23.0")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.27")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.27")
+    implementation("software.amazon.awssdk:s3:2.42.32")
+    implementation("software.amazon.awssdk:netty-nio-client:2.42.32")
+
+    // Azure Blob Storage
+    implementation("com.azure:azure-storage-blob:12.29.1")
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
-    implementation("io.insert-koin:koin-core:4.2.0")
-    implementation("io.insert-koin:koin-ktor:4.2.0")
-    implementation("io.insert-koin:koin-logger-slf4j:4.2.0")
+    implementation("io.insert-koin:koin-core:4.2.1")
+    implementation("io.insert-koin:koin-ktor:4.2.1")
+    implementation("io.insert-koin:koin-logger-slf4j:4.2.1")
     implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
     ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
 
@@ -137,6 +140,10 @@ spotless {
 
 application {
     mainClass.set("com.baseflow.MainKt")
+    // Netty uses System::loadLibrary (a restricted method) to load native libs for
+    // better I/O performance. Without this flag the JVM emits warnings today and will
+    // block the call entirely in a future release.
+    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
 // ── Swagger UI ────────────────────────────────────────────────────────────────
@@ -219,6 +226,9 @@ tasks.jar {
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    // Exclude signature files from signed dependency JARs; merging them into a
+    // fat JAR invalidates their digests and causes a SecurityException at startup.
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "META-INF/*.EC")
 }
 
 // Flyway migration tasks

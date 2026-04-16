@@ -1,7 +1,7 @@
 meta {
   name: Get All
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
@@ -34,10 +34,8 @@ params:query {
   ~objectinformatieobjecten__objectType: zaak
 }
 
-script:post-response {
-  const results = res.body.results
-  const createdId = results[results.length-1].id;
-  bru.setVar("createdId", createdId);
+assert {
+  res.status: eq 200
 }
 
 settings {

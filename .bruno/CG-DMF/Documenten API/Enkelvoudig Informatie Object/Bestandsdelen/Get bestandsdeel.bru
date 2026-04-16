@@ -1,0 +1,37 @@
+meta {
+  name: Get bestandsdeel
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{bestandsDelenEioID}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+    function saveBestandsDelen(index) {
+      const regex = /[^\/]*$/gm
+      const bd = res.body.bestandsdelen[index]
+      const url = bd.url
+      const bestandsDeel = regex.exec(url)[0]
+      bru.setVar("bestandsDeel" + (index + 1), bestandsDeel)
+    }
+  
+    bru.setVar("lockId", res.body.bestandsdelen[0].lock)
+  
+    saveBestandsDelen(0)
+    saveBestandsDelen(1)
+    saveBestandsDelen(2)
+    saveBestandsDelen(3)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

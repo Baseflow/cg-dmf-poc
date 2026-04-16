@@ -1,7 +1,7 @@
 meta {
   name: Get
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
@@ -12,6 +12,14 @@ get {
 
 params:query {
   ~expand: informatieobjecttype
+}
+
+vars:post-response {
+  lockId: res.body.lock
+}
+
+assert {
+  res.status: eq 200
 }
 
 settings {

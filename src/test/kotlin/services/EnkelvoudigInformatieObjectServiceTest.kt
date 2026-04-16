@@ -57,6 +57,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             CatalogusService(openZaakConfig),
             AuditTrailService(auditContext),
             auditContext,
+            BestandsDeelService(),
         )
     }
 
@@ -280,6 +281,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             mockCatalogusService,
             AuditTrailService(auditContext),
             auditContext,
+            BestandsDeelService(),
         )
 
         val req = generateTestDocument().copy(vertrouwelijkheidaanduiding = null)

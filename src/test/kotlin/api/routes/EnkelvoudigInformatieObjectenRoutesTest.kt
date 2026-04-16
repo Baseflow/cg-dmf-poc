@@ -606,7 +606,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val oioReq = CreateOIORequest(
             informatieobject = eio.url!!,
             subjectObject = objectUrl,
-            subjectType = SubjectTypeEnum.ZAAK,
+            subjectType = SubjectType("zaak"),
         )
         client.post("$API_BASE/${ResourceSegments.OBJECT_INFORMATIE_OBJECTEN}") {
             contentType(ContentType.Application.Json)
@@ -642,7 +642,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val oioReq = CreateOIORequest(
             informatieobject = eio.url!!,
             subjectObject = objectUrl,
-            subjectType = SubjectTypeEnum.ZAAK,
+            subjectType = SubjectType("zaak"),
         )
         client.post("$API_BASE/${ResourceSegments.OBJECT_INFORMATIE_OBJECTEN}") {
             contentType(ContentType.Application.Json)
