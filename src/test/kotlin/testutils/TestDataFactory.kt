@@ -33,6 +33,7 @@ object TestDataFactory {
         auteur: String = "auteur",
         informatieobjecttype: String = VALID_INFORMATIEOBJECTTYPE_URL,
         identificatie: String? = null,
+        withContent: Boolean = false,
     ): EnkelvoudigInformatieObjectRequest = EnkelvoudigInformatieObjectRequest(
         identificatie = identificatie,
         creatiedatum = LocalDate(2025, 1, 1),
@@ -45,6 +46,7 @@ object TestDataFactory {
         informatieobjecttype = informatieobjecttype,
         formaat = "application/pdf",
         bestandsomvang = 123456789L,
+        inhoud = if (withContent) PDF_CONTENT else null,
         link = "https://example.com/test.pdf",
         integriteit = Integriteit(
             algoritme = IntegriteitAlgoritme.SHA_256,
