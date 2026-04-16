@@ -39,13 +39,12 @@ brew install openjdk@21 gradle docker docker-compose
    The minimal services required for development can be started with Docker Compose:
 
     ```bash
-    docker-compose up -d postgres keycloak minio
+    docker compose up -d postgres keycloak minio
     ```
 
-Additional service dependencies for optional features can be started with Docker Compose as well.
-
+    Additional service dependencies for optional features can be started with Docker Compose as well.
     ```bash
-    docker-compose up -d
+    docker compose up -d
     ```
 
 3. **Run migrations:**
