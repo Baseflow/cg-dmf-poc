@@ -5,6 +5,7 @@ package com.baseflow
 import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.api.openApiModule
+import com.baseflow.api.wopiApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
@@ -64,5 +65,6 @@ fun Application.module() {
     helloWorldModule() // Keep for basic health check at /
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
+    wopiApiModule() // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
