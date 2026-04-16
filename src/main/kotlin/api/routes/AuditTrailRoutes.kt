@@ -3,8 +3,10 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.middleware.RequestScopeKey
+import com.baseflow.api.models.AuditTrailResponse
 import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
@@ -56,11 +58,14 @@ fun Route.auditTrailRoutes() {
                 tag("audittrail")
                 summary = "Een specifieke audit trail regel opvragen."
                 parameters {
-                    path("uuid") { description = "UUID van het informatieobject." }
+                    path("uuid") { description = "UUID van het INFORMATIEOBJECT." }
                     path("auditTrailUuid") { description = "UUID van de audit trail regel." }
                 }
                 responses {
-                    response(200) { description = "OK." }
+                    response(200) {
+                        description = "OK."
+                        ContentType.Application.Json { schema = jsonSchema<AuditTrailResponse>() }
+                    }
                     response(400) { description = "Bad request: ongeldige UUID." }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
@@ -99,12 +104,15 @@ fun Route.auditTrailRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_audittrail_list"
                 tag("audittrail")
-                summary = "Alle audit trail regels behorend bij het informatieobject opvragen."
+                summary = "Alle audit trail regels behorend bij het INFORMATIEOBJECT opvragen."
                 parameters {
-                    path("uuid") { description = "UUID van het informatieobject." }
+                    path("uuid") { description = "UUID van het INFORMATIEOBJECT." }
                 }
                 responses {
-                    response(200) { description = "Lijst van audit trail regels." }
+                    response(200) {
+                        description = "Lijst van audit trail regels."
+                        ContentType.Application.Json { schema = jsonSchema<List<AuditTrailResponse>>() }
+                    }
                     response(400) { description = "Bad request: ongeldige UUID." }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }

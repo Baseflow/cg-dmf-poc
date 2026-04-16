@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.models
 
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
+import io.ktor.openapi.JsonSchema
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
@@ -14,12 +15,38 @@ import kotlinx.serialization.json.Json
  * RFC 7807 Problem Details representation for consistent API error responses.
  * We keep the structure minimal and spec-compliant.
  */
+@JsonSchema.Title("Foutmelding")
+@JsonSchema.Description("RFC 7807 Problem Details — gestandaardiseerde foutmelding voor API-fouten.")
+@JsonSchema.Example(
+    """{
+  "type": "https://drc.example.com/api/v1/fouten/validatie",
+  "title": "Validatiefout",
+  "status": 400,
+  "detail": "bronorganisatie: Dit veld is verplicht.",
+  "instance": "/api/v1/enkelvoudiginformatieobjecten"
+}""",
+)
 @Serializable
 data class ProblemDetailsResponse(
+    @JsonSchema.Description("URI-referentie die het probleemtype identificeert. Standaard 'about:blank'.")
+    @JsonSchema.Format("uri")
     val type: String = "about:blank",
+
+    @JsonSchema.Description("Een korte, leesbare samenvatting van het probleemtype.")
+    @JsonSchema.Example("\"Validatiefout\"")
     val title: String,
+
+    @JsonSchema.Description("De HTTP-statuscode voor dit probleem.")
+    @JsonSchema.Example("400")
     val status: Int,
+
+    @JsonSchema.Description("Een leesbare uitleg van dit specifieke probleem.")
+    @JsonSchema.Example("\"bronorganisatie: Dit veld is verplicht.\"")
     val detail: String? = null,
+
+    @JsonSchema.Description("Een URI-referentie die de specifieke instantie van het probleem identificeert (bijv. het request-pad).")
+    @JsonSchema.Format("uri")
+    @JsonSchema.Example("\"/api/v1/enkelvoudiginformatieobjecten\"")
     val instance: String? = null,
 ) : ApiResponse
 

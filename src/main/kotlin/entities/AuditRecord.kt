@@ -3,6 +3,7 @@
 package com.baseflow.entities
 
 import com.baseflow.api.models.AuditTrailResponse
+import io.ktor.openapi.JsonSchema
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -16,6 +17,12 @@ import org.jetbrains.exposed.v1.json.json
 import java.util.UUID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable as UUIDTableCore
 
+@JsonSchema.Title("Wijzigingen")
+@JsonSchema.Description(
+    "De gewijzigde velden met hun oude en nieuwe waarden. " +
+        "'oud' bevat de toestand van de resource vóór de actie, 'nieuw' de toestand ná de actie. " +
+        "Bij een aanmaak is 'oud' leeg; bij een verwijdering is 'nieuw' leeg.",
+)
 @Serializable
 data class Wijzigingen(val oud: JsonElement? = null, val nieuw: JsonElement? = null) {
     companion object {
