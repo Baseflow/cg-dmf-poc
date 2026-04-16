@@ -16,9 +16,12 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
+import software.amazon.awssdk.services.s3.model.Delete
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.io.OutputStream
 import java.net.URI
@@ -157,6 +160,28 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             .build()
         s3Client.deleteObject(request).get(TIMEOUT.toSeconds(), TimeUnit.SECONDS)
         logger.debug("Deleted {}/{}", bucketName, objectName)
+    }
+
+    /**
+     * Deletes multiple objects in a single S3 `DeleteObjects` request.
+     * Falls back to individual [deleteFile] calls when [objectNames] is empty.
+     * S3 accepts at most 1 000 keys per request; larger batches are chunked automatically.
+     */
+    override fun deleteFiles(objectNames: List<String>) {
+        if (objectNames.isEmpty()) return
+        objectNames.chunked(1000).forEach { chunk ->
+            val identifiers = chunk.map { ObjectIdentifier.builder().key(it).build() }
+            val request = DeleteObjectsRequest.builder()
+                .bucket(bucketName)
+                .delete(Delete.builder().objects(identifiers).build())
+                .build()
+            val response = s3Client.deleteObjects(request).get(TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+            if (response.hasErrors()) {
+                val errors = response.errors().joinToString { "${it.key()}: ${it.message()}" }
+                logger.warn("S3 DeleteObjects returned errors for bucket {}: {}", bucketName, errors)
+            }
+            logger.debug("Deleted {} object(s) from {}", chunk.size, bucketName)
+        }
     }
 
     private fun ensureBucketExists() {
