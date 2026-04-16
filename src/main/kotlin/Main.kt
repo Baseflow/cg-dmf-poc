@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow
 
+import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.api.openApiModule
@@ -14,9 +15,11 @@ import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
@@ -78,6 +81,12 @@ fun Application.module() {
     install(Koin) {
         modules(appModule)
         modules(defaultModule)
+    }
+
+    // JSON serialization — installed at the top level so it is available to all modules,
+    // including OpenAPI spec serialization and any future modules added alongside the Documenten API.
+    install(ContentNegotiation) {
+        json(apiJsonConfig())
     }
 
     authenticationModule()

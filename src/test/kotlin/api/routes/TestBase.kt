@@ -2,12 +2,15 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.routes
 
+import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documentenApiModule
 import com.baseflow.config.appModule
 import com.baseflow.services.StorageService
 import com.baseflow.tooling.AllTables
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.plugins.contentnegotiation.*
 import io.mockk.every
 import io.mockk.mockk
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -56,6 +59,9 @@ open class TestBase(dbNamePrefix: String) {
                     single<StorageService> { mockStorageService }
                 },
             )
+        }
+        install(ContentNegotiation) {
+            json(apiJsonConfig())
         }
         documentenApiModule(useAuthentication = false)
     }
