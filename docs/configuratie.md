@@ -90,6 +90,16 @@ Stel de volgende omgevingsvariabelen in indien nodig:
 | `NOTIFICATION_KANAAL`     | `documenten`    | Naam van het notificatiekanaal (kanaal) zoals geregistreerd in Open Notificaties      |
 | `NOTIFICATION_SOURCE`     | `drc`           | Bronidentificatie verzonden met elke notificatie                                      |
 
+## WOPI & Collabora Online
+
+De DMF implementeert een WOPI-host waarmee Collabora Online documenten kan bewerken.
+Zie [docs/wopi.md](wopi.md) voor een volledig overzicht.
+
+| Variabele       | Standaardwaarde | Beschrijving                                                                                                        |
+|-----------------| --------------- |---------------------------------------------------------------------------------------------------------------------|
+| `WOPI_BASE_URL` | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar door Collabora, bijv. `http://localhost:8080/wopi/api/v1/files/{files_id}` |
+| `COLLABORA_URL` | _(leeg)_        | Publieke basis-URL van Collabora bijv. `https://collabora.dev.baseflow.com`                                                                            |
+
 ## Aanvullende opmerkingen
 
 - Zorg ervoor dat alle omgevingsvariabelen zijn ingesteld voordat u de applicatie start.
