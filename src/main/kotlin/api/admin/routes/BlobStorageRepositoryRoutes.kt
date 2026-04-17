@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.admin.routes
 
 import com.baseflow.api.models.BlobStorageRepositoryResponse
 import com.baseflow.api.models.SetDefaultRepositoryRequest
@@ -29,6 +29,14 @@ import java.util.UUID
  */
 fun Route.blobStorageRepositoryRoutes() {
     route("/storage-repositories") {
+        /**
+         * Geeft een lijst van alle geconfigureerde blob storage repositories.
+         *
+         * Responses:
+         *   - 200 Lijst van repositories.
+         *
+         * @tag Admin
+         */
         // GET /admin/storage-repositories
         get {
             val repos = transaction {
@@ -37,6 +45,15 @@ fun Route.blobStorageRepositoryRoutes() {
             call.respond(repos)
         }
 
+        /**
+         * Geeft de huidige standaard blob storage repository.
+         *
+         * Responses:
+         *   - 200 De standaard repository.
+         *   - 404 Geen standaard repository geconfigureerd.
+         *
+         * @tag Admin
+         */
         // GET /admin/storage-repositories/default
         get("/default") {
             val provider = BlobStorageRegistrar.defaultProvider()
@@ -57,6 +74,16 @@ fun Route.blobStorageRepositoryRoutes() {
             call.respond(repo)
         }
 
+        /**
+         * Stelt de standaard blob storage repository in.
+         *
+         * Responses:
+         *   - 200 De bijgewerkte standaard repository.
+         *   - 400 Ongeldige aanvraag.
+         *   - 404 Repository niet gevonden.
+         *
+         * @tag Admin
+         */
         // PUT /admin/storage-repositories/default
         put("/default") {
             val body = runCatching { call.receive<SetDefaultRepositoryRequest>() }.getOrNull()
@@ -92,6 +119,16 @@ fun Route.blobStorageRepositoryRoutes() {
             call.respond(HttpStatusCode.OK, updated)
         }
 
+        /**
+         * Geeft een specifieke blob storage repository op basis van UUID.
+         *
+         * Responses:
+         *   - 200 De gevraagde repository.
+         *   - 400 Ongeldig UUID.
+         *   - 404 Repository niet gevonden.
+         *
+         * @tag Admin
+         */
         // GET /admin/storage-repositories/{id}
         get("/{id}") {
             val id = call.parameters["id"]

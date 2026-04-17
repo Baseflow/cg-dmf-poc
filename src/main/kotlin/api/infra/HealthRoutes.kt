@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-package com.baseflow.api
+package com.baseflow.api.infra
 
 import com.baseflow.services.HealthCheckService
 import com.baseflow.services.HealthValidateResponse

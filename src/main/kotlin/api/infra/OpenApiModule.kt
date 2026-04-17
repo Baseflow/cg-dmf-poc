@@ -2,8 +2,9 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 @file:OptIn(ExperimentalKtorApi::class)
 
-package com.baseflow.api
+package com.baseflow.api.infra
 
+import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.config.ApplicationConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
@@ -49,13 +50,13 @@ private val apiInfo = OpenApiInfo(
         In een documentregistratiecomponent worden INFORMATIEOBJECTen opgeslagen. Een
         INFORMATIEOBJECT is een digitaal document voorzien van meta-gegevens.
         INFORMATIEOBJECTen kunnen aan andere objecten zoals zaken en besluiten worden
-        gerelateerd (maar dat hoeft niet) en kunnen gebruiksrechten hebben.
+        gerelateerd (maar dat hoeft niet) en kunnen GEBRUIKSRECHTen hebben.
 
         **Uploaden van bestanden**
 
         Bestanden kunnen groter zijn dan de minimum die door providers ondersteund moet worden.
         Voor kleine bestanden kan de inhoud base64-encoded meegestuurd worden in de JSON.
-        Voor grote bestanden (>4GB) moet de chunked upload workflow gebruikt worden via bestandsdelen.
+        Voor grote bestanden (>4GB) moet de chunked upload workflow gebruikt worden via BESTANDSDELen.
 
         **Afhankelijkheden**
 
@@ -80,11 +81,12 @@ private val apiInfo = OpenApiInfo(
 )
 
 private val apiTags = listOf(
-    Tag("enkelvoudiginformatieobjecten", "Enkelvoudige Informatieobjecten — beheer van documenten en hun metadata"),
-    Tag("objectinformatieobjecten", "Object-Informatieobject relaties — koppelen van documenten aan objecten"),
-    Tag("subjectinformatieobjecten", "Subject-Informatieobject relaties (experimenteel) — uitbreiding voor niet-Zaken objecten"),
-    Tag("bestandsdelen", "Bestandsdelen — chunked upload voor grote bestanden"),
-    Tag("audittrail", "Audittrail — audit log regels per informatieobject"),
+    Tag("enkelvoudiginformatieobjecten", "Beheer van document registraties, bestanden en hun metadata"),
+    Tag("objectinformatieobjecten", "Koppelen van documenten aan objecten"),
+    Tag("subjectinformatieobjecten", "Uitbreiding voor niet-Zaken objecten"),
+    Tag("bestandsdelen", "Chunked upload voor grote bestanden"),
+    Tag("audittrail", "Audit log regels per INFORMATIEOBJECT"),
+    Tag("admin", "Interne beheerfuncties voor opslagconfiguratie (niet onderdeel van de publieke API)"),
 )
 
 /**

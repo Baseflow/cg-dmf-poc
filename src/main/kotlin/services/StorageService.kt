@@ -75,6 +75,21 @@ open class StorageService(
     fun downloadFileTo(objectName: String, output: OutputStream, repoName: String? = null): CompletableFuture<Void> =
         resolveProvider(repoName).downloadFileTo(objectName, output)
 
+    /**
+     * Deletes one or more objects from blob storage. Empty or blank keys are silently skipped.
+     * Errors are logged but do not throw, so a missing file will not abort a delete operation.
+     */
+    fun deleteFiles(objectNames: List<String>, repoName: String? = null) {
+        val keys = objectNames.filter { it.isNotBlank() }
+        if (keys.isEmpty()) return
+        try {
+            resolveProvider(repoName).deleteFiles(keys)
+            logger.info("Deleted {} file(s): {}", keys.size, keys)
+        } catch (e: Exception) {
+            logger.error("Failed to batch-delete {} file(s): {}", keys.size, e.message, e)
+        }
+    }
+
     companion object {
         /*
         Detecteert het formaat van een bestand op basis van de eerste bytes.

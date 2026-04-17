@@ -27,6 +27,15 @@ interface BlobStorageProvider {
      */
     fun deleteFile(objectName: String) {}
 
+    /**
+     * Delete multiple objects in a single operation.
+     * The default implementation calls [deleteFile] for each key sequentially.
+     * Backends that support native batch deletion (e.g. S3 `DeleteObjects`) should override this.
+     */
+    fun deleteFiles(objectNames: List<String>) {
+        objectNames.forEach { deleteFile(it) }
+    }
+
     /** Quick connectivity / health check. Returns `true` when the backing store is reachable. */
     fun isHealthy(): Boolean
 }

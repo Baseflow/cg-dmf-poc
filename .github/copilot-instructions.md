@@ -19,6 +19,19 @@ with additional filtering for new relations between non-Zaken objects.
 ## Directory Structure
 
 - `/src/main/kotlin` — Application source code
+  - `api/` — HTTP layer, split by domain (package `com.baseflow.api`)
+    - `documenten/` — Documenten API 1.5.0 routes and module (`com.baseflow.api.documenten`)
+      - `routes/` — Individual route handlers (EIO, OIO, SIO, BestandsDelen, AuditTrail)
+    - `admin/` — Internal management endpoints (`com.baseflow.api.admin`)
+      - `routes/` — BlobStorageRepository management routes
+    - `infra/` — Health checks and OpenAPI spec endpoints (`com.baseflow.api.infra`)
+    - `wopi/` — WOPI protocol support (planned, not yet implemented) (`com.baseflow.api.wopi`)
+    - `middleware/` — Shared Ktor plugins (AuditTrail, Notification, ConditionalHeaders, etc.)
+    - `models/` — Shared request/response models (not yet domain-split)
+  - `config/` — Application configuration and dependency injection
+  - `entities/` — Exposed ORM table definitions
+  - `services/` — Business logic services
+  - `tooling/` — Gradle tasks (migration generator, OpenAPI export)
 - `/src/main/resources/db/migration` — Database migration scripts (Flyway)
 - `/docs` — Documentation, including OAS spec
 
@@ -50,6 +63,22 @@ All tables should be listed in `src/main/kotlin/tooling/AllTables.kt`.
 
 See `docs/DATABASE.md` for detailed workflow and known limitations.
 
+
+## Code Style
+
+This project uses [Spotless](https://github.com/diffplug/spotless) for Kotlin code formatting.
+
+After making significant code changes, always run:
+
+```bash
+./gradlew spotlessApply
+```
+
+You can check for formatting violations without applying fixes with:
+
+```bash
+./gradlew spotlessCheck
+```
 
 ## Setup & Development
 

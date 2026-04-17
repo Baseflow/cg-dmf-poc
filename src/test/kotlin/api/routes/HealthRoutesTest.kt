@@ -3,7 +3,7 @@
 package com.baseflow.api.routes
 
 import com.baseflow.api.apiJsonConfig
-import com.baseflow.api.healthModule
+import com.baseflow.api.infra.healthModule
 import com.baseflow.services.DependencyStatus
 import com.baseflow.services.HealthCheckService
 import com.baseflow.services.StorageStatus

@@ -5,7 +5,6 @@ package com.baseflow
 import com.baseflow.api.documentenApiModule
 import com.baseflow.api.healthModule
 import com.baseflow.api.openApiModule
-import com.baseflow.api.wopiApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
@@ -81,10 +80,16 @@ fun Application.module() {
         modules(defaultModule)
     }
 
+    // JSON serialization — available to all modules,
+    install(ContentNegotiation) {
+        json(apiJsonConfig())
+    }
+
     authenticationModule()
     helloWorldModule() // Keep for basic health check at /
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
+    adminModule() // Admin API at /admin
     wopiApiModule() // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }

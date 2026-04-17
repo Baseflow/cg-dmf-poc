@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
@@ -82,16 +82,19 @@ open class ObjectInformatieObjectenRoutes(
                     operationId = "${tag}_list"
                     tag(tag)
                     summary = "Alle ${resourceSegment.title} relaties opvragen."
-                    description = "Geeft een lijst van object-informatieobject relaties, gefilterd via query-parameters."
+                    description = "Geeft een lijst van OBJECTINFORMATIEOBJECT relaties, gefilterd via query-parameters."
                     parameters {
                         query("informatieobject") { description = "Filter op URL-referentie naar het INFORMATIEOBJECT." }
                         query("object") { description = "Filter op URL-referentie naar het gerelateerde OBJECT." }
                         query("expand") { description = "Velden om te expanderen." }
-                        query("page") { description = "Paginanummer." }
-                        query("pageSize") { description = "Aantal resultaten per pagina." }
+                        query("page") { description = "**EXPERIMENTEEL** Paginanummer." }
+                        query("pageSize") { description = "**EXPERIMENTEEL** Aantal resultaten per pagina." }
                     }
                     responses {
-                        response(200) { description = "Lijst van ${resourceSegment.title} relaties." }
+                        response(200) {
+                            description = "Lijst van ${resourceSegment.title} relaties."
+                            ContentType.Application.Json { schema = jsonSchema<List<ObjectInformatieObjectResponse>>() }
+                        }
                         response(400) { description = "Bad request." }
                         response(401) { description = "Unauthorized." }
                         response(403) { description = "Forbidden." }
@@ -137,6 +140,7 @@ open class ObjectInformatieObjectenRoutes(
                     responses {
                         response(201) {
                             description = "Aangemaakt."
+                            ContentType.Application.Json { schema = jsonSchema<ObjectInformatieObjectResponse>() }
                             headers {
                                 header("Location") { description = "URL van de aangemaakte relatie." }
                                 header("API-version") { description = "Geeft de specifieke API-versie aan." }
@@ -205,7 +209,10 @@ open class ObjectInformatieObjectenRoutes(
                             path("uuid") { description = "Unieke resource identifier (UUID4)." }
                         }
                         responses {
-                            response(200) { description = "OK." }
+                            response(200) {
+                                description = "OK."
+                                ContentType.Application.Json { schema = jsonSchema<ObjectInformatieObjectResponse>() }
+                            }
                             response(401) { description = "Unauthorized." }
                             response(403) { description = "Forbidden." }
                             response(404) { description = "Not found." }

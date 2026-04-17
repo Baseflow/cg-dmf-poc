@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.middleware.RequestScopeKey
+import com.baseflow.api.models.BestandsDeelResponse
 import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.StorageService
 import com.baseflow.services.UploadFilePartResult
 import io.ktor.http.*
 import io.ktor.http.content.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -29,7 +31,7 @@ import java.util.*
 @OptIn(ExperimentalKtorApi::class)
 fun Route.bestandsDelenRoutes() {
     /**
-     * Upload een bestandsdeel.
+     * Upload een BESTANDSDEEL.
      *
      * Accepts the binary content of one chunk together with the lock token.
      * The request body must be multipart/form-data with fields:
@@ -122,16 +124,19 @@ fun Route.bestandsDelenRoutes() {
         .describe {
             operationId = "bestandsdelen_update"
             tag("bestandsdelen")
-            summary = "Upload een bestandsdeel."
+            summary = "Upload een BESTANDSDEEL."
             description =
-                "Upload een bestandsdeel als onderdeel van de chunked upload workflow voor grote bestanden. " +
+                "Upload een BESTANDSDEEL als onderdeel van de chunked upload workflow voor grote bestanden. " +
                 "De request body is multipart/form-data met velden 'inhoud' (binary) en 'lock' (string). " +
-                "Wanneer alle delen zijn geupload kan het bovenliggende informatieobject worden ontgrendeld."
+                "Wanneer alle delen zijn geupload kan het bovenliggende INFORMATIEOBJECT worden ontgrendeld."
             parameters {
-                path("uuid") { description = "Unieke resource identifier (UUID4) van het bestandsdeel." }
+                path("uuid") { description = "Unieke resource identifier (UUID4) van het BESTANDSDEEL." }
             }
             responses {
-                response(200) { description = "OK – bestandsdeel bijgewerkt." }
+                response(200) {
+                    description = "OK – BESTANDSDEEL bijgewerkt."
+                    ContentType.Application.Json { schema = jsonSchema<BestandsDeelResponse>() }
+                }
                 response(400) { description = "Bad request." }
                 response(401) { description = "Unauthorized." }
                 response(403) { description = "Forbidden – ongeldige lock token." }

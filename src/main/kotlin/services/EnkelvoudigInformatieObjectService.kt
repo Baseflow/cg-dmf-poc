@@ -711,16 +711,60 @@ class EnkelvoudigInformatieObjectService(
     }
 
     fun delete(id: UUID): DeleteResult {
-        return transaction {
+        val fileLocations = mutableListOf<String>()
+        val result = transaction {
+            val lockedRecordExists =
+                EIORecords
+                    .selectAll()
+                    .andWhere { EIORecords.id eq id }
+                    .forUpdate()
+                    .singleOrNull() != null
+
+            if (!lockedRecordExists) {
+                return@transaction DeleteResult.NotFound
+            }
+
+            val hasReferences =
+                !OIORecords
+                    .selectAll()
+                    .andWhere { OIORecords.informatieobject eq id }
+                    .limit(1)
+                    .empty()
+
+            if (hasReferences) {
+                return@transaction DeleteResult.HasReferences
+            }
+
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
             val latestVersion = record.versions.maxByOrNull { it.versie }
-            auditContext.captureOld(record.toResponse(latestVersion), latestVersion)
-            auditTrailService.removeAuditTrailsForResource(id)
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked
             }
+            auditContext.captureOld(record.toResponse(latestVersion), latestVersion)
+            fileLocations.addAll(record.versions.map { it.bestandsLocatie }.filter { it.isNotBlank() }.distinct())
+
+            // Also collect the storage keys for any bestandsdelen (chunked-upload parts)
+            // that were uploaded to blob storage under {recordId}/{versie}/parts/{bestandsDeelId}.
+            record.versions.forEach { version ->
+                BestandsDeelEntity
+                    .find { BestandsDelen.versionId eq version.id }
+                    .filter { it.voltooid }
+                    .mapTo(fileLocations) {
+                        bestandsDeelStorageKey(
+                            recordId = record.id.value,
+                            versie = version.versie,
+                            bestandsDeelId = it.id.value,
+                        )
+                    }
+            }
+
             record.delete()
             DeleteResult.Success
         }
+        if (result == DeleteResult.Success) {
+            storageService.deleteFiles(fileLocations)
+            auditTrailService.removeAuditTrailsForResource(id)
+        }
+        return result
     }
 }

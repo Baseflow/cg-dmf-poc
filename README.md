@@ -40,13 +40,12 @@ brew install openjdk@21 gradle docker docker-compose
    The minimal services required for development can be started with Docker Compose:
 
     ```bash
-    docker-compose up -d postgres keycloak minio
+    docker compose up -d postgres keycloak minio
     ```
 
-Additional service dependencies for optional features can be started with Docker Compose as well.
-
+    Additional service dependencies for optional features can be started with Docker Compose as well.
     ```bash
-    docker-compose up -d
+    docker compose up -d
     ```
 
 3. **Run migrations:**
@@ -130,6 +129,17 @@ See [docs/DATABASE.md](docs/DATABASE.md) for detailed migration workflow.
 ## Project Structure
 
 - `/src/main/kotlin` — Application source code
+  - `api/` — HTTP layer, split by domain (package `com.baseflow.api`)
+    - `documenten/` — Documenten API 1.5.0 routes and module (`com.baseflow.api.documenten`)
+    - `admin/` — Internal management endpoints (`com.baseflow.api.admin`)
+    - `infra/` — Health checks and OpenAPI spec endpoints (`com.baseflow.api.infra`)
+    - `wopi/` — WOPI protocol support (planned, not yet implemented) (`com.baseflow.api.wopi`)
+    - `middleware/` — Shared Ktor plugins (auth, audit trail, notifications, etc.)
+    - `models/` — Shared request/response models
+  - `config/` — Application configuration and dependency injection
+  - `entities/` — Exposed ORM table definitions
+  - `services/` — Business logic
+  - `tooling/` — Gradle tasks (migration generator, OpenAPI export)
 - `/src/main/resources/db/migration` — Flyway migration scripts
 - `/docs` — Documentation
 - `/docker` — Docker configuration

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
@@ -11,6 +11,7 @@ import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.EIOOrdering
+import com.baseflow.services.models.LockPayload
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
@@ -43,7 +44,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
      *
      * Deze lijst kan gefilterd worden met query-string parameters.
      * De objecten bevatten metadata over de documenten en de downloadlink (`inhoud`) naar de binary data.
-     * Alleen de laatste versie van elk (ENKELVOUDIG) INFORMATIEOBJECT wordt getoond.
+     * Alleen de laatste versie van elk ENKELVOUDIGINFORMATIEOBJECT wordt getoond.
      *
      * Query parameters:
      *   - `bronorganisatie`: Filter op RSIN van de bronorganisatie.
@@ -86,22 +87,23 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         .describe {
             operationId = "enkelvoudiginformatieobjecten_list"
             tag("enkelvoudiginformatieobjecten")
-            summary = "Alle (enkelvoudige) informatieobjecten opvragen."
+            summary = "Alle (enkelvoudige) INFORMATIEOBJECTen opvragen."
             description =
-                "Geeft een gepagineerde lijst van enkelvoudige informatieobjecten. " +
-                "Alleen de laatste versie van elk informatieobject wordt getoond."
+                "Geeft een gepagineerde lijst van ENKELVOUDIGINFORMATIEOBJECTen. " +
+                "Alleen de laatste versie van elk INFORMATIEOBJECT wordt getoond."
             parameters {
                 query("bronorganisatie") {
                     description =
-                        "Het RSIN van de Niet-natuurlijk persoon zijnde de organisatie die het informatieobject " +
+                        "Het RSIN van de Niet-natuurlijk persoon zijnde de organisatie die het INFORMATIEOBJECT " +
                         "heeft gecreëerd of heeft ontvangen en als eerste in een samenwerkingsketen heeft vastgelegd."
                 }
                 query("identificatie") {
                     description = "Een binnen een gegeven context ondubbelzinnige referentie naar het INFORMATIEOBJECT."
                 }
                 query("trefwoorden") {
-                    description = "Een lijst van trefwoorden gescheiden door comma's. " +
-                        "Geeft alle informatieobjecten terug die álle opgegeven trefwoorden bevatten."
+                    description =
+                        "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door comma's. " +
+                        "Geeft alle INFORMATIEOBJECTen terug die álle opgegeven trefwoorden bevatten."
                 }
                 query("expand") { description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in." }
                 query("page") { description = "Een pagina binnen de gepagineerde set resultaten." }
@@ -111,60 +113,60 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 // Experimental filter features
                 query("informatieobjecttype") {
                     description =
-                        "**EXPERIMENTEEL** URL-referentie naar de gerelateerde informatieobjecttype " +
+                        "**EXPERIMENTEEL** URL-referentie naar de gerelateerde INFORMATIEOBJECTTYPE " +
                         "(in deze of een andere API)."
                 }
                 query("vertrouwelijkheidaanduiding") {
-                    description = "**EXPERIMENTEEL** De vertrouwelijkheidaanduiding van het informatieobject. " +
+                    description = "**EXPERIMENTEEL** De vertrouwelijkheidaanduiding van het INFORMATIEOBJECT. " +
                         "Komma-gescheiden lijst van waarden: openbaar, beperkt_openbaar, intern, " +
                         "zaakvertrouwelijk, vertrouwelijk, confidentieel, geheim, zeer_geheim."
                 }
                 query("titel") {
                     description =
-                        "**EXPERIMENTEEL** De titel van het informatieobject " +
+                        "**EXPERIMENTEEL** De titel van het INFORMATIEOBJECT " +
                         "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("auteur") {
                     description =
-                        "**EXPERIMENTEEL** De persoon of organisatie die dit informatieobject heeft aangemaakt " +
+                        "**EXPERIMENTEEL** De persoon of organisatie die dit INFORMATIEOBJECT heeft aangemaakt " +
                         "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("status") {
                     description =
-                        "**EXPERIMENTEEL** Filter op de status van het informatieobject. " +
+                        "**EXPERIMENTEEL** Filter op de status van het INFORMATIEOBJECT. " +
                         "Mogelijke waarden: in_bewerking, ter_vaststelling, definitief, gearchiveerd."
                 }
                 query("beschrijving") {
                     description =
-                        "**EXPERIMENTEEL** De beschrijving van het informatieobject " +
+                        "**EXPERIMENTEEL** De beschrijving van het INFORMATIEOBJECT " +
                         "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("trefwoorden__overlap") {
                     description =
                         "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door comma's. " +
-                        "Geeft alle informatieobjecten terug die ten minste één van de opgegeven trefwoorden hebben."
+                        "Geeft alle INFORMATIEOBJECTen terug die ten minste één van de opgegeven trefwoorden hebben."
                 }
                 query("locked") {
                     description = "**EXPERIMENTEEL** Filter op vergrendeld (true) of ontgrendeld (false)."
                 }
                 query("creatiedatum__gte") {
                     description =
-                        "**EXPERIMENTEEL** De aanmakingsdatum van het informatieobject " +
+                        "**EXPERIMENTEEL** De aanmakingsdatum van het INFORMATIEOBJECT " +
                         "(groter of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
                 }
                 query("creatiedatum__lte") {
                     description =
-                        "**EXPERIMENTEEL** De aanmakingsdatum van het informatieobject " +
+                        "**EXPERIMENTEEL** De aanmakingsdatum van het INFORMATIEOBJECT " +
                         "(kleiner of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
                 }
                 query("registratiedatum__gte") {
                     description =
-                        "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het informatieobject " +
+                        "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het INFORMATIEOBJECT " +
                         "(groter of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
                 }
                 query("registratiedatum__lte") {
                     description =
-                        "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het informatieobject " +
+                        "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het INFORMATIEOBJECT " +
                         "(kleiner of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
                 }
                 query("ordering") {
@@ -184,7 +186,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 }
             }
             responses {
-                response(200) { description = "Lijst van enkelvoudige informatieobjecten." }
+                response(200) {
+                    description = "Lijst van ENKELVOUDIGINFORMATIEOBJECTen."
+                    ContentType.Application.Json { schema = jsonSchema<PaginatedResponse<EnkelvoudigInformatieObjectResponse>>() }
+                }
                 response(400) { description = "Bad request." }
                 response(401) { description = "Unauthorized." }
                 response(403) { description = "Forbidden." }
@@ -192,7 +197,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         }
 
     /**
-     * Maak een (ENKELVOUDIG) INFORMATIEOBJECT aan.
+     * Maak een ENKELVOUDIGINFORMATIEOBJECT aan.
      *
      * **Er wordt gevalideerd op**
      * - geldigheid `informatieobjecttype` URL - de resource moet opgevraagd kunnen worden uit de catalogi API
@@ -217,11 +222,11 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         .describe {
             operationId = "enkelvoudiginformatieobjecten_create"
             tag("enkelvoudiginformatieobjecten")
-            summary = "Maak een enkelvoudig informatieobject aan."
-            description = "Maak een (ENKELVOUDIG) INFORMATIEOBJECT aan."
+            summary = "Maak een ENKELVOUDIGINFORMATIEOBJECT aan."
+            description = "Maak een ENKELVOUDIGINFORMATIEOBJECT aan."
             requestBody {
                 required = true
-                description = "Gegevens van het aan te maken informatieobject."
+                description = "Gegevens van het aan te maken INFORMATIEOBJECT."
                 content {
                     schema = jsonSchema<EnkelvoudigInformatieObjectRequest>()
                 }
@@ -229,8 +234,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             responses {
                 response(201) {
                     description = "Aangemaakt."
+                    ContentType.Application.Json { schema = jsonSchema<EnkelvoudigInformatieObjectResponse>() }
                     headers {
-                        header("Location") { description = "URL van het aangemaakte informatieobject." }
+                        header("Location") { description = "URL van het aangemaakte INFORMATIEOBJECT." }
                         header("API-version") { description = "Geeft de specifieke API-versie aan." }
                     }
                 }
@@ -264,7 +270,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
         .describe {
             operationId = "enkelvoudiginformatieobjecten_zoek"
             tag("enkelvoudiginformatieobjecten")
-            summary = "Voer een zoekopdracht uit op enkelvoudige informatieobjecten."
+            summary = "Voer een zoekopdracht uit op ENKELVOUDIGINFORMATIEOBJECTen."
             description =
                 "Zoeken/filteren op UUID of andere velden. Gebruik dit endpoint voor zoekopdrachten met UUIDs."
             requestBody {
@@ -275,7 +281,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 }
             }
             responses {
-                response(200) { description = "Lijst van gevonden enkelvoudige informatieobjecten." }
+                response(200) {
+                    description = "Lijst van gevonden ENKELVOUDIGINFORMATIEOBJECTen."
+                    ContentType.Application.Json { schema = jsonSchema<PaginatedResponse<EnkelvoudigInformatieObjectResponse>>() }
+                }
                 response(400) { description = "Bad request." }
                 response(401) { description = "Unauthorized." }
                 response(403) { description = "Forbidden." }
@@ -285,7 +294,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
     // Single document operations
     route("/{uuid}") {
         /**
-         * De headers voor een specifiek(e) ENKELVOUDIG INFORMATIEOBJECT opvragen.
+         * De headers voor een specifiek(e) ENKELVOUDIGINFORMATIEOBJECT opvragen.
          *
          * Vraag de headers op die je bij een GET request zou krijgen.
          *
@@ -300,7 +309,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_headers"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "De headers voor een specifiek enkelvoudig informatieobject opvragen."
+                summary = "De headers voor een specifiek ENKELVOUDIGINFORMATIEOBJECT opvragen."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
@@ -312,10 +321,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             }
 
         /**
-         * Een specifiek (ENKELVOUDIG) INFORMATIEOBJECT opvragen.
+         * Een specifiek ENKELVOUDIGINFORMATIEOBJECT opvragen.
          *
          * Het object bevat metadata over het document en de downloadlink (`inhoud`) naar de binary data.
-         * Dit geeft standaard de laatste versie van het (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Dit geeft standaard de laatste versie van het ENKELVOUDIGINFORMATIEOBJECT.
          * Specifieke versies kunnen worden opgevraagd via de `versie` query parameter.
          *
          * Responses:
@@ -336,18 +345,27 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_read"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Een specifiek enkelvoudig informatieobject opvragen."
-                description = "Geeft het informatieobject terug. Standaard de laatste versie."
+                summary = "Een specifiek ENKELVOUDIGINFORMATIEOBJECT opvragen."
+                description = "Geeft het INFORMATIEOBJECT terug. Standaard de laatste versie."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
-                    query("versie") { description = "Specifieke versie van het informatieobject." }
+                    query("versie") { description = "Specifieke versie van het INFORMATIEOBJECT." }
                     query("registratieOp") { description = "Filtert op de registratiedatum." }
                     query("expand") {
                         description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in."
                     }
+                    header("If-None-Match") {
+                        description =
+                            "Conditioneel GET: geef de ETag-waarde van de eerder ontvangen response mee. " +
+                            "De server antwoordt met 304 Not Modified als de resource niet gewijzigd is."
+                        required = false
+                    }
                 }
                 responses {
-                    response(200) { description = "OK." }
+                    response(200) {
+                        description = "OK."
+                        ContentType.Application.Json { schema = jsonSchema<EnkelvoudigInformatieObjectResponse>() }
+                    }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
                     response(404) { description = "Not found." }
@@ -355,9 +373,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             }
 
         /**
-         * Werk een (ENKELVOUDIG) INFORMATIEOBJECT in zijn geheel bij.
+         * Werk een ENKELVOUDIGINFORMATIEOBJECT in zijn geheel bij.
          *
-         * Dit creëert altijd een nieuwe versie van het (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Dit creëert altijd een nieuwe versie van het ENKELVOUDIGINFORMATIEOBJECT.
          *
          * Responses:
          *   - 200 OK.
@@ -378,20 +396,23 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_update"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Werk een enkelvoudig informatieobject in zijn geheel bij."
-                description = "Dit creëert altijd een nieuwe versie van het informatieobject."
+                summary = "Werk een ENKELVOUDIGINFORMATIEOBJECT in zijn geheel bij."
+                description = "Dit creëert altijd een nieuwe versie van het INFORMATIEOBJECT."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
                 requestBody {
                     required = true
-                    description = "Bijgewerkte gegevens van het informatieobject."
+                    description = "Bijgewerkte gegevens van het INFORMATIEOBJECT."
                     content {
                         schema = jsonSchema<EnkelvoudigInformatieObjectRequest>()
                     }
                 }
                 responses {
-                    response(200) { description = "OK." }
+                    response(200) {
+                        description = "OK."
+                        ContentType.Application.Json { schema = jsonSchema<EnkelvoudigInformatieObjectResponse>() }
+                    }
                     response(400) { description = "Bad request." }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
@@ -400,9 +421,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             }
 
         /**
-         * Werk een (ENKELVOUDIG) INFORMATIEOBJECT deels bij.
+         * Werk een ENKELVOUDIGINFORMATIEOBJECT deels bij.
          *
-         * Dit creëert altijd een nieuwe versie van het (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Dit creëert altijd een nieuwe versie van het ENKELVOUDIGINFORMATIEOBJECT.
          *
          * Responses:
          *   - 200 OK.
@@ -423,20 +444,23 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_partial_update"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Werk een enkelvoudig informatieobject deels bij."
-                description = "Dit creëert altijd een nieuwe versie van het informatieobject."
+                summary = "Werk een ENKELVOUDIGINFORMATIEOBJECT deels bij."
+                description = "Dit creëert altijd een nieuwe versie van het INFORMATIEOBJECT."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
                 requestBody {
                     required = false
-                    description = "Gedeeltelijk bijgewerkte gegevens van het informatieobject."
+                    description = "Gedeeltelijk bijgewerkte gegevens van het INFORMATIEOBJECT."
                     content {
                         schema = jsonSchema<EnkelvoudigInformatieObjectRequest>()
                     }
                 }
                 responses {
-                    response(200) { description = "OK." }
+                    response(200) {
+                        description = "OK."
+                        ContentType.Application.Json { schema = jsonSchema<EnkelvoudigInformatieObjectResponse>() }
+                    }
                     response(400) { description = "Bad request." }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
@@ -445,11 +469,11 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             }
 
         /**
-         * Verwijder een (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Verwijder een ENKELVOUDIGINFORMATIEOBJECT.
          *
-         * Verwijder een (ENKELVOUDIG) INFORMATIEOBJECT en alle bijbehorende versies, samen met alle
+         * Verwijder een ENKELVOUDIGINFORMATIEOBJECT en alle bijbehorende versies, samen met alle
          * gerelateerde resources binnen deze API. Dit is alleen mogelijk als er geen
-         * OBJECTINFORMATIEOBJECTen gerelateerd zijn aan het (ENKELVOUDIG) INFORMATIEOBJECT.
+         * OBJECTINFORMATIEOBJECTen gerelateerd zijn aan het ENKELVOUDIGINFORMATIEOBJECT.
          *
          * Responses:
          *   - 204 No content.
@@ -469,10 +493,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_delete"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Verwijder een enkelvoudig informatieobject."
+                summary = "Verwijder een ENKELVOUDIGINFORMATIEOBJECT."
                 description =
-                    "Verwijdert het informatieobject en alle bijbehorende versies. " +
-                    "Alleen mogelijk als er geen objectinformatieobjecten aan gerelateerd zijn."
+                    "Verwijdert het INFORMATIEOBJECT en alle bijbehorende versies. " +
+                    "Alleen mogelijk als er geen OBJECTINFORMATIEOBJECTen aan gerelateerd zijn."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
@@ -481,12 +505,12 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
                     response(404) { description = "Not found." }
-                    response(409) { description = "Conflict: informatieobject is vergrendeld." }
+                    response(409) { description = "Conflict: INFORMATIEOBJECT is vergrendeld." }
                 }
             }
 
         /**
-         * Download de binaire data van het (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Download de binaire data van het ENKELVOUDIGINFORMATIEOBJECT.
          *
          * Responses:
          *   - 200 OK (binary stream).
@@ -505,7 +529,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_download"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Download de binaire data van het informatieobject."
+                summary = "Download de binaire data van het INFORMATIEOBJECT."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
@@ -524,10 +548,10 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             }
 
         /**
-         * Vergrendel een (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Vergrendel een ENKELVOUDIGINFORMATIEOBJECT.
          *
-         * Voert een 'checkout' uit waardoor het (ENKELVOUDIG) INFORMATIEOBJECT vergrendeld wordt
-         * met een `lock` waarde. Alleen met deze waarde kan het (ENKELVOUDIG) INFORMATIEOBJECT
+         * Voert een 'checkout' uit waardoor het ENKELVOUDIGINFORMATIEOBJECT vergrendeld wordt
+         * met een `lock` waarde. Alleen met deze waarde kan het ENKELVOUDIGINFORMATIEOBJECT
          * bijgewerkt (`PUT`, `PATCH`) en ontgrendeld worden.
          *
          * Responses:
@@ -548,26 +572,29 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_lock"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Vergrendel een enkelvoudig informatieobject."
+                summary = "Vergrendel een ENKELVOUDIGINFORMATIEOBJECT."
                 description =
-                    "Voert een checkout uit waardoor het informatieobject vergrendeld wordt met een lock-waarde."
+                    "Voert een checkout uit waardoor het INFORMATIEOBJECT vergrendeld wordt met een lock-waarde."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
                 responses {
-                    response(200) { description = "OK — lock-waarde teruggegeven." }
+                    response(200) {
+                        description = "OK — lock-waarde teruggegeven."
+                        ContentType.Application.Json { schema = jsonSchema<LockPayload>() }
+                    }
                     response(400) { description = "Bad request." }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
                     response(404) { description = "Not found." }
-                    response(409) { description = "Conflict: informatieobject is al vergrendeld." }
+                    response(409) { description = "Conflict: INFORMATIEOBJECT is al vergrendeld." }
                 }
             }
 
         /**
-         * Ontgrendel een (ENKELVOUDIG) INFORMATIEOBJECT.
+         * Ontgrendel een ENKELVOUDIGINFORMATIEOBJECT.
          *
-         * Heft de 'checkout' op waardoor het (ENKELVOUDIG) INFORMATIEOBJECT ontgrendeld wordt.
+         * Heft de 'checkout' op waardoor het ENKELVOUDIGINFORMATIEOBJECT ontgrendeld wordt.
          *
          * Responses:
          *   - 204 No content.
@@ -587,8 +614,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             .describe {
                 operationId = "enkelvoudiginformatieobjecten_unlock"
                 tag("enkelvoudiginformatieobjecten")
-                summary = "Ontgrendel een enkelvoudig informatieobject."
-                description = "Heft de checkout op waardoor het informatieobject ontgrendeld wordt."
+                summary = "Ontgrendel een ENKELVOUDIGINFORMATIEOBJECT."
+                description = "Heft de checkout op waardoor het INFORMATIEOBJECT ontgrendeld wordt."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
@@ -861,6 +888,14 @@ private suspend fun RoutingContext.delete() {
             is DeleteResult.Locked -> call.respondProblem(
                 HttpStatusCode.Conflict,
                 conflict("EnkelvoudigInformatieObject is locked", call.request.path()),
+            )
+
+            is DeleteResult.HasReferences -> call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest(
+                    "EnkelvoudigInformatieObject cannot be deleted because it has related resources",
+                    call.request.path(),
+                ),
             )
         }
     } catch (_: IllegalArgumentException) {

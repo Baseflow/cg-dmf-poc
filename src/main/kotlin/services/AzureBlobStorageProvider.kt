@@ -2,8 +2,11 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.azure.core.http.rest.Response
 import com.azure.storage.blob.BlobContainerClientBuilder
 import com.azure.storage.blob.BlobServiceClientBuilder
+import com.azure.storage.blob.batch.BlobBatchClientBuilder
+import com.azure.storage.blob.models.DeleteSnapshotsOptionType
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.baseflow.config.BlobStorageRepoConfig
 import org.slf4j.LoggerFactory
@@ -30,6 +33,8 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
         .endpoint(config.url)
         .credential(credential)
         .buildClient()
+
+    private val blobBatchClient = BlobBatchClientBuilder(blobServiceClient).buildClient()
 
     private val containerClient = BlobContainerClientBuilder()
         .endpoint(config.url)
@@ -77,6 +82,28 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
     override fun deleteFile(objectName: String) {
         containerClient.getBlobClient(objectName).delete()
         logger.debug("Deleted blob {}/{}", containerName, objectName)
+    }
+
+    /**
+     * Deletes multiple blobs using the Azure Blob Batch API.
+     * Azure accepts at most 256 operations per batch; larger lists are chunked automatically.
+     */
+    override fun deleteFiles(objectNames: List<String>) {
+        if (objectNames.isEmpty()) return
+        objectNames.chunked(256).forEach { chunk ->
+            val urls = chunk.map { containerClient.getBlobClient(it).blobUrl }
+            blobBatchClient.deleteBlobs(urls, DeleteSnapshotsOptionType.INCLUDE)
+                .forEach { response: Response<Void> ->
+                    if (response.statusCode !in 200..299) {
+                        logger.warn(
+                            "Azure batch delete: unexpected status {} for blob in container {}",
+                            response.statusCode,
+                            containerName,
+                        )
+                    }
+                }
+            logger.debug("Deleted {} blob(s) from container {}", chunk.size, containerName)
+        }
     }
 
     private fun ensureContainerExists() {

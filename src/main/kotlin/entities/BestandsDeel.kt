@@ -5,6 +5,7 @@ package com.baseflow.entities
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
+import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import java.util.UUID
@@ -20,9 +21,16 @@ import java.util.UUID
 object BestandsDelen : UUIDTable("bestandsdelen") {
     val versionId = reference("version_id", EIOVersions, onDelete = ReferenceOption.CASCADE)
     val volgnummer = integer("volgnummer")
+        .check("chk_bestandsdelen_volgnummer") { it greater 0 }
     val omvang = long("omvang")
+        .check("chk_bestandsdelen_omvang") { it greater 0L }
     val voltooid = bool("voltooid").default(false)
     val lock = varchar("lock", 100).default("")
+
+    init {
+        uniqueIndex("uq_bestandsdelen_version_volgnummer", versionId, volgnummer)
+        index("idx_bestandsdelen_version_id", isUnique = false, versionId)
+    }
 }
 
 class BestandsDeelEntity(id: EntityID<UUID>) : UUIDEntity(id) {
