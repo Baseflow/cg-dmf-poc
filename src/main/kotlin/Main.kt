@@ -83,8 +83,7 @@ fun Application.module() {
         modules(defaultModule)
     }
 
-    // JSON serialization — installed at the top level so it is available to all modules,
-    // including OpenAPI spec serialization and any future modules added alongside the Documenten API.
+    // JSON serialization — available to all modules,
     install(ContentNegotiation) {
         json(apiJsonConfig())
     }
