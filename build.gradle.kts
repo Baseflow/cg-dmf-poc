@@ -77,7 +77,7 @@ dependencies {
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.29.1")
-    implementation("com.azure:azure-storage-blob-batch:12.26.0")
+    implementation("com.azure:azure-storage-blob-batch:12.29.3")
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
