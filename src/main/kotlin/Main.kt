@@ -2,8 +2,8 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow
 
-import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.admin.adminModule
+import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
 import com.baseflow.api.infra.healthModule
 import com.baseflow.api.infra.openApiModule

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
+@file:Suppress("ktlint")
+
 package com.baseflow.api.wopi
 
 // WOPI (Web Application Open Platform Interface) API
@@ -14,4 +16,3 @@ package com.baseflow.api.wopi
 //   POST /wopi/files/{fileId}           — WOPI actions (lock, unlock, rename, etc.)
 //
 // Not yet implemented.
-

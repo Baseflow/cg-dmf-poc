@@ -4,9 +4,9 @@ package com.baseflow.api.documenten
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.documenten.routes.*
 import com.baseflow.api.middleware.*
 import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.documenten.routes.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.conditionalheaders.*

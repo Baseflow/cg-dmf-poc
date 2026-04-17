@@ -64,6 +64,22 @@ All tables should be listed in `src/main/kotlin/tooling/AllTables.kt`.
 See `docs/DATABASE.md` for detailed workflow and known limitations.
 
 
+## Code Style
+
+This project uses [Spotless](https://github.com/diffplug/spotless) for Kotlin code formatting.
+
+After making significant code changes, always run:
+
+```bash
+./gradlew spotlessApply
+```
+
+You can check for formatting violations without applying fixes with:
+
+```bash
+./gradlew spotlessCheck
+```
+
 ## Setup & Development
 
 1. Clone the repository.
