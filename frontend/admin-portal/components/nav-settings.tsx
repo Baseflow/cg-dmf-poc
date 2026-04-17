@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -7,8 +8,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/contexts/auth-context"
 
-export function NavDocuments({
+export function NavSettings({
   items,
 }: {
   items: {
@@ -17,17 +19,23 @@ export function NavDocuments({
     icon: React.ReactNode
   }[]
 }) {
+  const { authenticated, isLoading } = useAuth()
+
+  if (isLoading || !authenticated) {
+    return null
+  }
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Documenten</SidebarGroupLabel>
+      <SidebarGroupLabel>Instellingen</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
-              <a href={item.url} target="_blank" rel="noopener noreferrer">
+              <Link href={item.url}>
                 {item.icon}
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

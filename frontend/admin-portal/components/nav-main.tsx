@@ -19,9 +19,8 @@ export function NavMain({
     icon?: React.ReactNode
   }[]
 }) {
+  const { authenticated, isLoading } = useAuth()
 
-  const {authenticated, isLoading} = useAuth()
-  
   if (isLoading || !authenticated) {
     return null
   }
@@ -33,7 +32,7 @@ export function NavMain({
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton tooltip={item.title}>
-                <Link href={item.url} className='flex items-center gap-2'>
+                <Link href={item.url} className="flex items-center gap-2">
                   {item.icon}
                   <span>{item.title}</span>
                 </Link>
