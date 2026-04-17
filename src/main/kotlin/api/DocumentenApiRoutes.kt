@@ -100,12 +100,14 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true) {
                 documentenApiRoutes()
                 route("/admin") {
                     blobStorageRepositoryRoutes()
+                    oidcSettingsRoutes()
                 }
             }
         } else {
             documentenApiRoutes()
             route("/admin") {
                 blobStorageRepositoryRoutes()
+                oidcSettingsRoutes()
             }
         }
     }
