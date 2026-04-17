@@ -8,6 +8,7 @@ import com.baseflow.entities.BlobStorageRepositories
 import com.baseflow.entities.EIORecords
 import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecords
+import com.baseflow.entities.OidcSettingsTable
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -22,6 +23,7 @@ object AllTables {
         AuditTrails,
         BestandsDelen,
         BlobStorageRepositories,
+        OidcSettingsTable,
     )
 
     fun createMissing() {
