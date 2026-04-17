@@ -1,32 +1,33 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi.routes
 
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
+import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.wopi.models.CheckFileInfoResponse
+import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.hide
 import io.ktor.utils.io.ExperimentalKtorApi
-import java.util.UUID
-import com.baseflow.api.middleware.RequestScopeKey
-import com.baseflow.api.wopi.models.CheckFileInfoResponse
-import com.baseflow.entities.EIORecordEntity
-import io.ktor.http.ContentDisposition
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.UUID
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.wopiApiRoutes() {
     install(AuditTrailPlugin)
 
     route(WOPI_API_BASE_PATH) {
-
         get("/files/{file_id}") {
             getFileMetadata()
         }.hide()
@@ -34,16 +35,15 @@ fun Route.wopiApiRoutes() {
         get("/files/{file_id}/contents") {
             getFileContents()
         }.hide()
-
     }
 }
-
 
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.parameters["file_id"]
     if (fileId == null) {
         call.respondProblem(
-            HttpStatusCode.BadRequest, badRequest("file_id parameter is required", call.request.path())
+            HttpStatusCode.BadRequest,
+            badRequest("file_id parameter is required", call.request.path()),
         )
         return
     }
@@ -123,11 +123,11 @@ private suspend fun RoutingContext.getFileMetadata() {
         } else {
             val checkFileInfoResponse = CheckFileInfoResponse(
                 baseFileName = result.bestandsnaam ?: "document",
-                size = result.bestandsomvang ?: 0L
+                size = result.bestandsomvang ?: 0L,
             )
             call.respond(
                 HttpStatusCode.OK,
-                checkFileInfoResponse
+                checkFileInfoResponse,
             )
         }
     } catch (_: IllegalArgumentException) {
@@ -137,7 +137,3 @@ private suspend fun RoutingContext.getFileMetadata() {
 
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
-
-
-
-
