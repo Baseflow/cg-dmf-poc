@@ -9,13 +9,10 @@ import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.config.OidcCrypto
 import com.baseflow.entities.OidcSettingsEntity
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.put
-import io.ktor.server.routing.route
+import io.ktor.http.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -100,6 +97,7 @@ fun Route.oidcSettingsRoutes() {
                         clientSecretEncrypted = body.clientSecret
                             ?.takeIf { it.isNotBlank() }
                             ?.let { OidcCrypto.encrypt(it) }
+                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     }
                 }
             }
