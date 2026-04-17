@@ -3,9 +3,10 @@
 package com.baseflow
 
 import com.baseflow.api.apiJsonConfig
-import com.baseflow.api.documentenApiModule
-import com.baseflow.api.healthModule
-import com.baseflow.api.openApiModule
+import com.baseflow.api.admin.adminModule
+import com.baseflow.api.documenten.documentenApiModule
+import com.baseflow.api.infra.healthModule
+import com.baseflow.api.infra.openApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
@@ -92,6 +93,7 @@ fun Application.module() {
     helloWorldModule() // Keep for basic health check at /
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
+    adminModule() // Admin API at /admin
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
 
