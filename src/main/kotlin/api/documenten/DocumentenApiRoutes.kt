@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-package com.baseflow.api
+package com.baseflow.api.documenten
 
+import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
+import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.documenten.routes.*
 import com.baseflow.api.middleware.*
 import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.routes.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.conditionalheaders.*
@@ -98,15 +100,9 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true) {
         if (useAuthentication) {
             authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 documentenApiRoutes()
-                route("/admin") {
-                    blobStorageRepositoryRoutes()
-                }
             }
         } else {
             documentenApiRoutes()
-            route("/admin") {
-                blobStorageRepositoryRoutes()
-            }
         }
     }
 }

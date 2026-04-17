@@ -2,8 +2,9 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 @file:OptIn(ExperimentalKtorApi::class)
 
-package com.baseflow.api
+package com.baseflow.api.infra
 
+import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.config.ApplicationConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
