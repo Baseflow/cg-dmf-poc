@@ -1,13 +1,12 @@
-package com.baseflow.api
+package com.baseflow.api.wopi.routes
 
+import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -15,7 +14,7 @@ import io.ktor.server.routing.openapi.hide
 import io.ktor.utils.io.ExperimentalKtorApi
 import java.util.UUID
 import com.baseflow.api.middleware.RequestScopeKey
-import com.baseflow.api.models.wopi.CheckFileInfoResponse
+import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.entities.EIORecordEntity
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
@@ -123,8 +122,8 @@ private suspend fun RoutingContext.getFileMetadata() {
             )
         } else {
             val checkFileInfoResponse = CheckFileInfoResponse(
-                BaseFileName = result.bestandsnaam ?: "document",
-                Size = result.bestandsomvang ?: 0L
+                baseFileName = result.bestandsnaam ?: "document",
+                size = result.bestandsomvang ?: 0L
             )
             call.respond(
                 HttpStatusCode.OK,
@@ -139,18 +138,6 @@ private suspend fun RoutingContext.getFileMetadata() {
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
 
-fun Application.wopiApiModule(
-    useAuthentication: Boolean = false,
-) {
-    routing {
-        if (useAuthentication) {
-            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
-                wopiApiRoutes()
-            }
-        } else {
-            wopiApiRoutes()
-        }
-    }
-}
+
 
 
