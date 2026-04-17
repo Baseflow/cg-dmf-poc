@@ -66,7 +66,7 @@ private suspend fun RoutingContext.getFileContents() {
             return
         }
 
-        // Ensure we have a stored object key to stream
+        // Use internal storage path for lookup, but public filename for the response header
         val objectKey = eio.bestandsLocatie
         if (objectKey.isBlank()) {
             call.respondProblem(
@@ -77,7 +77,7 @@ private suspend fun RoutingContext.getFileContents() {
         }
 
         // Derive filename and content type when possible;
-        val fileName = objectKey.ifBlank { "document-${eio.id}" }
+        val fileName = eio.bestandsnaam.ifBlank { null } ?: "document-${eio.id}"
         val contentType = try {
             // eio.formaat is expected to be a MIME type; if not, fallback below
             eio.formaat?.let { ContentType.parse(it) }
