@@ -4,18 +4,20 @@ package com.baseflow.api.wopi
 
 import com.baseflow.api.wopi.routes.wopiApiRoutes
 import io.ktor.server.application.Application
-import io.ktor.server.auth.AuthenticationStrategy
-import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
 
-fun Application.wopiApiModule(useAuthentication: Boolean = false) {
+/**
+ * WOPI_ENABLED env variable controls whether the WOPI routes are registered at all.
+ * Allows for unauthenticated access to the WOPI API. Should be used for development and testing only.
+ */
+val wopiEnabled: Boolean
+    get() = System.getenv("WOPI_ENABLED")?.lowercase() == "true"
+
+fun Application.wopiApiModule() {
+    if (!wopiEnabled) {
+        return
+    }
     routing {
-        if (useAuthentication) {
-            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
-                wopiApiRoutes()
-            }
-        } else {
-            wopiApiRoutes()
-        }
+        wopiApiRoutes()
     }
 }
