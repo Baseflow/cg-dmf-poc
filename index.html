@@ -78,10 +78,10 @@
         contentEl.innerHTML = '<p class="empty">No reports in this category yet.</p>';
         return;
       }
-      let html = '<table><thead><tr><th>Run</th><th>Date</th><th>Report</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th>Run</th><th>Branch</th><th>Date</th><th>Report</th></tr></thead><tbody>';
       for (const entry of entries) {
         const date = new Date(entry.date).toLocaleString();
-        html += '<tr><td>#' + entry.runNumber + '</td><td>' + date + '</td><td><a href="' + entry.path + '">View report</a></td></tr>';
+        html += '<tr><td>#' + entry.runNumber + '</td><td>' + (entry.branch || '—') + '</td><td>' + date + '</td><td><a href="' + entry.path + '">View report</a></td></tr>';
       }
       html += '</tbody></table>';
       contentEl.innerHTML = html;
