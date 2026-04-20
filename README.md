@@ -16,7 +16,7 @@ For more details, see [docs/configuratie.md](docs/configuratie.md).
 - [Database Migrations](docs/DATABASE.md) - Migration workflow and limitations
 - [API Specification](docs/documenten-1.5.0.yaml) - OpenAPI spec
 - [Document API Implementation](docs/implementatie.md) - Implementation details
-- [WOPI & Collabora Online](docs/wopi.md) - Document viewing integration
+- [WOPI integration](docs/wopi.md) - Document viewing integration
 
 ## Prerequisites
 

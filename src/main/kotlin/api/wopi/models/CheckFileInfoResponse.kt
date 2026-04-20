@@ -4,6 +4,7 @@ package com.baseflow.api.wopi.models
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
 @Serializable
 data class CheckFileInfoResponse(
     @SerialName("BaseFileName")
