@@ -1,6 +1,13 @@
 [
   {
     "category": "k6",
+    "runId": "24669959536",
+    "runNumber": "337",
+    "date": "2026-04-20T13:48:50Z",
+    "path": "k6/24669959536/index.html"
+  },
+  {
+    "category": "k6",
     "runId": "24669411219",
     "runNumber": "336",
     "date": "2026-04-20T13:37:14Z",
