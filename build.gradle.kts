@@ -55,8 +55,8 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.10")
 
     // Database migrations
-    implementation("org.flywaydb:flyway-core:12.3.0")
-    implementation("org.flywaydb:flyway-database-postgresql:12.3.0")
+    implementation("org.flywaydb:flyway-core:12.4.0")
+    implementation("org.flywaydb:flyway-database-postgresql:12.4.0")
 
     // Kotlin coroutines and datetime
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -72,12 +72,12 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.23.0")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.32")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.32")
+    implementation("software.amazon.awssdk:s3:2.42.35")
+    implementation("software.amazon.awssdk:netty-nio-client:2.42.35")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.29.1")
-    implementation("com.azure:azure-storage-blob-batch:12.26.0")
+    implementation("com.azure:azure-storage-blob-batch:12.29.3")
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
@@ -97,7 +97,7 @@ dependencies {
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
         // dependency of flyway-core and ktor-server-auth-jwt
-        implementation("tools.jackson.core:jackson-core:3.1.1") {
+        implementation("tools.jackson.core:jackson-core:3.1.2") {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt

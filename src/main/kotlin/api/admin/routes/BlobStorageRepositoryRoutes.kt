@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.admin.routes
 
 import com.baseflow.api.models.BlobStorageRepositoryResponse
 import com.baseflow.api.models.SetDefaultRepositoryRequest
