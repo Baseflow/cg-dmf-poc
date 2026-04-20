@@ -45,17 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initialized.current) return
     initialized.current = true
 
-    // Skip init if the config placeholders haven't been filled in yet
-    const isConfigured =
-      KEYCLOAK_URL !== "https://YOUR_KEYCLOAK_URL" &&
-      KEYCLOAK_REALM !== "YOUR_REALM" &&
-      KEYCLOAK_CLIENT_ID !== "YOUR_CLIENT_ID"
-
-    if (!isConfigured) {
-      setIsLoading(false)
-      return
-    }
-
     keycloak
       .init({
         onLoad: "check-sso",

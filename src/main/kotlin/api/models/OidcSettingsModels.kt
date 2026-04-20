@@ -5,12 +5,7 @@ package com.baseflow.api.models
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class OidcSettingsResponse(
-    val issuer: String,
-    val clientId: String,
-    val hasSecret: Boolean,
-    val updatedAt: String,
-)
+data class OidcSettingsResponse(val issuer: String, val clientId: String, val hasSecret: Boolean, val updatedAt: String)
 
 @Serializable
 data class UpdateOidcSettingsRequest(

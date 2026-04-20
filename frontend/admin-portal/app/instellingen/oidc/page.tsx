@@ -56,7 +56,7 @@ export default function Page() {
       }
     }
     fetchSettings()
-  }, [keycloak.token])
+  }, [keycloak, keycloak.token])
 
   function handleEdit() {
     setSaved({ issuer, clientId })
