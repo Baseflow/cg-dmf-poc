@@ -77,13 +77,13 @@ private suspend fun RoutingContext.getFileContents() {
         }
 
         // Derive filename and content type when possible;
-        val fileName = eio.bestandsnaam.ifBlank { null } ?: "document-${eio.id}"
+        val fileName = eio.bestandsnaam.ifBlank { null } ?: eio.titel.ifBlank { null } ?: "document-${eio.id}"
         val contentType = try {
             // eio.formaat is expected to be a MIME type; if not, fallback below
             eio.formaat?.let { ContentType.parse(it) }
         } catch (_: Exception) {
             ContentType.Application.OctetStream
-        }
+        } ?: ContentType.Application.OctetStream
 
         // Set headers before starting the stream
         call.response.headers.append(
