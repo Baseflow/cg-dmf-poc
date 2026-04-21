@@ -96,11 +96,13 @@
         return;
       }
 
-      let html = '<table><thead><tr><th>Run</th><th>Date</th><th>Report</th></tr></thead><tbody>';
+      let html = '<table><thead><tr><th>Run</th><th>Branch</th><th>Date</th><th>Report</th></tr></thead><tbody>';
       for (const entry of entries) {
         const date = new Date(entry.date).toLocaleString();
+        const runUrl = `https://github.com/Baseflow/cg-dmf-poc/actions/runs/${entry.runId}`;
         html += `<tr>
-          <td>#${entry.runNumber}</td>
+          <td><a href="${runUrl}">#${entry.runNumber}</a></td>
+          <td>${entry.branch ?? '—'}</td>
           <td>${date}</td>
           <td><a href="${entry.path}">View report</a></td>
         </tr>`;

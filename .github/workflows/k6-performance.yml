@@ -15,11 +15,11 @@ on:
       eio_target:
         description: 'Number of EIOs to seed'
         required: false
-        default: '100'
+        default: '1000'
       oio_target:
         description: 'Number of OIOs to seed'
         required: false
-        default: '200'
+        default: '2000'
       max_versions:
         description: 'Maximum additional versions per EIO'
         required: false
@@ -35,7 +35,7 @@ on:
       max_vus:
         description: 'Maximum number of k6 virtual users'
         required: false
-        default: '10'
+        default: '50'
   workflow_call:
     secrets:
       JWT_CLIENT_SECRET:
@@ -45,7 +45,6 @@ on:
 
 permissions:
   contents: write
-
 
 jobs:
   k6:
@@ -180,3 +179,4 @@ jobs:
           report-file: k6-results/test-report.html
           run-id: ${{ github.run_id }}
           run-number: ${{ github.run_number }}
+          branch: ${{ github.head_ref || github.ref_name }}

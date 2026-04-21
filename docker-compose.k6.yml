@@ -45,15 +45,15 @@ services:
       BASE_URL: http://app:8080
       JWT_CLIENT_ID: gzac
       JWT_CLIENT_SECRET: ${JWT_CLIENT_SECRET:-your-secret}
-      EIO_TARGET: ${EIO_TARGET:-100}
-      OIO_TARGET: ${OIO_TARGET:-200}
+      EIO_TARGET: ${EIO_TARGET:-1000}
+      OIO_TARGET: ${OIO_TARGET:-2000}
       MAX_VERSIONS: ${MAX_VERSIONS:-5}
       RAMP_DURATION: ${RAMP_DURATION:-30s}
       STEADY_DURATION: ${STEADY_DURATION:-1m}
-      MAX_VUS: ${MAX_VUS:-10}
+      MAX_VUS: ${MAX_VUS:-50}
       K6_WEB_DASHBOARD: 'true'
       K6_WEB_DASHBOARD_EXPORT: /results/test-report.html
-    entrypoint: ['/bin/sh', '-c']
+    entrypoint: [ '/bin/sh', '-c' ]
     command:
       - |
         set -e

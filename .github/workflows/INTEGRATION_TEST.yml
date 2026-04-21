@@ -86,3 +86,4 @@ jobs:
           report-file: bruno-results/output.html
           run-id: ${{ github.run_id }}
           run-number: ${{ github.run_number }}
+          branch: ${{ github.head_ref || github.ref_name }}
