@@ -13,14 +13,14 @@ import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionTrefwoorden
+import com.baseflow.entities.Trefwoorden
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.EIOOrdering
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
 import com.baseflow.testutils.TestDataFactory
-import com.baseflow.entities.EIOVersionTrefwoorden
-import com.baseflow.entities.Trefwoorden
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT_ALT
 import com.baseflow.testutils.TestDataFactory.generateTestDocument

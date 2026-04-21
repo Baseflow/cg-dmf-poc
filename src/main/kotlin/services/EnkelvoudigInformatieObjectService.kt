@@ -16,11 +16,9 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
@@ -572,15 +570,11 @@ class EnkelvoudigInformatieObjectService(
         }
 
         if (filters.trefwoorden.isNotEmpty()) {
-            op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
+            op = op and trefwoordenContainsAll(filters.trefwoorden)
         }
 
         if (filters.trefwoordenOverlap.isNotEmpty()) {
-            op = op and arrayOverlap(EIOVersions.trefwoorden, filters.trefwoordenOverlap)
-        }
-
-        if (filters.trefwoordenOverlap.isNotEmpty()) {
-            op = op and arrayOverlap(EIOVersions.trefwoorden, filters.trefwoordenOverlap)
+            op = op and trefwoordenOverlap(filters.trefwoordenOverlap)
         }
 
         if (filters.uuids.isNotEmpty()) {
@@ -647,72 +641,36 @@ class EnkelvoudigInformatieObjectService(
         return op
     }
 
-    private fun isH2(): Boolean = TransactionManager.current().db.vendor.contains("h2", ignoreCase = true)
+    /**
+     * All provided trefwoorden must be linked to the version via EIOVersionTrefwoorden + Trefwoorden.
+     * Implemented as one EXISTS subquery per word, ANDed together.
+     */
+    private fun trefwoordenContainsAll(words: List<String>): Op<Boolean> = words
+        .map { word -> trefwoordExists(word) }
+        .reduce { acc, op -> acc and op }
 
-    /** column @> ARRAY[v1, v2, ...] — all values must be present (PostgreSQL) or ARRAY_CONTAINS per value (H2) */
-    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> {
-        if (isH2()) {
-            // H2: ARRAY_CONTAINS(column, value) for each value, combined with AND
-            return values
-                .map { value -> arrayContainsH2(column, value) }
-                .reduce { acc, op -> acc and op }
+    /**
+     * At least one of the provided trefwoorden must be linked to the version.
+     * Implemented as a single EXISTS subquery with an IN clause.
+     */
+    private fun trefwoordenOverlap(words: List<String>): Op<Boolean> = EIOVersionTrefwoorden
+        .innerJoin(Trefwoorden)
+        .select(EIOVersionTrefwoorden.versionId)
+        .where {
+            (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
+                (Trefwoorden.woord inList words.map { it.lowercase() })
         }
-        return object : Op<Boolean>() {
-            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-                val arrayType = column.columnType as ArrayColumnType<String, *>
-                val elementType = arrayType.delegate
-                queryBuilder {
-                    append(column)
-                    append(" @> ARRAY[")
-                    values.forEachIndexed { index, value ->
-                        if (index > 0) append(", ")
-                        append(QueryParameter(value, elementType))
-                    }
-                    append("]")
-                }
-            }
-        }
-    }
+        .let { subQuery -> exists(subQuery) }
 
-    /** column && ARRAY[v1, v2, ...] — at least one value must be present (PostgreSQL) or ARRAY_CONTAINS per value OR-ed (H2) */
-    private fun arrayOverlap(column: Column<List<String>>, values: List<String>): Op<Boolean> {
-        if (isH2()) {
-            // H2: ARRAY_CONTAINS(column, value) for each value, combined with OR
-            return values
-                .map { value -> arrayContainsH2(column, value) }
-                .reduce { acc, op -> acc or op }
+    /** Correlated EXISTS: checks that a specific trefwoord is linked to the current EIOVersion. */
+    private fun trefwoordExists(word: String): Op<Boolean> = EIOVersionTrefwoorden
+        .innerJoin(Trefwoorden)
+        .select(EIOVersionTrefwoorden.versionId)
+        .where {
+            (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
+                (Trefwoorden.woord eq word.lowercase())
         }
-        return object : Op<Boolean>() {
-            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-                val arrayType = column.columnType as ArrayColumnType<String, *>
-                val elementType = arrayType.delegate
-                queryBuilder {
-                    append(column)
-                    append(" && ARRAY[")
-                    values.forEachIndexed { index, value ->
-                        if (index > 0) append(", ")
-                        append(QueryParameter(value, elementType))
-                    }
-                    append("]")
-                }
-            }
-        }
-    }
-
-    /** H2-compatible: ARRAY_CONTAINS(column, value) */
-    private fun arrayContainsH2(column: Column<List<String>>, value: String): Op<Boolean> = object : Op<Boolean>() {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-            val arrayType = column.columnType as ArrayColumnType<String, *>
-            val elementType = arrayType.delegate
-            queryBuilder {
-                append("ARRAY_CONTAINS(")
-                append(column)
-                append(", ")
-                append(QueryParameter(value, elementType))
-                append(")")
-            }
-        }
-    }
+        .let { subQuery -> exists(subQuery) }
 
     fun lock(id: UUID): LockResult? {
         return transaction {
