@@ -680,8 +680,8 @@ private fun RoutingContext.getFilters(
     val params = call.request.queryParameters
     val expand = splitOnComma(expandStr ?: params["expand"])
     val bronOrganisatie = params["bronorganisatie"]
-    val trefwoorden = params.getAll("trefwoorden") ?: emptyList()
-    val trefwoordenOverlap = params.getAll("trefwoorden__overlap") ?: emptyList()
+    val trefwoorden = splitOnComma(params["trefwoorden"])
+    val trefwoordenOverlap = splitOnComma(params["trefwoorden__overlap"])
     val identificatie = params["identificatie"]
     val page = params["page"]?.toIntOrNull() ?: 1
     // Default pageSize 100 aligns with Open Zaak. Not in Documenten API 1.5.0 spec.
@@ -691,9 +691,7 @@ private fun RoutingContext.getFilters(
     val objectUrl = params["objectinformatieobjecten__object"]
     val objectType = params["objectinformatieobjecten__objectType"]
     val informatieobjecttype = params["informatieobjecttype"]
-    val vertrouwelijkheidaanduiding = params["vertrouwelijkheidaanduiding"]
-        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
-        ?: emptyList()
+    val vertrouwelijkheidaanduiding = splitOnComma(params["vertrouwelijkheidaanduiding"])
     val titel = params["titel"]
     val auteur = params["auteur"]
     val status = params["status"]
@@ -714,10 +712,7 @@ private fun RoutingContext.getFilters(
     // NOTE: The `ordering` query parameter (and related extended filters such as date ranges and `locked`)
     // are experimental extensions to the standard Documenten API and are not yet reflected in
     // docs/documenten-1.5.0.yaml. Update the OpenAPI spec when these filters are considered stable.
-    val ordering = params["ordering"]
-        ?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
-        ?.mapNotNull { EIOOrdering.fromValue(it) }
-        ?: emptyList()
+    val ordering = splitOnComma(params["ordering"]).mapNotNull { EIOOrdering.fromValue(it) }
 
     val filter = QueryEnkelvoudigeInformatieObjectenFilter(
         uuids = uuidIn,

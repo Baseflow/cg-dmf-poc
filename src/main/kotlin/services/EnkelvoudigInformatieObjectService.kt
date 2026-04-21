@@ -399,7 +399,6 @@ class EnkelvoudigInformatieObjectService(
                 }
             }
 
-
             // Determine effective bestandsomvang for the new version and create bestandsdelen if needed.
             val effectiveOmvang = version.bestandsomvang
             val bestandsDelen: List<BestandsDeelResponse>
