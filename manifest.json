@@ -1,5 +1,13 @@
 [
   {
+    "category": "k6",
+    "runId": "24712725220",
+    "runNumber": "343",
+    "branch": "CGDMF-78-k6-tests",
+    "date": "2026-04-21T08:44:53Z",
+    "path": "k6/24712725220/index.html"
+  },
+  {
     "category": "integration",
     "runId": "24712725220",
     "runNumber": "343",
