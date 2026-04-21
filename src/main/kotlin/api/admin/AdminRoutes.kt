@@ -3,7 +3,7 @@
 package com.baseflow.api.admin
 
 import com.baseflow.api.admin.routes.blobStorageRepositoryRoutes
-import com.baseflow.api.admin.routes.oidcSettingsRoutes
+import com.baseflow.api.admin.routes.oidcProvidersRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
@@ -18,12 +18,12 @@ import io.ktor.server.routing.routing
  *
  * Endpoints:
  * - /admin/storage-repositories — manage blob storage repositories
- * - /admin/oidc-settings — manage OIDC provider settings
+ * - /admin/oidc-providers — manage OIDC provider configurations
  */
 fun Route.adminRoutes() {
     route("/admin") {
         blobStorageRepositoryRoutes()
-        oidcSettingsRoutes()
+        oidcProvidersRoutes()
     }
 }
 
