@@ -7,7 +7,7 @@ import com.baseflow.api.models.UpdateOidcSettingsRequest
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
-import com.baseflow.config.OidcCrypto
+import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.OidcSettingsEntity
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -86,7 +86,7 @@ fun Route.oidcSettingsRoutes() {
                     existing.issuer = body.issuer
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
-                        existing.clientSecretEncrypted = OidcCrypto.encrypt(body.clientSecret)
+                        existing.clientSecretEncrypted = SecretCrypto.encrypt(body.clientSecret)
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     existing
@@ -96,7 +96,7 @@ fun Route.oidcSettingsRoutes() {
                         clientId = body.clientId
                         clientSecretEncrypted = body.clientSecret
                             ?.takeIf { it.isNotBlank() }
-                            ?.let { OidcCrypto.encrypt(it) }
+                            ?.let { SecretCrypto.encrypt(it) }
                         updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     }
                 }
@@ -110,5 +110,6 @@ private fun OidcSettingsEntity.toResponse() = OidcSettingsResponse(
     issuer = issuer,
     clientId = clientId,
     hasSecret = clientSecretEncrypted != null,
+    clientSecret = clientSecretEncrypted?.let { SecretCrypto.decrypt(it) },
     updatedAt = updatedAt.toString(),
 )

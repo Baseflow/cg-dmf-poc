@@ -1,7 +1,4 @@
-import {
-  FileTextIcon,
-  LucideFileExclamationPoint,
-} from "lucide-react"
+import { FileTextIcon, LucideFileExclamationPoint } from "lucide-react"
 import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 
 export const navigation = {
