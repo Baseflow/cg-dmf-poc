@@ -194,8 +194,7 @@ class EnkelvoudigInformatieObjectService(
             val innerVersions = EIOVersions.alias("inner_eio_versions")
 
             query.apply {
-                // Restrict to only the latest version row per record via a correlated subquery:
-                // WHERE versie = (SELECT MAX(inner.versie) FROM eio_versions AS inner WHERE inner.record_id = eio_records.id)
+                // Latest-version filter: correlated subquery (fast with idx_eio_versions_record_versie)
                 andWhere {
                     EIOVersions.versie eqSubQuery innerVersions
                         .select(innerVersions[EIOVersions.versie].max())
@@ -204,37 +203,40 @@ class EnkelvoudigInformatieObjectService(
                 if (condition != Op.TRUE) {
                     andWhere { condition }
                 }
-                if (filters.ordering.isNotEmpty()) {
-                    val orderClauses = filters.ordering.map { ordering ->
-                        val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
-                        when (ordering) {
-                            EIOOrdering.AUTEUR_ASC, EIOOrdering.AUTEUR_DESC ->
-                                EIOVersions.auteur to sortOrder
-
-                            EIOOrdering.BESTANDSOMVANG_ASC, EIOOrdering.BESTANDSOMVANG_DESC ->
-                                EIOVersions.bestandsomvang to sortOrder
-
-                            EIOOrdering.CREATIEDATUM_ASC, EIOOrdering.CREATIEDATUM_DESC ->
-                                EIOVersions.creatieDatum to sortOrder
-
-                            EIOOrdering.FORMAAT_ASC, EIOOrdering.FORMAAT_DESC ->
-                                EIOVersions.formaat to sortOrder
-
-                            EIOOrdering.STATUS_ASC, EIOOrdering.STATUS_DESC ->
-                                EIOVersions.status to sortOrder
-
-                            EIOOrdering.TITEL_ASC, EIOOrdering.TITEL_DESC ->
-                                EIOVersions.titel to sortOrder
-
-                            EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC ->
-                                EIOVersions.vertrouwlijkheidsAanduiding to sortOrder
-                        }
-                    }
-                    orderBy(*orderClauses.toTypedArray())
-                }
             }
 
+            // Count without ORDER BY — avoids a redundant sort over all matching rows.
             val totalCount = query.count()
+
+            // Apply ordering only to the paginated data query.
+            if (filters.ordering.isNotEmpty()) {
+                val orderClauses = filters.ordering.map { ordering ->
+                    val sortOrder = if (ordering.value.startsWith("-")) SortOrder.DESC else SortOrder.ASC
+                    when (ordering) {
+                        EIOOrdering.AUTEUR_ASC, EIOOrdering.AUTEUR_DESC ->
+                            EIOVersions.auteur to sortOrder
+
+                        EIOOrdering.BESTANDSOMVANG_ASC, EIOOrdering.BESTANDSOMVANG_DESC ->
+                            EIOVersions.bestandsomvang to sortOrder
+
+                        EIOOrdering.CREATIEDATUM_ASC, EIOOrdering.CREATIEDATUM_DESC ->
+                            EIOVersions.creatieDatum to sortOrder
+
+                        EIOOrdering.FORMAAT_ASC, EIOOrdering.FORMAAT_DESC ->
+                            EIOVersions.formaat to sortOrder
+
+                        EIOOrdering.STATUS_ASC, EIOOrdering.STATUS_DESC ->
+                            EIOVersions.status to sortOrder
+
+                        EIOOrdering.TITEL_ASC, EIOOrdering.TITEL_DESC ->
+                            EIOVersions.titel to sortOrder
+
+                        EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_ASC, EIOOrdering.VERTROUWELIJKHEIDAANDUIDING_DESC ->
+                            EIOVersions.vertrouwlijkheidsAanduiding to sortOrder
+                    }
+                }
+                query.orderBy(*orderClauses.toTypedArray())
+            }
 
             // Materialise the page rows first so we can collect all version IDs for a
             // single batch bestandsdelen query instead of one query per row (N+1).
