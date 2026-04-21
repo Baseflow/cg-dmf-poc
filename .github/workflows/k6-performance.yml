@@ -9,7 +9,7 @@ name: k6 Performance Tests
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # every day at 00:00 UTC
+    - cron: '0 0 * * *' # every day at 00:00 UTC
   workflow_dispatch:
     inputs:
       eio_target:
@@ -43,6 +43,18 @@ on:
       OPENZAAK_CLIENT_SECRET:
         required: true
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
 jobs:
   k6:
     name: Run k6 performance tests
@@ -69,7 +81,7 @@ jobs:
           docker compose \
             -f docker-compose.yml \
             -f docker-compose.k6.yml \
-            up --build --exit-code-from k6
+            up --build --abort-on-container-exit --exit-code-from k6
 
       - name: Tear down
         if: always()
@@ -90,19 +102,27 @@ jobs:
             const metrics = summary.metrics || {};
 
             // Helper: format a duration value in ms to a readable string
-            const ms = v => v == null ? '—' : `${v.toFixed(1)} ms`;
+            const ms  = v => v == null ? '—' : `${v.toFixed(1)} ms`;
             const pct = v => v == null ? '—' : `${(v * 100).toFixed(2)} %`;
 
-            // Table rows: [label, metric key, formatter, threshold]
+            // In k6's --summary-export format, threshold values are booleans
+            // where false = threshold passed (not breached), true = failed.
+            const thresholdPassed = m => {
+              const t = m?.thresholds ?? {};
+              if (Object.keys(t).length === 0) return '—';
+              return Object.values(t).every(v => v === false) ? '✅' : '❌';
+            };
+
+            // Table rows: [label, metric key, value extractor, formatter, threshold label]
             const rows = [
-              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    ms,  '< 500 ms'],
-              ['LIST EIO p(95)',   'http_req_duration{name:eio_list}',   ms,  '< 1000 ms'],
-              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', ms,  '< 3000 ms'],
-              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  ms,  '< 3000 ms'],
-              ['LIST OIO p(95)',   'http_req_duration{name:oio_list}',   ms,  '< 1000 ms'],
-              ['CREATE OIO p(95)', 'http_req_duration{name:oio_create}', ms,  '< 3000 ms'],
-              ['Error rate',       'http_req_failed',                    pct, '< 1 %'],
-              ['Success rate',     'perf_success_rate',                  pct, '> 99 %'],
+              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    m => m?.['p(95)'], ms,  '< 500 ms'],
+              ['LIST EIO p(95)',   'http_req_duration{name:eio_list}',   m => m?.['p(95)'], ms,  '< 1000 ms'],
+              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', m => m?.['p(95)'], ms,  '< 3000 ms'],
+              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  m => m?.['p(95)'], ms,  '< 3000 ms'],
+              ['LIST OIO p(95)',   'http_req_duration{name:oio_list}',   m => m?.['p(95)'], ms,  '< 1000 ms'],
+              ['CREATE OIO p(95)', 'http_req_duration{name:oio_create}', m => m?.['p(95)'], ms,  '< 3000 ms'],
+              ['Error rate',       'http_req_failed',                    m => m?.value,     pct, '< 1 %'],
+              ['Success rate',     'perf_success_rate',                  m => m?.value,     pct, '> 99 %'],
             ];
 
             const httpDuration = metrics['http_req_duration'];
@@ -113,26 +133,22 @@ jobs:
 
             // Overview
             md += '| Metric | Value |\n|---|---|\n';
-            md += `| Total requests | ${totalReqs?.values?.count ?? '—'} |\n`;
-            md += `| Max VUs | ${vus?.values?.max ?? '—'} |\n`;
+            md += `| Total requests | ${totalReqs?.count ?? '—'} |\n`;
+            md += `| Max VUs | ${vus?.max ?? '—'} |\n`;
             if (httpDuration) {
-              md += `| Avg response time | ${ms(httpDuration.values?.avg)} |\n`;
-              md += `| Median response time | ${ms(httpDuration.values?.med)} |\n`;
-              md += `| p(95) response time | ${ms(httpDuration.values?.['p(95)'])} |\n`;
+              md += `| Avg response time | ${ms(httpDuration.avg)} |\n`;
+              md += `| Median response time | ${ms(httpDuration.med)} |\n`;
+              md += `| p(95) response time | ${ms(httpDuration['p(95)'])} |\n`;
             }
             md += '\n';
 
             // Per-scenario thresholds
             md += '### Threshold Results\n\n';
             md += '| Scenario | p(95) / Rate | Threshold | Pass |\n|---|---|---|---|\n';
-            for (const [label, key, fmt, threshold] of rows) {
+            for (const [label, key, extract, fmt, threshold] of rows) {
               const m = metrics[key];
-              const val = m?.values?.['p(95)'] ?? m?.values?.rate;
-              const thresholds = m?.thresholds ?? {};
-              const allPassed = Object.values(thresholds).every(t => !t.ok === false);
-              const passed = Object.keys(thresholds).length === 0
-                ? '—'
-                : (Object.values(thresholds).every(t => t.ok) ? '✅' : '❌');
+              const val = extract(m);
+              const passed = thresholdPassed(m);
               md += `| ${label} | ${fmt(val)} | ${threshold} | ${passed} |\n`;
             }
 
@@ -146,3 +162,21 @@ jobs:
           path: build/k6/
           retention-days: 30
 
+      - name: Publish k6 report to GitHub Pages
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/k6
+
+  deploy-pages:
+    name: Deploy k6 report to GitHub Pages
+    needs: k6
+    if: always()
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

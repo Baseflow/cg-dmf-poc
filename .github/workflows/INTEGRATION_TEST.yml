@@ -45,6 +45,7 @@ jobs:
           report_paths: '**/build/bruno-results/results.xml'
           detailed_summary: true
           include_passed: true
+          include_time_in_summary: true
           check_name: Bruno Integration Tests
 
       - name: Embed Bruno results in job summary

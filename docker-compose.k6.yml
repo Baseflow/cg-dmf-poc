@@ -52,11 +52,12 @@ services:
       STEADY_DURATION: ${STEADY_DURATION:-1m}
       MAX_VUS: ${MAX_VUS:-10}
       K6_WEB_DASHBOARD: 'true'
-      K6_WEB_DASHBOARD_EXPORT: /results/test-report.html
-    entrypoint: ['/bin/sh', '-c']
+      K6_WEB_DASHBOARD_EXPORT: /results/index.html
+    entrypoint: [ '/bin/sh', '-c' ]
     command:
       - |
-        k6 run --out json=/results/seed.json /scripts/seed.js && \
+        set -e
+        k6 run --out json=/results/seed.json /scripts/seed.js
         k6 run --out json=/results/perf.json --summary-export /results/perf-summary.json /scripts/perf.js
     depends_on:
       app:
