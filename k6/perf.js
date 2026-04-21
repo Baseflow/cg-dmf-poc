@@ -23,18 +23,23 @@
 //   MAX_VUS        (default: 50)
 
 import { check, sleep } from 'k6';
+import http from 'k6/http';
 import { Rate, Trend, Counter } from 'k6/metrics';
 import { randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { zgwBearer } from './lib/auth.js';
 import {
   BRONORGANISATIES, TALEN, AUTEURS, TITELS, STATUSSEN,
-  VERTROUWELIJKHEDEN, BESCHRIJVINGEN, INFORMATIEOBJECTTYPEN,
+  VERTROUWELIJKHEDEN, BESCHRIJVINGEN,
   OBJECT_TYPES,
   pick, pickFile, pickTrefwoorden, randomDate,
 } from './lib/data.js';
 import {
   createEio, listEio, getEio, patchEio, createOio, listOio,
 } from './lib/api.js';
+import { IOT_URLS_FILE } from './lib/constants.js';
+
+// Read IOT URLs written by seed.js (must be run first)
+const _iotUrlsData = JSON.parse(open(IOT_URLS_FILE));
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -44,6 +49,8 @@ const BASE_URL          = __ENV.BASE_URL          || 'http://localhost:8080';
 const CATALOGUS_BASE    = __ENV.CATALOGUS_BASE_URL || 'https://openzaak.dev.baseflow.com/catalogi/api/v1';
 const JWT_CLIENT_ID     = __ENV.JWT_CLIENT_ID     || 'gzac';
 const JWT_CLIENT_SECRET = __ENV.JWT_CLIENT_SECRET;
+const OPENZAAK_CLIENT_ID     = __ENV.OPENZAAK_CLIENT_ID     || 'cg-dmf';
+const OPENZAAK_CLIENT_SECRET = __ENV.OPENZAAK_CLIENT_SECRET || 'baseflow';
 
 if (!JWT_CLIENT_SECRET) {
   throw new Error('JWT_CLIENT_SECRET environment variable is required');
@@ -124,9 +131,6 @@ function makeHeaders() {
   };
 }
 
-function informatieobjecttypeUrl(relPath) {
-  return `${CATALOGUS_BASE}/${relPath}`;
-}
 
 function randomUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -160,7 +164,7 @@ function pickKnownId() {
   return _knownEioIds[randomIntBetween(0, _knownEioIds.length - 1)];
 }
 
-function eioCreateBody() {
+function eioCreateBody(iotUrls) {
   const file    = pickFile();
   const hasFile = Math.random() > 0.1;
   return {
@@ -174,7 +178,7 @@ function eioCreateBody() {
     vertrouwelijkheidaanduiding: pick(VERTROUWELIJKHEDEN),
     beschrijving:                pick(BESCHRIJVINGEN),
     trefwoorden:                 pickTrefwoorden(4),
-    informatieobjecttype:        informatieobjecttypeUrl(pick(INFORMATIEOBJECTTYPEN)),
+    informatieobjecttype:        pick(iotUrls),
     bestandsnaam:                hasFile ? file.name    : undefined,
     formaat:                     hasFile ? file.formaat : undefined,
     inhoud:                      hasFile ? file.base64  : undefined,
@@ -238,8 +242,8 @@ function scenarioListEio(headers) {
   }
 }
 
-function scenarioCreateEio(headers) {
-  const res = createEio(BASE_URL, headers, eioCreateBody());
+function scenarioCreateEio(headers, iotUrls) {
+  const res = createEio(BASE_URL, headers, eioCreateBody(iotUrls));
   const ok  = check(res, { 'CREATE eio 201': (r) => r.status === 201 });
   perfSuccessRate.add(ok ? 1 : 0);
   if (!ok) {
@@ -290,19 +294,20 @@ function scenarioCreateOio(headers) {
 // ---------------------------------------------------------------------------
 
 const DISPATCH = [
-  { threshold: 0.40, fn: scenarioGetEio    }, // 40 %
-  { threshold: 0.65, fn: scenarioListEio   }, // 25 %
-  { threshold: 0.80, fn: scenarioCreateEio }, // 15 %
-  { threshold: 0.90, fn: scenarioPatchEio  }, // 10 %
-  { threshold: 0.95, fn: scenarioListOio   }, //  5 %
-  { threshold: 1.00, fn: scenarioCreateOio }, //  5 %
+  { threshold: 0.40, fn: (h, d) => scenarioGetEio(h)         }, // 40 %
+  { threshold: 0.65, fn: (h, d) => scenarioListEio(h)        }, // 25 %
+  { threshold: 0.80, fn: (h, d) => scenarioCreateEio(h, d)   }, // 15 %
+  { threshold: 0.90, fn: (h, d) => scenarioPatchEio(h)       }, // 10 %
+  { threshold: 0.95, fn: (h, d) => scenarioListOio(h)        }, //  5 %
+  { threshold: 1.00, fn: (h, d) => scenarioCreateOio(h)      }, //  5 %
 ];
 
 // ---------------------------------------------------------------------------
 // Default function (called once per VU iteration)
 // ---------------------------------------------------------------------------
 
-export default function () {
+export default function (data) {
+  const iotUrls = (data && data.iotUrls) || [];
   const headers = makeHeaders();
 
   // Lazily populate known IDs on first iteration
@@ -311,7 +316,7 @@ export default function () {
   const roll = Math.random();
   for (const { threshold, fn } of DISPATCH) {
     if (roll < threshold) {
-      fn(headers);
+      fn(headers, iotUrls);
       break;
     }
   }
@@ -321,16 +326,66 @@ export default function () {
 }
 
 // ---------------------------------------------------------------------------
-// Setup: log configuration
+// Setup: log configuration and pass IOT URLs to VUs
 // ---------------------------------------------------------------------------
 
 export function setup() {
+  const iotUrls = _iotUrlsData.iotUrls || [];
   console.log('=== CG-DMF Performance Test ===');
   console.log(`  BASE_URL:        ${BASE_URL}`);
   console.log(`  JWT_CLIENT_ID:   ${JWT_CLIENT_ID}`);
   console.log(`  MAX_VUS:         ${MAX_VUS}`);
   console.log(`  RAMP_DURATION:   ${RAMP_DURATION}`);
   console.log(`  STEADY_DURATION: ${STEADY_DURATION}`);
+  console.log(`  IOT URLs loaded: ${iotUrls.length}`);
   console.log('================================');
+  return { iotUrls };
+}
+
+// ---------------------------------------------------------------------------
+// Teardown: delete the IOTs that were created by seed.js
+// ---------------------------------------------------------------------------
+
+export function teardown(data) {
+  const iotUrls = (data && data.iotUrls) || [];
+  if (iotUrls.length === 0) {
+    console.log('[perf] No IOT URLs to clean up.');
+    return;
+  }
+
+  console.log(`[perf] Teardown — deleting ${iotUrls.length} informatieobjecttypen …`);
+
+  let openzaakBearer = zgwBearer(OPENZAAK_CLIENT_ID, OPENZAAK_CLIENT_SECRET);
+  let cleanupHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': openzaakBearer,
+  };
+
+  for (let i = 0; i < iotUrls.length; i++) {
+    const iotUrl = iotUrls[i];
+    const iotUuid = iotUrl.split('/').pop();
+
+    if (i > 0 && i % 5 === 0) {
+      openzaakBearer = zgwBearer(OPENZAAK_CLIENT_ID, OPENZAAK_CLIENT_SECRET);
+      cleanupHeaders['Authorization'] = openzaakBearer;
+    }
+
+    const res = http.del(
+      `${CATALOGUS_BASE}/informatieobjecttypen/${iotUuid}`,
+      null,
+      { headers: cleanupHeaders, tags: { name: 'iot_delete' } }
+    );
+
+    if (res.status === 204) {
+      console.log(`[perf]   Deleted IOT [${i + 1}/${iotUrls.length}]: ${iotUrl}`);
+    } else {
+      console.warn(
+        `[perf]   IOT delete failed (${res.status}) for ${iotUrl}: ${(res.body || '').substring(0, 200)}`
+      );
+    }
+  }
+
+  console.log('[perf] Teardown complete — informatieobjecttypen cleaned up.');
 }
 

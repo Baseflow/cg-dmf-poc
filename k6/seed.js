@@ -32,6 +32,10 @@ import {
     createEio, updateEio, createOio,
     createInformatieobjecttype, publishInformatieobjecttype, listCatalogussen,
 } from './lib/api.js';
+import { IOT_URLS_FILE } from './lib/constants.js';
+
+// Module-level store left intentionally empty — IOT URLs are fetched fresh
+// from the Catalogi API inside handleSummary() via HTTP.
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -215,6 +219,7 @@ export default function () {
     }
     console.log(`[seed] Phase 0 done — ${iotUrls.length} informatieobjecttypen created.`);
 
+
     const eioIds = [];
 
     // -----------------------------------------------------------------------
@@ -332,41 +337,43 @@ export default function () {
         `[seed] Seeding complete — IOTs: ${iotUrls.length}, EIOs: ${eioIds.length}, OIOs target: ${OIO_TARGET}`
     );
 
-    // -----------------------------------------------------------------------
-    // Phase 4: Remove the 10 InformatieObjectTypen created in Phase 0
-    // -----------------------------------------------------------------------
-    console.log(`[seed] Phase 4 — removing ${iotUrls.length} informatieobjecttypen …`);
+    console.log(`[seed] IOT URLs will be written to ${IOT_URLS_FILE} — use with perf.js.`);
+}
 
-    // Tokens may have expired by now — refresh before cleanup
-    let cleanupOpenzaakBearer = zgwBearer(OPENZAAK_CLIENT_ID, OPENZAAK_CLIENT_SECRET);
-    let cleanupHeaders = makeHeaders(cleanupOpenzaakBearer);
+/**
+ * handleSummary is called by k6 after the test finishes.
+ * Since k6 v0.43, handleSummary can make HTTP requests, so we query the
+ * Catalogi API directly to fetch the IOT URLs that were just created.
+ * This avoids any dependency on module-level state, which is not shared
+ * across k6's separate VU runtimes.
+ */
+export function handleSummary(data) {
+    const openzaakBearer = zgwBearer(OPENZAAK_CLIENT_ID, OPENZAAK_CLIENT_SECRET);
+    const headers = makeHeaders(openzaakBearer);
 
-    for (let i = 0; i < iotUrls.length; i++) {
-        const iotUrl = iotUrls[i];
-        const iotUuid = iotUrl.split('/').pop();
+    const iotUrls = [];
+    let nextUrl = `${CATALOGUS_BASE}/informatieobjecttypen`;
 
-        // Refresh token every 5 deletes (there are only 10, so this is a safeguard)
-        if (i > 0 && i % 5 === 0) {
-            cleanupOpenzaakBearer = zgwBearer(OPENZAAK_CLIENT_ID, OPENZAAK_CLIENT_SECRET);
-            cleanupHeaders = makeHeaders(cleanupOpenzaakBearer);
+    while (nextUrl) {
+        const res = http.get(nextUrl, { headers });
+        if (res.status !== 200) {
+            console.error(`[seed] handleSummary: failed to list IOTs (${res.status})`);
+            break;
         }
-
-        const res = http.del(
-            `${CATALOGUS_BASE}/informatieobjecttypen/${iotUuid}`,
-            null,
-            { headers: cleanupHeaders, tags: { name: 'iot_delete' } }
-        );
-
-        const ok = check(res, { 'iot delete 204': (r) => r.status === 204 });
-        if (ok) {
-            console.log(`[seed]   Deleted IOT [${i + 1}/${iotUrls.length}]: ${iotUrl}`);
-        } else {
-            console.warn(
-                `[seed]   IOT delete failed (${res.status}) for ${iotUrl}: ${(res.body || '').substring(0, 200)}`
-            );
+        const body = res.json();
+        const results = Array.isArray(body) ? body : (body.results || []);
+        for (const iot of results) {
+            if (iot.url && iot.omschrijving && iot.omschrijving.startsWith('K6-')) {
+                iotUrls.push(iot.url);
+            }
         }
+        nextUrl = body.next || null;
     }
 
-    console.log('[seed] Phase 4 done — informatieobjecttypen cleaned up.');
+    console.log(`[seed] Writing ${iotUrls.length} IOT URLs to ${IOT_URLS_FILE} …`);
+    return {
+        [IOT_URLS_FILE]: JSON.stringify({ iotUrls }, null, 2),
+        stdout: `\n[seed] ${iotUrls.length} IOT URLs written to ${IOT_URLS_FILE}. Run perf.js to execute load tests.\n`,
+    };
 }
 

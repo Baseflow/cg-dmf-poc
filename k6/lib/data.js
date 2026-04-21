@@ -57,18 +57,6 @@ export const TREFWOORDEN_POOL = [
   'notulen', 'offerte', 'correspondentie', 'besluit', 'memo',
 ];
 
-export const INFORMATIEOBJECTTYPEN = [
-  'informatieobjecttypen/aaaaaaaa-0001-0001-0001-000000000001',
-  'informatieobjecttypen/aaaaaaaa-0002-0002-0002-000000000002',
-  'informatieobjecttypen/aaaaaaaa-0003-0003-0003-000000000003',
-  'informatieobjecttypen/aaaaaaaa-0004-0004-0004-000000000004',
-  'informatieobjecttypen/aaaaaaaa-0005-0005-0005-000000000005',
-  'informatieobjecttypen/aaaaaaaa-0006-0006-0006-000000000006',
-  'informatieobjecttypen/aaaaaaaa-0007-0007-0007-000000000007',
-  'informatieobjecttypen/aaaaaaaa-0008-0008-0008-000000000008',
-  'informatieobjecttypen/aaaaaaaa-0009-0009-0009-000000000009',
-  'informatieobjecttypen/aaaaaaaa-0010-0010-0010-000000000010',
-];
 
 export const OBJECT_TYPES = ['zaak', 'besluit', 'overige'];
 

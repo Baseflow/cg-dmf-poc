@@ -33,10 +33,6 @@ services:
   postgres:
     volumes:
       - /dev/null:/docker-entrypoint-initdb.d/create-databases.sql:ro
-    ports: [ ]
-
-  minio:
-    ports: [ ]
 
   k6:
     image: grafana/k6:latest
@@ -48,14 +44,16 @@ services:
     environment:
       BASE_URL: http://app:8080
       JWT_CLIENT_ID: gzac
-      JWT_CLIENT_SECRET: ${JWT_CLIENT_SECRET}
+      JWT_CLIENT_SECRET: ${JWT_CLIENT_SECRET:-your-secret}
       EIO_TARGET: ${EIO_TARGET:-100}
       OIO_TARGET: ${OIO_TARGET:-200}
       MAX_VERSIONS: ${MAX_VERSIONS:-5}
       RAMP_DURATION: ${RAMP_DURATION:-30s}
       STEADY_DURATION: ${STEADY_DURATION:-1m}
       MAX_VUS: ${MAX_VUS:-10}
-    entrypoint: [ "/bin/sh", "-c" ]
+      K6_WEB_DASHBOARD: 'true'
+      K6_WEB_DASHBOARD_EXPORT: /results/test-report.html
+    entrypoint: ['/bin/sh', '-c']
     command:
       - |
         k6 run --out json=/results/seed.json /scripts/seed.js && \
