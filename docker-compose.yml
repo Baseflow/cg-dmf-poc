@@ -14,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./data/postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U documenten']
+      test: [ 'CMD-SHELL', 'pg_isready -U documenten' ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,6 +53,21 @@ services:
       DB_PASSWORD: documenten
       OIDC_ISSUER: http://localhost:8081/realms/cg-dmf
       ZGW_ALLOWED_CLIENT_IDS: gzac
+      BLOB_STORAGE_TYPE1: S3
+      BLOB_STORAGE_NAME1: minio-local
+      BLOB_STORAGE_URL1: http://minio:9000
+      BLOB_STORAGE_ACCESS_KEY1: minioadmin
+      BLOB_STORAGE_SECRET_KEY1: minioadmin
+      OPENZAAK_CLIENT_SECRET: ${OPENZAAK_CLIENT_SECRET:-}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://localhost:8080/health/liveness || exit 1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     depends_on:
       postgres:
         condition: service_healthy
