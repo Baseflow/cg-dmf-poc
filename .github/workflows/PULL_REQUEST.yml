@@ -22,6 +22,6 @@ jobs:
     secrets: inherit
 
   integration-test:
+    needs: [lint, helm-lint, test]
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
-

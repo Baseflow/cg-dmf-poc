@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: EUPL-1.2
+# Copyright (C) 2026 Gemeente Utrecht
+#
+# Composite action: publish an HTML report to the gh-pages branch.
+# Reports are stored under <category>/<run_id>/index.html and a
+# manifest.json in the root is appended so the static index.html
+# can discover all reports client-side.
+
+name: Publish report to GitHub Pages
+description: Copy an HTML report into gh-pages and update the manifest.
+
+inputs:
+  category:
+    description: 'Report category directory (e.g. "k6" or "integration")'
+    required: true
+  report-file:
+    description: "Path to the HTML report file to publish"
+    required: true
+  run-id:
+    description: "Unique run identifier (typically github.run_id)"
+    required: true
+  run-number:
+    description: 'Human-readable run number (typically github.run_number)'
+    required: true
+  branch:
+    description: 'Branch or ref name (typically github.ref_name)'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: gh-pages
+        fetch-depth: 0
+
+    - name: Publish report
+      shell: bash
+      env:
+        CATEGORY: ${{ inputs.category }}
+        REPORT_FILE: ${{ inputs.report-file }}
+        RUN_ID: ${{ inputs.run-id }}
+        RUN_NUMBER: ${{ inputs.run-number }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        FOLDER="${CATEGORY}/${RUN_ID}"
+
+        if [ ! -f "${REPORT_FILE}" ]; then
+          echo "::warning::Report file '${REPORT_FILE}' not found — skipping Pages deployment"
+          exit 0
+        fi
+
+        mkdir -p "gh-pages/${FOLDER}"
+        cp "${REPORT_FILE}" "gh-pages/${FOLDER}/index.html"
+
+        cd gh-pages
+
+        # Initialise manifest.json if missing
+        if [ ! -f manifest.json ]; then
+          echo '[]' > manifest.json
+        fi
+
+        # Append entry to manifest
+        ENTRY=$(cat <<EOF
+        {
+          "category": "${CATEGORY}",
+          "runId": "${RUN_ID}",
+          "runNumber": "${RUN_NUMBER}",
+          "branch": "${BRANCH}",
+          "date": "${TIMESTAMP}",
+          "path": "${FOLDER}/index.html"
+        }
+        EOF
+        )
+
+        # Use python (available on all runners) to prepend to the JSON array
+        python3 -c "
+        import json, sys
+        entry = json.loads(sys.argv[1])
+        with open('manifest.json') as f:
+            data = json.load(f)
+        data.insert(0, entry)
+        with open('manifest.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        " "${ENTRY}"
+
+        git config user.name  "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add .
+        git commit -m "chore: add ${CATEGORY} report for run #${RUN_NUMBER}"
+        git push origin gh-pages

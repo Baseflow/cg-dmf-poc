@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: EUPL-1.2
+# Copyright (C) 2026 Gemeente Utrecht
+#
+# Local development overrides — loaded automatically by Docker Compose when
+# running plain `docker compose up`. Not included when -f flags are used
+# explicitly (e.g. the k6 or integration-test compose files).
+
+name: cg-dmf-poc
+
+services:
+  postgres:
+    ports:
+      - '5432:5432'
+
+  app:
+    ports:
+      - '8080:8080'
+
+  minio:
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+
+  keycloak:
+    ports:
+      - '8081:8080'
+
+  azurite:
+    ports:
+      - '10000:10000'
+      - '10001:10001'
+      - '10002:10002'
+
+  notificaties-api:
+    ports:
+      - '8000:8000'
+

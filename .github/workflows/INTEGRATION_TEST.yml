@@ -45,51 +45,8 @@ jobs:
           report_paths: '**/build/bruno-results/results.xml'
           detailed_summary: true
           include_passed: true
+          include_time_in_summary: true
           check_name: Bruno Integration Tests
-
-      - name: Embed Bruno results in job summary
-        if: always()
-        run: |
-          python3 - <<'EOF'
-          import xml.etree.ElementTree as ET, os
-
-          tree = ET.parse("build/bruno-results/results.xml")
-          root = tree.getroot()
-
-          suites   = root.findall("testsuite")
-          total    = sum(int(s.attrib.get("tests",    0)) for s in suites)
-          errors   = sum(int(s.attrib.get("errors",   0)) for s in suites)
-          failures = sum(int(s.attrib.get("failures", 0)) for s in suites)
-          skipped  = sum(int(s.attrib.get("skipped",  0)) for s in suites)
-          passed   = total - errors - failures - skipped
-
-          badge = "✅ All requests passed" if (errors + failures) == 0 else "❌ Some requests failed"
-
-          lines = [
-            f"## Bruno Integration Test Results — {badge}",
-            "",
-            f"| Requests | ✅ Passed | ❌ Failed | ⚠️ Errors | ⏭️ Skipped |",
-            f"|----------|-----------|-----------|-----------|-----------|",
-            f"| {len(suites)} | {passed} | {failures} | {errors} | {skipped} |",
-            "",
-            "### Per-request details",
-            "",
-            "| Request | File | ⏱ Time (s) | Result |",
-            "|---------|------|------------|--------|",
-          ]
-
-          for s in suites:
-            name   = s.attrib.get("name", "")
-            file   = s.attrib.get("file", "")
-            time   = s.attrib.get("time", "")
-            errs   = int(s.attrib.get("errors",   0))
-            fails  = int(s.attrib.get("failures", 0))
-            result = "❌ Failed" if (errs + fails) > 0 else "✅ Passed"
-            lines.append(f"| {name} | `{file}` | {time} | {result} |")
-
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
-            f.write("\n".join(lines) + "\n")
-          EOF
 
       - name: Upload Bruno test results
         if: always()
@@ -100,3 +57,33 @@ jobs:
             build/bruno-results/results.xml
             build/bruno-results/output.html
 
+  deploy-pages:
+    name: Publish integration report to GitHub Pages
+    needs: integration-test
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Bruno results artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: bruno-test-results
+          path: bruno-results
+
+
+      - name: Publish report to gh-pages
+        uses: ./.github/actions/publish-report
+        with:
+          category: integration
+          report-file: bruno-results/output.html
+          run-id: ${{ github.run_id }}
+          run-number: ${{ github.run_number }}
+          branch: ${{ github.head_ref || github.ref_name }}

@@ -60,9 +60,6 @@ out/
 .env.local
 .env.*.local
 
-# Docker
-docker-compose.override.yml
-
 # Helm local values (may contain plaintext credentials)
 helm/**/values.local.yaml
 helm/**/values.*.local.yaml
