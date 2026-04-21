@@ -6,6 +6,7 @@ import com.baseflow.config.DatabaseConfig
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.entities.EIOVersionTrefwoordEntity
+import com.baseflow.entities.TrefwoordEntity
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -127,7 +128,7 @@ private fun loadStubData() {
         listOf("test", "example").forEach { woord ->
             EIOVersionTrefwoordEntity.new {
                 versionId = eioVersion
-                trefwoord = woord
+                trefwoordId = TrefwoordEntity.findOrCreate(woord)
             }
         }
 

@@ -103,7 +103,7 @@ class EnkelvoudigInformatieObjectService(
         request.trefwoorden?.forEach { woord ->
             EIOVersionTrefwoordEntity.new {
                 versionId = eioVersion
-                trefwoord = woord
+                trefwoordId = TrefwoordEntity.findOrCreate(woord)
             }
         }
 
@@ -390,14 +390,14 @@ class EnkelvoudigInformatieObjectService(
             val trefwoordenToStore = when {
                 partial && request.trefwoorden.isNullOrEmpty() ->
                     EIOVersionTrefwoordEntity.find { EIOVersionTrefwoorden.versionId eq latestVersion!!.id }
-                        .map { it.trefwoord }
+                        .map { it.trefwoordId.woord }
 
                 else -> request.trefwoorden ?: emptyList()
             }
             trefwoordenToStore.forEach { woord ->
                 EIOVersionTrefwoordEntity.new {
                     versionId = version
-                    trefwoord = woord
+                    trefwoordId = TrefwoordEntity.findOrCreate(woord)
                 }
             }
 
@@ -517,7 +517,7 @@ class EnkelvoudigInformatieObjectService(
             informatieobjecttype = version.informatieobject_type,
             trefwoorden = EIOVersionTrefwoordEntity
                 .find { EIOVersionTrefwoorden.versionId eq version.id }
-                .map { it.trefwoord },
+                .map { it.trefwoordId.woord },
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = this.lockToken != null,
             versie = version.versie,

@@ -9,6 +9,7 @@ import com.baseflow.entities.EIORecords
 import com.baseflow.entities.EIOVersionTrefwoorden
 import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecords
+import com.baseflow.entities.Trefwoorden
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -19,6 +20,7 @@ object AllTables {
     val tables: Array<Table> = arrayOf(
         EIORecords,
         EIOVersions,
+        Trefwoorden,
         EIOVersionTrefwoorden,
         OIORecords,
         AuditTrails,
