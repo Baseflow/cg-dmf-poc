@@ -43,17 +43,9 @@ on:
       OPENZAAK_CLIENT_SECRET:
         required: true
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: 'pages'
-  cancel-in-progress: false
 
 jobs:
   k6:
@@ -163,95 +155,28 @@ jobs:
           retention-days: 30
 
   deploy-pages:
-    name: Deploy k6 report to GitHub Pages
+    name: Publish k6 report to GitHub Pages
     needs: k6
     if: always()
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.push.outputs.pages_url }}
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download k6 results artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: k6-results-${{ github.run_id }}
           path: k6-results
 
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
+      - name: Publish report to gh-pages
+        uses: ./.github/actions/publish-report
         with:
-          ref: gh-pages
-          path: gh-pages
-          fetch-depth: 0
-
-      - name: Add report to history
-        id: push
-        env:
-          RUN_ID: ${{ github.run_id }}
-          RUN_NUMBER: ${{ github.run_number }}
-          REPO: ${{ github.repository }}
-          PAGES_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-        run: |
-          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
-          FOLDER="reports/${RUN_ID}"
-
-          mkdir -p "gh-pages/${FOLDER}"
-          cp k6-results/test-report.html "gh-pages/${FOLDER}/index.html"
-
-          # Regenerate root index.html listing all historical runs
-          cd gh-pages
-          cat > index.html <<'EOF_HEADER'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>k6 Performance Reports</title>
-            <style>
-              body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-              table { border-collapse: collapse; width: 100%; }
-              th, td { border: 1px solid #ddd; padding: 0.5rem 1rem; text-align: left; }
-              th { background: #f4f4f4; }
-              tr:hover { background: #fafafa; }
-              a { color: #0969da; }
-            </style>
-          </head>
-          <body>
-            <h1>k6 Performance Reports</h1>
-            <table>
-              <thead><tr><th>Run</th><th>Date</th><th>Report</th></tr></thead>
-              <tbody>
-          EOF_HEADER
-
-          # List existing report folders newest-first
-          for dir in $(ls -1dr reports/*/  2>/dev/null); do
-            rid=$(basename "$dir")
-            # Try to read stored metadata, fall back to folder name
-            if [ -f "$dir/meta.txt" ]; then
-              meta=$(cat "$dir/meta.txt")
-              rnum=$(echo "$meta" | cut -d'|' -f1)
-              ts=$(echo "$meta" | cut -d'|' -f2)
-            else
-              rnum="$rid"
-              ts="—"
-            fi
-            echo "      <tr><td>#${rnum}</td><td>${ts}</td><td><a href=\"${dir}index.html\">View report</a></td></tr>" >> index.html
-          done
-
-          cat >> index.html <<'EOF_FOOTER'
-              </tbody>
-            </table>
-          </body>
-          </html>
-          EOF_FOOTER
-
-          # Store metadata for this run
-          echo "${RUN_NUMBER}|${TIMESTAMP}" > "${FOLDER}/meta.txt"
-
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "chore: add k6 report for run #${RUN_NUMBER} (${TIMESTAMP})"
-          git push origin gh-pages
-
-          echo "pages_url=${PAGES_URL}" >> "$GITHUB_OUTPUT"
+          category: k6
+          report-file: k6-results/test-report.html
+          run-id: ${{ github.run_id }}
+          run-number: ${{ github.run_number }}
