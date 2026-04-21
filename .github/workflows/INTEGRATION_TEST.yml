@@ -78,10 +78,11 @@ jobs:
           name: bruno-test-results
           path: bruno-results
 
+
       - name: Publish report to gh-pages
         uses: ./.github/actions/publish-report
         with:
           category: integration
-          report-file: bruno-results/build/bruno-test-results/output.html
+          report-file: bruno-results/output.html
           run-id: ${{ github.run_id }}
           run-number: ${{ github.run_number }}
