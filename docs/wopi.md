@@ -67,6 +67,6 @@ Een frontend opent een document in een WOPI-client door een HTML-formulier te `P
 </form>
 ```
 
-Een werkend voorbeeldbestand met Collabora Online is beschikbaar in [`wopi_test.html`](../wopi_test.html) in de projectroot.
+Een werkend voorbeeldbestand met Collabora Online is beschikbaar in [`wopi_test.html`](../src/main/kotlin/api/wopi/wopi_test.html) in de projectroot.
 
 ---
