@@ -6,6 +6,7 @@ import com.baseflow.entities.AuditTrails
 import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.BlobStorageRepositories
 import com.baseflow.entities.EIORecords
+import com.baseflow.entities.EIOVersionTrefwoorden
 import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecords
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
@@ -18,6 +19,7 @@ object AllTables {
     val tables: Array<Table> = arrayOf(
         EIORecords,
         EIOVersions,
+        EIOVersionTrefwoorden,
         OIORecords,
         AuditTrails,
         BestandsDelen,

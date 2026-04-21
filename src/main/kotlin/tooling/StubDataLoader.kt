@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.tooling
 
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
+import com.baseflow.entities.EIOVersionTrefwoordEntity
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -100,7 +101,7 @@ private fun loadStubData() {
             lockToken = null
         }
         val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-        EIOVersionEntity.new {
+        val eioVersion = EIOVersionEntity.new {
             recordId = record // Pass the entity, not UUID
             versie = 1
             taal = "dut"
@@ -113,7 +114,6 @@ private fun loadStubData() {
             integriteitsDatum = now
             beginRegistratie = now
             verschijningsVorm = "Inlevering"
-            trefwoorden = listOf("test", "example")
             bronOrganisatie = "012345678"
             creatieDatum = now.date
             titel = "Test document"
@@ -123,6 +123,12 @@ private fun loadStubData() {
             beschrijving = "Test beschrijving"
             indicatieGebruiksrecht = false
             identificatie = "test-document"
+        }
+        listOf("test", "example").forEach { woord ->
+            EIOVersionTrefwoordEntity.new {
+                versionId = eioVersion
+                trefwoord = woord
+            }
         }
 
         println("Stub data loaded successfully")

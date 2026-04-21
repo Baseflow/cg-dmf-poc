@@ -16,6 +16,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -88,7 +89,6 @@ class EnkelvoudigInformatieObjectService(
             integriteitWaarde = request.integriteit?.waarde.orEmpty()
             integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
             verschijningsVorm = request.verschijningsvorm.orEmpty()
-            trefwoorden = request.trefwoorden ?: emptyList()
             vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
                 ?: ioType?.vertrouwelijkheidaanduiding
                 ?: ""
@@ -99,6 +99,12 @@ class EnkelvoudigInformatieObjectService(
             ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
+        }
+        request.trefwoorden?.forEach { woord ->
+            EIOVersionTrefwoordEntity.new {
+                versionId = eioVersion
+                trefwoord = woord
+            }
         }
 
         // When the declared file size exceeds the trigger threshold, lock the record and
@@ -300,6 +306,7 @@ class EnkelvoudigInformatieObjectService(
             }
 
             val uploadResultaat =
+
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
             val bestandsFormaat =
                 mergeNullable(
@@ -354,8 +361,6 @@ class EnkelvoudigInformatieObjectService(
                 )
                 verschijningsVorm =
                     mergeOptionalString(partial, request.verschijningsvorm, latestVersion?.verschijningsVorm)
-                trefwoorden = mergeNullable(partial, request.trefwoorden?.ifEmpty { null }, latestVersion?.trefwoorden)
-                    ?: emptyList()
                 vertrouwlijkheidsAanduiding = mergeOptionalString(
                     partial,
                     request.vertrouwelijkheidaanduiding?.toString(),
@@ -381,6 +386,21 @@ class EnkelvoudigInformatieObjectService(
                 )
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
             }
+
+            val trefwoordenToStore = when {
+                partial && request.trefwoorden.isNullOrEmpty() ->
+                    EIOVersionTrefwoordEntity.find { EIOVersionTrefwoorden.versionId eq latestVersion!!.id }
+                        .map { it.trefwoord }
+
+                else -> request.trefwoorden ?: emptyList()
+            }
+            trefwoordenToStore.forEach { woord ->
+                EIOVersionTrefwoordEntity.new {
+                    versionId = version
+                    trefwoord = woord
+                }
+            }
+
 
             // Determine effective bestandsomvang for the new version and create bestandsdelen if needed.
             val effectiveOmvang = version.bestandsomvang
@@ -495,7 +515,9 @@ class EnkelvoudigInformatieObjectService(
             ondertekening = ondertekening,
             integriteit = integriteit,
             informatieobjecttype = version.informatieobject_type,
-            trefwoorden = version.trefwoorden,
+            trefwoorden = EIOVersionTrefwoordEntity
+                .find { EIOVersionTrefwoorden.versionId eq version.id }
+                .map { it.trefwoord },
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = this.lockToken != null,
             versie = version.versie,
@@ -551,6 +573,10 @@ class EnkelvoudigInformatieObjectService(
 
         if (filters.trefwoorden.isNotEmpty()) {
             op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
+        }
+
+        if (filters.trefwoordenOverlap.isNotEmpty()) {
+            op = op and arrayOverlap(EIOVersions.trefwoorden, filters.trefwoordenOverlap)
         }
 
         if (filters.trefwoordenOverlap.isNotEmpty()) {
