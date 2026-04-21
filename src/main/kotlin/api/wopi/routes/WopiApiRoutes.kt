@@ -120,10 +120,15 @@ private suspend fun RoutingContext.getFileMetadata() {
                 HttpStatusCode.NotFound,
                 notFound("EnkelvoudigInformatieObject not found", call.request.path()),
             )
+        } else if (result.bestandsomvang == null) {
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("Document content not available", call.request.path())
+            )
         } else {
             val checkFileInfoResponse = CheckFileInfoResponse(
-                baseFileName = result.bestandsnaam ?: "document",
-                size = result.bestandsomvang ?: 0L,
+                baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
+                size = result.bestandsomvang,
             )
             call.respond(
                 HttpStatusCode.OK,

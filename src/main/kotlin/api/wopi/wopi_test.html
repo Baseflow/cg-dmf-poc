@@ -1,8 +1,43 @@
-<!--Example HTML template for testing WOPI integration with Collabora Online. Replace the placeholder values before use.-->
-<html><body>
-<form action="https://collabora.dev.baseflow.com/browser/4610258811/cool.html?WOPISrc=https://unhook-arming-elixir.ngrok-free.dev/wopi/api/v1/files/dd3283aa-04c1-4f37-809c-345606ecddc9"
-      enctype="multipart/form-data" method="post">
-  <input name="access_token" value="test" type="hidden"/>
-  <input type="submit" value="Load Collabora Online"/>
-</form>
-</body></html>
+<!--
+  WOPI Test Page
+  Used to test WOPI integration with a WOPI-compatible client (e.g. Collabora Online).
+  Fill in the fields and click "Open in WOPI Client" to test.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>WOPI Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; font-weight: bold; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 0.4rem; margin-top: 0.25rem; font-size: 0.95rem; }
+    button { margin-top: 1.5rem; padding: 0.5rem 1.2rem; font-size: 1rem; cursor: pointer; }
+    #error { color: red; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h2>WOPI Client Test</h2>
+
+  <label for="wopiClientBaseUrl">WOPI Client Base URL</label>
+  <input type="text" id="wopiClientBaseUrl" placeholder="https://collabora.example.com" />
+
+  <label for="wopiHostBaseUrl">WOPI Host Base URL</label>
+  <input type="text" id="wopiHostBaseUrl" placeholder="https://dmf.example.com" />
+
+  <label for="wopiClientHash">WOPI Client Hash</label>
+  <input type="text" id="wopiClientHash" placeholder="4610258811" />
+
+  <label for="fileId">Document UUID</label>
+  <input type="text" id="fileId" placeholder="dd3283aa-04c1-4f37-809c-345606ecddc9" />
+
+  <label for="accessToken">Access Token</label>
+  <input type="text" id="accessToken" value="test" placeholder="JWT or test token" />
+
+  <br/>
+  <button onclick="openWopi()">Open in WOPI Client</button>
+  <div id="error"></div>
+
+  <script src="wopi_test.js"></script>
+</body>
+</html>

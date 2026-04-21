@@ -94,10 +94,10 @@ Stel de volgende omgevingsvariabelen in indien nodig:
 
 De DMF implementeert een WOPI-host waarmee WOPI-clients (bijvoorbeeld Collabora of Microsoft 365) documenten kunnen openen en  bewerken in de browser. Zie [docs/wopi.md](wopi.md) voor een volledig overzicht.
 
-| Variabele              | Standaardwaarde | Beschrijving                                                                                                           |
-|------------------------| --------------- |------------------------------------------------------------------------------------------------------------------------|
-| `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar voor WOPI-clients, bijv. `http://localhost:8080/wopi/api/v1/files/{files_id}` |
-| `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke basis-URL van de WOPI-client bijv. `https://collabora.dev.baseflow.com`                                       |
+| Variabele              | Standaardwaarde | Beschrijving                                                                                                                                                                              |
+|------------------------| --------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar door de WOPI_client, bijv. `http://localhost:8080`. Het volledige WOPI-endpoint is dan bijv. `http://localhost:8080/wopi/api/v1/files/{file_id}` |
+| `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke basis-URL van de WOPI-client bijv. `https://collabora.dev.baseflow.com`                                                                                                          |
 
 ## Aanvullende opmerkingen
 
