@@ -15,27 +15,29 @@ on:
       eio_target:
         description: 'Number of EIOs to seed'
         required: false
-        default: '1000'
       oio_target:
         description: 'Number of OIOs to seed'
         required: false
-        default: '2000'
       max_versions:
         description: 'Maximum additional versions per EIO'
         required: false
-        default: '5'
       ramp_duration:
         description: 'k6 ramp-up / ramp-down duration (e.g. 30s, 1m)'
         required: false
-        default: '30s'
       steady_duration:
         description: 'k6 steady-state duration (e.g. 1m, 5m)'
         required: false
-        default: '1m'
       max_vus:
         description: 'Maximum number of k6 virtual users'
         required: false
-        default: '50'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+      - '.github/workflows/k6-performance.yml'
   workflow_call:
     secrets:
       JWT_CLIENT_SECRET:
@@ -62,12 +64,12 @@ jobs:
         env:
           JWT_CLIENT_SECRET: ${{ secrets.JWT_CLIENT_SECRET }}
           OPENZAAK_CLIENT_SECRET: ${{ secrets.OPENZAAK_CLIENT_SECRET }}
-          EIO_TARGET: ${{ inputs.eio_target     || '100'  }}
-          OIO_TARGET: ${{ inputs.oio_target     || '200'  }}
+          EIO_TARGET: ${{ inputs.eio_target     || '1000'  }}
+          OIO_TARGET: ${{ inputs.oio_target     || '2000'  }}
           MAX_VERSIONS: ${{ inputs.max_versions   || '5'    }}
           RAMP_DURATION: ${{ inputs.ramp_duration  || '30s'  }}
           STEADY_DURATION: ${{ inputs.steady_duration || '1m'  }}
-          MAX_VUS: ${{ inputs.max_vus        || '10'   }}
+          MAX_VUS: ${{ inputs.max_vus        || '50'   }}
         run: |
           docker compose \
             -f docker-compose.yml \

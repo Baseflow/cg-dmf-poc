@@ -22,11 +22,6 @@ jobs:
     secrets: inherit
 
   integration-test:
-    # needs: [lint, helm-lint, test]
+    needs: [lint, helm-lint, test]
     uses: ./.github/workflows/INTEGRATION_TEST.yml
-    secrets: inherit
-
-  k6-performance:
-    # needs: [lint, helm-lint, test]
-    uses: ./.github/workflows/k6-performance.yml
     secrets: inherit
