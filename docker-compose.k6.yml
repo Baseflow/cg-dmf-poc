@@ -32,7 +32,7 @@ services:
 
   postgres:
     volumes:
-      - ./data/postgres-init:/docker-entrypoint-initdb.d
+      - /dev/null:/docker-entrypoint-initdb.d/create-databases.sql:ro
     ports: [ ]
 
   minio:
@@ -41,6 +41,7 @@ services:
   k6:
     image: grafana/k6:latest
     container_name: dmf-k6
+    user: root
     volumes:
       - ./k6:/scripts
       - ./build/k6:/results
@@ -54,11 +55,11 @@ services:
       RAMP_DURATION: ${RAMP_DURATION:-30s}
       STEADY_DURATION: ${STEADY_DURATION:-1m}
       MAX_VUS: ${MAX_VUS:-10}
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
         k6 run --out json=/results/seed.json /scripts/seed.js && \
-        k6 run --out json=/results/perf.json /scripts/perf.js
+        k6 run --out json=/results/perf.json --summary-export /results/perf-summary.json /scripts/perf.js
     depends_on:
       app:
         condition: service_healthy
