@@ -10,12 +10,12 @@ De DMF implementeert een **WOPI-host** zodat een WOPI-client zoals [Collabora On
 
 ## Geïmplementeerde WOPI-endpoints
 
-De WOPI-routes zijn beschikbaar onder het basispad `/wopi/files`.
+De WOPI-routes zijn beschikbaar onder het basispad `/wopi/api/v1/files`.
 
-| Endpoint                      | Method | WOPI-operatie   | Beschrijving                                                  |
-|-------------------------------| ------ | --------------- | ------------------------------------------------------------- |
-| `/wopi/files/{file_id}`       | GET    | CheckFileInfo   | Geeft metadata terug (bestandsnaam, grootte) als JSON         |
-| `/wopi/files/{file_id}/contents` | GET    | GetFile         | Streamt de binaire bestandsinhoud van het document            |
+| Endpoint                             | Method | WOPI-operatie | Beschrijving                                               |
+| ------------------------------------ | ------ | ------------- | ---------------------------------------------------------- |
+| `/wopi/api/v1/files/{file_id}`       | GET    | CheckFileInfo | Geeft metadata terug (bestandsnaam, grootte) als JSON      |
+| `/wopi/api/v1/files/{file_id}/contents` | GET    | GetFile       | Streamt de binaire bestandsinhoud van het document         |
 
 ### CheckFileInfo response
 
@@ -46,7 +46,7 @@ Stel de volgende omgevingsvariabelen in om WOPI te configureren:
 
 | Variabele              | Standaardwaarde | Beschrijving                                                                                      |
 |------------------------| --------------- | ------------------------------------------------------------------------------------------------- |
-| `WOPI_ENABLED`         | `true`          | Zet op `false` om de WOPI-routes volledig uit te schakelen                                        |
+| `WOPI_ENABLED`         | `false`         | Zet op `true` om de WOPI-routes in te schakelen                                                   |
 | `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke URL van de WOPI-client instantie, bijv. `https://collabora.example.com`                  |
 | `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF die door de WOPI-client bereikbaar is, bijv. `https://dmf.example.com` |
 
