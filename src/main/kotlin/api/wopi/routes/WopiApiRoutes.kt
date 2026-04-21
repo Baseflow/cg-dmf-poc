@@ -89,7 +89,7 @@ private suspend fun RoutingContext.getFileContents() {
         call.response.headers.append(
             HttpHeaders.ContentDisposition,
             ContentDisposition.Attachment
-                .withParameter(ContentDisposition.Parameters.FileName, fileName)
+                .withParameter(ContentDisposition.Parameters.FileNameAsterisk, fileName, true)
                 .toString(),
         )
         call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
@@ -123,7 +123,7 @@ private suspend fun RoutingContext.getFileMetadata() {
         } else if (result.bestandsomvang == null) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Document content not available", call.request.path())
+                notFound("Document content not available", call.request.path()),
             )
         } else {
             val checkFileInfoResponse = CheckFileInfoResponse(

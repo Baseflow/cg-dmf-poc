@@ -50,7 +50,7 @@ Stel de volgende omgevingsvariabelen in om WOPI te configureren:
 | `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke URL van de WOPI-client instantie, bijv. `https://collabora.example.com`                  |
 | `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF die door de WOPI-client bereikbaar is, bijv. `https://dmf.example.com` |
 
-> **Let op:** `WOPI_HOST_BASE_URL` moet bereikbaar zijn vanuit de WOPI-client container. In lokale ontwikkeling is dit `http://localhost:8080` (de Docker Compose service naam).
+> **Let op:** `WOPI_HOST_BASE_URL` moet bereikbaar zijn vanuit de WOPI-client container.
 
 ---
 
