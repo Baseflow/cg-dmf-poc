@@ -24,7 +24,7 @@
 
 import { check, sleep } from 'k6';
 import http from 'k6/http';
-import { Rate, Trend, Counter } from 'k6/metrics';
+import { Rate, Counter } from 'k6/metrics';
 import { randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 import { zgwBearer } from './lib/auth.js';
 import {
