@@ -277,7 +277,7 @@ export default function () {
             console.log(`[seed]   ${i}/${eioIds.length} EIOs versioned`);
         }
 
-        const extraVersions = geometricInt(MAX_VERSIONS - 1) - 1; // 0 to MAX_VERSIONS-1
+        const extraVersions = Math.max(0, geometricInt(MAX_VERSIONS) - 1); // 0 to MAX_VERSIONS-1
         for (let v = 0; v < extraVersions; v++) {
             const res = updateEio(BASE_URL, headers, eioIds[i], eioBody(iotUrls));
             const ok = check(res, {
