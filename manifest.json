@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24779218357",
+    "runNumber": "361",
+    "branch": "CGDMF-123-eio-index",
+    "date": "2026-04-22T12:56:03Z",
+    "path": "integration/24779218357/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24778908354",
     "runNumber": "360",
     "branch": "CGDMF-78-k6-tests",
