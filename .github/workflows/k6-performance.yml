@@ -36,7 +36,9 @@ on:
       - develop
     paths:
       - 'src/**'
+      - 'k6/**'
       - 'Dockerfile'
+      - 'docker-compose.k6.yml'
       - '.github/workflows/k6-performance.yml'
   workflow_call:
     secrets:
