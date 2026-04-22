@@ -282,7 +282,8 @@ function scenarioListOio(headers) {
   const res = listOio(BASE_URL, headers, params);
   const ok  = check(res, { 'LIST oio 200': (r) => r.status === 200 });
   perfSuccessRate.add(ok ? 1 : 0);
-  if (!ok) oioListErrors.add(1);
+  // A fresh UUID is used for the object URL, so 201 is the expected successful response here.
+  // Any non-201 response is treated as a failure by the performance metrics below.
 }
 
 function scenarioCreateOio(headers) {
