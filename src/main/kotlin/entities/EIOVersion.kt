@@ -48,6 +48,19 @@ object EIOVersions : UUIDTable("eio_versions") {
     val identificatie = varchar("identificatie", 40).default("")
     val informatieobject_type = varchar("informatieobject_type", 200).default("")
     val bestandsLocatie = varchar("bestands_locatie", 1000).default("")
+
+    init {
+        // Unique composite index: a record cannot have two rows with the same version number.
+        // Also speeds up the correlated MAX(versie) subquery used when listing EIOs.
+        index(true, recordId, versie)
+
+        // Indexes for the most common filter columns
+        index(false, bronOrganisatie)
+        index(false, identificatie)
+        index(false, informatieobject_type)
+        index(false, beginRegistratie)
+        index(false, creatieDatum)
+    }
 }
 
 @OptIn(ExperimentalTime::class)
