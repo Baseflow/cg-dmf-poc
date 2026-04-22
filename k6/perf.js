@@ -39,7 +39,16 @@ import {
 import { IOT_URLS_FILE } from './lib/constants.js';
 
 // Read IOT URLs written by seed.js (must be run first)
-const _iotUrlsData = JSON.parse(open(IOT_URLS_FILE));
+let _iotUrlsData;
+try {
+  _iotUrlsData = JSON.parse(open(IOT_URLS_FILE));
+} catch (error) {
+  throw new Error(
+    `Failed to load IOT URLs from ${IOT_URLS_FILE}. ` +
+    'Make sure k6/seed.js has been run first and that the file contains valid JSON. ' +
+    `Original error: ${error.message}`,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Configuration
