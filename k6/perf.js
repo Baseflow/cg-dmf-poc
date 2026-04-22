@@ -10,7 +10,7 @@
 //   25 % — GET list EIOs (various filters)
 //   15 % — CREATE new EIO
 //   10 % — PATCH (partial update) existing EIO
-//    5 % — GET OIO list filtered by object URL
+//    5 % — GET OIO list filtered by informatieobject (EIO URL)
 //    5 % — CREATE OIO
 //
 // Usage:
