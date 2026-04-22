@@ -14,6 +14,7 @@ import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.models.DeleteResult
+import com.baseflow.services.models.EIOOrdering
 import com.baseflow.services.models.LockResult
 import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.services.models.UnlockResult
@@ -746,6 +747,44 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertNotNull(eio)
         assertEquals(eio.versie, 3)
         assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
+    }
+
+    @Test
+    fun `getAll totalCount should be correct when ordering and pagination are applied`() = runBlocking {
+        // Create 5 distinct records
+        val titles = listOf("Aardbei", "Banaan", "Citroen", "Dadel", "Esdoorn")
+        titles.forEach { titel ->
+            service.create(generateTestDocument(titel = titel))
+        }
+
+        // Fetch page 1 with pageSize=2, ordered by titel ascending
+        val (page1Results, totalCount) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(page = 1, pageSize = 2, ordering = listOf(EIOOrdering.TITEL_ASC)),
+        )
+
+        // totalCount must reflect all 5 records, not just the 2 on this page
+        assertEquals(5L, totalCount)
+        assertEquals(2, page1Results.size)
+        // First page should contain the two alphabetically first titles
+        assertEquals("Aardbei", page1Results[0].titel)
+        assertEquals("Banaan", page1Results[1].titel)
+
+        // Fetch page 2 and verify count is still consistent
+        val (page2Results, totalCount2) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(page = 2, pageSize = 2, ordering = listOf(EIOOrdering.TITEL_ASC)),
+        )
+        assertEquals(5L, totalCount2)
+        assertEquals(2, page2Results.size)
+        assertEquals("Citroen", page2Results[0].titel)
+        assertEquals("Dadel", page2Results[1].titel)
+
+        // Fetch page 3 (last, partial page)
+        val (page3Results, totalCount3) = service.getAll(
+            QueryEnkelvoudigeInformatieObjectenFilter(page = 3, pageSize = 2, ordering = listOf(EIOOrdering.TITEL_ASC)),
+        )
+        assertEquals(5L, totalCount3)
+        assertEquals(1, page3Results.size)
+        assertEquals("Esdoorn", page3Results[0].titel)
     }
 
     @Test
