@@ -161,7 +161,7 @@ export default function () {
     if (catalogusRes.status === 200) {
         const body = catalogusRes.json();
         const results = body.results || body; // some versions return array directly
-        const first = Array.isArray(results) ? results[0] : results[0];
+        const first = results[0];
         catalogusUrl = first && first.url;
     }
     if (!catalogusUrl) {
