@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24854599700",
+    "runNumber": "380",
+    "branch": "CGDMF-122-keycloak-configuratie",
+    "date": "2026-04-23T19:34:08Z",
+    "path": "integration/24854599700/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24843227255",
     "runNumber": "377",
     "branch": "CGDMF-52-trefwoorden",
