@@ -7,6 +7,7 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
 import com.baseflow.api.infra.healthModule
 import com.baseflow.api.infra.openApiModule
+import com.baseflow.api.wopi.wopiApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
@@ -16,11 +17,11 @@ import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
@@ -94,6 +95,7 @@ fun Application.module() {
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
     adminModule() // Admin API at /admin
+    wopiApiModule() // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
 

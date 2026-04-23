@@ -1,0 +1,186 @@
+# SPDX-License-Identifier: EUPL-1.2
+# Copyright (C) 2026 Gemeente Utrecht
+#
+# Nightly (and manually triggerable) k6 performance test workflow.
+# Spins up postgres, minio and the app via Docker Compose, runs the k6
+# seed + perf suite, and publishes the JSON results as a workflow artifact.
+
+name: k6 Performance Tests
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # every day at 00:00 UTC
+  workflow_dispatch:
+    inputs:
+      eio_target:
+        description: 'Number of EIOs to seed'
+        required: false
+      oio_target:
+        description: 'Number of OIOs to seed'
+        required: false
+      max_versions:
+        description: 'Maximum additional versions per EIO'
+        required: false
+      ramp_duration:
+        description: 'k6 ramp-up / ramp-down duration (e.g. 30s, 1m)'
+        required: false
+      steady_duration:
+        description: 'k6 steady-state duration (e.g. 1m, 5m)'
+        required: false
+      max_vus:
+        description: 'Maximum number of k6 virtual users'
+        required: false
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'src/**'
+      - 'k6/**'
+      - 'Dockerfile'
+      - 'docker-compose.k6.yml'
+      - '.github/workflows/k6-performance.yml'
+  workflow_call:
+    secrets:
+      JWT_CLIENT_SECRET:
+        required: true
+      OPENZAAK_CLIENT_SECRET:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  k6:
+    name: Run k6 performance tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create output directory
+        run: mkdir -p build/k6
+
+      - name: Run Docker Compose
+        env:
+          JWT_CLIENT_SECRET: ${{ secrets.JWT_CLIENT_SECRET }}
+          OPENZAAK_CLIENT_SECRET: ${{ secrets.OPENZAAK_CLIENT_SECRET }}
+          EIO_TARGET: ${{ inputs.eio_target     || '1000'  }}
+          OIO_TARGET: ${{ inputs.oio_target     || '2000'  }}
+          MAX_VERSIONS: ${{ inputs.max_versions   || '5'    }}
+          RAMP_DURATION: ${{ inputs.ramp_duration  || '30s'  }}
+          STEADY_DURATION: ${{ inputs.steady_duration || '1m'  }}
+          MAX_VUS: ${{ inputs.max_vus        || '50'   }}
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.k6.yml \
+            up --build --abort-on-container-exit --exit-code-from k6
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.k6.yml down
+
+      - name: Publish k6 summary to GitHub Actions
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'build/k6/perf-summary.json';
+            if (!fs.existsSync(path)) {
+              core.warning('k6 summary file not found — skipping report');
+              return;
+            }
+            const summary = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const metrics = summary.metrics || {};
+
+            // Helper: format a duration value in ms to a readable string
+            const ms  = v => v == null ? '—' : `${v.toFixed(1)} ms`;
+            const pct = v => v == null ? '—' : `${(v * 100).toFixed(2)} %`;
+
+            // In k6's --summary-export format, threshold values are booleans
+            // where false = threshold passed (not breached), true = failed.
+            const thresholdPassed = m => {
+              const t = m?.thresholds ?? {};
+              if (Object.keys(t).length === 0) return '—';
+              return Object.values(t).every(v => v === false) ? '✅' : '❌';
+            };
+
+            // Table rows: [label, metric key, value extractor, formatter, threshold label]
+            const rows = [
+              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    m => m?.['p(95)'], ms,  '< 500 ms'],
+              ['LIST EIO p(95)',   'http_req_duration{name:eio_list}',   m => m?.['p(95)'], ms,  '< 1000 ms'],
+              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', m => m?.['p(95)'], ms,  '< 3000 ms'],
+              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  m => m?.['p(95)'], ms,  '< 3000 ms'],
+              ['LIST OIO p(95)',   'http_req_duration{name:oio_list}',   m => m?.['p(95)'], ms,  '< 1000 ms'],
+              ['CREATE OIO p(95)', 'http_req_duration{name:oio_create}', m => m?.['p(95)'], ms,  '< 3000 ms'],
+              ['Error rate',       'http_req_failed',                    m => m?.value,     pct, '< 1 %'],
+              ['Success rate',     'perf_success_rate',                  m => m?.value,     pct, '> 99 %'],
+            ];
+
+            const httpDuration = metrics['http_req_duration'];
+            const totalReqs    = metrics['http_reqs'];
+            const vus          = metrics['vus_max'];
+
+            let md = '## k6 Performance Test Results\n\n';
+
+            // Overview
+            md += '| Metric | Value |\n|---|---|\n';
+            md += `| Total requests | ${totalReqs?.count ?? '—'} |\n`;
+            md += `| Max VUs | ${vus?.max ?? '—'} |\n`;
+            if (httpDuration) {
+              md += `| Avg response time | ${ms(httpDuration.avg)} |\n`;
+              md += `| Median response time | ${ms(httpDuration.med)} |\n`;
+              md += `| p(95) response time | ${ms(httpDuration['p(95)'])} |\n`;
+            }
+            md += '\n';
+
+            // Per-scenario thresholds
+            md += '### Threshold Results\n\n';
+            md += '| Scenario | p(95) / Rate | Threshold | Pass |\n|---|---|---|---|\n';
+            for (const [label, key, extract, fmt, threshold] of rows) {
+              const m = metrics[key];
+              const val = extract(m);
+              const passed = thresholdPassed(m);
+              md += `| ${label} | ${fmt(val)} | ${threshold} | ${passed} |\n`;
+            }
+
+            await core.summary.addRaw(md).write();
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-${{ github.run_id }}
+          path: build/k6/
+          retention-days: 30
+
+  deploy-pages:
+    name: Publish k6 report to GitHub Pages
+    needs: k6
+    if: always()
+    runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download k6 results artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: k6-results-${{ github.run_id }}
+          path: k6-results
+
+      - name: Publish report to gh-pages
+        uses: ./.github/actions/publish-report
+        with:
+          category: k6
+          report-file: k6-results/test-report.html
+          run-id: ${{ github.run_id }}
+          run-number: ${{ github.run_number }}
+          branch: ${{ github.head_ref || github.ref_name }}
