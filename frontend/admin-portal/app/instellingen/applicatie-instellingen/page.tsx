@@ -240,7 +240,7 @@ export default function Page() {
       setRotatedSecret(data.secret)
       setApplications((prev) =>
         prev.map((a) =>
-          a.id === rotateTarget.id ? { ...a, hasSecret: true } : a
+          a.id === rotateTarget.id ? { ...a, hasSecret: true, clientSecret: data.secret } : a
         )
       )
       setRotatePhase("success")
