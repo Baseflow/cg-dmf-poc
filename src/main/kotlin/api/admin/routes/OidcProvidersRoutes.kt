@@ -49,15 +49,24 @@ fun Route.oidcProvidersRoutes() {
                     HttpStatusCode.BadRequest,
                     badRequest("Request body must be JSON with 'name', 'issuer', and 'clientId' fields.", call.request.path()),
                 )
-            if (body.name.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
-            )
-            if (body.issuer.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'issuer' must not be blank.", call.request.path()),
-            )
-            if (body.clientId.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'clientId' must not be blank.", call.request.path()),
-            )
+            if (body.name.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'name' must not be blank.", call.request.path()),
+                )
+            }
+            if (body.issuer.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'issuer' must not be blank.", call.request.path()),
+                )
+            }
+            if (body.clientId.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'clientId' must not be blank.", call.request.path()),
+                )
+            }
 
             val created = transaction {
                 val exists = OidcProviderEntity.find {
@@ -85,22 +94,32 @@ fun Route.oidcProvidersRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@put call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
                 val body = runCatching { call.receive<UpdateOidcProviderRequest>() }.getOrNull()
                     ?: return@put call.respondProblem(
                         HttpStatusCode.BadRequest,
                         badRequest("Request body must be JSON with 'name', 'issuer', and 'clientId' fields.", call.request.path()),
                     )
-                if (body.name.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
-                )
-                if (body.issuer.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'issuer' must not be blank.", call.request.path()),
-                )
-                if (body.clientId.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'clientId' must not be blank.", call.request.path()),
-                )
+                if (body.name.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'name' must not be blank.", call.request.path()),
+                    )
+                }
+                if (body.issuer.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'issuer' must not be blank.", call.request.path()),
+                    )
+                }
+                if (body.clientId.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'clientId' must not be blank.", call.request.path()),
+                    )
+                }
 
                 val updated = transaction {
                     val existing = OidcProviderEntity.findById(id)
@@ -119,10 +138,12 @@ fun Route.oidcProvidersRoutes() {
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
-                        HttpStatusCode.NotFound, notFound("OIDC provider not found.", call.request.path()),
+                        HttpStatusCode.NotFound,
+                        notFound("OIDC provider not found.", call.request.path()),
                     )
                     "conflict" -> return@put call.respondProblem(
-                        HttpStatusCode.Conflict, conflict("A provider with this name already exists.", call.request.path()),
+                        HttpStatusCode.Conflict,
+                        conflict("A provider with this name already exists.", call.request.path()),
                     )
                     else -> call.respond(HttpStatusCode.OK, (updated as OidcProviderEntity).toResponse())
                 }
@@ -132,7 +153,8 @@ fun Route.oidcProvidersRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@delete call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
 
                 val deleted = transaction {
@@ -141,9 +163,12 @@ fun Route.oidcProvidersRoutes() {
                     true
                 }
 
-                if (!deleted) return@delete call.respondProblem(
-                    HttpStatusCode.NotFound, notFound("OIDC provider not found.", call.request.path()),
-                )
+                if (!deleted) {
+                    return@delete call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("OIDC provider not found.", call.request.path()),
+                    )
+                }
 
                 call.respond(HttpStatusCode.NoContent)
             }

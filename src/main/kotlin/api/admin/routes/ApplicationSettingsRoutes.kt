@@ -53,12 +53,18 @@ fun Route.applicationSettingsRoutes() {
                     HttpStatusCode.BadRequest,
                     badRequest("Request body must be JSON with 'name' and 'clientId' fields.", call.request.path()),
                 )
-            if (body.name.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
-            )
-            if (body.clientId.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'clientId' must not be blank.", call.request.path()),
-            )
+            if (body.name.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'name' must not be blank.", call.request.path()),
+                )
+            }
+            if (body.clientId.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'clientId' must not be blank.", call.request.path()),
+                )
+            }
 
             val created = transaction {
                 val exists = ApplicationSettingEntity.find {
@@ -85,19 +91,26 @@ fun Route.applicationSettingsRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@put call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
                 val body = runCatching { call.receive<UpdateApplicationSettingRequest>() }.getOrNull()
                     ?: return@put call.respondProblem(
                         HttpStatusCode.BadRequest,
                         badRequest("Request body must be JSON with 'name' and 'clientId' fields.", call.request.path()),
                     )
-                if (body.name.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
-                )
-                if (body.clientId.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'clientId' must not be blank.", call.request.path()),
-                )
+                if (body.name.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'name' must not be blank.", call.request.path()),
+                    )
+                }
+                if (body.clientId.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'clientId' must not be blank.", call.request.path()),
+                    )
+                }
 
                 val updated = transaction {
                     val existing = ApplicationSettingEntity.findById(id)
@@ -115,10 +128,12 @@ fun Route.applicationSettingsRoutes() {
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
-                        HttpStatusCode.NotFound, notFound("Application not found.", call.request.path()),
+                        HttpStatusCode.NotFound,
+                        notFound("Application not found.", call.request.path()),
                     )
                     "conflict" -> return@put call.respondProblem(
-                        HttpStatusCode.Conflict, conflict("An application with this name already exists.", call.request.path()),
+                        HttpStatusCode.Conflict,
+                        conflict("An application with this name already exists.", call.request.path()),
                     )
                     else -> call.respond(HttpStatusCode.OK, (updated as ApplicationSettingEntity).toResponse())
                 }
@@ -128,7 +143,8 @@ fun Route.applicationSettingsRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@delete call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
 
                 val deleted = transaction {
@@ -137,9 +153,12 @@ fun Route.applicationSettingsRoutes() {
                     true
                 }
 
-                if (!deleted) return@delete call.respondProblem(
-                    HttpStatusCode.NotFound, notFound("Application not found.", call.request.path()),
-                )
+                if (!deleted) {
+                    return@delete call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("Application not found.", call.request.path()),
+                    )
+                }
 
                 call.respond(HttpStatusCode.NoContent)
             }
@@ -148,7 +167,8 @@ fun Route.applicationSettingsRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@post call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
                 val body = runCatching { call.receive<RotateSecretRequest>() }.getOrElse { RotateSecretRequest() }
 
@@ -161,9 +181,12 @@ fun Route.applicationSettingsRoutes() {
                     true
                 }
 
-                if (!found) return@post call.respondProblem(
-                    HttpStatusCode.NotFound, notFound("Application not found.", call.request.path()),
-                )
+                if (!found) {
+                    return@post call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("Application not found.", call.request.path()),
+                    )
+                }
 
                 call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
             }
