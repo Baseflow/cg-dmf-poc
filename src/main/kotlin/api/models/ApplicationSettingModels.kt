@@ -17,6 +17,7 @@ data class ApplicationSettingResponse(
 data class CreateApplicationSettingRequest(
     val name: String,
     val clientId: String,
+    /** Null or omit to create an application without a client secret. */
     val clientSecret: String? = null,
 )
 
