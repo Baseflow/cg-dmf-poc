@@ -18,15 +18,15 @@ import io.ktor.server.routing.routing
  * Provides internal management endpoints (not part of the public Documenten API).
  *
  * Endpoints:
- * - /admin/application-settings — manage application credential configurations
  * - /admin/storage-repositories — manage blob storage repositories
  * - /admin/oidc-providers — manage OIDC provider configurations
+ * - /admin/application-settings — manage application credential configurations
  */
 fun Route.adminRoutes() {
     route("/admin") {
-        applicationSettingsRoutes()
         blobStorageRepositoryRoutes()
         oidcProvidersRoutes()
+        applicationSettingsRoutes()
     }
 }
 

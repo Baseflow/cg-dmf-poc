@@ -171,9 +171,11 @@ fun Route.applicationSettingsRoutes() {
     }
 }
 
+private val secureRandom = SecureRandom()
+
 private fun generateSecret(): String {
     val bytes = ByteArray(32)
-    SecureRandom().nextBytes(bytes)
+    secureRandom.nextBytes(bytes)
     return bytes.joinToString("") { "%02x".format(it) }
 }
 
