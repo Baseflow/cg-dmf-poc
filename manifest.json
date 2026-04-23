@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24839280068",
+    "runNumber": "375",
+    "branch": "feature/CGDMF-113",
+    "date": "2026-04-23T14:01:03Z",
+    "path": "integration/24839280068/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24838467939",
     "runNumber": "374",
     "branch": "CGDMF-52-trefwoorden",
