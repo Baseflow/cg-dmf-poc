@@ -5,7 +5,6 @@ package com.baseflow.api.admin.routes
 import com.baseflow.api.routes.TestBase
 import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.ApplicationSettingEntity
-import com.baseflow.entities.ApplicationSettingTable
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -139,6 +138,19 @@ class ApplicationSettingsRoutesTest : TestBase("application_settings") {
             header(HttpHeaders.Authorization, "Bearer test")
             contentType(ContentType.Application.Json)
             setBody("""{"name":"My App","clientId":""}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `POST returns 400 when body is missing required fields`() = testApplication {
+        application { setup() }
+
+        val response = client.post("/admin/application-settings") {
+            header(HttpHeaders.Authorization, "Bearer test")
+            contentType(ContentType.Application.Json)
+            setBody("""{"clientId":"my-client"}""")
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
