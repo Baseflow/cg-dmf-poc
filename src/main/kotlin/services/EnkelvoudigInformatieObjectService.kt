@@ -98,7 +98,8 @@ class EnkelvoudigInformatieObjectService(
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
         }
-        request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.forEach { woord ->
+        val trefwoorden = request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
+        trefwoorden.forEach { woord ->
             EIOVersionTrefwoordEntity.new {
                 versionId = eioVersion
                 trefwoordId = TrefwoordEntity.findOrCreate(woord)
@@ -116,7 +117,7 @@ class EnkelvoudigInformatieObjectService(
             bestandsDelen = emptyList()
         }
 
-        val response = record.toResponse(eioVersion, bestandsDelen)
+        val response = record.toResponse(eioVersion, bestandsDelen, trefwoorden)
         auditContext.captureNew(response, eioVersion)
         response as EnkelvoudigInformatieObjectResponse
     }
@@ -160,7 +161,12 @@ class EnkelvoudigInformatieObjectService(
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
             val bestandsDelen = bestandsDeelService.getBestandsDelen(version)
-            record.toResponse(version, bestandsDelen)
+            val trefwoorden = (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                .select(Trefwoorden.woord)
+                .where { EIOVersionTrefwoorden.versionId eq version.id }
+                .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                .map { it[Trefwoorden.woord] }
+            record.toResponse(version, bestandsDelen, trefwoorden)
         } ?: return null
 
         return resolveExpand(response, expand)
@@ -251,9 +257,11 @@ class EnkelvoudigInformatieObjectService(
                 if (versionIds.isEmpty()) {
                     emptyMap()
                 } else {
-                    EIOVersionTrefwoordEntity
-                        .find { EIOVersionTrefwoorden.versionId inList versionIds }
-                        .groupBy({ it.versionId.id.value }, { it.trefwoordId.woord })
+                    (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                        .select(EIOVersionTrefwoorden.versionId, Trefwoorden.woord)
+                        .where { EIOVersionTrefwoorden.versionId inList versionIds }
+                        .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                        .groupBy({ it[EIOVersionTrefwoorden.versionId].value }, { it[Trefwoorden.woord] })
                 }
 
             // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
@@ -393,14 +401,17 @@ class EnkelvoudigInformatieObjectService(
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
             }
 
-            val trefwoordenToStore = when {
+            val trefwoordenToStore: List<String> = when {
                 partial && request.trefwoorden.isNullOrEmpty() ->
-                    EIOVersionTrefwoordEntity.find { EIOVersionTrefwoorden.versionId eq latestVersion!!.id }
-                        .map { it.trefwoordId.woord }
+                    (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                        .select(Trefwoorden.woord)
+                        .where { EIOVersionTrefwoorden.versionId eq latestVersion!!.id }
+                        .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                        .map { it[Trefwoorden.woord] }
 
-                else -> request.trefwoorden ?: emptyList()
+                else -> (request.trefwoorden ?: emptyList()).map { it.lowercase(Locale.ROOT) }.distinct().sorted()
             }
-            trefwoordenToStore.map { it.lowercase(Locale.ROOT) }.distinct().forEach { woord ->
+            trefwoordenToStore.forEach { woord ->
                 EIOVersionTrefwoordEntity.new {
                     versionId = version
                     trefwoordId = TrefwoordEntity.findOrCreate(woord)
@@ -426,7 +437,7 @@ class EnkelvoudigInformatieObjectService(
                 bestandsDelen = bestandsDeelService.getBestandsDelen(version)
             }
 
-            val response = record.toResponse(version, bestandsDelen)
+            val response = record.toResponse(version, bestandsDelen, trefwoordenToStore)
             auditContext.captureNew(response, version)
             response
         }
@@ -522,9 +533,11 @@ class EnkelvoudigInformatieObjectService(
             integriteit = integriteit,
             informatieobjecttype = version.informatieobject_type,
             trefwoorden = trefwoorden
-                ?: EIOVersionTrefwoordEntity
-                    .find { EIOVersionTrefwoorden.versionId eq version.id }
-                    .map { it.trefwoordId.woord },
+                ?: (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                    .select(Trefwoorden.woord)
+                    .where { EIOVersionTrefwoorden.versionId eq version.id }
+                    .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                    .map { it[Trefwoorden.woord] },
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = this.lockToken != null,
             versie = version.versie,
@@ -652,11 +665,20 @@ class EnkelvoudigInformatieObjectService(
 
     /**
      * All provided trefwoorden must be linked to the version via EIOVersionTrefwoorden + Trefwoorden.
-     * Implemented as one EXISTS subquery per word, ANDed together.
+     * Implemented as a single correlated EXISTS with GROUP BY / HAVING COUNT = N, regardless of list size.
      */
-    private fun trefwoordenContainsAll(words: List<String>): Op<Boolean> = words
-        .map { word -> trefwoordExists(word) }
-        .reduce { acc, op -> acc and op }
+    private fun trefwoordenContainsAll(words: List<String>): Op<Boolean> {
+        val lower = words.map { it.lowercase(Locale.ROOT) }
+        return (EIOVersionTrefwoorden innerJoin Trefwoorden)
+            .select(EIOVersionTrefwoorden.versionId)
+            .where {
+                (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
+                    (Trefwoorden.woord inList lower)
+            }
+            .groupBy(EIOVersionTrefwoorden.versionId)
+            .having { Trefwoorden.woord.countDistinct() eq lower.size.toLong() }
+            .let { subQuery -> exists(subQuery) }
+    }
 
     /**
      * At least one of the provided trefwoorden must be linked to the version.
@@ -667,17 +689,7 @@ class EnkelvoudigInformatieObjectService(
         .select(EIOVersionTrefwoorden.versionId)
         .where {
             (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
-                (Trefwoorden.woord inList words.map { it.lowercase() })
-        }
-        .let { subQuery -> exists(subQuery) }
-
-    /** Correlated EXISTS: checks that a specific trefwoord is linked to the current EIOVersion. */
-    private fun trefwoordExists(word: String): Op<Boolean> = EIOVersionTrefwoorden
-        .innerJoin(Trefwoorden)
-        .select(EIOVersionTrefwoorden.versionId)
-        .where {
-            (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
-                (Trefwoorden.woord eq word.lowercase())
+                (Trefwoorden.woord inList words.map { it.lowercase(Locale.ROOT) })
         }
         .let { subQuery -> exists(subQuery) }
 
