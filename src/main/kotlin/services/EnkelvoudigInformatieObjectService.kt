@@ -98,7 +98,7 @@ class EnkelvoudigInformatieObjectService(
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
         }
-        request.trefwoorden?.forEach { woord ->
+        request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.forEach { woord ->
             EIOVersionTrefwoordEntity.new {
                 versionId = eioVersion
                 trefwoordId = TrefwoordEntity.findOrCreate(woord)
@@ -247,6 +247,14 @@ class EnkelvoudigInformatieObjectService(
             val pageRows = query.limit(pageSize).offset(offset).toList()
             val versionIds = pageRows.map { EIOVersionEntity.wrapRow(it).id.value }
             val bestandsDelenByVersion = bestandsDeelService.getBestandsDelenForVersions(versionIds)
+            val trefwoordenByVersion =
+                if (versionIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    EIOVersionTrefwoordEntity
+                        .find { EIOVersionTrefwoorden.versionId inList versionIds }
+                        .groupBy({ it.versionId.id.value }, { it.trefwoordId.woord })
+                }
 
             // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
             // Each row already contains exactly one record + its latest version due to the subquery filter.
@@ -254,7 +262,8 @@ class EnkelvoudigInformatieObjectService(
                 val record = EIORecordEntity.wrapRow(row)
                 val version = EIOVersionEntity.wrapRow(row)
                 val bestandsdelen = bestandsDelenByVersion[version.id.value] ?: emptyList()
-                record.toResponse(version, bestandsdelen)
+                val trefwoorden = trefwoordenByVersion[version.id.value] ?: emptyList()
+                record.toResponse(version, bestandsdelen, trefwoorden)
             }
 
             results to totalCount
@@ -304,7 +313,6 @@ class EnkelvoudigInformatieObjectService(
             }
 
             val uploadResultaat =
-
                 getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
             val bestandsFormaat =
                 mergeNullable(
@@ -392,7 +400,7 @@ class EnkelvoudigInformatieObjectService(
 
                 else -> request.trefwoorden ?: emptyList()
             }
-            trefwoordenToStore.forEach { woord ->
+            trefwoordenToStore.map { it.lowercase(Locale.ROOT) }.distinct().forEach { woord ->
                 EIOVersionTrefwoordEntity.new {
                     versionId = version
                     trefwoordId = TrefwoordEntity.findOrCreate(woord)
@@ -449,6 +457,7 @@ class EnkelvoudigInformatieObjectService(
     private fun EIORecordEntity.toResponse(
         version: EIOVersionEntity?,
         bestandsdelen: List<BestandsDeelResponse> = emptyList(),
+        trefwoorden: List<String>? = null,
     ): EnkelvoudigInformatieObjectResponse? {
         if (version == null) return null
 
@@ -512,9 +521,10 @@ class EnkelvoudigInformatieObjectService(
             ondertekening = ondertekening,
             integriteit = integriteit,
             informatieobjecttype = version.informatieobject_type,
-            trefwoorden = EIOVersionTrefwoordEntity
-                .find { EIOVersionTrefwoorden.versionId eq version.id }
-                .map { it.trefwoordId.woord },
+            trefwoorden = trefwoorden
+                ?: EIOVersionTrefwoordEntity
+                    .find { EIOVersionTrefwoorden.versionId eq version.id }
+                    .map { it.trefwoordId.woord },
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = this.lockToken != null,
             versie = version.versie,

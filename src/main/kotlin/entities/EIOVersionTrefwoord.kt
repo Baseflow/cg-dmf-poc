@@ -8,6 +8,8 @@ import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -22,9 +24,14 @@ class TrefwoordEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     companion object : UUIDEntityClass<TrefwoordEntity>(Trefwoorden) {
         /** Find an existing trefwoord by its lowercase value, or create a new one. */
         fun findOrCreate(woord: String): TrefwoordEntity {
-            val lower = woord.lowercase()
+            val lower = woord.lowercase(Locale.ROOT)
             return find { Trefwoorden.woord.eq(lower) }.firstOrNull()
-                ?: new { this.woord = lower }
+                ?: try {
+                    new { this.woord = lower }
+                } catch (_: ExposedSQLException) {
+                    // Concurrent insert hit the unique constraint; re-select the now-existing row
+                    find { Trefwoorden.woord.eq(lower) }.first()
+                }
         }
     }
 
@@ -39,6 +46,12 @@ object EIOVersionTrefwoorden : UUIDTable("eio_version_trefwoorden") {
         reference("version_id", EIOVersions, onDelete = ReferenceOption.CASCADE)
     val trefwoordId =
         reference("trefwoord_id", Trefwoorden, onDelete = ReferenceOption.CASCADE)
+
+    init {
+        index(isUnique = true, versionId, trefwoordId)
+        index(isUnique = false, versionId)
+        index(isUnique = false, trefwoordId)
+    }
 }
 
 class EIOVersionTrefwoordEntity(id: EntityID<UUID>) : UUIDEntity(id) {

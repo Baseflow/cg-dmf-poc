@@ -33,3 +33,21 @@ ALTER TABLE eio_version_trefwoorden
 ALTER TABLE eio_version_trefwoorden
     DROP COLUMN trefwoord;
 
+-- Remove duplicate (version_id, trefwoord_id) pairs that may result from lowercasing
+DELETE FROM eio_version_trefwoorden a
+    USING eio_version_trefwoorden b
+WHERE a.ctid < b.ctid
+  AND a.version_id = b.version_id
+  AND a.trefwoord_id = b.trefwoord_id;
+
+-- Enforce uniqueness and add indexes for efficient joins/filtering
+ALTER TABLE eio_version_trefwoorden
+    ADD CONSTRAINT eio_version_trefwoorden_version_id_trefwoord_id_unique
+        UNIQUE (version_id, trefwoord_id);
+
+CREATE INDEX eio_version_trefwoorden_version_id
+    ON eio_version_trefwoorden (version_id);
+
+CREATE INDEX eio_version_trefwoorden_trefwoord_id
+    ON eio_version_trefwoorden (trefwoord_id);
+

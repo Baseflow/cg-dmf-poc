@@ -101,9 +101,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     description = "Een binnen een gegeven context ondubbelzinnige referentie naar het INFORMATIEOBJECT."
                 }
                 query("trefwoorden") {
-                    description =
-                        "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door comma's. " +
-                        "Geeft alle INFORMATIEOBJECTen terug die álle opgegeven trefwoorden bevatten."
+                    description = "Een lijst van trefwoorden gescheiden door comma's."
                 }
                 query("expand") { description = "Sluit de gespecifieerde gerelateerde resources in het antwoord in." }
                 query("page") { description = "Een pagina binnen de gepagineerde set resultaten." }
@@ -143,8 +141,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 }
                 query("trefwoorden__overlap") {
                     description =
-                        "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door comma's. " +
-                        "Geeft alle INFORMATIEOBJECTen terug die ten minste één van de opgegeven trefwoorden hebben."
+                        "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door komma's, " +
+                        "geeft alle EnkelvoudigInformatieObjecten terug die ten minste een van de opgegeven trefwoorden hebben."
                 }
                 query("locked") {
                     description = "**EXPERIMENTEEL** Filter op vergrendeld (true) of ontgrendeld (false)."
