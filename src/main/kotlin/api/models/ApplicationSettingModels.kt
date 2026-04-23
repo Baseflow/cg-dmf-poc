@@ -10,6 +10,7 @@ data class ApplicationSettingResponse(
     val name: String,
     val clientId: String,
     val hasSecret: Boolean,
+    val clientSecret: String?,
     val updatedAt: String,
 )
 

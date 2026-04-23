@@ -58,6 +58,7 @@ interface ApplicationSetting {
   name: string
   clientId: string
   hasSecret: boolean
+  clientSecret: string | null
   updatedAt: string
 }
 
@@ -539,7 +540,9 @@ function AppForm({
 }) {
   const [name, setName] = React.useState(app?.name ?? "")
   const [clientId, setClientId] = React.useState(app?.clientId ?? "")
-  const [clientSecret, setClientSecret] = React.useState("")
+  const [clientSecret, setClientSecret] = React.useState(
+    app?.clientSecret ?? ""
+  )
   const [showSecret, setShowSecret] = React.useState(false)
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

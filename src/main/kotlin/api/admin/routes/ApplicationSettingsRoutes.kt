@@ -184,5 +184,6 @@ private fun ApplicationSettingEntity.toResponse() = ApplicationSettingResponse(
     name = name,
     clientId = clientId,
     hasSecret = clientSecretEncrypted != null,
+    clientSecret = clientSecretEncrypted?.let { SecretCrypto.decrypt(it) },
     updatedAt = updatedAt.toString(),
 )
