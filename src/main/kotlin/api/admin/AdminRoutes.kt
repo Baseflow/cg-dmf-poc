@@ -3,7 +3,9 @@
 package com.baseflow.api.admin
 
 import com.baseflow.api.admin.routes.blobStorageRepositoryRoutes
+import com.baseflow.api.admin.routes.dmfSettingsRoutes
 import com.baseflow.api.admin.routes.oidcProvidersRoutes
+import com.baseflow.api.admin.routes.zgwApiSettingsRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
@@ -22,6 +24,8 @@ import io.ktor.server.routing.routing
  */
 fun Route.adminRoutes() {
     route("/admin") {
+        dmfSettingsRoutes()
+        zgwApiSettingsRoutes()
         blobStorageRepositoryRoutes()
         oidcProvidersRoutes()
     }

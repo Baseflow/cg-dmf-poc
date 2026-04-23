@@ -1,17 +1,22 @@
-import { FileTextIcon, LucideFileExclamationPoint } from "lucide-react"
 import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
+import { FanIcon, FileTextIcon, LucideFileExclamationPoint } from "lucide-react"
 
 export const navigation = {
   settings: [
     {
-      name: "OIDC instellingen",
+      name: "OIDC",
       url: "/instellingen/oidc",
       icon: <OidcIcon />,
     },
     {
-      name: "ZGW Api instellingen",
+      name: "ZGW API",
       url: "/instellingen/zgw-api",
-      icon: <OidcIcon />,
+      icon: <FanIcon />,
+    },
+    {
+      name: "DMF",
+      url: "/instellingen/dmf",
+      icon: <FileTextIcon />,
     },
   ],
   documents: [
