@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24838467939",
+    "runNumber": "374",
+    "branch": "CGDMF-52-trefwoorden",
+    "date": "2026-04-23T13:44:39Z",
+    "path": "integration/24838467939/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24838057160",
     "runNumber": "373",
     "branch": "CGDMF-115-remove-oio-by-eio",
