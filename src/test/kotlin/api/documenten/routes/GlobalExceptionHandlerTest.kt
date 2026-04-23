@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.models.ResourceSegments
@@ -9,6 +9,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -73,7 +74,7 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
             routing {
                 get("/test-serialization-error") {
                     // Trigger a serialization error manually to simulate a failure during response serialization
-                    throw kotlinx.serialization.SerializationException("Mock response serialization error")
+                    throw SerializationException("Mock response serialization error")
                 }
             }
         }
