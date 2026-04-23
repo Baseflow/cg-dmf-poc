@@ -400,7 +400,12 @@ export default function Page() {
       </AlertDialog>
 
       {/* Rotate secret dialog */}
-      <Dialog open={rotateTarget !== null} onOpenChange={closeRotate}>
+      <Dialog
+        open={rotateTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) closeRotate()
+        }}
+      >
         <DialogContent>
           {rotatePhase === "success" ? (
             <>
