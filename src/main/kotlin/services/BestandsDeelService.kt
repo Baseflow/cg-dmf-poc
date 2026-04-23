@@ -126,7 +126,7 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
                     versie = version.versie,
                     bestandsDeelId = id,
                 )
-                storageService.uploadFile(storageKey, content)
+                storageService.uploadFile(storageKey, content, version.bestandsRepository.takeUnless { it.isBlank() })
             }
 
             part.voltooid = true

@@ -20,10 +20,15 @@ import org.koin.dsl.module
 import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 import kotlin.test.BeforeTest
 
 open class TestBase(dbNamePrefix: String) {
     val dbName = "${dbNamePrefix}_${UUID.randomUUID()}"
+
+    /** Exposed so individual tests can assert on upload/download calls. */
+    lateinit var mockStorageService: StorageService
+        protected set
 
     fun connectDb() {
         Database.connect(
@@ -45,8 +50,9 @@ open class TestBase(dbNamePrefix: String) {
     fun Application.setup() {
         connectDb()
 
-        val mockStorageService = mockk<StorageService>(relaxed = true).also {
-            every { it.uploadFile(any(), any()) } returns Unit
+        mockStorageService = mockk<StorageService>(relaxed = true).also {
+            every { it.uploadFile(any(), any(), anyNullable()) } returns Unit
+            every { it.downloadFileTo(any(), any(), anyNullable()) } returns CompletableFuture.completedFuture(null)
         }
 
         install(Koin) {

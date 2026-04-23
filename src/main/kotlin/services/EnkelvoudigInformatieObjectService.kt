@@ -97,6 +97,7 @@ class EnkelvoudigInformatieObjectService(
             ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
+            bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
         }
         val trefwoorden = request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
         trefwoorden.forEach { woord ->
@@ -127,29 +128,35 @@ class EnkelvoudigInformatieObjectService(
         record: EIORecordEntity,
         version: Int = 1,
         locatie: String = "",
+        repoName: String? = null,
     ): UploadResultaat {
         var loc = locatie
         if (!request.isFileEmpty()) {
             loc = "${record.id.value}/$version/${request.bestandsnaam}"
         }
-        return storeFileVersion(request, loc)
+        return storeFileVersion(request, loc, repoName)
     }
 
-    private fun storeFileVersion(request: EnkelvoudigInformatieObjectRequest, bestandsLocatie: String): UploadResultaat {
+    private fun storeFileVersion(
+        request: EnkelvoudigInformatieObjectRequest,
+        bestandsLocatie: String,
+        repoName: String? = null,
+    ): UploadResultaat {
         if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
             val content = Base64.decode(request.inhoud)
             val fileType = StorageService.detectFileFormat(content)
             require(bestandsLocatie.isNotBlank()) {
                 "bestandsLocatie must not be blank when inhoud is present"
             }
-            storageService.uploadFile(bestandsLocatie, content)
+            storageService.uploadFile(bestandsLocatie, content, repoName)
             return UploadResultaat(
                 bestandsFormaat = fileType,
                 bestandsOmvang = content.size.toLong(),
                 bestandsLocatie = bestandsLocatie,
+                bestandsRepository = repoName,
             )
         }
-        return UploadResultaat(bestandsLocatie = bestandsLocatie)
+        return UploadResultaat(bestandsLocatie = bestandsLocatie, bestandsRepository = repoName)
     }
 
     /**
@@ -285,8 +292,8 @@ class EnkelvoudigInformatieObjectService(
      * TODO this needs cleanup, should not expose this logic
      * Streams a file by its stored name. Use when you already know the object key.
      */
-    fun streamByBestandsnaam(bestandsnaam: String, output: OutputStream) {
-        storageService.downloadFileTo(bestandsnaam, output).join()
+    fun streamByBestandsnaam(bestandsnaam: String, output: OutputStream, repoName: String? = null) {
+        storageService.downloadFileTo(bestandsnaam, output, repoName.takeUnless { it.isNullOrBlank() }).join()
     }
 
     /**
@@ -349,6 +356,8 @@ class EnkelvoudigInformatieObjectService(
                 titel = mergeString(partial, request.titel, latestVersion?.titel)
                 auteur = mergeString(partial, request.auteur, latestVersion?.auteur)
                 bestandsLocatie = uploadResultaat.bestandsLocatie
+                bestandsRepository = uploadResultaat.bestandsRepository
+                    ?: latestVersion?.bestandsRepository.orEmpty()
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 link = mergeOptionalString(partial, request.link, latestVersion?.link)
                 creatieDatum = mergeNullable(partial, request.creatiedatum, latestVersion?.creatieDatum)
@@ -718,7 +727,8 @@ class EnkelvoudigInformatieObjectService(
     }
 
     fun delete(id: UUID): DeleteResult {
-        val fileLocations = mutableListOf<String>()
+        // Maps repository name (empty string = default) to the object keys stored there.
+        val fileLocationsByRepo = mutableMapOf<String, MutableList<String>>()
         val result = transaction {
             val lockedRecordExists =
                 EIORecords
@@ -748,20 +758,24 @@ class EnkelvoudigInformatieObjectService(
                 return@transaction DeleteResult.Locked
             }
             auditContext.captureOld(record.toResponse(latestVersion), latestVersion)
-            fileLocations.addAll(record.versions.map { it.bestandsLocatie }.filter { it.isNotBlank() }.distinct())
 
-            // Also collect the storage keys for any bestandsdelen (chunked-upload parts)
-            // that were uploaded to blob storage under {recordId}/{versie}/parts/{bestandsDeelId}.
             record.versions.forEach { version ->
+                val repo = version.bestandsRepository
+                if (version.bestandsLocatie.isNotBlank()) {
+                    fileLocationsByRepo.getOrPut(repo) { mutableListOf() }.add(version.bestandsLocatie)
+                }
+
+                // Also collect storage keys for completed bestandsdelen chunks.
                 BestandsDeelEntity
                     .find { BestandsDelen.versionId eq version.id }
                     .filter { it.voltooid }
-                    .mapTo(fileLocations) {
-                        bestandsDeelStorageKey(
+                    .forEach {
+                        val key = bestandsDeelStorageKey(
                             recordId = record.id.value,
                             versie = version.versie,
                             bestandsDeelId = it.id.value,
                         )
+                        fileLocationsByRepo.getOrPut(repo) { mutableListOf() }.add(key)
                     }
             }
 
@@ -769,7 +783,9 @@ class EnkelvoudigInformatieObjectService(
             DeleteResult.Success
         }
         if (result == DeleteResult.Success) {
-            storageService.deleteFiles(fileLocations)
+            fileLocationsByRepo.forEach { (repo, keys) ->
+                storageService.deleteFiles(keys, repoName = repo.takeUnless { it.isBlank() })
+            }
             auditTrailService.removeAuditTrailsForResource(id)
         }
         return result

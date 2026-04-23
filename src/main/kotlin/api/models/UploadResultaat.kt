@@ -2,4 +2,9 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.models
 
-internal class UploadResultaat(val bestandsLocatie: String, val bestandsFormaat: String? = null, val bestandsOmvang: Long? = null)
+internal class UploadResultaat(
+    val bestandsLocatie: String,
+    val bestandsFormaat: String? = null,
+    val bestandsOmvang: Long? = null,
+    val bestandsRepository: String? = null,
+)
