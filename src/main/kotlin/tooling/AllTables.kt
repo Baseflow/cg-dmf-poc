@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.tooling
 
+import com.baseflow.entities.ApplicationSettingTable
 import com.baseflow.entities.AuditTrails
 import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.BlobStorageRepositories
@@ -24,6 +25,7 @@ object AllTables {
         BestandsDelen,
         BlobStorageRepositories,
         OidcProviderTable,
+        ApplicationSettingTable,
     )
 
     fun createMissing() {
