@@ -30,10 +30,6 @@ object EIOVersions : UUIDTable("eio_versions") {
     val integriteitsDatum = datetime("integriteits_datum").nullable()
     val beginRegistratie = datetime("begin_registratie").defaultExpression(CurrentDateTime)
     val verschijningsVorm = text("verschijnings_vorm").default("")
-    val trefwoorden = registerColumn<List<String>>(
-        "trefwoorden",
-        ArrayColumnType(VarCharColumnType(100)),
-    ).default(emptyList())
 
     val bronOrganisatie = varchar("bron_organisatie", 9).default("")
     val creatieDatum = date("creatie_datum").defaultExpression(CurrentDate)
@@ -81,7 +77,6 @@ class EIOVersionEntity(id: EntityID<UUID>) :
     var integriteitsDatum by EIOVersions.integriteitsDatum
     var beginRegistratie by EIOVersions.beginRegistratie
     var verschijningsVorm by EIOVersions.verschijningsVorm
-    var trefwoorden by EIOVersions.trefwoorden
     override var bronOrganisatie by EIOVersions.bronOrganisatie
     var creatieDatum by EIOVersions.creatieDatum
     var titel by EIOVersions.titel

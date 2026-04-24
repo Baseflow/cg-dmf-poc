@@ -19,7 +19,6 @@ import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
@@ -88,7 +87,6 @@ class EnkelvoudigInformatieObjectService(
             integriteitWaarde = request.integriteit?.waarde.orEmpty()
             integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
             verschijningsVorm = request.verschijningsvorm.orEmpty()
-            trefwoorden = request.trefwoorden ?: emptyList()
             vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
                 ?: ioType?.vertrouwelijkheidaanduiding
                 ?: ""
@@ -99,6 +97,13 @@ class EnkelvoudigInformatieObjectService(
             ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
+        }
+        val trefwoorden = request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
+        trefwoorden.forEach { woord ->
+            EIOVersionTrefwoordEntity.new {
+                versionId = eioVersion
+                trefwoordId = TrefwoordEntity.findOrCreate(woord)
+            }
         }
 
         // When the declared file size exceeds the trigger threshold, lock the record and
@@ -112,7 +117,7 @@ class EnkelvoudigInformatieObjectService(
             bestandsDelen = emptyList()
         }
 
-        val response = record.toResponse(eioVersion, bestandsDelen)
+        val response = record.toResponse(eioVersion, bestandsDelen, trefwoorden)
         auditContext.captureNew(response, eioVersion)
         response as EnkelvoudigInformatieObjectResponse
     }
@@ -156,7 +161,12 @@ class EnkelvoudigInformatieObjectService(
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
             val bestandsDelen = bestandsDeelService.getBestandsDelen(version)
-            record.toResponse(version, bestandsDelen)
+            val trefwoorden = (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                .select(Trefwoorden.woord)
+                .where { EIOVersionTrefwoorden.versionId eq version.id }
+                .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                .map { it[Trefwoorden.woord] }
+            record.toResponse(version, bestandsDelen, trefwoorden)
         } ?: return null
 
         return resolveExpand(response, expand)
@@ -243,6 +253,16 @@ class EnkelvoudigInformatieObjectService(
             val pageRows = query.limit(pageSize).offset(offset).toList()
             val versionIds = pageRows.map { EIOVersionEntity.wrapRow(it).id.value }
             val bestandsDelenByVersion = bestandsDeelService.getBestandsDelenForVersions(versionIds)
+            val trefwoordenByVersion =
+                if (versionIds.isEmpty()) {
+                    emptyMap()
+                } else {
+                    (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                        .select(EIOVersionTrefwoorden.versionId, Trefwoorden.woord)
+                        .where { EIOVersionTrefwoorden.versionId inList versionIds }
+                        .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                        .groupBy({ it[EIOVersionTrefwoorden.versionId].value }, { it[Trefwoorden.woord] })
+                }
 
             // Read each ResultRow directly to avoid wrapRows producing duplicate entity instances.
             // Each row already contains exactly one record + its latest version due to the subquery filter.
@@ -250,7 +270,8 @@ class EnkelvoudigInformatieObjectService(
                 val record = EIORecordEntity.wrapRow(row)
                 val version = EIOVersionEntity.wrapRow(row)
                 val bestandsdelen = bestandsDelenByVersion[version.id.value] ?: emptyList()
-                record.toResponse(version, bestandsdelen)
+                val trefwoorden = trefwoordenByVersion[version.id.value] ?: emptyList()
+                record.toResponse(version, bestandsdelen, trefwoorden)
             }
 
             results to totalCount
@@ -354,8 +375,6 @@ class EnkelvoudigInformatieObjectService(
                 )
                 verschijningsVorm =
                     mergeOptionalString(partial, request.verschijningsvorm, latestVersion?.verschijningsVorm)
-                trefwoorden = mergeNullable(partial, request.trefwoorden?.ifEmpty { null }, latestVersion?.trefwoorden)
-                    ?: emptyList()
                 vertrouwlijkheidsAanduiding = mergeOptionalString(
                     partial,
                     request.vertrouwelijkheidaanduiding?.toString(),
@@ -382,6 +401,23 @@ class EnkelvoudigInformatieObjectService(
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
             }
 
+            val trefwoordenToStore: List<String> = when {
+                partial && request.trefwoorden.isNullOrEmpty() ->
+                    (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                        .select(Trefwoorden.woord)
+                        .where { EIOVersionTrefwoorden.versionId eq latestVersion!!.id }
+                        .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                        .map { it[Trefwoorden.woord] }
+
+                else -> (request.trefwoorden ?: emptyList()).map { it.lowercase(Locale.ROOT) }.distinct().sorted()
+            }
+            trefwoordenToStore.forEach { woord ->
+                EIOVersionTrefwoordEntity.new {
+                    versionId = version
+                    trefwoordId = TrefwoordEntity.findOrCreate(woord)
+                }
+            }
+
             // Determine effective bestandsomvang for the new version and create bestandsdelen if needed.
             val effectiveOmvang = version.bestandsomvang
             val bestandsDelen: List<BestandsDeelResponse>
@@ -401,7 +437,7 @@ class EnkelvoudigInformatieObjectService(
                 bestandsDelen = bestandsDeelService.getBestandsDelen(version)
             }
 
-            val response = record.toResponse(version, bestandsDelen)
+            val response = record.toResponse(version, bestandsDelen, trefwoordenToStore)
             auditContext.captureNew(response, version)
             response
         }
@@ -432,6 +468,7 @@ class EnkelvoudigInformatieObjectService(
     private fun EIORecordEntity.toResponse(
         version: EIOVersionEntity?,
         bestandsdelen: List<BestandsDeelResponse> = emptyList(),
+        trefwoorden: List<String>? = null,
     ): EnkelvoudigInformatieObjectResponse? {
         if (version == null) return null
 
@@ -495,7 +532,12 @@ class EnkelvoudigInformatieObjectService(
             ondertekening = ondertekening,
             integriteit = integriteit,
             informatieobjecttype = version.informatieobject_type,
-            trefwoorden = version.trefwoorden,
+            trefwoorden = trefwoorden
+                ?: (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                    .select(Trefwoorden.woord)
+                    .where { EIOVersionTrefwoorden.versionId eq version.id }
+                    .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                    .map { it[Trefwoorden.woord] },
             inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
             locked = this.lockToken != null,
             versie = version.versie,
@@ -550,11 +592,11 @@ class EnkelvoudigInformatieObjectService(
         }
 
         if (filters.trefwoorden.isNotEmpty()) {
-            op = op and arrayContainsAll(EIOVersions.trefwoorden, filters.trefwoorden)
+            op = op and trefwoordenContainsAll(filters.trefwoorden)
         }
 
         if (filters.trefwoordenOverlap.isNotEmpty()) {
-            op = op and arrayOverlap(EIOVersions.trefwoorden, filters.trefwoordenOverlap)
+            op = op and trefwoordenOverlap(filters.trefwoordenOverlap)
         }
 
         if (filters.uuids.isNotEmpty()) {
@@ -621,72 +663,35 @@ class EnkelvoudigInformatieObjectService(
         return op
     }
 
-    private fun isH2(): Boolean = TransactionManager.current().db.vendor.contains("h2", ignoreCase = true)
-
-    /** column @> ARRAY[v1, v2, ...] — all values must be present (PostgreSQL) or ARRAY_CONTAINS per value (H2) */
-    private fun arrayContainsAll(column: Column<List<String>>, values: List<String>): Op<Boolean> {
-        if (isH2()) {
-            // H2: ARRAY_CONTAINS(column, value) for each value, combined with AND
-            return values
-                .map { value -> arrayContainsH2(column, value) }
-                .reduce { acc, op -> acc and op }
-        }
-        return object : Op<Boolean>() {
-            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-                val arrayType = column.columnType as ArrayColumnType<String, *>
-                val elementType = arrayType.delegate
-                queryBuilder {
-                    append(column)
-                    append(" @> ARRAY[")
-                    values.forEachIndexed { index, value ->
-                        if (index > 0) append(", ")
-                        append(QueryParameter(value, elementType))
-                    }
-                    append("]")
-                }
+    /**
+     * All provided trefwoorden must be linked to the version via EIOVersionTrefwoorden + Trefwoorden.
+     * Implemented as a single correlated EXISTS with GROUP BY / HAVING COUNT = N, regardless of list size.
+     */
+    private fun trefwoordenContainsAll(words: List<String>): Op<Boolean> {
+        val lower = words.map { it.lowercase(Locale.ROOT) }
+        return (EIOVersionTrefwoorden innerJoin Trefwoorden)
+            .select(EIOVersionTrefwoorden.versionId)
+            .where {
+                (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
+                    (Trefwoorden.woord inList lower)
             }
-        }
+            .groupBy(EIOVersionTrefwoorden.versionId)
+            .having { Trefwoorden.woord.countDistinct() eq lower.size.toLong() }
+            .let { subQuery -> exists(subQuery) }
     }
 
-    /** column && ARRAY[v1, v2, ...] — at least one value must be present (PostgreSQL) or ARRAY_CONTAINS per value OR-ed (H2) */
-    private fun arrayOverlap(column: Column<List<String>>, values: List<String>): Op<Boolean> {
-        if (isH2()) {
-            // H2: ARRAY_CONTAINS(column, value) for each value, combined with OR
-            return values
-                .map { value -> arrayContainsH2(column, value) }
-                .reduce { acc, op -> acc or op }
+    /**
+     * At least one of the provided trefwoorden must be linked to the version.
+     * Implemented as a single EXISTS subquery with an IN clause.
+     */
+    private fun trefwoordenOverlap(words: List<String>): Op<Boolean> = EIOVersionTrefwoorden
+        .innerJoin(Trefwoorden)
+        .select(EIOVersionTrefwoorden.versionId)
+        .where {
+            (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
+                (Trefwoorden.woord inList words.map { it.lowercase(Locale.ROOT) })
         }
-        return object : Op<Boolean>() {
-            override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-                val arrayType = column.columnType as ArrayColumnType<String, *>
-                val elementType = arrayType.delegate
-                queryBuilder {
-                    append(column)
-                    append(" && ARRAY[")
-                    values.forEachIndexed { index, value ->
-                        if (index > 0) append(", ")
-                        append(QueryParameter(value, elementType))
-                    }
-                    append("]")
-                }
-            }
-        }
-    }
-
-    /** H2-compatible: ARRAY_CONTAINS(column, value) */
-    private fun arrayContainsH2(column: Column<List<String>>, value: String): Op<Boolean> = object : Op<Boolean>() {
-        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-            val arrayType = column.columnType as ArrayColumnType<String, *>
-            val elementType = arrayType.delegate
-            queryBuilder {
-                append("ARRAY_CONTAINS(")
-                append(column)
-                append(", ")
-                append(QueryParameter(value, elementType))
-                append(")")
-            }
-        }
-    }
+        .let { subQuery -> exists(subQuery) }
 
     fun lock(id: UUID): LockResult? {
         return transaction {

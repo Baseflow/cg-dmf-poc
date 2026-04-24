@@ -13,6 +13,8 @@ import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionTrefwoorden
+import com.baseflow.entities.Trefwoorden
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.EIOOrdering
 import com.baseflow.services.models.LockResult
@@ -28,6 +30,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import kotlin.io.encoding.Base64
@@ -785,6 +788,32 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals(5L, totalCount3)
         assertEquals(1, page3Results.size)
         assertEquals("Esdoorn", page3Results[0].titel)
+    }
+
+    @Test
+    fun `trefwoorden with the same lowercase value share one trefwoord record`() = runBlocking {
+        // Two documents with the same trefwoord, one in uppercase and one in lowercase
+        val req1 = generateTestDocument().copy(trefwoorden = listOf("Ruimte", "duurzaam"))
+        val req2 = generateTestDocument().copy(trefwoorden = listOf("RUIMTE", "DUURZAAM"))
+
+        val resp1 = service.create(req1)
+        val resp2 = service.create(req2)
+
+        // Both responses should have lowercase trefwoorden (order not guaranteed)
+        assertEquals(listOf("duurzaam", "ruimte"), resp1.trefwoorden.sorted())
+        assertEquals(listOf("duurzaam", "ruimte"), resp2.trefwoorden.sorted())
+
+        // The trefwoorden table should only have 2 unique records (not 4)
+        val trefwoordCount = transaction {
+            Trefwoorden.selectAll().count()
+        }
+        assertEquals(2L, trefwoordCount, "Expected 2 unique trefwoord records, shared across both documents")
+
+        // The join table should have 4 rows (2 per document)
+        val joinCount = transaction {
+            EIOVersionTrefwoorden.selectAll().count()
+        }
+        assertEquals(4L, joinCount, "Expected 4 rows in the join table (2 trefwoorden × 2 documents)")
     }
 
     @Test

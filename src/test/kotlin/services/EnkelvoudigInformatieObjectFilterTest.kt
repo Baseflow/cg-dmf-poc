@@ -338,9 +338,9 @@ class EnkelvoudigInformatieObjectFilterTest {
         assertEquals("In bereik", results.single().titel)
     }
 
-    // -------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------
     // trefwoorden (array contains all — alle opgegeven trefwoorden moeten aanwezig zijn)
-    // -------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------
 
     @Test
     fun `filter op trefwoorden geeft documenten terug die alle opgegeven trefwoorden bevatten`() = runBlocking {
@@ -382,9 +382,9 @@ class EnkelvoudigInformatieObjectFilterTest {
         assertEquals(2L, count)
     }
 
-    // -------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------
     // trefwoorden__overlap (array overlap — ten minste één trefwoord moet aanwezig zijn)
-    // -------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------
 
     @Test
     fun `filter op trefwoorden__overlap geeft documenten terug met ten minste één overeenkomend trefwoord`() = runBlocking {
