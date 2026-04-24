@@ -45,17 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initialized.current) return
     initialized.current = true
 
-    // Skip init if the config placeholders haven't been filled in yet
-    const isConfigured =
-      KEYCLOAK_URL !== "https://YOUR_KEYCLOAK_URL" &&
-      KEYCLOAK_REALM !== "YOUR_REALM" &&
-      KEYCLOAK_CLIENT_ID !== "YOUR_CLIENT_ID"
-
-    if (!isConfigured) {
-      setIsLoading(false)
-      return
-    }
-
     keycloak
       .init({
         onLoad: "check-sso",
@@ -66,12 +55,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthenticated(auth)
         if (auth && keycloak.tokenParsed) {
           const parsed = keycloak.tokenParsed
-          const givenName = typeof parsed?.given_name === "string" ? parsed.given_name : ""
-          const familyName = typeof parsed?.family_name === "string" ? parsed.family_name : ""
+          const givenName =
+            typeof parsed?.given_name === "string" ? parsed.given_name : ""
+          const familyName =
+            typeof parsed?.family_name === "string" ? parsed.family_name : ""
           setUser({
-            name: typeof parsed?.name === "string" ? parsed.name : (parsed?.preferred_username ?? ""),
+            name:
+              typeof parsed?.name === "string"
+                ? parsed.name
+                : (parsed?.preferred_username ?? ""),
             email: typeof parsed?.email === "string" ? parsed.email : "",
-            username: typeof parsed?.preferred_username === "string" ? parsed.preferred_username : "",
+            username:
+              typeof parsed?.preferred_username === "string"
+                ? parsed.preferred_username
+                : "",
             initials:
               (givenName[0] ?? "").toUpperCase() +
               (familyName[0] ?? "").toUpperCase(),
@@ -85,16 +82,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // This is not a crash — we just show the sign-in button.
         if (
           process.env.NODE_ENV !== "production" &&
-          !String(err).includes("Timeout when waiting for 3rd party check iframe message")
+          !String(err).includes(
+            "Timeout when waiting for 3rd party check iframe message"
+          )
         ) {
           console.error("[AuthProvider] keycloak.init failed:", err)
         }
         setIsLoading(false)
       })
-
-    return () => {
-      initialized.current = false
-    }
   }, [keycloak])
 
   return (

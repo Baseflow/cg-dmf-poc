@@ -219,6 +219,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    environment("CLIENT_SECRET_ENCRYPTION_KEY", "test-encryption-key-for-unit-tests")
 }
 
 tasks.jar {

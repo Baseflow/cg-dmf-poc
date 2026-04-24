@@ -1,10 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +55,7 @@ export function NavUser() {
           <SidebarMenuButton
             size="lg"
             onClick={() => keycloak.login()}
-            tooltip="Sign in"
+            tooltip="Log in"
           >
             <Avatar className="h-8 w-8 rounded-lg">
               <AvatarFallback className="rounded-lg bg-muted">
@@ -66,9 +63,9 @@ export function NavUser() {
               </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Sign in</span>
+              <span className="truncate font-medium">Log in</span>
               <span className="truncate text-xs text-muted-foreground">
-                Click to log in
+                Klik hier om in te loggen
               </span>
             </div>
             <LogInIcon className="ml-auto size-4 text-muted-foreground" />
