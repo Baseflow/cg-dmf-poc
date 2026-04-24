@@ -1,28 +1,36 @@
+import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 import {
   DatabaseIcon,
+  FanIcon,
   FileTextIcon,
+  KeyIcon,
   LucideFileExclamationPoint,
 } from "lucide-react"
-import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 
 export const navigation = {
   settings: [
     {
-      name: "OIDC instellingen",
+      name: "OIDC",
       url: "/instellingen/oidc",
       icon: <OidcIcon />,
     },
     {
-      name: "ZGW Api instellingen",
+      name: "ZGW API",
       url: "/instellingen/zgw-api",
-      icon: <OidcIcon />,
+      icon: <FanIcon />,
+    },
+    {
+      name: "DMF",
+      url: "/instellingen/dmf",
+      icon: <FileTextIcon />,
     },
     {
       name: "Repositories",
       url: "/instellingen/repositories",
       icon: <DatabaseIcon />,
     },
-      name: "Applicatie instellingen",
+    {
+      name: "Applicaties",
       url: "/instellingen/applicatie-instellingen",
       icon: <KeyIcon />,
     },

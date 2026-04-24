@@ -17,6 +17,7 @@ export function SiteHeader() {
     if (pathname.startsWith("/instellingen/oidc")) return "OIDC instellingen"
     if (pathname.startsWith("/instellingen/zgw-api"))
       return "ZGW API instellingen"
+    if (pathname.startsWith("/instellingen/dmf")) return "DMF instellingen"
     if (pathname.startsWith("/instellingen")) return "Instellingen"
 
     return `Onbekende pagina (${pathname})`

@@ -2,16 +2,16 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.admin.routes
 
-import com.baseflow.api.models.CreateOidcProviderRequest
-import com.baseflow.api.models.OidcProviderResponse
-import com.baseflow.api.models.UpdateOidcProviderRequest
+import com.baseflow.api.models.CreateZgwApiSettingRequest
+import com.baseflow.api.models.UpdateZgwApiSettingRequest
+import com.baseflow.api.models.ZgwApiSettingResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.config.SecretCrypto
-import com.baseflow.entities.OidcProviderEntity
-import com.baseflow.entities.OidcProviderTable
+import com.baseflow.entities.ZgwApiSettingsEntity
+import com.baseflow.entities.ZgwApiSettingsTable
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -24,49 +24,49 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
 /**
- * Admin routes for managing OIDC provider configurations.
+ * Admin routes for managing ZGW API connection profiles.
  *
- * Mounted at `/admin/oidc-providers`.
+ * Mounted at `/admin/zgw-api-settings`.
  *
  * Endpoints:
- * - `GET    /`      — list all providers
- * - `POST   /`      — create a provider
- * - `PUT    /{id}`  — update a provider
- * - `DELETE /{id}`  — delete a provider
+ * - `GET    /`      — list all profiles
+ * - `POST   /`      — create a profile
+ * - `PUT    /{id}`  — update a profile
+ * - `DELETE /{id}`  — delete a profile
  */
-fun Route.oidcProvidersRoutes() {
-    route("/oidc-providers") {
+fun Route.zgwApiSettingsRoutes() {
+    route("/zgw-api-settings") {
         get {
-            val providers = transaction {
-                OidcProviderEntity.all().map { it.toResponse() }
+            val all = transaction {
+                ZgwApiSettingsEntity.all().map { it.toResponse() }
             }
-            call.respond(providers)
+            call.respond(all)
         }
 
         post {
-            val body = runCatching { call.receive<CreateOidcProviderRequest>() }.getOrNull()
+            val body = runCatching { call.receive<CreateZgwApiSettingRequest>() }.getOrNull()
                 ?: return@post call.respondProblem(
                     HttpStatusCode.BadRequest,
-                    badRequest("Request body must be JSON with 'name', 'issuer', and 'clientId' fields.", call.request.path()),
+                    badRequest("Request body must be JSON with 'name', 'baseUrl', and 'clientId' fields.", call.request.path()),
                 )
             if (body.name.isBlank()) return@post call.respondProblem(
                 HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
             )
-            if (body.issuer.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'issuer' must not be blank.", call.request.path()),
+            if (body.baseUrl.isBlank()) return@post call.respondProblem(
+                HttpStatusCode.BadRequest, badRequest("'baseUrl' must not be blank.", call.request.path()),
             )
             if (body.clientId.isBlank()) return@post call.respondProblem(
                 HttpStatusCode.BadRequest, badRequest("'clientId' must not be blank.", call.request.path()),
             )
 
             val created = transaction {
-                val exists = OidcProviderEntity.find {
-                    OidcProviderTable.name eq body.name
+                val exists = ZgwApiSettingsEntity.find {
+                    ZgwApiSettingsTable.name eq body.name
                 }.firstOrNull()
                 if (exists != null) return@transaction null
-                OidcProviderEntity.new {
+                ZgwApiSettingsEntity.new {
                     name = body.name
-                    issuer = body.issuer
+                    baseUrl = body.baseUrl
                     clientId = body.clientId
                     clientSecretEncrypted = body.clientSecret
                         ?.takeIf { it.isNotBlank() }
@@ -75,7 +75,7 @@ fun Route.oidcProvidersRoutes() {
                 }
             } ?: return@post call.respondProblem(
                 HttpStatusCode.Conflict,
-                conflict("A provider with this name already exists.", call.request.path()),
+                conflict("A profile with this name already exists.", call.request.path()),
             )
             call.respond(HttpStatusCode.Created, created.toResponse())
         }
@@ -87,29 +87,29 @@ fun Route.oidcProvidersRoutes() {
                     ?: return@put call.respondProblem(
                         HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
                     )
-                val body = runCatching { call.receive<UpdateOidcProviderRequest>() }.getOrNull()
+                val body = runCatching { call.receive<UpdateZgwApiSettingRequest>() }.getOrNull()
                     ?: return@put call.respondProblem(
                         HttpStatusCode.BadRequest,
-                        badRequest("Request body must be JSON with 'name', 'issuer', and 'clientId' fields.", call.request.path()),
+                        badRequest("Request body must be JSON with 'name', 'baseUrl', and 'clientId' fields.", call.request.path()),
                     )
                 if (body.name.isBlank()) return@put call.respondProblem(
                     HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
                 )
-                if (body.issuer.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'issuer' must not be blank.", call.request.path()),
+                if (body.baseUrl.isBlank()) return@put call.respondProblem(
+                    HttpStatusCode.BadRequest, badRequest("'baseUrl' must not be blank.", call.request.path()),
                 )
                 if (body.clientId.isBlank()) return@put call.respondProblem(
                     HttpStatusCode.BadRequest, badRequest("'clientId' must not be blank.", call.request.path()),
                 )
 
                 val updated = transaction {
-                    val existing = OidcProviderEntity.findById(id)
+                    val existing = ZgwApiSettingsEntity.findById(id)
                         ?: return@transaction null
                     val nameConflict = existing.name != body.name &&
-                        OidcProviderEntity.find { OidcProviderTable.name eq body.name }.firstOrNull() != null
+                        ZgwApiSettingsEntity.find { ZgwApiSettingsTable.name eq body.name }.firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
                     existing.name = body.name
-                    existing.issuer = body.issuer
+                    existing.baseUrl = body.baseUrl
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
                         existing.clientSecretEncrypted = SecretCrypto.encrypt(body.clientSecret)
@@ -119,12 +119,12 @@ fun Route.oidcProvidersRoutes() {
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
-                        HttpStatusCode.NotFound, notFound("OIDC provider not found.", call.request.path()),
+                        HttpStatusCode.NotFound, notFound("ZGW API profile not found.", call.request.path()),
                     )
                     "conflict" -> return@put call.respondProblem(
-                        HttpStatusCode.Conflict, conflict("A provider with this name already exists.", call.request.path()),
+                        HttpStatusCode.Conflict, conflict("A profile with this name already exists.", call.request.path()),
                     )
-                    else -> call.respond(HttpStatusCode.OK, (updated as OidcProviderEntity).toResponse())
+                    else -> call.respond(HttpStatusCode.OK, (updated as ZgwApiSettingsEntity).toResponse())
                 }
             }
 
@@ -136,13 +136,13 @@ fun Route.oidcProvidersRoutes() {
                     )
 
                 val deleted = transaction {
-                    val existing = OidcProviderEntity.findById(id) ?: return@transaction false
+                    val existing = ZgwApiSettingsEntity.findById(id) ?: return@transaction false
                     existing.delete()
                     true
                 }
 
                 if (!deleted) return@delete call.respondProblem(
-                    HttpStatusCode.NotFound, notFound("OIDC provider not found.", call.request.path()),
+                    HttpStatusCode.NotFound, notFound("ZGW API profile not found.", call.request.path()),
                 )
 
                 call.respond(HttpStatusCode.NoContent)
@@ -151,10 +151,10 @@ fun Route.oidcProvidersRoutes() {
     }
 }
 
-private fun OidcProviderEntity.toResponse() = OidcProviderResponse(
+private fun ZgwApiSettingsEntity.toResponse() = ZgwApiSettingResponse(
     id = id.value.toString(),
     name = name,
-    issuer = issuer,
+    baseUrl = baseUrl,
     clientId = clientId,
     hasSecret = clientSecretEncrypted != null,
     clientSecret = clientSecretEncrypted?.let { SecretCrypto.decrypt(it) },
