@@ -37,6 +37,31 @@ lib/                          # Utilities, config, and non-React helpers
 types/                        # Global TypeScript type declarations
 ```
 
+## Shell helpers
+
+Use this pattern for silent commands with status output:
+
+```bash
+# !/bin/bash
+run_silent() {
+    local description="$1"
+    local command="$2"
+    local tmp_file=$(mktemp)
+
+    if eval "$command" > "$tmp_file" 2>&1; then
+        printf "  ✓ %s\n" "$description"
+        rm -f "$tmp_file"
+        return 0
+    else
+        local exit_code=$?
+        printf "  ✗ %s\n" "$description"
+        cat "$tmp_file"
+        rm -f "$tmp_file"
+        return $exit_code
+    fi
+}
+```
+
 ## Workflow
 
 - **Never auto-commit** — do not run `git commit` unless explicitly asked.
