@@ -181,12 +181,43 @@ val copySwaggerUiIndex by tasks.registering(Copy::class) {
     into(swaggerUiDest)
 }
 
+// Copy the WOPI-specific Swagger UI index.html into its own directory so it
+// can point at /wopi/docs/wopi-api.json instead of the Documenten API spec.
+val swaggerUiWopiSrc = layout.projectDirectory.dir("frontend/node_modules/swagger-ui-dist")
+val swaggerUiWopiDest = layout.buildDirectory.dir("generated/swagger-ui/static/swagger-ui-wopi")
+
+val copySwaggerUiWopi by tasks.registering(Copy::class) {
+    group = "swagger-ui-wopi"
+    description = "Copy swagger-ui-dist assets into the build resources directory"
+    from(swaggerUiWopiSrc) {
+        include(
+            "swagger-ui-bundle.js",
+            "swagger-ui-bundle.js.map",
+            "swagger-ui.css",
+            "swagger-ui.css.map",
+            "favicon-16x16.png",
+            "favicon-32x32.png",
+            "oauth2-redirect.html",
+            "oauth2-redirect.js",
+        )
+    }
+    into(swaggerUiWopiDest)
+}
+
+val copySwaggerUiWopiIndex by tasks.registering(Copy::class) {
+    group = "swagger-ui-wopi"
+    description = "Copy the WOPI Swagger UI index.html into the build resources directory"
+    from(layout.projectDirectory.file("frontend/swagger-ui-wopi/index.html"))
+    into(swaggerUiWopiDest)
+}
+
 // Add the generated directory as an extra resource source so it ends up on the classpath
 sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/swagger-ui"))
 
 tasks.named("processResources") {
-    dependsOn(copySwaggerUi, copySwaggerUiIndex)
+    dependsOn(copySwaggerUi, copySwaggerUiIndex, copySwaggerUiWopi, copySwaggerUiWopiIndex)
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Static OpenAPI specs ───────────────────────────────────────────────────
