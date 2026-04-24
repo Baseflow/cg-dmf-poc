@@ -5,8 +5,6 @@ package com.baseflow.api.wopi.routes
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
-import com.baseflow.api.models.PaginatedResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
@@ -22,7 +20,6 @@ import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
-import io.ktor.server.routing.openapi.hide
 import io.ktor.utils.io.ExperimentalKtorApi
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
