@@ -6,7 +6,7 @@ plugins {
     kotlin("plugin.serialization") version "2.3.20"
     id("com.github.ben-manes.versions") version "0.53.0"
     // KSP plugin for annotation processing (required by koin-annotations)
-    id("com.google.devtools.ksp") version "2.3.6"
+    id("com.google.devtools.ksp") version "2.3.7"
     // Code formatting with Spotless and ktlint
     id("com.diffplug.spotless") version "8.4.0"
 }
