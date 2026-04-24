@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24893946931",
+    "runNumber": "395",
+    "branch": "dependabot/github_actions/actions/github-script-9",
+    "date": "2026-04-24T14:16:56Z",
+    "path": "integration/24893946931/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24893967359",
     "runNumber": "398",
     "branch": "dependabot/gradle/aws-sdk-ae9446ea0d",
