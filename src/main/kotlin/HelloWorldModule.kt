@@ -18,7 +18,7 @@ fun Application.helloWorldModule() {
          *   - 200 Prints 'hello world'.
          */
         get("/") {
-            call.respondText("hello world")
+            call.respondText("Hello World from the Common Ground DMF!")
         }
             .hide()
     }

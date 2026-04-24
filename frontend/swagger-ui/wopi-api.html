@@ -4,17 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WOPI Integration API — Swagger UI</title>
-  <link rel="stylesheet" href="/wopi/docs/swaggerui/swagger-ui.css" />
-  <link rel="icon" type="image/png" href="/wopi/docs/swaggerui/favicon-32x32.png" sizes="32x32" />
-  <link rel="icon" type="image/png" href="/wopi/docs/swaggerui/favicon-16x16.png" sizes="16x16" />
+  <link rel="stylesheet" href="swagger-ui.css" />
+  <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+  <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
 </head>
 <body>
 <div id="swagger-ui"></div>
-<script src="/wopi/docs/swaggerui/swagger-ui-bundle.js"></script>
+<script src="swagger-ui-bundle.js"></script>
 <script>
   window.onload = function () {
     window.ui = SwaggerUIBundle({
-      url: "/wopi/docs/wopi-api.json",
+      url: "/docs/openapi/wopi.json",
       dom_id: "#swagger-ui",
       deepLinking: true,
       presets: [

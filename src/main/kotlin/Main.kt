@@ -7,7 +7,6 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
 import com.baseflow.api.infra.healthModule
 import com.baseflow.api.infra.openApiModule
-import com.baseflow.api.infra.wopiOpenApiModule
 import com.baseflow.api.wopi.wopiApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
@@ -98,7 +97,6 @@ fun Application.module() {
     adminModule() // Admin API at /admin
     wopiApiModule() // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
-    wopiOpenApiModule() // WOPI-specific OpenAPI spec at /docs/wopi/openapi.json and Swagger UI at /docs/wopi
 }
 
 /**
