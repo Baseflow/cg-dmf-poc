@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24894040707",
+    "runNumber": "400",
+    "branch": "dependabot/gradle/plugin.serialization-2.3.21",
+    "date": "2026-04-24T14:18:03Z",
+    "path": "integration/24894040707/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24893982845",
     "runNumber": "399",
     "branch": "dependabot/gradle/com.auth0-jwks-rsa-0.23.1",
