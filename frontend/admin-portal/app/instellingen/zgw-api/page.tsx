@@ -55,7 +55,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
 
@@ -70,7 +70,7 @@ interface ZgwApiSetting {
 }
 
 export default function Page() {
-  const { keycloak } = useAuth()
+  const { data: session } = useSession()
   const isMobile = useIsMobile()
 
   const [loading, setLoading] = React.useState(true)
@@ -102,9 +102,8 @@ export default function Page() {
   React.useEffect(() => {
     async function fetchSettings() {
       try {
-        await keycloak.updateToken(30)
         const res = await fetch(`${API_URL}/admin/zgw-api-settings`, {
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+          headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data: ZgwApiSetting[] = await res.json()
@@ -116,7 +115,7 @@ export default function Page() {
       }
     }
     fetchSettings()
-  }, [keycloak])
+  }, [session])
 
   const openAdd = React.useCallback(() => {
     setEditingSetting(null)
@@ -139,7 +138,6 @@ export default function Page() {
     setDrawerSaving(true)
     setDrawerError(null)
     try {
-      await keycloak.updateToken(30)
       const body: Record<string, string> = {
         name: data.name,
         baseUrl: data.baseUrl,
@@ -153,7 +151,7 @@ export default function Page() {
           {
             method: "PUT",
             headers: {
-              Authorization: `Bearer ${keycloak.token ?? ""}`,
+              Authorization: `Bearer ${session?.accessToken ?? ""}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
@@ -168,7 +166,7 @@ export default function Page() {
         const res = await fetch(`${API_URL}/admin/zgw-api-settings`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${keycloak.token ?? ""}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
@@ -190,12 +188,11 @@ export default function Page() {
     setDeleteInProgress(true)
     setDeleteError(null)
     try {
-      await keycloak.updateToken(30)
       const res = await fetch(
         `${API_URL}/admin/zgw-api-settings/${deleteTarget.id}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+          headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -217,12 +214,11 @@ export default function Page() {
     setDeleteInProgress(true)
     setDeleteError(null)
     try {
-      await keycloak.updateToken(30)
       await Promise.all(
         selectedIds.map((id) =>
           fetch(`${API_URL}/admin/zgw-api-settings/${id}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+            headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
           })
         )
       )

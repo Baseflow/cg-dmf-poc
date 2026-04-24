@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/select"
 import Loading from "./loading"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
 
@@ -69,7 +69,7 @@ interface Repository {
 }
 
 export default function Page() {
-  const { keycloak } = useAuth()
+  const { data: session } = useSession()
   const isMobile = useIsMobile()
 
   const [loading, setLoading] = React.useState(true)
@@ -90,9 +90,8 @@ export default function Page() {
   React.useEffect(() => {
     async function fetchRepositories() {
       try {
-        await keycloak.updateToken(30)
         const res = await fetch(`${API_URL}/admin/storage-repositories`, {
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+          headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data: Repository[] = await res.json()
@@ -104,7 +103,7 @@ export default function Page() {
       }
     }
     fetchRepositories()
-  }, [keycloak])
+  }, [session])
 
   function openAdd() {
     setEditingRepo(null)
@@ -132,7 +131,6 @@ export default function Page() {
     setDrawerSaving(true)
     setDrawerError(null)
     try {
-      await keycloak.updateToken(30)
       const body: Record<string, unknown> = {
         name: data.name,
         storageType: data.storageType,
@@ -156,7 +154,7 @@ export default function Page() {
           {
             method: "PUT",
             headers: {
-              Authorization: `Bearer ${keycloak.token ?? ""}`,
+              Authorization: `Bearer ${session?.accessToken ?? ""}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
@@ -176,7 +174,7 @@ export default function Page() {
         const res = await fetch(`${API_URL}/admin/storage-repositories`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${keycloak.token ?? ""}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
@@ -198,12 +196,11 @@ export default function Page() {
     setDeleteInProgress(true)
     setDeleteError(null)
     try {
-      await keycloak.updateToken(30)
       const res = await fetch(
         `${API_URL}/admin/storage-repositories/${deleteTarget.id}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+          headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)

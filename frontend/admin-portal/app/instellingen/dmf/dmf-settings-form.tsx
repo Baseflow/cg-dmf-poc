@@ -5,8 +5,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAuth } from "@/contexts/auth-context"
 import { Check } from "lucide-react"
+import { useSession } from "next-auth/react"
 import { useEffect, useState, useTransition } from "react"
 import { z } from "zod"
 import { fetchDmfSettings, saveDmfSettings } from "./actions"
@@ -27,7 +27,7 @@ type SettingsFields = z.infer<typeof settingsSchema>
 type FieldErrors = Partial<Record<keyof SettingsFields, string>>
 
 export default function DmfSettingsForm() {
-  const { keycloak } = useAuth()
+  const { data: session } = useSession()
 
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -44,7 +44,7 @@ export default function DmfSettingsForm() {
     let cancelled = false
     async function load() {
       try {
-        const data = await fetchDmfSettings(keycloak)
+        const data = await fetchDmfSettings(session?.accessToken ?? "")
         if (cancelled) return
         setTriggerSize(String(data.triggerSize))
         setChunkSize(String(data.chunkSize))
@@ -59,7 +59,7 @@ export default function DmfSettingsForm() {
     return () => {
       cancelled = true
     }
-  }, [keycloak])
+  }, [session])
 
   useEffect(() => {
     if (!saved) return
@@ -92,7 +92,7 @@ export default function DmfSettingsForm() {
     const data = result.data
     startTransition(async () => {
       try {
-        await saveDmfSettings(keycloak, data)
+        await saveDmfSettings(session?.accessToken ?? "", data)
         setSaved(true)
       } catch {
         setSaveError("Opslaan mislukt. Probeer het opnieuw.")
@@ -122,7 +122,7 @@ export default function DmfSettingsForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Field htmlFor="trigger-size" error={fieldErrors.triggerSize}>
+      <Field>
         <Input
           id="trigger-size"
           type="number"
@@ -137,11 +137,7 @@ export default function DmfSettingsForm() {
         />
       </Field>
 
-      <Field
-        label="Chunk grootte (in bytes)"
-        htmlFor="chunk-size"
-        error={fieldErrors.chunkSize}
-      >
+      <Field>
         <Input
           id="chunk-size"
           type="number"
@@ -174,6 +170,7 @@ export default function DmfSettingsForm() {
         </label>
       </div>
 
+      {fetchError && <p className="text-sm text-destructive">{fetchError}</p>}
       {saveError && <p className="text-sm text-destructive">{saveError}</p>}
       {saved && (
         <p className="text-sm text-primary">Instellingen opgeslagen.</p>

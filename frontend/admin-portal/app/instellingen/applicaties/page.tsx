@@ -36,8 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import Loading from "./loading"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Check,
@@ -67,7 +66,7 @@ interface ApplicationSetting {
 type RotatePhase = "idle" | "loading" | "success" | "error"
 
 export default function Page() {
-  const { keycloak } = useAuth()
+  const { data: session } = useSession()
   const isMobile = useIsMobile()
 
   const [loading, setLoading] = React.useState(true)
@@ -98,9 +97,8 @@ export default function Page() {
   React.useEffect(() => {
     async function fetchApplications() {
       try {
-        await keycloak.updateToken(30)
         const res = await fetch(`${API_URL}/admin/application-settings`, {
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+          headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data: ApplicationSetting[] = await res.json()
@@ -112,7 +110,7 @@ export default function Page() {
       }
     }
     fetchApplications()
-  }, [keycloak])
+  }, [session])
 
   function openAdd() {
     setEditing(null)
@@ -149,7 +147,6 @@ export default function Page() {
     setDrawerSaving(true)
     setDrawerError(null)
     try {
-      await keycloak.updateToken(30)
       const body: Record<string, string> = {
         name: data.name,
         clientId: data.clientId,
@@ -162,7 +159,7 @@ export default function Page() {
           {
             method: "PUT",
             headers: {
-              Authorization: `Bearer ${keycloak.token ?? ""}`,
+              Authorization: `Bearer ${session?.accessToken ?? ""}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
@@ -177,7 +174,7 @@ export default function Page() {
         const res = await fetch(`${API_URL}/admin/application-settings`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${keycloak.token ?? ""}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
@@ -199,12 +196,11 @@ export default function Page() {
     setDeleteInProgress(true)
     setDeleteError(null)
     try {
-      await keycloak.updateToken(30)
       const res = await fetch(
         `${API_URL}/admin/application-settings/${deleteTarget.id}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+          headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -222,7 +218,6 @@ export default function Page() {
     setRotatePhase("loading")
     setRotateError(null)
     try {
-      await keycloak.updateToken(30)
       const bodyObj =
         rotateMode === "manual" && rotateNewSecret.trim()
           ? { newSecret: rotateNewSecret.trim() }
@@ -232,7 +227,7 @@ export default function Page() {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${keycloak.token ?? ""}`,
+            Authorization: `Bearer ${session?.accessToken ?? ""}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(bodyObj),
@@ -259,10 +254,6 @@ export default function Page() {
     await navigator.clipboard.writeText(rotatedSecret)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (loading) {
-    return <Loading />
   }
 
   return (

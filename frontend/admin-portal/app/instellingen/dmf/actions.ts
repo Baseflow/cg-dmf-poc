@@ -1,5 +1,3 @@
-import type Keycloak from "keycloak-js"
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
 
 export interface DmfSettings {
@@ -9,11 +7,10 @@ export interface DmfSettings {
 }
 
 export async function fetchDmfSettings(
-  keycloak: Keycloak
+  accessToken: string
 ): Promise<DmfSettings> {
-  await keycloak.updateToken(30)
   const res = await fetch(`${API_URL}/admin/dmf-settings`, {
-    headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!res.ok)
     throw new Error(`Kon de DMF-instellingen niet laden. (HTTP ${res.status})`)
@@ -21,14 +18,13 @@ export async function fetchDmfSettings(
 }
 
 export async function saveDmfSettings(
-  keycloak: Keycloak,
+  accessToken: string,
   data: DmfSettings
 ): Promise<void> {
-  await keycloak.updateToken(30)
   const res = await fetch(`${API_URL}/admin/dmf-settings`, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${keycloak.token ?? ""}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),

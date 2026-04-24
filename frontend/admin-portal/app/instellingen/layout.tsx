@@ -2,23 +2,23 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 
 export default function InstellingenLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { authenticated, isLoading } = useAuth()
+  const { status } = useSession()
   const router = useRouter()
 
   React.useEffect(() => {
-    if (!isLoading && !authenticated) {
+    if (status === "unauthenticated") {
       router.replace("/")
     }
-  }, [isLoading, authenticated, router])
+  }, [status, router])
 
-  if (isLoading || !authenticated) {
+  if (status !== "authenticated") {
     return null
   }
 
