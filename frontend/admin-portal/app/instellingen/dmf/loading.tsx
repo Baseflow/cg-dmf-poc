@@ -13,7 +13,9 @@ export default function Loading() {
   return (
     <div className="flex min-h-svh p-6">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <Skeleton className="h-4 w-64" />
+        <p className="text-sm text-muted-foreground">
+          DMF-systeeminstellingen.
+        </p>
         <div className="flex flex-col gap-4">
           <FormFieldSkeleton />
           <FormFieldSkeleton />
@@ -21,8 +23,8 @@ export default function Loading() {
             <Skeleton className="size-4 rounded" />
             <Skeleton className="h-4 w-40" />
           </div>
+          <Skeleton className="h-8 w-24" />
         </div>
-        <Skeleton className="h-8 w-24" />
       </div>
     </div>
   )

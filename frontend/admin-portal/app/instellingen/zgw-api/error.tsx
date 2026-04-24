@@ -11,7 +11,7 @@ export default function Error({
 }) {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6">
-      <p className="text-muted-foreground text-sm">
+      <p className="text-sm text-muted-foreground">
         {error.message || "Er is een fout opgetreden."}
       </p>
       <Button variant="outline" size="sm" onClick={reset}>
