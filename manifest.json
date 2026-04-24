@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24894104627",
+    "runNumber": "402",
+    "branch": "dependabot/gradle/com.github.ben-manes.versions-0.54.0",
+    "date": "2026-04-24T14:19:36Z",
+    "path": "integration/24894104627/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24894040707",
     "runNumber": "400",
     "branch": "dependabot/gradle/plugin.serialization-2.3.21",
