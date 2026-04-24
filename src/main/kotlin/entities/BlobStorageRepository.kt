@@ -12,7 +12,8 @@ import java.util.UUID
 
 /**
  * Table storing blob storage repository configurations.
- * Secrets (access key, secret key) are stored as SHA-256 hashes.
+ * Secrets (access key, secret key) are stored as SHA-256 hashes for env-var-synced entries
+ * and as encrypted values (via SecretCrypto) for admin-managed entries.
  */
 object BlobStorageRepositories : UUIDTable("blob_storage_repositories") {
     val repoName = varchar("name", 100).uniqueIndex()
@@ -28,6 +29,10 @@ object BlobStorageRepositories : UUIDTable("blob_storage_repositories") {
     val isDefault = bool("is_default").default(false)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
+    val accessKeyEncrypted = text("access_key_encrypted").nullable()
+    val secretKeyEncrypted = text("secret_key_encrypted").nullable()
+    val storageAccountName = varchar("storage_account_name", 255).nullable()
+    val enabled = bool("enabled").default(true)
 }
 
 class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -46,4 +51,8 @@ class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var isDefault by BlobStorageRepositories.isDefault
     var createdAt by BlobStorageRepositories.createdAt
     var updatedAt by BlobStorageRepositories.updatedAt
+    var accessKeyEncrypted by BlobStorageRepositories.accessKeyEncrypted
+    var secretKeyEncrypted by BlobStorageRepositories.secretKeyEncrypted
+    var storageAccountName by BlobStorageRepositories.storageAccountName
+    var enabled by BlobStorageRepositories.enabled
 }

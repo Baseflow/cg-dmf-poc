@@ -1,4 +1,8 @@
-import { FileTextIcon, KeyIcon, LucideFileExclamationPoint } from "lucide-react"
+import {
+  DatabaseIcon,
+  FileTextIcon,
+  LucideFileExclamationPoint,
+} from "lucide-react"
 import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 
 export const navigation = {
@@ -14,6 +18,10 @@ export const navigation = {
       icon: <OidcIcon />,
     },
     {
+      name: "Repositories",
+      url: "/instellingen/repositories",
+      icon: <DatabaseIcon />,
+    },
       name: "Applicatie instellingen",
       url: "/instellingen/applicatie-instellingen",
       icon: <KeyIcon />,
