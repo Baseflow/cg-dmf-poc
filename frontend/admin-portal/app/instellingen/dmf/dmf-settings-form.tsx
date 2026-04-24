@@ -1,21 +1,15 @@
 "use client"
 
-import { useState, useEffect, type FormEvent, type ReactNode } from "react"
-import { z } from "zod"
-import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
-
-interface DmfSettings {
-  triggerSize: number
-  chunkSize: number
-  validationEnabled: boolean
-}
+import { Check } from "lucide-react"
+import { useEffect, useState, useTransition } from "react"
+import { z } from "zod"
+import { fetchDmfSettings, saveDmfSettings } from "./actions"
 
 const settingsSchema = z.object({
   triggerSize: z.coerce
@@ -36,8 +30,8 @@ export default function DmfSettingsForm() {
   const { keycloak } = useAuth()
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -47,24 +41,24 @@ export default function DmfSettingsForm() {
   const [validationEnabled, setValidationEnabled] = useState(false)
 
   useEffect(() => {
-    async function fetchSettings() {
+    let cancelled = false
+    async function load() {
       try {
-        await keycloak.updateToken(30)
-        const res = await fetch(`${API_URL}/admin/dmf-settings`, {
-          headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data: DmfSettings = await res.json()
+        const data = await fetchDmfSettings(keycloak)
+        if (cancelled) return
         setTriggerSize(String(data.triggerSize))
         setChunkSize(String(data.chunkSize))
         setValidationEnabled(data.validationEnabled)
       } catch {
-        setError("Kon de DMF-instellingen niet laden.")
+        if (!cancelled) setFetchError("Kon de DMF-instellingen niet laden.")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetchSettings()
+    load()
+    return () => {
+      cancelled = true
+    }
   }, [keycloak])
 
   useEffect(() => {
@@ -73,7 +67,7 @@ export default function DmfSettingsForm() {
     return () => clearTimeout(timer)
   }, [saved])
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaveError(null)
     setSaved(false)
@@ -95,24 +89,15 @@ export default function DmfSettingsForm() {
       return
     }
 
-    setSaving(true)
-    try {
-      await keycloak.updateToken(30)
-      const res = await fetch(`${API_URL}/admin/dmf-settings`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${keycloak.token ?? ""}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(result.data),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setSaved(true)
-    } catch {
-      setSaveError("Opslaan mislukt. Probeer het opnieuw.")
-    } finally {
-      setSaving(false)
-    }
+    const data = result.data
+    startTransition(async () => {
+      try {
+        await saveDmfSettings(keycloak, data)
+        setSaved(true)
+      } catch {
+        setSaveError("Opslaan mislukt. Probeer het opnieuw.")
+      }
+    })
   }
 
   if (loading) {
@@ -136,100 +121,70 @@ export default function DmfSettingsForm() {
   }
 
   return (
-    <>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Field htmlFor="trigger-size" error={fieldErrors.triggerSize}>
+        <Input
+          id="trigger-size"
+          type="number"
+          min={1}
+          value={triggerSize}
+          onChange={(e) => {
+            setTriggerSize(e.target.value)
+            setSaved(false)
+          }}
+          placeholder="standaard: 4294967296"
+          disabled={isPending}
+        />
+      </Field>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Field
-          label="Trigger grootte (bestandsdelen, in bytes)"
-          htmlFor="trigger-size"
-          error={fieldErrors.triggerSize}
+      <Field
+        label="Chunk grootte (in bytes)"
+        htmlFor="chunk-size"
+        error={fieldErrors.chunkSize}
+      >
+        <Input
+          id="chunk-size"
+          type="number"
+          min={1}
+          value={chunkSize}
+          onChange={(e) => {
+            setChunkSize(e.target.value)
+            setSaved(false)
+          }}
+          placeholder="standaard: 3221225472"
+          disabled={isPending}
+        />
+      </Field>
+
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="validation-enabled"
+          checked={validationEnabled}
+          onCheckedChange={(checked) => {
+            setValidationEnabled(checked === true)
+            setSaved(false)
+          }}
+          disabled={isPending}
+        />
+        <label
+          htmlFor="validation-enabled"
+          className="text-xs leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         >
-          <Input
-            id="trigger-size"
-            type="number"
-            min={1}
-            value={triggerSize}
-            onChange={(e) => {
-              setTriggerSize(e.target.value)
-              setSaved(false)
-            }}
-            placeholder="standaard: 4294967296"
-            disabled={saving}
-          />
-        </Field>
+          Validatie ingeschakeld
+        </label>
+      </div>
 
-        <Field
-          label="Chunk grootte (in bytes)"
-          htmlFor="chunk-size"
-          error={fieldErrors.chunkSize}
-        >
-          <Input
-            id="chunk-size"
-            type="number"
-            min={1}
-            value={chunkSize}
-            onChange={(e) => {
-              setChunkSize(e.target.value)
-              setSaved(false)
-            }}
-            placeholder="standaard: 3221225472"
-            disabled={saving}
-          />
-        </Field>
+      {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+      {saved && (
+        <p className="text-sm text-primary">Instellingen opgeslagen.</p>
+      )}
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="validation-enabled"
-            checked={validationEnabled}
-            onCheckedChange={(checked) => {
-              setValidationEnabled(checked === true)
-              setSaved(false)
-            }}
-            disabled={saving}
-          />
-          <label
-            htmlFor="validation-enabled"
-            className="text-xs leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Validatie ingeschakeld
-          </label>
-        </div>
-
-        {saveError && <p className="text-sm text-destructive">{saveError}</p>}
-        {saved && (
-          <p className="text-sm text-primary">Instellingen opgeslagen.</p>
-        )}
-
-        <div>
-          <Button type="submit" size="sm" disabled={saving}>
-            <Check />
-            {saving ? "Opslaan..." : "Opslaan"}
-          </Button>
-        </div>
-      </form>
-    </>
-  )
-}
-
-function Field({
-  label,
-  htmlFor,
-  error,
-  children,
-}: {
-  label: string
-  htmlFor?: string
-  error?: string
-  children: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-xs font-medium">
-        {label}
-      </label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+      <div>
+        <Button type="submit" size="sm" disabled={isPending}>
+          <Check />
+          {isPending ? "Opslaan..." : "Opslaan"}
+        </Button>
+      </div>
+    </form>
   )
 }
