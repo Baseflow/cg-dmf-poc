@@ -107,37 +107,3 @@ fun Application.buildWopiOpenApiDoc(): OpenApiDoc {
         ),
     )
 }
-
-// private fun wopiSwaggerUiHtml() = """
-//    <!DOCTYPE html>
-//    <html lang="en">
-//    <head>
-//      <meta charset="UTF-8" />
-//      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-//      <title>WOPI Integration API — Swagger UI</title>
-//      <link rel="stylesheet" href="/docs/wopi/swaggerui/swagger-ui.css" />
-//      <link rel="icon" type="image/png" href="/docs/wopi/swaggerui/favicon-32x32.png" sizes="32x32" />
-//      <link rel="icon" type="image/png" href="/docs/wopi/swaggerui/favicon-16x16.png" sizes="16x16" />
-//    </head>
-//    <body>
-//    <div id="swagger-ui"></div>
-//    <script src="/docs/wopi/swaggerui/swagger-ui-bundle.js"></script>
-//    <script>
-//      window.onload = function () {
-//        window.ui = SwaggerUIBundle({
-//          url: "/docs/wopi/wopi-api.json",
-//          dom_id: "#swagger-ui",
-//          deepLinking: true,
-//          presets: [
-//            SwaggerUIBundle.presets.apis,
-//            SwaggerUIBundle.SwaggerUIStandalonePreset,
-//          ],
-//          layout: "BaseLayout",
-//          tryItOutEnabled: true,
-//          persistAuthorization: true,
-//        });
-//      };
-//    </script>
-//    </body>
-//    </html>
-// """.trimIndent()
