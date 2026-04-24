@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { BaseflowAvatar } from "@/components/icons"
 import { NavDocuments } from "@/components/nav-documents"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -14,9 +15,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavSettings } from "./nav-settings"
-import { BaseflowAvatar } from "@/components/icons"
 import { navigation } from "@/lib/navigation"
+import { NavSettings } from "./nav-settings"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -29,9 +29,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <a href="#" className="flex items-center gap-2">
-                <span className="size-5 text-foreground [&>svg]:size-full">
-                  <BaseflowAvatar />
-                </span>
+                <BaseflowAvatar />
                 <span className="text-base font-semibold">Baseflow</span>
               </a>
             </SidebarMenuButton>

@@ -31,7 +31,7 @@ export const navigation = {
     },
     {
       name: "Applicaties",
-      url: "/instellingen/applicatie-instellingen",
+      url: "/instellingen/applicaties",
       icon: <KeyIcon />,
     },
   ],
