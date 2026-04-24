@@ -8,13 +8,9 @@
 - **shadcn/ui** — the only UI component library. Always use it for UI primitives. Use the shadcn MCP tools (`shadcn_*`) to look up components, examples, and usage before building UI.
 - **ESLint + Prettier** — all code must pass linting and formatting. Do not disable rules without a clear reason.
 
-## Code Standards
+## File Conventions
 
-- Follow the latest React and Next.js best practices at all times.
-- Prefer Server Components and server-side data fetching. Avoid unnecessary `"use client"` boundaries.
-- Keep components small, focused, and composable.
-- Use file-based routing conventions from the Next.js App Router.
-- Co-locate related code (components, hooks, utils) near their feature.
+Detailed file and naming conventions are defined in [`agent-docs/file-conventions`](agent-docs/file-conventions). These conventions MUST be followed at all times.
 
 ## File Structure
 
@@ -40,14 +36,6 @@ hooks/                        # Shared custom React hooks
 lib/                          # Utilities, config, and non-React helpers
 types/                        # Global TypeScript type declarations
 ```
-
-### Feature conventions
-
-- **Route = feature folder** under `app/`. Keep feature-specific components co-located inside the route folder.
-- **`page.tsx`** is always a Server Component. Fetch data here; pass it as props to child components.
-- **`actions.ts`** holds all Server Actions for that route (form submissions, mutations).
-- **Client components** (`"use client"`) are only introduced when interactivity is required and live next to the page that uses them.
-- **Shared components** go in `components/` only when used by two or more features.
 
 ## Workflow
 
