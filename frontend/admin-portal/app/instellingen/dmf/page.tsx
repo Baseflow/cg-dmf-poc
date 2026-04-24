@@ -65,7 +65,7 @@ export default function Page() {
       }
     }
     fetchSettings()
-  }, [keycloak, keycloak.token])
+  }, [keycloak])
 
   React.useEffect(() => {
     if (!saved) return
@@ -202,9 +202,7 @@ export default function Page() {
 
           {saveError && <p className="text-sm text-destructive">{saveError}</p>}
           {saved && (
-            <p className="text-sm text-green-600 dark:text-green-400">
-              Instellingen opgeslagen.
-            </p>
+            <p className="text-sm text-primary">Instellingen opgeslagen.</p>
           )}
 
           <div>

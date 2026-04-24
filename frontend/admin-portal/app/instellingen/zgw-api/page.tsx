@@ -8,7 +8,15 @@ import {
   type ColumnDef,
   type RowSelectionState,
 } from "@tanstack/react-table"
-import { Check, Eye, EyeOff, MoreHorizontal, Plus, Trash2, X } from "lucide-react"
+import {
+  Check,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,17 +84,19 @@ export default function Page() {
   const [drawerSaving, setDrawerSaving] = React.useState(false)
   const [drawerError, setDrawerError] = React.useState<string | null>(null)
 
-  const [deleteTarget, setDeleteTarget] =
-    React.useState<ZgwApiSetting | null>(null)
+  const [deleteTarget, setDeleteTarget] = React.useState<ZgwApiSetting | null>(
+    null
+  )
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
   const [deleteInProgress, setDeleteInProgress] = React.useState(false)
+  const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
   const selectedIds = React.useMemo(
     () =>
       Object.entries(rowSelection)
         .filter(([, v]) => v)
         .map(([id]) => id),
-    [rowSelection],
+    [rowSelection]
   )
 
   React.useEffect(() => {
@@ -106,7 +116,7 @@ export default function Page() {
       }
     }
     fetchSettings()
-  }, [keycloak, keycloak.token])
+  }, [keycloak])
 
   const openAdd = React.useCallback(() => {
     setEditingSetting(null)
@@ -147,11 +157,13 @@ export default function Page() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
-          },
+          }
         )
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const updated: ZgwApiSetting = await res.json()
-        setSettings((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+        setSettings((prev) =>
+          prev.map((s) => (s.id === updated.id ? updated : s))
+        )
       } else {
         const res = await fetch(`${API_URL}/admin/zgw-api-settings`, {
           method: "POST",
@@ -176,6 +188,7 @@ export default function Page() {
   async function handleDeleteSingle() {
     if (!deleteTarget) return
     setDeleteInProgress(true)
+    setDeleteError(null)
     try {
       await keycloak.updateToken(30)
       const res = await fetch(
@@ -183,7 +196,7 @@ export default function Page() {
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
-        },
+        }
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setSettings((prev) => prev.filter((s) => s.id !== deleteTarget.id))
@@ -194,8 +207,7 @@ export default function Page() {
       })
       setDeleteTarget(null)
     } catch {
-      setError("Verwijderen mislukt. Probeer het opnieuw.")
-      setDeleteTarget(null)
+      setDeleteError("Verwijderen mislukt. Probeer het opnieuw.")
     } finally {
       setDeleteInProgress(false)
     }
@@ -203,6 +215,7 @@ export default function Page() {
 
   async function handleDeleteBulk() {
     setDeleteInProgress(true)
+    setDeleteError(null)
     try {
       await keycloak.updateToken(30)
       await Promise.all(
@@ -210,15 +223,14 @@ export default function Page() {
           fetch(`${API_URL}/admin/zgw-api-settings/${id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
-          }),
-        ),
+          })
+        )
       )
       setSettings((prev) => prev.filter((s) => !selectedIds.includes(s.id)))
       setRowSelection({})
       setBulkDeleteOpen(false)
     } catch {
-      setError("Verwijderen mislukt. Probeer het opnieuw.")
-      setBulkDeleteOpen(false)
+      setDeleteError("Verwijderen mislukt. Probeer het opnieuw.")
     } finally {
       setDeleteInProgress(false)
     }
@@ -301,7 +313,7 @@ export default function Page() {
         ),
       },
     ],
-    [openDetails],
+    [openDetails]
   )
 
   const table = useReactTable({
@@ -378,7 +390,7 @@ export default function Page() {
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext(),
+                              header.getContext()
                             )}
                       </TableHead>
                     ))}
@@ -395,7 +407,7 @@ export default function Page() {
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext(),
+                          cell.getContext()
                         )}
                       </TableCell>
                     ))}
@@ -429,7 +441,10 @@ export default function Page() {
       <AlertDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
-          if (!open && !deleteInProgress) setDeleteTarget(null)
+          if (!open && !deleteInProgress) {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }
         }}
       >
         <AlertDialogContent>
@@ -440,6 +455,9 @@ export default function Page() {
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteInProgress}>
               Annuleren
@@ -458,7 +476,10 @@ export default function Page() {
       <AlertDialog
         open={bulkDeleteOpen}
         onOpenChange={(open) => {
-          if (!open && !deleteInProgress) setBulkDeleteOpen(false)
+          if (!open && !deleteInProgress) {
+            setBulkDeleteOpen(false)
+            setDeleteError(null)
+          }
         }}
       >
         <AlertDialogContent>
@@ -470,6 +491,9 @@ export default function Page() {
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteInProgress}>
               Annuleren
@@ -512,7 +536,7 @@ function SettingForm({
   const [baseUrl, setBaseUrl] = React.useState(setting?.baseUrl ?? "")
   const [clientId, setClientId] = React.useState(setting?.clientId ?? "")
   const [clientSecret, setClientSecret] = React.useState(
-    setting?.clientSecret ?? "",
+    setting?.clientSecret ?? ""
   )
   const [showSecret, setShowSecret] = React.useState(false)
 

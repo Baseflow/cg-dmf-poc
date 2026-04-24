@@ -85,6 +85,7 @@ export default function Page() {
     null
   )
   const [deleteInProgress, setDeleteInProgress] = React.useState(false)
+  const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     async function fetchRepositories() {
@@ -103,7 +104,7 @@ export default function Page() {
       }
     }
     fetchRepositories()
-  }, [keycloak, keycloak.token])
+  }, [keycloak])
 
   function openAdd() {
     setEditingRepo(null)
@@ -195,6 +196,7 @@ export default function Page() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleteInProgress(true)
+    setDeleteError(null)
     try {
       await keycloak.updateToken(30)
       const res = await fetch(
@@ -208,8 +210,7 @@ export default function Page() {
       setRepositories((prev) => prev.filter((r) => r.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch {
-      setError("Verwijderen mislukt. Probeer het opnieuw.")
-      setDeleteTarget(null)
+      setDeleteError("Verwijderen mislukt. Probeer het opnieuw.")
     } finally {
       setDeleteInProgress(false)
     }
@@ -340,7 +341,10 @@ export default function Page() {
       <AlertDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
-          if (!open && !deleteInProgress) setDeleteTarget(null)
+          if (!open && !deleteInProgress) {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }
         }}
       >
         <AlertDialogContent>
@@ -351,6 +355,9 @@ export default function Page() {
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteInProgress}>
               Annuleren

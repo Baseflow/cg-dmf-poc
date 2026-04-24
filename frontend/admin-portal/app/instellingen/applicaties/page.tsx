@@ -1,17 +1,5 @@
 "use client"
 
-import * as React from "react"
-import {
-  Check,
-  ChevronRight,
-  Copy,
-  Eye,
-  EyeOff,
-  MoreVertical,
-  Plus,
-  RefreshCw,
-  X,
-} from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,9 +35,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
 import { useIsMobile } from "@/hooks/use-mobile"
+import {
+  Check,
+  ChevronRight,
+  Copy,
+  Eye,
+  EyeOff,
+  MoreVertical,
+  Plus,
+  RefreshCw,
+  X,
+} from "lucide-react"
+import * as React from "react"
+import { z } from "zod"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
 
@@ -82,6 +84,7 @@ export default function Page() {
   const [deleteTarget, setDeleteTarget] =
     React.useState<ApplicationSetting | null>(null)
   const [deleteInProgress, setDeleteInProgress] = React.useState(false)
+  const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
   const [rotateTarget, setRotateTarget] =
     React.useState<ApplicationSetting | null>(null)
@@ -109,7 +112,7 @@ export default function Page() {
       }
     }
     fetchApplications()
-  }, [keycloak, keycloak.token])
+  }, [keycloak])
 
   function openAdd() {
     setEditing(null)
@@ -194,6 +197,7 @@ export default function Page() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleteInProgress(true)
+    setDeleteError(null)
     try {
       await keycloak.updateToken(30)
       const res = await fetch(
@@ -207,8 +211,7 @@ export default function Page() {
       setApplications((prev) => prev.filter((a) => a.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch {
-      setError("Verwijderen mislukt. Probeer het opnieuw.")
-      setDeleteTarget(null)
+      setDeleteError("Verwijderen mislukt. Probeer het opnieuw.")
     } finally {
       setDeleteInProgress(false)
     }
@@ -240,7 +243,9 @@ export default function Page() {
       setRotatedSecret(data.secret)
       setApplications((prev) =>
         prev.map((a) =>
-          a.id === rotateTarget.id ? { ...a, hasSecret: true, clientSecret: data.secret } : a
+          a.id === rotateTarget.id
+            ? { ...a, hasSecret: true, clientSecret: data.secret }
+            : a
         )
       )
       setRotatePhase("success")
@@ -374,7 +379,10 @@ export default function Page() {
       <AlertDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => {
-          if (!open && !deleteInProgress) setDeleteTarget(null)
+          if (!open && !deleteInProgress) {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }
         }}
       >
         <AlertDialogContent>
@@ -385,6 +393,9 @@ export default function Page() {
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteInProgress}>
               Annuleren
@@ -449,30 +460,23 @@ export default function Page() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="rotate-mode"
-                      value="auto"
-                      checked={rotateMode === "auto"}
-                      onChange={() => setRotateMode("auto")}
-                      disabled={rotatePhase === "loading"}
-                    />
+                <RadioGroup
+                  value={rotateMode}
+                  onValueChange={(v: string) =>
+                    setRotateMode(v as "auto" | "manual")
+                  }
+                  disabled={rotatePhase === "loading"}
+                  className="gap-2"
+                >
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <RadioGroupItem value="auto" id="rotate-auto" />
                     Auto-genereren
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="rotate-mode"
-                      value="manual"
-                      checked={rotateMode === "manual"}
-                      onChange={() => setRotateMode("manual")}
-                      disabled={rotatePhase === "loading"}
-                    />
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <RadioGroupItem value="manual" id="rotate-manual" />
                     Handmatig invoeren
                   </label>
-                </div>
+                </RadioGroup>
                 {rotateMode === "manual" && (
                   <Input
                     placeholder="Nieuw secret"
@@ -521,6 +525,15 @@ export default function Page() {
   )
 }
 
+const appFormSchema = z.object({
+  name: z.string().min(1, "Naam is verplicht."),
+  clientId: z.string().min(1, "Client ID is verplicht."),
+  clientSecret: z.string(),
+})
+
+type AppFormFields = z.infer<typeof appFormSchema>
+type AppFormErrors = Partial<Record<keyof AppFormFields, string>>
+
 function AppForm({
   app,
   saving,
@@ -544,10 +557,22 @@ function AppForm({
     app?.clientSecret ?? ""
   )
   const [showSecret, setShowSecret] = React.useState(false)
+  const [fieldErrors, setFieldErrors] = React.useState<AppFormErrors>({})
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    onSave({ name, clientId, clientSecret })
+    setFieldErrors({})
+    const result = appFormSchema.safeParse({ name, clientId, clientSecret })
+    if (!result.success) {
+      const errors: AppFormErrors = {}
+      for (const issue of result.error.issues) {
+        const key = issue.path[0] as keyof AppFormFields
+        if (!errors[key]) errors[key] = issue.message
+      }
+      setFieldErrors(errors)
+      return
+    }
+    onSave(result.data)
   }
 
   return (
@@ -566,23 +591,25 @@ function AppForm({
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Field label="Naam" htmlFor="app-name">
+        <Field label="Naam" htmlFor="app-name" error={fieldErrors.name}>
           <Input
             id="app-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Mijn applicatie"
-            required
             disabled={saving}
           />
         </Field>
-        <Field label="Client ID" htmlFor="app-client-id">
+        <Field
+          label="Client ID"
+          htmlFor="app-client-id"
+          error={fieldErrors.clientId}
+        >
           <Input
             id="app-client-id"
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             placeholder="my-client-id"
-            required
             disabled={saving}
           />
         </Field>
@@ -641,10 +668,12 @@ function AppForm({
 function Field({
   label,
   htmlFor,
+  error,
   children,
 }: {
   label: string
   htmlFor?: string
+  error?: string
   children: React.ReactNode
 }) {
   return (
@@ -653,6 +682,7 @@ function Field({
         {label}
       </label>
       {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
