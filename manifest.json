@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24893982845",
+    "runNumber": "399",
+    "branch": "dependabot/gradle/com.auth0-jwks-rsa-0.23.1",
+    "date": "2026-04-24T14:17:11Z",
+    "path": "integration/24893982845/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24893946931",
     "runNumber": "395",
     "branch": "dependabot/github_actions/actions/github-script-9",
