@@ -28,21 +28,21 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("com.h2database:h2:2.4.240")
     testImplementation("io.mockk:mockk:1.14.9")
-    testImplementation("io.ktor:ktor-client-mock:3.4.2")
-    testImplementation("io.ktor:ktor-server-test-host-jvm:3.4.2")
-    testImplementation("io.ktor:ktor-client-content-negotiation:3.4.2")
+    testImplementation("io.ktor:ktor-client-mock:3.4.3")
+    testImplementation("io.ktor:ktor-server-test-host-jvm:3.4.3")
+    testImplementation("io.ktor:ktor-client-content-negotiation:3.4.3")
 
     // Ktor server and client
-    implementation("io.ktor:ktor-server-core-jvm:3.4.2")
-    implementation("io.ktor:ktor-server-netty-jvm:3.4.2")
-    implementation("io.ktor:ktor-client-core:3.4.2")
-    implementation("io.ktor:ktor-client-cio:3.4.2")
-    implementation("io.ktor:ktor-server-content-negotiation:3.4.2")
-    implementation("io.ktor:ktor-server-conditional-headers:3.4.2")
-    implementation("io.ktor:ktor-server-status-pages:3.4.2")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.2")
-    implementation("io.ktor:ktor-server-auth:3.4.2")
-    implementation("io.ktor:ktor-server-auth-jwt:3.4.2")
+    implementation("io.ktor:ktor-server-core-jvm:3.4.3")
+    implementation("io.ktor:ktor-server-netty-jvm:3.4.3")
+    implementation("io.ktor:ktor-client-core:3.4.3")
+    implementation("io.ktor:ktor-client-cio:3.4.3")
+    implementation("io.ktor:ktor-server-content-negotiation:3.4.3")
+    implementation("io.ktor:ktor-server-conditional-headers:3.4.3")
+    implementation("io.ktor:ktor-server-status-pages:3.4.3")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.3")
+    implementation("io.ktor:ktor-server-auth:3.4.3")
+    implementation("io.ktor:ktor-server-auth-jwt:3.4.3")
 
     // Database - Exposed ORM
     implementation("org.jetbrains.exposed:exposed-core:1.2.0")
@@ -91,8 +91,8 @@ dependencies {
     ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
 
     // Open-API specification generation + routing annotations
-    implementation("io.ktor:ktor-server-routing-openapi:3.4.2")
-    implementation("io.ktor:ktor-server-openapi:3.4.2")
+    implementation("io.ktor:ktor-server-routing-openapi:3.4.3")
+    implementation("io.ktor:ktor-server-openapi:3.4.3")
 
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
