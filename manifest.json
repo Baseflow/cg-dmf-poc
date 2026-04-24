@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24893947949",
+    "runNumber": "396",
+    "branch": "dependabot/github_actions/actions/upload-artifact-7",
+    "date": "2026-04-24T14:16:16Z",
+    "path": "integration/24893947949/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24893937083",
     "runNumber": "393",
     "branch": "dependabot/github_actions/actions/download-artifact-8",
