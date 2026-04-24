@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24882268045",
+    "runNumber": "386",
+    "branch": "CGDMF-135-storage-settings",
+    "date": "2026-04-24T09:29:08Z",
+    "path": "integration/24882268045/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24882090156",
     "runNumber": "385",
     "branch": "CGDMF-129-applications",
