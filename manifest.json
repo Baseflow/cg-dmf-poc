@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24893937083",
+    "runNumber": "393",
+    "branch": "dependabot/github_actions/actions/download-artifact-8",
+    "date": "2026-04-24T14:15:56Z",
+    "path": "integration/24893937083/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24891632645",
     "runNumber": "391",
     "branch": "CGDMF-125-Merge-bestandsdelen",
