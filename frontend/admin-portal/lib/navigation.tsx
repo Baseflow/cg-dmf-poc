@@ -1,4 +1,8 @@
-import { FileTextIcon, LucideFileExclamationPoint } from "lucide-react"
+import {
+  DatabaseIcon,
+  FileTextIcon,
+  LucideFileExclamationPoint,
+} from "lucide-react"
 import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 
 export const navigation = {
@@ -12,6 +16,11 @@ export const navigation = {
       name: "ZGW Api instellingen",
       url: "/instellingen/zgw-api",
       icon: <OidcIcon />,
+    },
+    {
+      name: "Repositories",
+      url: "/instellingen/repositories",
+      icon: <DatabaseIcon />,
     },
   ],
   documents: [
