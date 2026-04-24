@@ -22,6 +22,10 @@ export const navigation = {
       url: "/instellingen/repositories",
       icon: <DatabaseIcon />,
     },
+      name: "Applicatie instellingen",
+      url: "/instellingen/applicatie-instellingen",
+      icon: <KeyIcon />,
+    },
   ],
   documents: [
     {
