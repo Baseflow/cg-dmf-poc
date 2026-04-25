@@ -26,18 +26,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { SecretInput } from "@/components/ui/secret-input"
 import { useIsMobile } from "@/hooks/use-mobile"
-import {
-  Check,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  MoreVertical,
-  Plus,
-  X,
-} from "lucide-react"
+import { Check, ChevronRight, MoreVertical, Plus, X } from "lucide-react"
 import * as React from "react"
 import {
   createOidcProvider,
@@ -229,17 +222,15 @@ export function OidcProviderList({
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          )}
+          <FieldError>{deleteError}</FieldError>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
               Annuleren
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
             </AlertDialogAction>
@@ -274,8 +265,6 @@ function ProviderForm({
   const [clientSecret, setClientSecret] = React.useState(
     provider?.clientSecret ?? ""
   )
-  const [showSecret, setShowSecret] = React.useState(false)
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({ name, issuer, clientId, clientSecret })
@@ -336,33 +325,17 @@ function ProviderForm({
           <FieldLabel htmlFor="provider-client-secret">
             Client secret
           </FieldLabel>
-          <div className="relative">
-            <Input
-              id="provider-client-secret"
-              type={showSecret ? "text" : "password"}
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder={
-                provider?.hasSecret
-                  ? "Laat leeg om huidig secret te bewaren"
-                  : "Voer het client secret in"
-              }
-              className="pr-9"
-              disabled={saving}
-            />
-            <button
-              type="button"
-              onClick={() => setShowSecret((v) => !v)}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={showSecret ? "Verberg secret" : "Toon secret"}
-            >
-              {showSecret ? (
-                <EyeOff className="size-4" />
-              ) : (
-                <Eye className="size-4" />
-              )}
-            </button>
-          </div>
+          <SecretInput
+            id="provider-client-secret"
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder={
+              provider?.hasSecret
+                ? "Laat leeg om huidig secret te bewaren"
+                : "Voer het client secret in"
+            }
+            disabled={saving}
+          />
         </Field>
       </form>
       <DrawerFooter>

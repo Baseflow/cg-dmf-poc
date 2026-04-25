@@ -60,9 +60,7 @@ export default function DmfSettingsForm({
         </FieldLabel>
       </Field>
 
-      {state.error && (
-        <p className="text-sm text-destructive">{state.error}</p>
-      )}
+      <FieldError>{state.error}</FieldError>
       {state.saved && (
         <p className="text-sm text-primary">Instellingen opgeslagen.</p>
       )}

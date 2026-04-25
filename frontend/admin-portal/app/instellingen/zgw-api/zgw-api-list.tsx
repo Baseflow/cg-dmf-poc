@@ -34,8 +34,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { SecretInput } from "@/components/ui/secret-input"
 import {
   Table,
   TableBody,
@@ -45,15 +46,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useIsMobile } from "@/hooks/use-mobile"
-import {
-  Check,
-  Eye,
-  EyeOff,
-  MoreHorizontal,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react"
+import { Check, MoreHorizontal, Plus, Trash2, X } from "lucide-react"
 import * as React from "react"
 import {
   createZgwApiSetting,
@@ -261,7 +254,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
 
   return (
     <>
-      <div className="flex min-h-svh flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
             ZGW API-koppelingsprofielen voor het DMF-systeem.
@@ -371,9 +364,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          )}
+          <FieldError>{deleteError}</FieldError>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
               Annuleren
@@ -407,9 +398,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          )}
+          <FieldError>{deleteError}</FieldError>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
               Annuleren
@@ -454,8 +443,6 @@ function SettingForm({
   const [clientSecret, setClientSecret] = React.useState(
     setting?.clientSecret ?? ""
   )
-  const [showSecret, setShowSecret] = React.useState(false)
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({ name, baseUrl, clientId, clientSecret })
@@ -478,7 +465,7 @@ function SettingForm({
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <FieldError>{error}</FieldError>
         <Field>
           <FieldLabel htmlFor="setting-name">Naam</FieldLabel>
           <Input
@@ -514,33 +501,17 @@ function SettingForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-client-secret">Client secret</FieldLabel>
-          <div className="relative">
-            <Input
-              id="setting-client-secret"
-              type={showSecret ? "text" : "password"}
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder={
-                setting?.hasSecret
-                  ? "Laat leeg om huidig secret te bewaren"
-                  : "Voer het client secret in"
-              }
-              className="pr-9"
-              disabled={saving}
-            />
-            <button
-              type="button"
-              onClick={() => setShowSecret((v) => !v)}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={showSecret ? "Verberg secret" : "Toon secret"}
-            >
-              {showSecret ? (
-                <EyeOff className="size-4" />
-              ) : (
-                <Eye className="size-4" />
-              )}
-            </button>
-          </div>
+          <SecretInput
+            id="setting-client-secret"
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder={
+              setting?.hasSecret
+                ? "Laat leeg om huidig secret te bewaren"
+                : "Voer het client secret in"
+            }
+            disabled={saving}
+          />
         </Field>
       </form>
       <DrawerFooter>

@@ -36,14 +36,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { SecretInput } from "@/components/ui/secret-input"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Check,
   ChevronRight,
   Copy,
-  Eye,
-  EyeOff,
   MoreVertical,
   Plus,
   RefreshCw,
@@ -59,7 +59,7 @@ import {
   updateApplication,
 } from "./actions"
 
-type RotatePhase = "idle" | "loading" | "success" | "error"
+type RotatePhase = "idle" | "success" | "error"
 
 export function ApplicationList({
   applications,
@@ -86,6 +86,7 @@ export function ApplicationList({
   const [rotatedSecret, setRotatedSecret] = React.useState("")
   const [rotateError, setRotateError] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
+  const [isRotating, startRotate] = React.useTransition()
 
   function openAdd() {
     setEditing(null)
@@ -110,7 +111,7 @@ export function ApplicationList({
   }
 
   function closeRotate() {
-    if (rotatePhase === "loading") return
+    if (isRotating) return
     setRotateTarget(null)
   }
 
@@ -160,27 +161,28 @@ export function ApplicationList({
     })
   }
 
-  async function handleRotate() {
+  function handleRotate() {
     if (!rotateTarget) return
-    setRotatePhase("loading")
     setRotateError(null)
-    try {
-      const secret = await rotateApplicationSecret(
-        rotateTarget.id,
-        rotateMode === "manual" && rotateNewSecret.trim()
-          ? rotateNewSecret.trim()
-          : undefined
-      )
-      setRotatedSecret(secret)
-      setRotatePhase("success")
-    } catch (e) {
-      setRotateError(
-        e instanceof Error
-          ? e.message
-          : "Roteren mislukt. Probeer het opnieuw."
-      )
-      setRotatePhase("error")
-    }
+    startRotate(async () => {
+      try {
+        const secret = await rotateApplicationSecret(
+          rotateTarget.id,
+          rotateMode === "manual" && rotateNewSecret.trim()
+            ? rotateNewSecret.trim()
+            : undefined
+        )
+        setRotatedSecret(secret)
+        setRotatePhase("success")
+      } catch (e) {
+        setRotateError(
+          e instanceof Error
+            ? e.message
+            : "Roteren mislukt. Probeer het opnieuw."
+        )
+        setRotatePhase("error")
+      }
+    })
   }
 
   async function handleCopy() {
@@ -299,17 +301,15 @@ export function ApplicationList({
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive">{deleteError}</p>
-          )}
+          <FieldError>{deleteError}</FieldError>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
               Annuleren
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
             </AlertDialogAction>
@@ -372,46 +372,48 @@ export function ApplicationList({
                   onValueChange={(v: string) =>
                     setRotateMode(v as "auto" | "manual")
                   }
-                  disabled={rotatePhase === "loading"}
+                  disabled={isRotating}
                   className="gap-2"
                 >
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="auto" id="rotate-auto" />
-                    Auto-genereren
-                  </label>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <Label htmlFor="rotate-auto" className="cursor-pointer font-normal">
+                      Auto-genereren
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="manual" id="rotate-manual" />
-                    Handmatig invoeren
-                  </label>
+                    <Label htmlFor="rotate-manual" className="cursor-pointer font-normal">
+                      Handmatig invoeren
+                    </Label>
+                  </div>
                 </RadioGroup>
                 {rotateMode === "manual" && (
                   <Input
                     placeholder="Nieuw secret"
                     value={rotateNewSecret}
                     onChange={(e) => setRotateNewSecret(e.target.value)}
-                    disabled={rotatePhase === "loading"}
+                    disabled={isRotating}
                   />
                 )}
-                {rotateError && (
-                  <p className="text-sm text-destructive">{rotateError}</p>
-                )}
+                <FieldError>{rotateError}</FieldError>
               </div>
               <DialogFooter>
                 <Button
                   variant="outline"
                   onClick={closeRotate}
-                  disabled={rotatePhase === "loading"}
+                  disabled={isRotating}
                 >
                   Annuleren
                 </Button>
                 <Button
                   onClick={handleRotate}
                   disabled={
-                    rotatePhase === "loading" ||
+                    isRotating ||
                     (rotateMode === "manual" && !rotateNewSecret.trim())
                   }
                 >
-                  {rotatePhase === "loading" ? (
+                  {isRotating ? (
                     <>
                       <RefreshCw className="size-4 animate-spin" />
                       Roteren...
@@ -459,7 +461,6 @@ function AppForm({
   const [clientSecret, setClientSecret] = React.useState(
     app?.clientSecret ?? ""
   )
-  const [showSecret, setShowSecret] = React.useState(false)
   const [fieldErrors, setFieldErrors] = React.useState<AppFormErrors>({})
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -493,7 +494,7 @@ function AppForm({
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <FieldError>{error}</FieldError>
         <Field>
           <FieldLabel htmlFor="app-name">Naam</FieldLabel>
           <Input
@@ -518,33 +519,17 @@ function AppForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="app-client-secret">Client secret</FieldLabel>
-          <div className="relative">
-            <Input
-              id="app-client-secret"
-              type={showSecret ? "text" : "password"}
-              value={clientSecret}
-              onChange={(e) => setClientSecret(e.target.value)}
-              placeholder={
-                app?.hasSecret
-                  ? "Laat leeg om huidig secret te bewaren"
-                  : "Voer het client secret in"
-              }
-              className="pr-9"
-              disabled={saving}
-            />
-            <button
-              type="button"
-              onClick={() => setShowSecret((v) => !v)}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={showSecret ? "Verberg secret" : "Toon secret"}
-            >
-              {showSecret ? (
-                <EyeOff className="size-4" />
-              ) : (
-                <Eye className="size-4" />
-              )}
-            </button>
-          </div>
+          <SecretInput
+            id="app-client-secret"
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder={
+              app?.hasSecret
+                ? "Laat leeg om huidig secret te bewaren"
+                : "Voer het client secret in"
+            }
+            disabled={saving}
+          />
         </Field>
       </form>
       <DrawerFooter>
