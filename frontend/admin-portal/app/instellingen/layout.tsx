@@ -1,26 +1,13 @@
-"use client"
+import { auth } from "@/lib/auth"
+import { redirect } from "next/navigation"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-
-export default function InstellingenLayout({
+export default async function InstellingenLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { authenticated, isLoading } = useAuth()
-  const router = useRouter()
-
-  React.useEffect(() => {
-    if (!isLoading && !authenticated) {
-      router.replace("/")
-    }
-  }, [isLoading, authenticated, router])
-
-  if (isLoading || !authenticated) {
-    return null
-  }
+  const session = await auth()
+  if (!session) redirect("/")
 
   return <>{children}</>
 }

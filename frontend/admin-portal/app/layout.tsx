@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb"
+import { SessionProvider } from "@/components/session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -8,7 +9,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AuthProvider } from "@/contexts/auth-context"
 import type { Metadata } from "next"
 import { IBM_Plex_Mono, Source_Sans_3 } from "next/font/google"
 import "./globals.css"
@@ -47,7 +47,7 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <TooltipProvider>
-            <AuthProvider>
+            <SessionProvider>
               <SidebarProvider>
                 <AppSidebar variant="inset" />
                 <SidebarInset>
@@ -64,7 +64,7 @@ export default function RootLayout({
                   {children}
                 </SidebarInset>
               </SidebarProvider>
-            </AuthProvider>
+            </SessionProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>

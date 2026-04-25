@@ -1,6 +1,9 @@
-import type Keycloak from "keycloak-js"
+"use server"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ""
+import { auth } from "@/auth"
+import { z } from "zod"
+
+const API_URL = process.env.BACKEND_URL ?? "http://localhost:8080"
 
 export interface DmfSettings {
   triggerSize: number
@@ -8,30 +11,53 @@ export interface DmfSettings {
   validationEnabled: boolean
 }
 
-export async function fetchDmfSettings(
-  keycloak: Keycloak
-): Promise<DmfSettings> {
-  await keycloak.updateToken(30)
-  const res = await fetch(`${API_URL}/admin/dmf-settings`, {
-    headers: { Authorization: `Bearer ${keycloak.token ?? ""}` },
-  })
-  if (!res.ok)
-    throw new Error(`Kon de DMF-instellingen niet laden. (HTTP ${res.status})`)
-  return res.json() as Promise<DmfSettings>
+export type FormState = {
+  errors?: { triggerSize?: string; chunkSize?: string }
+  error?: string
+  saved?: boolean
 }
 
+const settingsSchema = z.object({
+  triggerSize: z.coerce
+    .number()
+    .int("Moet een geheel getal zijn.")
+    .min(1, "Moet minimaal 1 byte zijn."),
+  chunkSize: z.coerce
+    .number()
+    .int("Moet een geheel getal zijn.")
+    .min(1, "Moet minimaal 1 byte zijn."),
+  validationEnabled: z.boolean(),
+})
+
 export async function saveDmfSettings(
-  keycloak: Keycloak,
-  data: DmfSettings
-): Promise<void> {
-  await keycloak.updateToken(30)
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const result = settingsSchema.safeParse({
+    triggerSize: formData.get("triggerSize"),
+    chunkSize: formData.get("chunkSize"),
+    validationEnabled: formData.get("validationEnabled") === "on",
+  })
+
+  if (!result.success) {
+    const errors: FormState["errors"] = {}
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof NonNullable<FormState["errors"]>
+      if (!errors[key]) errors[key] = issue.message
+    }
+    return { errors }
+  }
+
+  const session = await auth()
   const res = await fetch(`${API_URL}/admin/dmf-settings`, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${keycloak.token ?? ""}`,
+      Authorization: `Bearer ${session?.accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(result.data),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+  if (!res.ok) return { error: "Opslaan mislukt. Probeer het opnieuw." }
+  return { saved: true }
 }
