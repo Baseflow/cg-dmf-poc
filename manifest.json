@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24988760337",
+    "runNumber": "407",
+    "branch": "dependabot/gradle/com.github.ben-manes.versions-0.54.0",
+    "date": "2026-04-27T10:09:18Z",
+    "path": "integration/24988760337/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24988753679",
     "runNumber": "406",
     "branch": "dependabot/gradle/aws-sdk-ae9446ea0d",
