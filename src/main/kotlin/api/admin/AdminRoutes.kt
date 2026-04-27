@@ -27,7 +27,9 @@ fun Route.adminRoutes() {
 fun Application.adminModule(useAuthentication: Boolean = true) {
     routing {
         if (useAuthentication) {
-            authenticate("auth-jwt", strategy = AuthenticationStrategy.FirstSuccessful) {
+            // TODO: do we really want auth-zgw enabled on admin routes ?
+            // For now enable for integration tests, but we should find another way.
+            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 adminRoutes()
             }
         } else {
