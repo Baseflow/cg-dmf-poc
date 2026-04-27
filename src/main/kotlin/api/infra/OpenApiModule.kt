@@ -144,6 +144,7 @@ fun Application.openApiModule() {
             // environments (a relative "build/tmp" path does not exist in Docker/Kubernetes).
             openAPI("ktor-openapi") {
                 outputPath = System.getProperty("java.io.tmpdir") + "/swagger-codegen"
+                info = apiInfo
                 source = OpenApiDocSource.Routing {
                     routingRoot.descendants()
                 }
