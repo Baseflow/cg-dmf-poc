@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "24989943167",
+    "runNumber": "409",
+    "branch": "dependabot/github_actions/actions/checkout-6",
+    "date": "2026-04-27T10:37:19Z",
+    "path": "integration/24989943167/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "24988811067",
     "runNumber": "408",
     "branch": "dependabot/gradle/jvm-2.3.21",
