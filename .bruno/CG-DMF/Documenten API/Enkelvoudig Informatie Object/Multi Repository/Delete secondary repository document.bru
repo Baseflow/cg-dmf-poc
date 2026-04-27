@@ -1,0 +1,20 @@
+meta {
+  name: Delete secondary repository document
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{multiRepoSecondaryId}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -45,6 +45,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @BeforeTest
     fun setup() {
+        BlobStorageRegistrar.resetForTesting()
         Database.connect(
             "jdbc:h2:mem:test_eio;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
@@ -74,6 +75,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @AfterTest
     fun teardown() {
+        BlobStorageRegistrar.resetForTesting()
         transaction {
             // Drop in reverse order of dependencies
             SchemaUtils.drop(*AllTables.tables.reversedArray())
@@ -771,10 +773,19 @@ class EnkelvoudigInformatieObjectServiceTest {
     }
 
     @Test
-    fun `create uploads to the default storage provider when no repository is configured`() = runBlocking {
+    fun `create resolves default repository name for upload and persistence`() = runBlocking {
+        val defaultProvider = mockk<BlobStorageProvider>()
+        every { defaultProvider.name } returns "default-repo"
+        BlobStorageRegistrar.registerForTesting(defaultProvider, isDefault = true)
+
         val req = generateTestDocument(withContent = true)
-        service.create(req)
-        verify { mockStorageService.uploadFile(any(), any(), null) }
+        val response = service.create(req)
+
+        verify { mockStorageService.uploadFile(any(), any(), "default-repo") }
+        transaction {
+            val latest = EIORecordEntity.findById(UUID.fromString(response.id))!!.versions.maxByOrNull { it.versie }!!
+            assertEquals("default-repo", latest.bestandsRepository)
+        }
     }
 
     @Test
@@ -788,6 +799,25 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         service.update(id, generateTestDocument())
 
+        transaction {
+            val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+            assertEquals(2, v2.versie)
+            assertEquals("repo-a", v2.bestandsRepository)
+        }
+    }
+
+    @Test
+    fun `update with new content uploads to and persists previous version repository`() = runBlocking {
+        val created = service.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!.bestandsRepository = "repo-a"
+        }
+
+        service.update(id, generateTestDocument(withContent = true))
+
+        verify { mockStorageService.uploadFile(any(), any(), "repo-a") }
         transaction {
             val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
             assertEquals(2, v2.versie)
@@ -814,6 +844,28 @@ class EnkelvoudigInformatieObjectServiceTest {
         verify { mockStorageService.deleteFiles(any(), "repo-a") }
         verify { mockStorageService.deleteFiles(any(), "repo-b") }
         verify(exactly = 2) { mockStorageService.deleteFiles(any(), anyNullable()) }
+    }
+
+    @Test
+    fun `delete deduplicates keys per repository before batch delete`() = runBlocking {
+        val created = service.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.first { it.versie == 1 }.bestandsRepository = "repo-a"
+        }
+
+        service.update(id, generateTestDocument(withContent = false))
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.first { it.versie == 2 }.bestandsRepository = "repo-a"
+        }
+
+        service.delete(id)
+
+        val keysSlot = mutableListOf<List<String>>()
+        verify(exactly = 1) { mockStorageService.deleteFiles(capture(keysSlot), "repo-a") }
+        assertEquals(1, keysSlot.size)
+        assertEquals(keysSlot.first().distinct().size, keysSlot.first().size)
     }
 
     @Test

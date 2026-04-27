@@ -1,0 +1,45 @@
+meta {
+  name: Get documents from both repositories
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{multiRepoPrimaryId}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (!res.body || res.body.id !== bru.getVar("multiRepoPrimaryId")) {
+    throw new Error("Primary repository document could not be retrieved after default switch.");
+  }
+
+  const secondaryId = bru.getVar("multiRepoSecondaryId");
+  if (!secondaryId) {
+    throw new Error("Missing multiRepoSecondaryId from previous request.");
+  }
+
+  const response = await bru.sendRequest({
+    method: "GET",
+    url: `${bru.getEnvVar("baseUrl")}/documenten/api/v1/enkelvoudiginformatieobjecten/${secondaryId}`,
+    headers: req.getHeaders(),
+  });
+
+  if (response.status !== 200) {
+    throw new Error(`Expected secondary repository document GET 200 but got ${response.status}`);
+  }
+
+  if (!response.body || response.body.id !== secondaryId) {
+    throw new Error("Secondary repository document retrieval returned unexpected payload.");
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -134,7 +134,12 @@ class EnkelvoudigInformatieObjectService(
         if (!request.isFileEmpty()) {
             loc = "${record.id.value}/$version/${request.bestandsnaam}"
         }
-        return storeFileVersion(request, loc, repoName)
+        return storeFileVersion(request, loc, resolveBestandsRepository(repoName))
+    }
+
+    private fun resolveBestandsRepository(repoName: String?): String? {
+        val requestedRepo = repoName?.takeUnless { it.isBlank() }
+        return requestedRepo ?: BlobStorageRegistrar.defaultProvider()?.name
     }
 
     private fun storeFileVersion(
@@ -327,8 +332,9 @@ class EnkelvoudigInformatieObjectService(
                 catalogusService.validateInformatieobjecttype(request.informatieobjecttype)
             }
 
+            val repoName = latestVersion?.bestandsRepository?.takeUnless { it.isBlank() }
             val uploadResultaat =
-                getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty())
+                getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty(), repoName)
             val bestandsFormaat =
                 mergeNullable(
                     partial,
@@ -728,7 +734,7 @@ class EnkelvoudigInformatieObjectService(
 
     fun delete(id: UUID): DeleteResult {
         // Maps repository name (empty string = default) to the object keys stored there.
-        val fileLocationsByRepo = mutableMapOf<String, MutableList<String>>()
+        val fileLocationsByRepo = mutableMapOf<String, MutableSet<String>>()
         val result = transaction {
             val lockedRecordExists =
                 EIORecords
@@ -762,7 +768,7 @@ class EnkelvoudigInformatieObjectService(
             record.versions.forEach { version ->
                 val repo = version.bestandsRepository
                 if (version.bestandsLocatie.isNotBlank()) {
-                    fileLocationsByRepo.getOrPut(repo) { mutableListOf() }.add(version.bestandsLocatie)
+                    fileLocationsByRepo.getOrPut(repo) { mutableSetOf() }.add(version.bestandsLocatie)
                 }
 
                 // Also collect storage keys for completed bestandsdelen chunks.
@@ -775,7 +781,7 @@ class EnkelvoudigInformatieObjectService(
                             versie = version.versie,
                             bestandsDeelId = it.id.value,
                         )
-                        fileLocationsByRepo.getOrPut(repo) { mutableListOf() }.add(key)
+                        fileLocationsByRepo.getOrPut(repo) { mutableSetOf() }.add(key)
                     }
             }
 
@@ -784,7 +790,7 @@ class EnkelvoudigInformatieObjectService(
         }
         if (result == DeleteResult.Success) {
             fileLocationsByRepo.forEach { (repo, keys) ->
-                storageService.deleteFiles(keys, repoName = repo.takeUnless { it.isBlank() })
+                storageService.deleteFiles(keys.toList(), repoName = repo.takeUnless { it.isBlank() })
             }
             auditTrailService.removeAuditTrailsForResource(id)
         }
