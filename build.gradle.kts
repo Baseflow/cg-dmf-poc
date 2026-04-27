@@ -1,12 +1,12 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
 plugins {
-    kotlin("jvm") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
     application
-    kotlin("plugin.serialization") version "2.3.20"
-    id("com.github.ben-manes.versions") version "0.53.0"
+    kotlin("plugin.serialization") version "2.3.21"
+    id("com.github.ben-manes.versions") version "0.54.0"
     // KSP plugin for annotation processing (required by koin-annotations)
-    id("com.google.devtools.ksp") version "2.3.6"
+    id("com.google.devtools.ksp") version "2.3.7"
     // Code formatting with Spotless and ktlint
     id("com.diffplug.spotless") version "8.4.0"
 }
@@ -69,11 +69,11 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
-    implementation("com.auth0:jwks-rsa:0.23.0")
+    implementation("com.auth0:jwks-rsa:0.23.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.35")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.35")
+    implementation("software.amazon.awssdk:s3:2.42.41")
+    implementation("software.amazon.awssdk:netty-nio-client:2.42.41")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.33.3")
