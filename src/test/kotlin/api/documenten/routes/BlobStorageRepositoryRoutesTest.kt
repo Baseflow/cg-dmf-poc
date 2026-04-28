@@ -61,8 +61,8 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
             repoName = name
             storageType = type
             this.url = url
-            accessKeyEncrypted = "access"
-            secretKeyEncrypted = "secret"
+            accessKey = "access"
+            secretKey = "secret"
             this.bucket = bucket
             region = "eu-west-1"
             disableChecksums = false

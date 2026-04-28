@@ -59,8 +59,10 @@ class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var repoName by BlobStorageRepositories.repoName
     var storageType by BlobStorageRepositories.storageType
     var url by BlobStorageRepositories.url
-    var accessKeyEncrypted by BlobStorageRepositories.accessKeyEncrypted
-    var secretKeyEncrypted by BlobStorageRepositories.secretKeyEncrypted
+
+    // Named accessKey/secretKey because Exposed decrypts transparently on read.
+    var accessKey by BlobStorageRepositories.accessKeyEncrypted
+    var secretKey by BlobStorageRepositories.secretKeyEncrypted
     var bucket by BlobStorageRepositories.bucket
     var region by BlobStorageRepositories.region
     var disableChecksums by BlobStorageRepositories.disableChecksums

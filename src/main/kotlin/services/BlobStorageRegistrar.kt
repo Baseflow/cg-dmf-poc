@@ -136,8 +136,8 @@ object BlobStorageRegistrar {
                 name = entity.repoName,
                 type = BlobStorageType.fromLabel(entity.storageType),
                 url = entity.url,
-                accessKey = entity.accessKeyEncrypted,
-                secretKey = entity.secretKeyEncrypted,
+                accessKey = entity.accessKey,
+                secretKey = entity.secretKey,
                 bucket = entity.bucket,
                 region = entity.region,
                 disableChecksums = entity.disableChecksums,
@@ -214,8 +214,8 @@ object BlobStorageRegistrar {
         if (existing != null) {
             existing.storageType = cfg.type.label
             existing.url = cfg.url
-            existing.accessKeyEncrypted = cfg.accessKey
-            existing.secretKeyEncrypted = cfg.secretKey
+            existing.accessKey = cfg.accessKey
+            existing.secretKey = cfg.secretKey
             existing.bucket = cfg.bucket
             existing.region = cfg.region
             existing.disableChecksums = cfg.disableChecksums
@@ -227,8 +227,8 @@ object BlobStorageRegistrar {
                 repoName = cfg.name
                 storageType = cfg.type.label
                 url = cfg.url
-                accessKeyEncrypted = cfg.accessKey
-                secretKeyEncrypted = cfg.secretKey
+                accessKey = cfg.accessKey
+                secretKey = cfg.secretKey
                 bucket = cfg.bucket
                 region = cfg.region
                 disableChecksums = cfg.disableChecksums
