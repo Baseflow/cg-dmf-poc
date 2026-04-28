@@ -36,6 +36,10 @@ private val lazyEncryptor = Encryptor(
  * Table storing blob storage repository configurations.
  * Secrets (access key, secret key) are stored AES-256-CBC encrypted using the
  * application-level encryption key ([EncryptionConfig.secretKey]).
+ *
+ * The `512` passed to [encryptedVarchar] is the ciphertext column length (VARCHAR(512)).
+ * For AES-256-PBE-CBC, this accommodates plaintexts up to ~350 chars, well beyond any
+ * realistic credential length.
  */
 object BlobStorageRepositories : UUIDTable("blob_storage_repositories") {
     val repoName = varchar("name", 100).uniqueIndex()
