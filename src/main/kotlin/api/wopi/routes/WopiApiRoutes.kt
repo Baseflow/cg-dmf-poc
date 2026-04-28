@@ -38,7 +38,7 @@ fun Route.wopiApiRoutes() {
             description =
                 "Gets the metadata of a file."
             parameters {
-                query("file_id") {
+                path("file_id") {
                     description = "The UUID of the file to retrieve metadata for."
                     required = true
                 }
@@ -65,7 +65,7 @@ fun Route.wopiApiRoutes() {
             description =
                 "Gets the contents of a file."
             parameters {
-                query("file_id") {
+                path("file_id") {
                     description = "The UUID of the file to retrieve the contents for."
                     required = true
                 }
