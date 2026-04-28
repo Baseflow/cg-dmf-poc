@@ -48,9 +48,10 @@ object EIOVersionTrefwoorden : UUIDTable("eio_version_trefwoorden") {
         reference("trefwoord_id", Trefwoorden, onDelete = ReferenceOption.CASCADE)
 
     init {
+        // Enforces uniqueness and supports lookups of all trefwoorden for a known version.
         index(isUnique = true, versionId, trefwoordId)
-        index(isUnique = false, versionId)
-        index(isUnique = false, trefwoordId)
+        // Covering index for trefwoorden filter queries: resolve matching version IDs by trefwoord_id.
+        index(isUnique = false, trefwoordId, versionId)
     }
 }
 
