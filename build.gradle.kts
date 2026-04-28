@@ -223,7 +223,7 @@ tasks.test {
     // Provide default encryption keys for unit tests so that the lazy Encryptor
     // in BlobStorageRepositories can initialise when encrypted columns are used.
     environment("ENCRYPTION_SECRET_KEY", System.getenv("ENCRYPTION_SECRET_KEY") ?: "test-secret-key-for-unit-tests")
-    environment("ENCRYPTION_SALT", System.getenv("ENCRYPTION_SALT") ?: "deadbeefcafe1234")
+    environment("ENCRYPTION_SALT", System.getenv("ENCRYPTION_SALT") ?: "deadbeefcafe0123456789abcdef0123")
 }
 
 tasks.jar {
