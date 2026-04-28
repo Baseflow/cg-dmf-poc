@@ -16,6 +16,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -221,6 +222,12 @@ class EnkelvoudigInformatieObjectService(
                     EIOVersions.versie eqSubQuery innerVersions
                         .select(innerVersions[EIOVersions.versie].max())
                         .where { innerVersions[EIOVersions.recordId] eq EIORecords.id }
+                }
+                if (filters.trefwoorden.isNotEmpty()) {
+                    andWhere { EIOVersions.id inSubQuery trefwoordenContainsAllVersionIds(filters.trefwoorden) }
+                }
+                if (filters.trefwoordenOverlap.isNotEmpty()) {
+                    andWhere { EIOVersions.id inSubQuery trefwoordenOverlapVersionIds(filters.trefwoordenOverlap) }
                 }
                 if (condition != Op.TRUE) {
                     andWhere { condition }
@@ -606,14 +613,6 @@ class EnkelvoudigInformatieObjectService(
             op = op and (EIOVersions.bronOrganisatie eq bronOrganisatie)
         }
 
-        if (filters.trefwoorden.isNotEmpty()) {
-            op = op and trefwoordenContainsAll(filters.trefwoorden)
-        }
-
-        if (filters.trefwoordenOverlap.isNotEmpty()) {
-            op = op and trefwoordenOverlap(filters.trefwoordenOverlap)
-        }
-
         if (filters.uuids.isNotEmpty()) {
             val uuids = filters.uuids.mapNotNull {
                 try {
@@ -679,34 +678,41 @@ class EnkelvoudigInformatieObjectService(
     }
 
     /**
-     * All provided trefwoorden must be linked to the version via EIOVersionTrefwoorden + Trefwoorden.
-     * Implemented as a single correlated EXISTS with GROUP BY / HAVING COUNT = N, regardless of list size.
+     * All provided trefwoorden must be linked to the version.
+     * Implemented as a single correlated EXISTS with GROUP BY / HAVING COUNT = N,
+     * while resolving trefwoord IDs once in a non-correlated subquery.
      */
-    private fun trefwoordenContainsAll(words: List<String>): Op<Boolean> {
+    private fun trefwoordenContainsAllVersionIds(words: List<String>): Query {
         val lower = words.map { it.lowercase(Locale.ROOT) }
-        return (EIOVersionTrefwoorden innerJoin Trefwoorden)
+        val trefwoordIds = Trefwoorden
+            .select(Trefwoorden.id)
+            .where { Trefwoorden.woord inList lower }
+
+        return EIOVersionTrefwoorden
             .select(EIOVersionTrefwoorden.versionId)
             .where {
-                (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
-                    (Trefwoorden.woord inList lower)
+                EIOVersionTrefwoorden.trefwoordId inSubQuery trefwoordIds
             }
             .groupBy(EIOVersionTrefwoorden.versionId)
-            .having { Trefwoorden.woord.countDistinct() eq lower.size.toLong() }
-            .let { subQuery -> exists(subQuery) }
+            .having { EIOVersionTrefwoorden.trefwoordId.countDistinct() eq lower.size.toLong() }
     }
 
     /**
      * At least one of the provided trefwoorden must be linked to the version.
-     * Implemented as a single EXISTS subquery with an IN clause.
+     * Implemented as a single EXISTS subquery using preselected trefwoord IDs.
      */
-    private fun trefwoordenOverlap(words: List<String>): Op<Boolean> = EIOVersionTrefwoorden
-        .innerJoin(Trefwoorden)
-        .select(EIOVersionTrefwoorden.versionId)
-        .where {
-            (EIOVersionTrefwoorden.versionId eq EIOVersions.id) and
-                (Trefwoorden.woord inList words.map { it.lowercase(Locale.ROOT) })
-        }
-        .let { subQuery -> exists(subQuery) }
+    private fun trefwoordenOverlapVersionIds(words: List<String>): Query {
+        val trefwoordIds = Trefwoorden
+            .select(Trefwoorden.id)
+            .where { Trefwoorden.woord inList words.map { it.lowercase(Locale.ROOT) } }
+
+        return EIOVersionTrefwoorden
+            .select(EIOVersionTrefwoorden.versionId)
+            .where {
+                EIOVersionTrefwoorden.trefwoordId inSubQuery trefwoordIds
+            }
+            .withDistinct()
+    }
 
     fun lock(id: UUID): LockResult? {
         return transaction {

@@ -88,12 +88,12 @@ export const options = {
   thresholds: {
     // Median (p50) — normal-case baseline
     // p(95) — tail / worst-case ceiling
-    'http_req_duration{name:eio_get}':    ['p(50)<120',  'p(95)<1500'],
-    'http_req_duration{name:eio_list}':   ['p(50)<120',  'p(95)<1500'],
-    'http_req_duration{name:eio_create}': ['p(50)<120',  'p(95)<1500'],
-    'http_req_duration{name:eio_patch}':  ['p(50)<120',  'p(95)<1500'],
-    'http_req_duration{name:oio_list}':   ['p(50)<120',  'p(95)<1500'],
-    'http_req_duration{name:oio_create}': ['p(50)<120',  'p(95)<1500'],
+    'http_req_duration{name:eio_get}':    ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:eio_list}':   ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:eio_create}': ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:eio_patch}':  ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:oio_list}':   ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:oio_create}': ['p(50)<60',  'p(95)<200'],
     // Reliability gate: no failed functional checks across all scenarios.
     // Uses Counter threshold to avoid flaky Rate-threshold booleans in summary export.
     'perf_errors_total': ['count==0'],
