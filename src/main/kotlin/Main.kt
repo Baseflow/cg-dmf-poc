@@ -17,6 +17,8 @@ import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -42,16 +44,20 @@ fun main() {
     } else {
         S3Config.printConfig()
     }
-    Database.connect(
-        url = DatabaseConfig.url,
-        driver = DatabaseConfig.driver,
-        user = DatabaseConfig.user,
-        password = DatabaseConfig.password,
+    val dataSource = HikariDataSource(
+        HikariConfig().apply {
+            jdbcUrl = DatabaseConfig.url
+            driverClassName = DatabaseConfig.driver
+            username = DatabaseConfig.user
+            password = DatabaseConfig.password
+            maximumPoolSize = DatabaseConfig.poolSize
+        },
     )
+    Database.connect(dataSource)
 
     // apply migrations
     val flyway = Flyway.configure()
-        .dataSource(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
+        .dataSource(dataSource)
         .load()
 
     // Targeted repair: V7 was amended to remove the pgcrypto dependency.

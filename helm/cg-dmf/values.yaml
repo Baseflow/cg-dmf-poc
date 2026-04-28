@@ -178,6 +178,8 @@ settings:
     # -- Database password.
     # @sensitive
     password: ""
+    # -- Maximum number of connections in the HikariCP pool. Leave null to use the application default (10).
+    poolSize: null
 
   # ---------------------------------------------------------------------------
   # S3 / MinIO object storage
