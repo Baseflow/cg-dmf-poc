@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25054916408",
+    "runNumber": "423",
+    "branch": "task/trefwoordenPerf",
+    "date": "2026-04-28T13:19:24Z",
+    "path": "integration/25054916408/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25051814434",
     "runNumber": "20",
