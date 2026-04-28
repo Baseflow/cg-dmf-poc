@@ -211,24 +211,17 @@ class EnkelvoudigInformatieObjectService(
                     .selectAll()
             }
 
-            // Compute latest version rows once (set-based) and filter by those IDs.
-            val maxVersie = EIOVersions.versie.max().alias("max_versie")
-            val latestVersionsByRecord = EIOVersions
-                .select(EIOVersions.recordId, maxVersie)
-                .groupBy(EIOVersions.recordId)
-                .alias("latest_versions_by_record")
-
-            val latestVersionIdsSubQuery = EIOVersions
-                .join(latestVersionsByRecord, JoinType.INNER) {
-                    (EIOVersions.recordId eq latestVersionsByRecord[EIOVersions.recordId]) and
-                        (EIOVersions.versie eq latestVersionsByRecord[maxVersie])
-                }
-                .select(EIOVersions.id)
+            // Alias for the inner subquery table so the correlated reference to the outer EIORecords.id
+            // is unambiguous — without this alias both inner and outer reference the same table name,
+            // and PostgreSQL evaluates the subquery as non-correlated (returning a single global MAX).
+            val innerVersions = EIOVersions.alias("inner_eio_versions")
 
             query.apply {
-                // Latest-version filter: set-based subquery.
+                // Latest-version filter: correlated subquery (fast with idx_eio_versions_record_versie)
                 andWhere {
-                    EIOVersions.id inSubQuery latestVersionIdsSubQuery
+                    EIOVersions.versie eqSubQuery innerVersions
+                        .select(innerVersions[EIOVersions.versie].max())
+                        .where { innerVersions[EIOVersions.recordId] eq EIORecords.id }
                 }
                 if (filters.trefwoorden.isNotEmpty()) {
                     andWhere { EIOVersions.id inSubQuery trefwoordenContainsAllVersionIds(filters.trefwoorden) }
