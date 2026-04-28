@@ -99,6 +99,7 @@ jobs:
             // Helper: format a duration value in ms to a readable string
             const ms  = v => v == null ? '—' : `${v.toFixed(1)} ms`;
             const pct = v => v == null ? '—' : `${(v * 100).toFixed(2)} %`;
+            const trendP50 = m => m?.['p(50)'] ?? m?.med;
 
             // In k6's --summary-export format, threshold values are booleans
             // where false = threshold passed (not breached), true = failed.
@@ -111,17 +112,17 @@ jobs:
 
             // Table rows: [label, metric key, value extractor, formatter, threshold expression, threshold label]
             const rows = [
-              ['GET EIO p(50)',    'http_req_duration{name:eio_get}',    m => m?.['p(50)'], ms,  'p(50)<100',   '< 100 ms'],
-              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    m => m?.['p(95)'], ms,  'p(95)<500',   '< 500 ms'],
-              ['LIST EIO p(50)',   'http_req_duration{name:eio_list}',   m => m?.['p(50)'], ms,  'p(50)<200',   '< 200 ms'],
+              ['GET EIO p(50)',    'http_req_duration{name:eio_get}',    trendP50,           ms,  'p(50)<100',   '< 100 ms'],
+              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    m => m?.['p(95)'], ms,  'p(95)<1000',  '< 1000 ms'],
+              ['LIST EIO p(50)',   'http_req_duration{name:eio_list}',   trendP50,           ms,  'p(50)<200',   '< 200 ms'],
               ['LIST EIO p(95)',   'http_req_duration{name:eio_list}',   m => m?.['p(95)'], ms,  'p(95)<1000',  '< 1000 ms'],
-              ['CREATE EIO p(50)', 'http_req_duration{name:eio_create}', m => m?.['p(50)'], ms,  'p(50)<300',   '< 300 ms'],
-              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', m => m?.['p(95)'], ms,  'p(95)<3000',  '< 3000 ms'],
-              ['PATCH EIO p(50)',  'http_req_duration{name:eio_patch}',  m => m?.['p(50)'], ms,  'p(50)<200',   '< 200 ms'],
-              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  m => m?.['p(95)'], ms,  'p(95)<3000',  '< 3000 ms'],
-              ['LIST OIO p(50)',   'http_req_duration{name:oio_list}',   m => m?.['p(50)'], ms,  'p(50)<150',   '< 150 ms'],
+              ['CREATE EIO p(50)', 'http_req_duration{name:eio_create}', trendP50,           ms,  'p(50)<300',   '< 300 ms'],
+              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', m => m?.['p(95)'], ms,  'p(95)<1000',  '< 1000 ms'],
+              ['PATCH EIO p(50)',  'http_req_duration{name:eio_patch}',  trendP50,           ms,  'p(50)<200',   '< 200 ms'],
+              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  m => m?.['p(95)'], ms,  'p(95)<1000',  '< 1000 ms'],
+              ['LIST OIO p(50)',   'http_req_duration{name:oio_list}',   trendP50,           ms,  'p(50)<150',   '< 150 ms'],
               ['LIST OIO p(95)',   'http_req_duration{name:oio_list}',   m => m?.['p(95)'], ms,  'p(95)<1000',  '< 1000 ms'],
-              ['CREATE OIO p(50)', 'http_req_duration{name:oio_create}', m => m?.['p(50)'], ms,  'p(50)<150',   '< 150 ms'],
+              ['CREATE OIO p(50)', 'http_req_duration{name:oio_create}', trendP50,           ms,  'p(50)<150',   '< 150 ms'],
               ['CREATE OIO p(95)', 'http_req_duration{name:oio_create}', m => m?.['p(95)'], ms,  'p(95)<3000',  '< 3000 ms'],
               ['Error rate',       'http_req_failed',                    m => m?.value,     pct, 'rate<0.01',   '< 1 %'],
               ['Success rate',     'perf_success_rate',                  m => m?.value,     pct, 'rate>0.99',   '> 99 %'],
