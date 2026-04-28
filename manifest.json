@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25043342216",
+    "runNumber": "416",
+    "branch": "repo-tracking",
+    "date": "2026-04-28T08:56:55Z",
+    "path": "integration/25043342216/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25026556880",
     "runNumber": "16",
