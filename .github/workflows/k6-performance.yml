@@ -99,25 +99,34 @@ jobs:
             // Helper: format a duration value in ms to a readable string
             const ms  = v => v == null ? '—' : `${v.toFixed(1)} ms`;
             const pct = v => v == null ? '—' : `${(v * 100).toFixed(2)} %`;
+            const trendP50 = m => m?.['p(50)'] ?? m?.med;
 
             // In k6's --summary-export format, threshold values are booleans
             // where false = threshold passed (not breached), true = failed.
-            const thresholdPassed = m => {
+            // expr: the exact threshold expression string (e.g. 'p(95)<500').
+            const thresholdPassed = (m, expr, fallback = null) => {
               const t = m?.thresholds ?? {};
-              if (Object.keys(t).length === 0) return '—';
-              return Object.values(t).every(v => v === false) ? '✅' : '❌';
+              if (expr in t) return t[expr] === false ? '✅' : '❌';
+              if (typeof fallback === 'function') return fallback(m) ? '✅' : '❌';
+              return '—';
             };
 
-            // Table rows: [label, metric key, value extractor, formatter, threshold label]
+            // Table rows: [label, metric key, value extractor, formatter, threshold expression, threshold label]
             const rows = [
-              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    m => m?.['p(95)'], ms,  '< 500 ms'],
-              ['LIST EIO p(95)',   'http_req_duration{name:eio_list}',   m => m?.['p(95)'], ms,  '< 1000 ms'],
-              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', m => m?.['p(95)'], ms,  '< 3000 ms'],
-              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  m => m?.['p(95)'], ms,  '< 3000 ms'],
-              ['LIST OIO p(95)',   'http_req_duration{name:oio_list}',   m => m?.['p(95)'], ms,  '< 1000 ms'],
-              ['CREATE OIO p(95)', 'http_req_duration{name:oio_create}', m => m?.['p(95)'], ms,  '< 3000 ms'],
-              ['Error rate',       'http_req_failed',                    m => m?.value,     pct, '< 1 %'],
-              ['Success rate',     'perf_success_rate',                  m => m?.value,     pct, '> 99 %'],
+              ['GET EIO p(50)',    'http_req_duration{name:eio_get}',    trendP50,           ms,  'p(50)<120',   '< 120 ms'],
+              ['GET EIO p(95)',    'http_req_duration{name:eio_get}',    m => m?.['p(95)'], ms,  'p(95)<1500',  '< 1500 ms'],
+              ['LIST EIO p(50)',   'http_req_duration{name:eio_list}',   trendP50,           ms,  'p(50)<120',   '< 120 ms'],
+              ['LIST EIO p(95)',   'http_req_duration{name:eio_list}',   m => m?.['p(95)'], ms,  'p(95)<1500',  '< 1500 ms'],
+              ['CREATE EIO p(50)', 'http_req_duration{name:eio_create}', trendP50,           ms,  'p(50)<120',   '< 120 ms'],
+              ['CREATE EIO p(95)', 'http_req_duration{name:eio_create}', m => m?.['p(95)'], ms,  'p(95)<1500',  '< 1500 ms'],
+              ['PATCH EIO p(50)',  'http_req_duration{name:eio_patch}',  trendP50,           ms,  'p(50)<120',   '< 120 ms'],
+              ['PATCH EIO p(95)',  'http_req_duration{name:eio_patch}',  m => m?.['p(95)'], ms,  'p(95)<1500',  '< 1500 ms'],
+              ['LIST OIO p(50)',   'http_req_duration{name:oio_list}',   trendP50,           ms,  'p(50)<120',   '< 120 ms'],
+              ['LIST OIO p(95)',   'http_req_duration{name:oio_list}',   m => m?.['p(95)'], ms,  'p(95)<1500',  '< 1500 ms'],
+              ['CREATE OIO p(50)', 'http_req_duration{name:oio_create}', trendP50,           ms,  'p(50)<120',   '< 120 ms'],
+              ['CREATE OIO p(95)', 'http_req_duration{name:oio_create}', m => m?.['p(95)'], ms,  'p(95)<1500',  '< 1500 ms'],
+              ['Error rate',       'http_req_failed',                    m => m?.value,     pct, 'rate<0.01',   '< 1 %'],
+              ['Success rate',     'perf_success_rate',                  m => m?.value,     pct, 'rate>0.99',   '> 99 %'],
             ];
 
             const httpDuration = metrics['http_req_duration'];
@@ -139,11 +148,16 @@ jobs:
 
             // Per-scenario thresholds
             md += '### Threshold Results\n\n';
-            md += '| Scenario | p(95) / Rate | Threshold | Pass |\n|---|---|---|---|\n';
-            for (const [label, key, extract, fmt, threshold] of rows) {
+            md += '| Scenario | Value | Threshold | Pass |\n|---|---|---|---|\n';
+            for (const [label, key, extract, fmt, thresholdExpr, threshold] of rows) {
               const m = metrics[key];
               const val = extract(m);
-              const passed = thresholdPassed(m);
+              const fallback = key === 'http_req_failed'
+                ? metric => (metric?.value ?? 1) < 0.01
+                : key === 'perf_success_rate'
+                  ? metric => (metric?.value ?? 0) > 0.99
+                  : null;
+              const passed = thresholdPassed(m, thresholdExpr, fallback);
               md += `| ${label} | ${fmt(val)} | ${threshold} | ${passed} |\n`;
             }
 

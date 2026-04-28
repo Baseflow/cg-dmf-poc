@@ -13,6 +13,10 @@ WORKDIR /app
 
 COPY --from=build /app/build/install/DMF-PoC ./app
 
+# ZGC eliminates multi-second stop-the-world GC pauses under concurrent load.
+# The Gradle installDist startup script picks up JAVA_OPTS from the environment.
+ENV JAVA_OPTS="-XX:+UseZGC"
+
 EXPOSE 8080
 
 ENTRYPOINT ["./app/bin/DMF-PoC"]
