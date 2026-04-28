@@ -171,7 +171,7 @@ class EnkelvoudigInformatieObjectService(
     suspend fun getById(id: UUID, expand: List<String> = emptyList()): EnkelvoudigInformatieObjectResponse? {
         val response = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val version = record.versions.maxByOrNull { it.versie } ?: return@transaction null
+            val version = record.latestVersion() ?: return@transaction null
             val bestandsDelen = bestandsDeelService.getBestandsDelen(version)
             val trefwoorden = (EIOVersionTrefwoorden innerJoin Trefwoorden)
                 .select(Trefwoorden.woord)
@@ -323,7 +323,7 @@ class EnkelvoudigInformatieObjectService(
 
             val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
 
-            val latestVersion = record.versions.maxByOrNull { it.versie }
+            val latestVersion = record.latestVersion()
             auditContext.captureOld(record.toResponse(latestVersion))
             val newVersionNumber = (latestVersion?.versie ?: 1) + 1
 
@@ -759,7 +759,7 @@ class EnkelvoudigInformatieObjectService(
             }
 
             val record = EIORecordEntity.findById(id) ?: return@transaction DeleteResult.NotFound
-            val latestVersion = record.versions.maxByOrNull { it.versie }
+            val latestVersion = record.latestVersion()
             if (record.lockToken != null) {
                 return@transaction DeleteResult.Locked
             }
