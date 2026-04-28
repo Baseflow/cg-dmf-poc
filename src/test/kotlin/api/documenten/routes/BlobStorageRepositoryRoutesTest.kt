@@ -61,8 +61,8 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
             repoName = name
             storageType = type
             this.url = url
-            accessKeyHash = BlobStorageRegistrar.sha256("access")
-            secretKeyHash = BlobStorageRegistrar.sha256("secret")
+            accessKeyEncrypted = "access"
+            secretKeyEncrypted = "secret"
             this.bucket = bucket
             region = "eu-west-1"
             disableChecksums = false
@@ -125,15 +125,15 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<List<BlobStorageRepositoryResponse>>(response.bodyAsText())
         val repo = body.first()
-        // Hashes are masked: first 4 + asterisks + last 4 chars, never the raw plaintext value
-        assertFalse(repo.accessKeyHash.contains("access"))
-        assertFalse(repo.secretKeyHash.contains("secret"))
+        // Secrets are masked: first 4 + asterisks + last 4 chars, never the raw plaintext value
+        assertFalse(repo.accessKeyMasked.contains("access"))
+        assertFalse(repo.secretKeyMasked.contains("secret"))
         // Middle portion must be replaced with asterisks
-        assertTrue(repo.accessKeyHash.contains("****"))
-        assertTrue(repo.secretKeyHash.contains("****"))
-        // First and last 4 chars are visible hex digits; everything in between is '*'
-        val accessMiddle = repo.accessKeyHash.drop(4).dropLast(4)
-        val secretMiddle = repo.secretKeyHash.drop(4).dropLast(4)
+        assertTrue(repo.accessKeyMasked.contains("****"))
+        assertTrue(repo.secretKeyMasked.contains("****"))
+        // First and last 4 chars are visible; everything in between is '*'
+        val accessMiddle = repo.accessKeyMasked.drop(4).dropLast(4)
+        val secretMiddle = repo.secretKeyMasked.drop(4).dropLast(4)
         assertTrue(accessMiddle.all { it == '*' })
         assertTrue(secretMiddle.all { it == '*' })
     }
@@ -315,8 +315,8 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         assertNotNull(body.name)
         assertNotNull(body.storageType)
         assertNotNull(body.url)
-        assertNotNull(body.accessKeyHash)
-        assertNotNull(body.secretKeyHash)
+        assertNotNull(body.accessKeyMasked)
+        assertNotNull(body.secretKeyMasked)
         assertNotNull(body.bucket)
         assertNotNull(body.extraProperties)
         assertNotNull(body.createdAt)

@@ -13,7 +13,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
-import java.security.MessageDigest
 
 /**
  * Reads [BlobStorageConfig] on startup, hashes secrets, and
@@ -148,8 +147,6 @@ object BlobStorageRegistrar {
             .find { BlobStorageRepositories.repoName eq cfg.name }
             .firstOrNull()
 
-        val accessHash = sha256(cfg.accessKey)
-        val secretHash = sha256(cfg.secretKey)
         val extraJson = Json.encodeToString(
             JsonObject.serializer(),
             JsonObject(cfg.extraProperties.mapValues { JsonPrimitive(it.value) }),
@@ -158,8 +155,8 @@ object BlobStorageRegistrar {
         if (existing != null) {
             existing.storageType = cfg.type.label
             existing.url = cfg.url
-            existing.accessKeyHash = accessHash
-            existing.secretKeyHash = secretHash
+            existing.accessKeyEncrypted = cfg.accessKey
+            existing.secretKeyEncrypted = cfg.secretKey
             existing.bucket = cfg.bucket
             existing.region = cfg.region
             existing.disableChecksums = cfg.disableChecksums
@@ -171,8 +168,8 @@ object BlobStorageRegistrar {
                 repoName = cfg.name
                 storageType = cfg.type.label
                 url = cfg.url
-                accessKeyHash = accessHash
-                secretKeyHash = secretHash
+                accessKeyEncrypted = cfg.accessKey
+                secretKeyEncrypted = cfg.secretKey
                 bucket = cfg.bucket
                 region = cfg.region
                 disableChecksums = cfg.disableChecksums
@@ -186,12 +183,5 @@ object BlobStorageRegistrar {
     private fun createProvider(cfg: BlobStorageRepoConfig): BlobStorageProvider = when (cfg.type) {
         BlobStorageType.S3 -> S3BlobStorageProvider(cfg)
         BlobStorageType.AZURE_BLOB_STORAGE -> AzureBlobStorageProvider(cfg)
-    }
-
-    /** SHA-256 hex digest of [input]. */
-    internal fun sha256(input: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest(input.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
     }
 }

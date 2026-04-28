@@ -52,6 +52,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.2.0")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.2.0")
     implementation("org.jetbrains.exposed:exposed-json:1.2.0")
+    implementation("org.jetbrains.exposed:exposed-crypt:1.2.0")
     implementation("org.postgresql:postgresql:42.7.10")
 
     // Database migrations
@@ -219,6 +220,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Provide default encryption keys for unit tests so that the lazy Encryptor
+    // in BlobStorageRepositories can initialise when encrypted columns are used.
+    environment("ENCRYPTION_SECRET_KEY", System.getenv("ENCRYPTION_SECRET_KEY") ?: "test-secret-key-for-unit-tests")
+    environment("ENCRYPTION_SALT", System.getenv("ENCRYPTION_SALT") ?: "deadbeefcafe1234")
 }
 
 tasks.jar {
