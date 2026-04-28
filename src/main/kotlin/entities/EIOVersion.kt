@@ -95,9 +95,8 @@ class EIOVersionEntity(id: EntityID<UUID>) :
 }
 
 /** Returns the highest-versie version for this record using a single indexed DB lookup. */
-fun EIORecordEntity.latestVersion(): EIOVersionEntity? =
-    EIOVersionEntity
-        .find { EIOVersions.recordId eq this.id }
-        .orderBy(EIOVersions.versie to SortOrder.DESC)
-        .limit(1)
-        .firstOrNull()
+fun EIORecordEntity.latestVersion(): EIOVersionEntity? = EIOVersionEntity
+    .find { EIOVersions.recordId eq this.id }
+    .orderBy(EIOVersions.versie to SortOrder.DESC)
+    .limit(1)
+    .firstOrNull()
