@@ -10,6 +10,11 @@
 name: dmf-k6
 
 services:
+  app:
+    environment:
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:-changeme-use-a-strong-key-in-production}
+      ENCRYPTION_SALT: ${ENCRYPTION_SALT:-deadbeefcafe0123456789abcdef0123}
+
   keycloak:
     profiles:
       - disabled
