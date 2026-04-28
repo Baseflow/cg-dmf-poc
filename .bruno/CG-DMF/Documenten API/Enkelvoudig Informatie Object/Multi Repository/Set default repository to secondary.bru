@@ -1,5 +1,5 @@
 meta {
-  name: Set default repository
+  name: Set default repository to secondary
   type: http
   seq: 3
 }
@@ -12,14 +12,12 @@ put {
 
 body:json {
   {
-    "name": "{{storage.defaultRepo}}"
+    "name": "{{storage.secondaryRepo}}"
   }
 }
 
-tests {
-  test("status is 200", function() {
-    expect(res.status).to.equal(200);
-  });
+assert {
+  res.status: eq 200
 }
 
 settings {

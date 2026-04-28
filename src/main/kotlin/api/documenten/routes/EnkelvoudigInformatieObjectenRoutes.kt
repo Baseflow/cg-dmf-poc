@@ -953,7 +953,7 @@ private suspend fun RoutingContext.download() {
 
         // Stream the object from storage directly to the HTTP response
         call.respondOutputStream {
-            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
+            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this, repoName = eio.bestandsRepository)
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))

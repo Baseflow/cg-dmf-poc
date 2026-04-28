@@ -1,7 +1,7 @@
 meta {
-  name: Set default repository
+  name: Set default repository to primary
   type: http
-  seq: 3
+  seq: 1
 }
 
 put {
@@ -16,10 +16,8 @@ body:json {
   }
 }
 
-tests {
-  test("status is 200", function() {
-    expect(res.status).to.equal(200);
-  });
+assert {
+  res.status: eq 200
 }
 
 settings {

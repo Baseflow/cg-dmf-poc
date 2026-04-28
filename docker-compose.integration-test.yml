@@ -55,6 +55,13 @@ services:
       BLOB_STORAGE_URL1: http://minio:9000
       BLOB_STORAGE_ACCESS_KEY1: minioadmin
       BLOB_STORAGE_SECRET_KEY1: minioadmin
+      BLOB_STORAGE_BUCKET1: documenten-local
+      BLOB_STORAGE_TYPE2: S3
+      BLOB_STORAGE_NAME2: minio-archive
+      BLOB_STORAGE_URL2: http://minio:9000
+      BLOB_STORAGE_ACCESS_KEY2: minioadmin
+      BLOB_STORAGE_SECRET_KEY2: minioadmin
+      BLOB_STORAGE_BUCKET2: documenten-archive
       ZGW_ALLOWED_CLIENT_IDS: gzac
       OIDC_ISSUER: ${OIDC_ISSUER:-https://auth.gzac.baseflow.com/realms/valtimo}
       OPENZAAK_CLIENT_SECRET: ${OPENZAAK_CLIENT_SECRET:-}
