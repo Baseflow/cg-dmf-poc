@@ -11,6 +11,7 @@ fun Application.wopiApiModule() {
     if (!WopiConfig.isEnabled()) {
         return
     }
+
     routing {
         wopiApiRoutes()
     }

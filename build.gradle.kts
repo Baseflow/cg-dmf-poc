@@ -173,11 +173,11 @@ val copySwaggerUi by tasks.registering(Copy::class) {
     into(swaggerUiDest)
 }
 
-// Also copy our hand-written index.html into the same build directory
+// Also copy our hand-written *.html Swagger files into the same build directory
 val copySwaggerUiIndex by tasks.registering(Copy::class) {
     group = "swagger-ui"
-    description = "Copy the Swagger UI index.html into the build resources directory"
-    from(layout.projectDirectory.file("frontend/swagger-ui/index.html"))
+    description = "Copy the Swagger UI documenten-api.html into the build resources directory"
+    from(layout.projectDirectory.dir("frontend/swagger-ui")) { include("*.html") }
     into(swaggerUiDest)
 }
 
@@ -187,6 +187,7 @@ sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/swagger
 tasks.named("processResources") {
     dependsOn(copySwaggerUi, copySwaggerUiIndex)
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Static OpenAPI specs ───────────────────────────────────────────────────
