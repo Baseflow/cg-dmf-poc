@@ -1,6 +1,14 @@
 [
   {
     "category": "k6",
+    "runId": "25071746668",
+    "runNumber": "30",
+    "branch": "develop",
+    "date": "2026-04-28T19:01:17Z",
+    "path": "k6/25071746668/index.html"
+  },
+  {
+    "category": "k6",
     "runId": "25071234123",
     "runNumber": "29",
     "branch": "task/perf-tests",
