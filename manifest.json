@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25048105474",
+    "runNumber": "417",
+    "branch": "CGDMF-119-encrypt-repo-credentials",
+    "date": "2026-04-28T10:44:41Z",
+    "path": "integration/25048105474/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25041692700",
     "runNumber": "415",
     "branch": "CGDMF-119-encrypt-repo-credentials",
