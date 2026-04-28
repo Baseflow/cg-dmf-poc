@@ -6,11 +6,12 @@ Deze handleiding geeft gedetailleerde instructies voor het configureren van vers
 
 Zorg ervoor dat de volgende omgevingsvariabelen zijn ingesteld:
 
-| Variabele      | Standaardwaarde                              | Beschrijving                         |
-| -------------- | -------------------------------------------- | ------------------------------------ |
-| `DB_URL`       | `jdbc:postgresql://localhost:5432/documenten`| JDBC-URL naar de PostgreSQL-database |
-| `DB_USER`      | `documenten`                                 | Databasegebruiker                    |
-| `DB_PASSWORD`  | `documenten`                                 | Databasewachtwoord                   |
+| Variabele      | Standaardwaarde                              | Beschrijving                                        |
+| -------------- | -------------------------------------------- |-----------------------------------------------------|
+| `DB_URL`       | `jdbc:postgresql://localhost:5432/documenten`| JDBC-URL naar de PostgreSQL-database                |
+| `DB_USER`      | `documenten`                                 | Databasegebruiker                                   |
+| `DB_PASSWORD`  | `documenten`                                 | Databasewachtwoord                                  |
+| `DB_POOL_SIZE` | `10`                                         | Maximaal aantal verbindingen in de verbindingspool. |
 
 Het databaseschema wordt automatisch aangemaakt en bijgewerkt wanneer de applicatie start.
 

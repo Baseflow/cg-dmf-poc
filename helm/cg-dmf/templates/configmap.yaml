@@ -7,6 +7,10 @@ metadata:
 data:
   # Application
   BASE_URL: {{ .Values.settings.baseUrl | quote }}
+  # Database (non-sensitive)
+  {{- if .Values.settings.database.poolSize }}
+  DB_POOL_SIZE: {{ .Values.settings.database.poolSize | quote }}
+  {{- end }}
   # Authentication
   OIDC_ISSUER: {{ .Values.settings.oidcIssuer | quote }}
   ZGW_ALLOWED_CLIENT_IDS: {{ required "settings.zgwAllowedClientIds is required" .Values.settings.zgwAllowedClientIds | quote }}
