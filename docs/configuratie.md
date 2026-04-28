@@ -14,29 +14,6 @@ Zorg ervoor dat de volgende omgevingsvariabelen zijn ingesteld:
 
 Het databaseschema wordt automatisch aangemaakt en bijgewerkt wanneer de applicatie start.
 
-## S3-configuratie
-
-MinIO of een andere S3 opslag worden gebruikt voor objectopslag. Stel de volgende omgevingsvariabelen in:
-
-| Variabele        | Standaardwaarde         | Beschrijving                                   |
-| ---------------- | ----------------------- | --------------------------------------------- |
-| `S3_ENDPOINT`    | `http://localhost:9000` | MinIO / S3-compatibele eindpunt-URL           |
-| `S3_ACCESS_KEY`  | `minioadmin`            | Toegangssleutel (gebruikersnaam)              |
-| `S3_SECRET_KEY`  | `minioadmin`            | Geheime sleutel (wachtwoord)                  |
-| `S3_BUCKET`      | `documenten`            | Bucket gebruikt voor documentopslag           |
-
-
-## Bestandsdelen-configuratie
-
-Bij het aanmaken van een `EnkelvoudigInformatieObject` met een `bestandsomvang` groter dan `BESTANDSDELEN_TRIGGER_SIZE`,
-wordt automatisch de bestandsdelen-workflow geactiveerd. De bestanden worden dan opgesplitst in losse delen
-die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
-
-| Variabele                     | Standaardwaarde | Beschrijving                                                                                                        |
-| ----------------------------- | --------------- |---------------------------------------------------------------------------------------------------------------------|
-| `BESTANDSDELEN_TRIGGER_SIZE`  | `4294967296`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 4 GB) |
-| `BESTANDSDELEN_CHUNK_SIZE`    | `3221225472`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 3 GB)                                          |
-
 ## Keycloak-configuratie
 
 Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u de volgende omgevingsvariabelen:
@@ -51,6 +28,52 @@ Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te ko
 OIDC issuer is voor rechtstreeks toegang van gebruikers to the API. Dit gebruiken we o.a. ook voor de beheer interface.
 
 ZGW_ALLOWED_CLIENT_IDS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
+
+## Versleuteling (at-rest encryptie van opslaginloggegevens)
+
+Toegangssleutels en geheime sleutels van blobopslag-repositories worden versleuteld opgeslagen in de database
+met AES-256-PBE-CBC. De volgende omgevingsvariabelen zijn verplicht:
+
+| Variabele               | Standaardwaarde | Beschrijving                                                                 |
+| ----------------------- | --------------- | ---------------------------------------------------------------------------- |
+| `ENCRYPTION_SECRET_KEY` | _(geen)_        | Wachtwoordzin voor AES-256-PBE-CBC sleutelafleidng (verplicht)              |
+| `ENCRYPTION_SALT`       | _(geen)_        | Hex-salt voor sleutelafleiding; moet een even aantal hexadecimale tekens zijn (verplicht) |
+
+**Waarden genereren:**
+
+```bash
+# Genereer een sterke ENCRYPTION_SECRET_KEY (Base64, 32 bytes willekeurig)
+openssl rand -base64 32
+
+# Genereer een ENCRYPTION_SALT (hex, 16 bytes willekeurig)
+openssl rand -hex 16
+```
+
+Sla de gegenereerde waarden op in een geheimenbeheerder (bijv. Kubernetes Secrets, HashiCorp Vault of Azure Key Vault).
+Gebruik nooit dezelfde waarden in meerdere omgevingen. Als `ENCRYPTION_SECRET_KEY` of `ENCRYPTION_SALT` gewijzigd worden,
+kunnen bestaande versleutelde referenties niet meer worden ontsleuteld — sla de sleutels dus veilig op.
+
+## S3-configuratie
+
+MinIO of een andere S3 opslag worden gebruikt voor objectopslag. Stel de volgende omgevingsvariabelen in:
+
+| Variabele        | Standaardwaarde         | Beschrijving                                   |
+| ---------------- | ----------------------- | --------------------------------------------- |
+| `S3_ENDPOINT`    | `http://localhost:9000` | MinIO / S3-compatibele eindpunt-URL           |
+| `S3_ACCESS_KEY`  | `minioadmin`            | Toegangssleutel (gebruikersnaam)              |
+| `S3_SECRET_KEY`  | `minioadmin`            | Geheime sleutel (wachtwoord)                  |
+| `S3_BUCKET`      | `documenten`            | Bucket gebruikt voor documentopslag           |
+
+## Bestandsdelen-configuratie
+
+Bij het aanmaken van een `EnkelvoudigInformatieObject` met een `bestandsomvang` groter dan `BESTANDSDELEN_TRIGGER_SIZE`,
+wordt automatisch de bestandsdelen-workflow geactiveerd. De bestanden worden dan opgesplitst in losse delen
+die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
+
+| Variabele                     | Standaardwaarde | Beschrijving                                                                                                        |
+| ----------------------------- | --------------- |---------------------------------------------------------------------------------------------------------------------|
+| `BESTANDSDELEN_TRIGGER_SIZE`  | `4294967296`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 4 GB) |
+| `BESTANDSDELEN_CHUNK_SIZE`    | `3221225472`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 3 GB)                                          |
 
 ## OpenZaak-integratie
 
