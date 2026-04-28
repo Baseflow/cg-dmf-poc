@@ -1,5 +1,13 @@
 [
   {
+    "category": "k6",
+    "runId": "25071234123",
+    "runNumber": "29",
+    "branch": "task/perf-tests",
+    "date": "2026-04-28T18:49:27Z",
+    "path": "k6/25071234123/index.html"
+  },
+  {
     "category": "integration",
     "runId": "25071195757",
     "runNumber": "440",
