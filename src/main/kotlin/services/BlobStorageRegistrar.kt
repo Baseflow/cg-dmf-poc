@@ -10,6 +10,7 @@ import com.baseflow.entities.BlobStorageRepositoryEntity
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -46,14 +47,34 @@ object BlobStorageRegistrar {
      * the matching [BlobStorageProvider].
      */
     fun initialise() {
-        val configs = BlobStorageConfig.repositories
-        if (configs.isEmpty()) {
-            logger.warn("No blob storage repositories configured – file uploads will not work.")
+        val envConfigs = BlobStorageConfig.repositories
+
+        if (envConfigs.isEmpty()) {
+            // No env-based configuration – fall back to repositories stored in the database.
+            logger.info("No blob storage repositories configured via env vars – loading from database.")
+            val dbConfigs = transaction { loadConfigsFromDatabase() }
+            if (dbConfigs.isEmpty()) {
+                logger.warn("No blob storage repositories found in database either – file uploads will not work.")
+                return
+            }
+            for (cfg in dbConfigs) {
+                providers[cfg.name] = createProvider(cfg)
+            }
+            // Honour the is_default flag that is already persisted in the DB.
+            defaultProviderName = defaultProviderName
+                ?: dbConfigs.firstOrNull { it.index == -1 }?.name
+                ?: dbConfigs.first().name
+            logger.info(
+                "Registered {} blob storage provider(s) from database: {} — default: {}",
+                providers.size,
+                providers.keys,
+                defaultProviderName,
+            )
             return
         }
 
         transaction {
-            for (cfg in configs) {
+            for (cfg in envConfigs) {
                 upsertRepository(cfg)
             }
 
@@ -67,7 +88,7 @@ object BlobStorageRegistrar {
                 defaultProviderName = markedDefault.repoName
             } else {
                 // Mark the first config as default
-                val firstName = configs.first().name
+                val firstName = envConfigs.first().name
                 defaultProviderName = firstName
                 BlobStorageRepositoryEntity
                     .find { BlobStorageRepositories.repoName eq firstName }
@@ -76,7 +97,7 @@ object BlobStorageRegistrar {
             }
         }
 
-        for (cfg in configs) {
+        for (cfg in envConfigs) {
             providers[cfg.name] = createProvider(cfg)
         }
 
@@ -86,6 +107,44 @@ object BlobStorageRegistrar {
             providers.keys,
             defaultProviderName,
         )
+    }
+
+    /**
+     * Reads all rows from [BlobStorageRepositories] and converts them to [BlobStorageRepoConfig].
+     * The [BlobStorageRepoConfig.index] is set to `-1` for rows that are marked as default
+     * (used as a sentinel to pick the default provider name), and `0` for others.
+     *
+     * Must be called inside a [transaction].
+     */
+    private fun loadConfigsFromDatabase(): List<BlobStorageRepoConfig> {
+        val entities = BlobStorageRepositoryEntity.all().toList()
+        if (entities.isEmpty()) return emptyList()
+
+        val default = entities.firstOrNull { it.isDefault } ?: entities.first()
+        defaultProviderName = default.repoName
+
+        return entities.map { entity ->
+            val extraMap = runCatching {
+                Json.parseToJsonElement(entity.extraProperties)
+                    .let { it as? JsonObject }
+                    ?.mapValues { (_, v) -> v.jsonPrimitive.content }
+                    ?: emptyMap()
+            }.getOrDefault(emptyMap())
+
+            BlobStorageRepoConfig(
+                index = 0,
+                name = entity.repoName,
+                type = BlobStorageType.fromLabel(entity.storageType),
+                url = entity.url,
+                accessKey = entity.accessKeyEncrypted,
+                secretKey = entity.secretKeyEncrypted,
+                bucket = entity.bucket,
+                region = entity.region,
+                disableChecksums = entity.disableChecksums,
+                disableChunkedEncoding = entity.disableChunkedEncoding,
+                extraProperties = extraMap,
+            )
+        }
     }
 
     /** Returns the provider for the given repository name, or `null` when not found. */
