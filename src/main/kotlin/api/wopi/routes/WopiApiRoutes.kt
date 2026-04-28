@@ -16,10 +16,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.path
+import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.hide
 import io.ktor.utils.io.ExperimentalKtorApi
+import io.ktor.utils.io.toByteArray
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
@@ -35,6 +37,38 @@ fun Route.wopiApiRoutes() {
         get("/files/{file_id}/contents") {
             getFileContents()
         }.hide()
+
+        post("/files/{file_id}/contents") {
+            updateFileContents()
+        }
+    }
+}
+
+private suspend fun RoutingContext.updateFileContents() {
+    val fileId = call.parameters["file_id"]
+    if (fileId == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(fileId)
+        val bytes = call.receiveChannel().toByteArray()
+        val response = service.updateWithBytes(id = uuid, bytes = bytes)
+        // TODO(elitsa): improve problem response
+        if (response == null) {
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("Er is iets misgegaan met de update.", call.request.path()),
+            )
+            return
+        }
+        call.respond(HttpStatusCode.OK)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
     }
 }
 
@@ -129,6 +163,8 @@ private suspend fun RoutingContext.getFileMetadata() {
             val checkFileInfoResponse = CheckFileInfoResponse(
                 baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
                 size = result.bestandsomvang,
+                userCanWrite = true,
+                supportsAutosave = false,
             )
             call.respond(
                 HttpStatusCode.OK,

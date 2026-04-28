@@ -11,4 +11,8 @@ data class CheckFileInfoResponse(
     val baseFileName: String,
     @SerialName("Size")
     val size: Long,
+    @SerialName("UserCanWrite")
+    val userCanWrite: Boolean,
+    @SerialName("SupportsAutosave")
+    val supportsAutosave: Boolean = false,
 )
