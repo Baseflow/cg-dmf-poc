@@ -2,13 +2,19 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.infra.models
 
+import com.baseflow.config.WopiConfig
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.openapi.Tag
 
 internal val openApiSpecifications = listOf(
     DocumentenOpenApiSpecification(),
-    WopiOpenApiSpecification(),
-)
+).let { specs ->
+    if (WopiConfig.isEnabled()) {
+        specs + WopiOpenApiSpecification()
+    } else {
+        specs
+    }
+}
 
 /**
  * Represents an OpenAPI specification for API documentation.
