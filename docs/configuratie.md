@@ -119,6 +119,7 @@ De DMF implementeert een WOPI-host waarmee WOPI-clients (bijvoorbeeld Collabora 
 
 | Variabele              | Standaardwaarde | Beschrijving                                                                                                                                                                              |
 |------------------------| --------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `WOPI_ENABLED`         | `false`         | Zet op `true` om de WOPI functionaliteit beschikbaar te maken.                                                                                                                            |
 | `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar door de WOPI_client, bijv. `http://localhost:8080`. Het volledige WOPI-endpoint is dan bijv. `http://localhost:8080/wopi/api/v1/files/{file_id}` |
 | `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke basis-URL van de WOPI-client bijv. `https://collabora.dev.baseflow.com`                                                                                                          |
 
