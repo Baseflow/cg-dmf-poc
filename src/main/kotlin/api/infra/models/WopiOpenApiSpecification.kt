@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.infra.models
 
 import com.baseflow.api.WOPI_API_BASE_PATH
@@ -15,7 +17,7 @@ internal class WopiOpenApiSpecification : OpenApiSpecification {
         version = WOPI_API_VERSION,
         description = """
         Een API om een WOPI-compatible client te integreren met de Documenten API.
-    """.trimIndent(),
+        """.trimIndent(),
         license = OpenApiInfo.License(
             name = "EUPL 1.2",
             url = "https://opensource.org/licenses/EUPL-1.2",

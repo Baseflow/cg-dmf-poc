@@ -177,7 +177,7 @@ val copySwaggerUi by tasks.registering(Copy::class) {
 val copySwaggerUiIndex by tasks.registering(Copy::class) {
     group = "swagger-ui"
     description = "Copy the Swagger UI documenten-api.html into the build resources directory"
-    from(layout.projectDirectory.dir("frontend/swagger-ui")){include("*.html")}
+    from(layout.projectDirectory.dir("frontend/swagger-ui")) { include("*.html") }
     into(swaggerUiDest)
 }
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.infra.models
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
@@ -38,7 +40,7 @@ internal class DocumentenOpenApiSpecification : OpenApiSpecification {
         **Autorisatie**
 
         Deze API vereist autorisatie via JWT tokens.
-    """.trimIndent(),
+        """.trimIndent(),
         contact = OpenApiInfo.Contact(
             email = "standaarden.ondersteuning@vng.nl",
             url = "https://vng-realisatie.github.io/gemma-zaken",
