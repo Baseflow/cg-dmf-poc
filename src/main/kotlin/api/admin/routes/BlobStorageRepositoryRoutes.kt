@@ -150,15 +150,15 @@ fun Route.blobStorageRepositoryRoutes() {
     }
 }
 
-private fun String.maskHash(): String = if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
+private fun String.maskSecret(): String = if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
 
 private fun BlobStorageRepositoryEntity.toResponse() = BlobStorageRepositoryResponse(
     id = id.value.toString(),
     name = repoName,
     storageType = storageType,
     url = url,
-    accessKeyHash = accessKeyHash.maskHash(),
-    secretKeyHash = secretKeyHash.maskHash(),
+    accessKeyMasked = accessKey.maskSecret(),
+    secretKeyMasked = secretKey.maskSecret(),
     bucket = bucket,
     region = region,
     disableChecksums = disableChecksums,
