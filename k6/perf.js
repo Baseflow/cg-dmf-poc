@@ -86,13 +86,14 @@ export const options = {
     },
   },
   thresholds: {
-    // 95th percentile response times
-    'http_req_duration{name:eio_get}':    ['p(95)<500'],
-    'http_req_duration{name:eio_list}':   ['p(95)<1000'],
-    'http_req_duration{name:eio_create}': ['p(95)<3000'],
-    'http_req_duration{name:eio_patch}':  ['p(95)<3000'],
-    'http_req_duration{name:oio_list}':   ['p(95)<1000'],
-    'http_req_duration{name:oio_create}': ['p(95)<3000'],
+    // Median (p50) — normal-case baseline
+    // p(95) — tail / worst-case ceiling
+    'http_req_duration{name:eio_get}':    ['p(50)<100',  'p(95)<500'],
+    'http_req_duration{name:eio_list}':   ['p(50)<200',  'p(95)<1000'],
+    'http_req_duration{name:eio_create}': ['p(50)<300',  'p(95)<3000'],
+    'http_req_duration{name:eio_patch}':  ['p(50)<200',  'p(95)<3000'],
+    'http_req_duration{name:oio_list}':   ['p(50)<150',  'p(95)<1000'],
+    'http_req_duration{name:oio_create}': ['p(50)<150',  'p(95)<3000'],
     // Overall error rate must stay below 1 %
     'http_req_failed': ['rate<0.01'],
     // Custom success rate
