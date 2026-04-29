@@ -26,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
 import { SettingsTable } from "@/components/settings-table"
@@ -351,6 +351,7 @@ function SettingForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Herkenbare naam voor dit koppelingsprofile.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-base-url">Base URL</FieldLabel>
@@ -362,6 +363,7 @@ function SettingForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Basis-URL van de ZGW API-implementatie.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-client-id">Client ID</FieldLabel>
@@ -373,6 +375,7 @@ function SettingForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Client-ID voor JWT-authenticatie.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-client-secret">Client secret</FieldLabel>

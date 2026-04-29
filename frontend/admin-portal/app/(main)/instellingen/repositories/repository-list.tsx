@@ -28,9 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { SecretInput } from "@/components/ui/secret-input"
 import {
   Select,
@@ -429,6 +428,7 @@ function RepositoryForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Herkenbare naam voor deze repository.</FieldDescription>
         </Field>
 
         <Field>
@@ -448,6 +448,7 @@ function RepositoryForm({
               </SelectItem>
             </SelectContent>
           </Select>
+          <FieldDescription>Bepaalt welke verbindingsinstellingen nodig zijn.</FieldDescription>
         </Field>
 
         {isS3 && (
@@ -491,6 +492,7 @@ function RepositoryForm({
                 placeholder="mijn-bucket"
                 disabled={saving}
               />
+              <FieldDescription>De naam van de S3-bucket.</FieldDescription>
             </Field>
           </>
         )}
@@ -509,6 +511,7 @@ function RepositoryForm({
                 required={isAzure}
                 disabled={saving}
               />
+              <FieldDescription>De naam van het Azure Storage-account.</FieldDescription>
             </Field>
 
             <Field>
@@ -538,35 +541,36 @@ function RepositoryForm({
                 required={isAzure}
                 disabled={saving}
               />
+              <FieldDescription>Basis-URL van het Azure Blob Storage-account.</FieldDescription>
             </Field>
           </>
         )}
 
-        <div className="flex flex-col gap-3 pt-1">
-          <div className="flex cursor-pointer items-center gap-2.5">
-            <Checkbox
-              id="repo-default"
-              checked={isDefault}
-              onCheckedChange={(v) => setIsDefault(v === true)}
-              disabled={saving}
-            />
-            <Label htmlFor="repo-default" className="cursor-pointer font-normal">
-              Standaard repository
-            </Label>
-          </div>
+        <Field orientation="horizontal">
+          <Checkbox
+            id="repo-default"
+            checked={isDefault}
+            onCheckedChange={(v) => setIsDefault(v === true)}
+            disabled={saving}
+          />
+          <FieldContent>
+            <FieldLabel htmlFor="repo-default">Standaard repository</FieldLabel>
+            <FieldDescription>Gebruik deze repository standaard voor nieuwe uploads.</FieldDescription>
+          </FieldContent>
+        </Field>
 
-          <div className="flex cursor-pointer items-center gap-2.5">
-            <Checkbox
-              id="repo-enabled"
-              checked={enabled}
-              onCheckedChange={(v) => setEnabled(v === true)}
-              disabled={saving}
-            />
-            <Label htmlFor="repo-enabled" className="cursor-pointer font-normal">
-              Ingeschakeld
-            </Label>
-          </div>
-        </div>
+        <Field orientation="horizontal">
+          <Checkbox
+            id="repo-enabled"
+            checked={enabled}
+            onCheckedChange={(v) => setEnabled(v === true)}
+            disabled={saving}
+          />
+          <FieldContent>
+            <FieldLabel htmlFor="repo-enabled">Ingeschakeld</FieldLabel>
+            <FieldDescription>Schakel deze repository in of uit voor gebruik.</FieldDescription>
+          </FieldContent>
+        </Field>
       </form>
       <DrawerFooter>
         <Button type="submit" form="repo-form" size="sm" disabled={saving}>

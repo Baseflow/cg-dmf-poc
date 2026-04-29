@@ -26,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
 import { SettingsTable } from "@/components/settings-table"
@@ -356,6 +356,7 @@ function ProviderForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Herkenbare naam voor deze OIDC-provider.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="provider-issuer">Issuer</FieldLabel>
@@ -367,6 +368,7 @@ function ProviderForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Discovery-URL van de OIDC-provider.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="provider-client-id">Client ID</FieldLabel>
@@ -378,6 +380,7 @@ function ProviderForm({
             required
             disabled={saving}
           />
+          <FieldDescription>Client-ID van de OIDC-registratie.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="provider-client-secret">

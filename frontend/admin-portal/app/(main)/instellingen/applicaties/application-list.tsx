@@ -34,7 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -547,6 +547,7 @@ function AppForm({
             placeholder="Mijn applicatie"
             disabled={saving}
           />
+          <FieldDescription>Herkenbare naam voor deze applicatie.</FieldDescription>
           <FieldError>{fieldErrors.name}</FieldError>
         </Field>
         <Field>
@@ -558,6 +559,7 @@ function AppForm({
             placeholder="my-client-id"
             disabled={saving}
           />
+          <FieldDescription>De unieke identifier van de applicatie.</FieldDescription>
           <FieldError>{fieldErrors.clientId}</FieldError>
         </Field>
         <Field>
