@@ -33,7 +33,7 @@ import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Check, X } from "lucide-react"
-import * as React from "react"
+import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createZgwApiSetting,
   deleteZgwApiSetting,
@@ -45,26 +45,26 @@ import {
 export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
   const isMobile = useIsMobile()
 
-  const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingSetting, setEditingSetting] =
-    React.useState<ZgwApiSetting | null>(null)
-  const [isSaving, startSave] = React.useTransition()
-  const [drawerError, setDrawerError] = React.useState<string | null>(null)
+    useState<ZgwApiSetting | null>(null)
+  const [isSaving, startSave] = useTransition()
+  const [drawerError, setDrawerError] = useState<string | null>(null)
 
   const [deleteTarget, setDeleteTarget] =
-    React.useState<ZgwApiSetting | null>(null)
-  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
-  const [isDeleting, startDelete] = React.useTransition()
-  const [deleteError, setDeleteError] = React.useState<string | null>(null)
+    useState<ZgwApiSetting | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [isDeleting, startDelete] = useTransition()
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const openAdd = React.useCallback(() => {
+  const openAdd = useCallback(() => {
     setEditingSetting(null)
     setDrawerError(null)
     setDrawerOpen(true)
   }, [])
 
-  const openDetails = React.useCallback((setting: ZgwApiSetting) => {
+  const openDetails = useCallback((setting: ZgwApiSetting) => {
     setEditingSetting(setting)
     setDrawerError(null)
     setDrawerOpen(true)
@@ -134,7 +134,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
     })
   }
 
-  const columns = React.useMemo<ColumnDef<ZgwApiSetting>[]>(
+  const columns = useMemo<ColumnDef<ZgwApiSetting>[]>(
     () => [
       {
         accessorKey: "name",
@@ -312,13 +312,13 @@ function SettingForm({
   }) => void
   onCancel: () => void
 }) {
-  const [name, setName] = React.useState(setting?.name ?? "")
-  const [baseUrl, setBaseUrl] = React.useState(setting?.baseUrl ?? "")
-  const [clientId, setClientId] = React.useState(setting?.clientId ?? "")
-  const [clientSecret, setClientSecret] = React.useState(
+  const [name, setName] = useState(setting?.name ?? "")
+  const [baseUrl, setBaseUrl] = useState(setting?.baseUrl ?? "")
+  const [clientId, setClientId] = useState(setting?.clientId ?? "")
+  const [clientSecret, setClientSecret] = useState(
     setting?.clientSecret ?? ""
   )
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({ name, baseUrl, clientId, clientSecret })
   }

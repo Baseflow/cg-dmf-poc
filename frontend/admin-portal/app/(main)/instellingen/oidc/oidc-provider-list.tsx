@@ -33,7 +33,7 @@ import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Check, X } from "lucide-react"
-import * as React from "react"
+import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createOidcProvider,
   deleteOidcProvider,
@@ -49,27 +49,27 @@ export function OidcProviderList({
 }) {
   const isMobile = useIsMobile()
 
-  const [drawerOpen, setDrawerOpen] = React.useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingProvider, setEditingProvider] =
-    React.useState<OidcProvider | null>(null)
-  const [isSaving, startSave] = React.useTransition()
-  const [drawerError, setDrawerError] = React.useState<string | null>(null)
+    useState<OidcProvider | null>(null)
+  const [isSaving, startSave] = useTransition()
+  const [drawerError, setDrawerError] = useState<string | null>(null)
 
-  const [deleteTarget, setDeleteTarget] = React.useState<OidcProvider | null>(
+  const [deleteTarget, setDeleteTarget] = useState<OidcProvider | null>(
     null
   )
-  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
-  const [isDeleting, startDelete] = React.useTransition()
-  const [deleteError, setDeleteError] = React.useState<string | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [isDeleting, startDelete] = useTransition()
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const openAdd = React.useCallback(() => {
+  const openAdd = useCallback(() => {
     setEditingProvider(null)
     setDrawerError(null)
     setDrawerOpen(true)
   }, [])
 
-  const openEdit = React.useCallback((provider: OidcProvider) => {
+  const openEdit = useCallback((provider: OidcProvider) => {
     setEditingProvider(provider)
     setDrawerError(null)
     setDrawerOpen(true)
@@ -139,7 +139,7 @@ export function OidcProviderList({
     })
   }
 
-  const columns = React.useMemo<ColumnDef<OidcProvider>[]>(
+  const columns = useMemo<ColumnDef<OidcProvider>[]>(
     () => [
       {
         accessorKey: "name",
@@ -317,13 +317,13 @@ function ProviderForm({
   }) => void
   onCancel: () => void
 }) {
-  const [name, setName] = React.useState(provider?.name ?? "")
-  const [issuer, setIssuer] = React.useState(provider?.issuer ?? "")
-  const [clientId, setClientId] = React.useState(provider?.clientId ?? "")
-  const [clientSecret, setClientSecret] = React.useState(
+  const [name, setName] = useState(provider?.name ?? "")
+  const [issuer, setIssuer] = useState(provider?.issuer ?? "")
+  const [clientId, setClientId] = useState(provider?.clientId ?? "")
+  const [clientSecret, setClientSecret] = useState(
     provider?.clientSecret ?? ""
   )
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({ name, issuer, clientId, clientSecret })
   }

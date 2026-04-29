@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { type ComponentProps } from "react"
 
 import { BaseflowAvatar } from "@/components/icons"
 import { NavDocuments } from "@/components/nav-documents"
@@ -18,7 +18,7 @@ import {
 import { navigation } from "@/lib/navigation"
 import { NavSettings } from "./nav-settings"
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>

@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { type ComponentPropsWithoutRef, type ReactNode } from "react"
 
 import {
   SidebarGroup,
@@ -17,9 +17,9 @@ export function NavSecondary({
   items: {
     title: string
     url: string
-    icon: React.ReactNode
+    icon: ReactNode
   }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+} & ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>

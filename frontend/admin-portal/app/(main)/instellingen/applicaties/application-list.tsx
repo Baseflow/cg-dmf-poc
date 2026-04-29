@@ -48,7 +48,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react"
-import * as React from "react"
+import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
 import { z } from "zod"
 import {
   createApplication,
@@ -68,41 +68,41 @@ export function ApplicationList({
 }) {
   const isMobile = useIsMobile()
 
-  const [drawerOpen, setDrawerOpen] = React.useState(false)
-  const [editing, setEditing] = React.useState<ApplicationSetting | null>(null)
-  const [isSaving, startSave] = React.useTransition()
-  const [drawerError, setDrawerError] = React.useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [editing, setEditing] = useState<ApplicationSetting | null>(null)
+  const [isSaving, startSave] = useTransition()
+  const [drawerError, setDrawerError] = useState<string | null>(null)
 
   const [deleteTarget, setDeleteTarget] =
-    React.useState<ApplicationSetting | null>(null)
-  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
-  const [isDeleting, startDelete] = React.useTransition()
-  const [deleteError, setDeleteError] = React.useState<string | null>(null)
+    useState<ApplicationSetting | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [isDeleting, startDelete] = useTransition()
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const [rotateTarget, setRotateTarget] =
-    React.useState<ApplicationSetting | null>(null)
-  const [rotateMode, setRotateMode] = React.useState<"auto" | "manual">("auto")
-  const [rotateNewSecret, setRotateNewSecret] = React.useState("")
-  const [rotatePhase, setRotatePhase] = React.useState<RotatePhase>("idle")
-  const [rotatedSecret, setRotatedSecret] = React.useState("")
-  const [rotateError, setRotateError] = React.useState<string | null>(null)
-  const [copied, setCopied] = React.useState(false)
-  const [isRotating, startRotate] = React.useTransition()
+    useState<ApplicationSetting | null>(null)
+  const [rotateMode, setRotateMode] = useState<"auto" | "manual">("auto")
+  const [rotateNewSecret, setRotateNewSecret] = useState("")
+  const [rotatePhase, setRotatePhase] = useState<RotatePhase>("idle")
+  const [rotatedSecret, setRotatedSecret] = useState("")
+  const [rotateError, setRotateError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [isRotating, startRotate] = useTransition()
 
-  const openAdd = React.useCallback(() => {
+  const openAdd = useCallback(() => {
     setEditing(null)
     setDrawerError(null)
     setDrawerOpen(true)
   }, [])
 
-  const openEdit = React.useCallback((app: ApplicationSetting) => {
+  const openEdit = useCallback((app: ApplicationSetting) => {
     setEditing(app)
     setDrawerError(null)
     setDrawerOpen(true)
   }, [])
 
-  const openRotate = React.useCallback((app: ApplicationSetting) => {
+  const openRotate = useCallback((app: ApplicationSetting) => {
     setRotateTarget(app)
     setRotateMode("auto")
     setRotateNewSecret("")
@@ -209,7 +209,7 @@ export function ApplicationList({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const columns = React.useMemo<ColumnDef<ApplicationSetting>[]>(
+  const columns = useMemo<ColumnDef<ApplicationSetting>[]>(
     () => [
       {
         accessorKey: "name",
@@ -499,14 +499,14 @@ function AppForm({
   onSave: (data: { name: string; clientId: string; clientSecret: string }) => void
   onCancel: () => void
 }) {
-  const [name, setName] = React.useState(app?.name ?? "")
-  const [clientId, setClientId] = React.useState(app?.clientId ?? "")
-  const [clientSecret, setClientSecret] = React.useState(
+  const [name, setName] = useState(app?.name ?? "")
+  const [clientId, setClientId] = useState(app?.clientId ?? "")
+  const [clientSecret, setClientSecret] = useState(
     app?.clientSecret ?? ""
   )
-  const [fieldErrors, setFieldErrors] = React.useState<AppFormErrors>({})
+  const [fieldErrors, setFieldErrors] = useState<AppFormErrors>({})
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setFieldErrors({})
     const result = appFormSchema.safeParse({ name, clientId, clientSecret })

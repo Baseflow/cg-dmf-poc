@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus, Trash2 } from "lucide-react"
-import * as React from "react"
+import { useEffect, useMemo, useState } from "react"
 
 interface SettingsTableProps<T extends { id: string }> {
   data: T[]
@@ -41,13 +41,13 @@ export function SettingsTable<T extends { id: string }>({
   emptyAddLabel,
   onBulkDelete,
 }: SettingsTableProps<T>) {
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
-  React.useEffect(() => {
+  useEffect(() => {
     setRowSelection({})
   }, [data])
 
-  const selectedIds = React.useMemo(
+  const selectedIds = useMemo(
     () =>
       Object.entries(rowSelection)
         .filter(([, v]) => v)
@@ -55,7 +55,7 @@ export function SettingsTable<T extends { id: string }>({
     [rowSelection]
   )
 
-  const allColumns = React.useMemo<ColumnDef<T>[]>(() => {
+  const allColumns = useMemo<ColumnDef<T>[]>(() => {
     if (!onBulkDelete) return dataCols
     const selectCol: ColumnDef<T> = {
       id: "select",

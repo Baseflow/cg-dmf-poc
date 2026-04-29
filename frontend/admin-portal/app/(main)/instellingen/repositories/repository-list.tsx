@@ -43,7 +43,7 @@ import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Check, X } from "lucide-react"
-import * as React from "react"
+import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createRepository,
   deleteRepositories,
@@ -60,26 +60,26 @@ export function RepositoryList({
 }) {
   const isMobile = useIsMobile()
 
-  const [drawerOpen, setDrawerOpen] = React.useState(false)
-  const [editingRepo, setEditingRepo] = React.useState<Repository | null>(null)
-  const [isSaving, startSave] = React.useTransition()
-  const [drawerError, setDrawerError] = React.useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [editingRepo, setEditingRepo] = useState<Repository | null>(null)
+  const [isSaving, startSave] = useTransition()
+  const [drawerError, setDrawerError] = useState<string | null>(null)
 
-  const [deleteTarget, setDeleteTarget] = React.useState<Repository | null>(
+  const [deleteTarget, setDeleteTarget] = useState<Repository | null>(
     null
   )
-  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
-  const [isDeleting, startDelete] = React.useTransition()
-  const [deleteError, setDeleteError] = React.useState<string | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [isDeleting, startDelete] = useTransition()
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const openAdd = React.useCallback(() => {
+  const openAdd = useCallback(() => {
     setEditingRepo(null)
     setDrawerError(null)
     setDrawerOpen(true)
   }, [])
 
-  const openEdit = React.useCallback((repo: Repository) => {
+  const openEdit = useCallback((repo: Repository) => {
     setEditingRepo(repo)
     setDrawerError(null)
     setDrawerOpen(true)
@@ -168,7 +168,7 @@ export function RepositoryList({
     })
   }
 
-  const columns = React.useMemo<ColumnDef<Repository>[]>(
+  const columns = useMemo<ColumnDef<Repository>[]>(
     () => [
       {
         accessorKey: "name",
@@ -368,26 +368,26 @@ function RepositoryForm({
   }) => void
   onCancel: () => void
 }) {
-  const [name, setName] = React.useState(repo?.name ?? "")
-  const [storageType, setStorageType] = React.useState<StorageType>(
+  const [name, setName] = useState(repo?.name ?? "")
+  const [storageType, setStorageType] = useState<StorageType>(
     (repo?.storageType as StorageType) ?? "S3"
   )
-  const [url, setUrl] = React.useState(repo?.url ?? "")
-  const [accessKey, setAccessKey] = React.useState(repo?.accessKey ?? "")
-  const [secretKey, setSecretKey] = React.useState(repo?.secretKey ?? "")
-  const [storageAccountName, setStorageAccountName] = React.useState(
+  const [url, setUrl] = useState(repo?.url ?? "")
+  const [accessKey, setAccessKey] = useState(repo?.accessKey ?? "")
+  const [secretKey, setSecretKey] = useState(repo?.secretKey ?? "")
+  const [storageAccountName, setStorageAccountName] = useState(
     repo?.storageAccountName ?? ""
   )
-  const [bucket, setBucket] = React.useState(repo?.bucket ?? "")
-  const [isDefault, setIsDefault] = React.useState(repo?.isDefault ?? false)
-  const [enabled, setEnabled] = React.useState(repo?.enabled ?? true)
+  const [bucket, setBucket] = useState(repo?.bucket ?? "")
+  const [isDefault, setIsDefault] = useState(repo?.isDefault ?? false)
+  const [enabled, setEnabled] = useState(repo?.enabled ?? true)
 
   const isS3 = storageType === "S3"
   const isAzure = storageType === "Azure Blob Storage"
   const hasExistingAccessKey = repo !== null && repo.accessKey === null
   const hasExistingSecretKey = repo !== null && repo.secretKey === null
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({
       name,
