@@ -287,7 +287,6 @@ fun Route.blobStorageRepositoryRoutes() {
 
                     val oldName = entity.repoName
 
-                    body.name?.let { entity.repoName = it }
                     storageType?.let { entity.storageType = it.label }
                     body.url?.let { entity.url = it }
                     body.accessKey?.let { entity.accessKey = it }
@@ -310,15 +309,6 @@ fun Route.blobStorageRepositoryRoutes() {
                     Pair(oldName, entity)
                 }
             }.getOrElse { ex ->
-                if (ex.isUniqueNameViolation()) {
-                    return@patch call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict(
-                            "A blob storage repository with name '${body.name}' already exists.",
-                            call.request.path(),
-                        ),
-                    )
-                }
                 throw ex
             } ?: return@patch call.respondProblem(
                 HttpStatusCode.NotFound,
@@ -380,7 +370,8 @@ fun Route.blobStorageRepositoryRoutes() {
     }
 }
 
-private fun String.maskSecret(): String = if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
+private fun String.maskSecret(): String =
+    if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
 
 /**
  * Returns true if this exception (or any exception in its cause chain, including
