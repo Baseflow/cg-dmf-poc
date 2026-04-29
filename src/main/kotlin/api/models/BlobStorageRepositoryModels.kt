@@ -42,6 +42,7 @@ data class CreateBlobStorageRepositoryRequest(
 
 @Serializable
 data class UpdateBlobStorageRepositoryRequest(
+    val name: String? = null,
     val storageType: String? = null,
     val url: String? = null,
     val accessKey: String? = null,
