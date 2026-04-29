@@ -207,7 +207,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => openDetails(row.original)}>
-                  Details
+                  Bewerken
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
