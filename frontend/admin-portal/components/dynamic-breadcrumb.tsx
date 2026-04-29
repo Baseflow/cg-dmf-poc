@@ -17,6 +17,7 @@ const routeLabels: Record<string, string> = {
   dmf: "DMF",
   repositories: "Repositories",
   applicaties: "Applicaties",
+  "api-docs": "API Docs",
 }
 
 export function DynamicBreadcrumb() {
