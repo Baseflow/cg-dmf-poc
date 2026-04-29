@@ -13,7 +13,7 @@ function RowSkeleton() {
 
 export default function Loading() {
   return (
-    <div className="flex min-h-svh p-6">
+    <div className="p-6">
       <div className="flex w-full max-w-sm flex-col gap-4">
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-48" />
