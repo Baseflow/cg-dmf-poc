@@ -3,17 +3,12 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { Metadata } from "next"
 import { IBM_Plex_Mono, Source_Sans_3 } from "next/font/google"
+
 import "./globals.css"
 
 const fontSans = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "600", "700"],
-})
-
-const fontSerif = Source_Sans_3({
-  subsets: ["latin"],
-  variable: "--font-serif",
   weight: ["400", "600", "700"],
 })
 
@@ -35,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
+        className={`${fontSans.variable} ${fontMono.variable} antialiased`}
       >
         <ThemeProvider>
           <TooltipProvider>
