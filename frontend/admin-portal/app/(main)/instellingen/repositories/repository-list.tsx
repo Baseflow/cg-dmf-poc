@@ -38,10 +38,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { SecretCell } from "@/components/secret-cell"
 import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, X } from "lucide-react"
+import { Check, ChevronDown, X } from "lucide-react"
 import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createRepository,
@@ -201,11 +202,41 @@ export function RepositoryList({
         ),
       },
       {
-        accessorKey: "url",
-        header: "URL",
+        id: "locatie",
+        header: "Locatie",
+        cell: ({ row }) => {
+          const { storageType, bucket, storageAccountName, url } = row.original
+          const label =
+            storageType === "S3"
+              ? bucket || "—"
+              : storageAccountName || url || "—"
+          return (
+            <span className="max-w-xs truncate text-muted-foreground">
+              {label}
+            </span>
+          )
+        },
+      },
+      {
+        accessorKey: "accessKey",
+        header: "Access key",
         cell: ({ row }) => (
-          <span className="max-w-xs truncate text-muted-foreground">
-            {row.original.url}
+          <SecretCell
+            value={row.original.accessKey}
+            hasSecret={!!row.original.accessKey}
+          />
+        ),
+      },
+      {
+        accessorKey: "updatedAt",
+        header: "Bijgewerkt",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {new Intl.DateTimeFormat("nl-NL", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }).format(new Date(row.original.updatedAt))}
           </span>
         ),
       },
@@ -215,8 +246,9 @@ export function RepositoryList({
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="outline" size="sm">
                   Acties
+                  <ChevronDown />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

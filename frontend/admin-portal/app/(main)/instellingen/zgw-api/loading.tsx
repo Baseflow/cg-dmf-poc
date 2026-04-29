@@ -7,6 +7,8 @@ function TableRowSkeleton() {
       <Skeleton className="h-3.5 w-28" />
       <Skeleton className="h-3.5 w-44" />
       <Skeleton className="h-3.5 w-20" />
+      <Skeleton className="h-3.5 w-24" />
+      <Skeleton className="h-3.5 w-24" />
       <Skeleton className="ml-auto h-7 w-16" />
     </div>
   )

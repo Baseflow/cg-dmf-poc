@@ -29,10 +29,11 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
+import { SecretCell } from "@/components/secret-cell"
 import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, X } from "lucide-react"
+import { Check, ChevronDown, X } from "lucide-react"
 import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createOidcProvider,
@@ -165,13 +166,37 @@ export function OidcProviderList({
         ),
       },
       {
+        accessorKey: "clientSecret",
+        header: "Client secret",
+        cell: ({ row }) => (
+          <SecretCell
+            value={row.original.clientSecret}
+            hasSecret={row.original.hasSecret}
+          />
+        ),
+      },
+      {
+        accessorKey: "updatedAt",
+        header: "Bijgewerkt",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {new Intl.DateTimeFormat("nl-NL", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }).format(new Date(row.original.updatedAt))}
+          </span>
+        ),
+      },
+      {
         id: "actions",
         cell: ({ row }) => (
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="outline" size="sm">
                   Acties
+                  <ChevronDown />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

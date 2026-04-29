@@ -1,5 +1,7 @@
 "use client"
 
+import { SecretCell } from "@/components/secret-cell"
+import { SettingsTable } from "@/components/settings-table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,29 +36,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SecretInput } from "@/components/ui/secret-input"
-import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
+import { Check, ChevronDown, Copy, RefreshCw, X } from "lucide-react"
 import {
-  Check,
-  Copy,
-  RefreshCw,
-  X,
-} from "lucide-react"
-import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
+  useCallback,
+  useMemo,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react"
 import { z } from "zod"
 import {
   createApplication,
   deleteApplication,
   deleteApplications,
   rotateApplicationSecret,
-  type ApplicationSetting,
   updateApplication,
+  type ApplicationSetting,
 } from "./actions"
 
 type RotatePhase = "idle" | "success" | "error"
@@ -73,15 +80,17 @@ export function ApplicationList({
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
 
-  const [deleteTarget, setDeleteTarget] =
-    useState<ApplicationSetting | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ApplicationSetting | null>(
+    null
+  )
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [isDeleting, startDelete] = useTransition()
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const [rotateTarget, setRotateTarget] =
-    useState<ApplicationSetting | null>(null)
+  const [rotateTarget, setRotateTarget] = useState<ApplicationSetting | null>(
+    null
+  )
   const [rotateMode, setRotateMode] = useState<"auto" | "manual">("auto")
   const [rotateNewSecret, setRotateNewSecret] = useState("")
   const [rotatePhase, setRotatePhase] = useState<RotatePhase>("idle")
@@ -226,13 +235,37 @@ export function ApplicationList({
         ),
       },
       {
+        accessorKey: "clientSecret",
+        header: "Client secret",
+        cell: ({ row }) => (
+          <SecretCell
+            value={row.original.clientSecret}
+            hasSecret={row.original.hasSecret}
+          />
+        ),
+      },
+      {
+        accessorKey: "updatedAt",
+        header: "Bijgewerkt",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {new Intl.DateTimeFormat("nl-NL", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }).format(new Date(row.original.updatedAt))}
+          </span>
+        ),
+      },
+      {
         id: "actions",
         cell: ({ row }) => (
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="outline" size="sm">
                   Acties
+                  <ChevronDown />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -402,9 +435,7 @@ export function ApplicationList({
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>
-                  Secret roteren — {rotateTarget?.name}
-                </DialogTitle>
+                <DialogTitle>Secret roteren — {rotateTarget?.name}</DialogTitle>
                 <DialogDescription>
                   Kies hoe het nieuwe secret wordt aangemaakt.
                 </DialogDescription>
@@ -420,13 +451,19 @@ export function ApplicationList({
                 >
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="auto" id="rotate-auto" />
-                    <Label htmlFor="rotate-auto" className="cursor-pointer font-normal">
+                    <Label
+                      htmlFor="rotate-auto"
+                      className="cursor-pointer font-normal"
+                    >
                       Auto-genereren
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="manual" id="rotate-manual" />
-                    <Label htmlFor="rotate-manual" className="cursor-pointer font-normal">
+                    <Label
+                      htmlFor="rotate-manual"
+                      className="cursor-pointer font-normal"
+                    >
                       Handmatig invoeren
                     </Label>
                   </div>
@@ -496,14 +533,16 @@ function AppForm({
   app: ApplicationSetting | null
   saving: boolean
   error: string | null
-  onSave: (data: { name: string; clientId: string; clientSecret: string }) => void
+  onSave: (data: {
+    name: string
+    clientId: string
+    clientSecret: string
+  }) => void
   onCancel: () => void
 }) {
   const [name, setName] = useState(app?.name ?? "")
   const [clientId, setClientId] = useState(app?.clientId ?? "")
-  const [clientSecret, setClientSecret] = useState(
-    app?.clientSecret ?? ""
-  )
+  const [clientSecret, setClientSecret] = useState(app?.clientSecret ?? "")
   const [fieldErrors, setFieldErrors] = useState<AppFormErrors>({})
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -547,7 +586,9 @@ function AppForm({
             placeholder="Mijn applicatie"
             disabled={saving}
           />
-          <FieldDescription>Herkenbare naam voor deze applicatie.</FieldDescription>
+          <FieldDescription>
+            Herkenbare naam voor deze applicatie.
+          </FieldDescription>
           <FieldError>{fieldErrors.name}</FieldError>
         </Field>
         <Field>
@@ -559,7 +600,9 @@ function AppForm({
             placeholder="my-client-id"
             disabled={saving}
           />
-          <FieldDescription>De unieke identifier van de applicatie.</FieldDescription>
+          <FieldDescription>
+            De unieke identifier van de applicatie.
+          </FieldDescription>
           <FieldError>{fieldErrors.clientId}</FieldError>
         </Field>
         <Field>

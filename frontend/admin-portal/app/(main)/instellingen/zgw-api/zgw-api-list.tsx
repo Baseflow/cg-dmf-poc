@@ -1,5 +1,7 @@
 "use client"
 
+import { SecretCell } from "@/components/secret-cell"
+import { SettingsTable } from "@/components/settings-table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,33 +28,43 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
-import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, X } from "lucide-react"
-import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
+import { Check, ChevronDown, X } from "lucide-react"
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react"
 import {
   createZgwApiSetting,
   deleteZgwApiSetting,
   deleteZgwApiSettings,
-  type ZgwApiSetting,
   updateZgwApiSetting,
+  type ZgwApiSetting,
 } from "./actions"
 
 export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
   const isMobile = useIsMobile()
 
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editingSetting, setEditingSetting] =
-    useState<ZgwApiSetting | null>(null)
+  const [editingSetting, setEditingSetting] = useState<ZgwApiSetting | null>(
+    null
+  )
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
 
-  const [deleteTarget, setDeleteTarget] =
-    useState<ZgwApiSetting | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ZgwApiSetting | null>(null)
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [isDeleting, startDelete] = useTransition()
@@ -160,13 +172,37 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
         ),
       },
       {
+        accessorKey: "clientSecret",
+        header: "Client secret",
+        cell: ({ row }) => (
+          <SecretCell
+            value={row.original.clientSecret}
+            hasSecret={row.original.hasSecret}
+          />
+        ),
+      },
+      {
+        accessorKey: "updatedAt",
+        header: "Bijgewerkt",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {new Intl.DateTimeFormat("nl-NL", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }).format(new Date(row.original.updatedAt))}
+          </span>
+        ),
+      },
+      {
         id: "actions",
         cell: ({ row }) => (
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="outline" size="sm">
                   Acties
+                  <ChevronDown />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -315,9 +351,7 @@ function SettingForm({
   const [name, setName] = useState(setting?.name ?? "")
   const [baseUrl, setBaseUrl] = useState(setting?.baseUrl ?? "")
   const [clientId, setClientId] = useState(setting?.clientId ?? "")
-  const [clientSecret, setClientSecret] = useState(
-    setting?.clientSecret ?? ""
-  )
+  const [clientSecret, setClientSecret] = useState(setting?.clientSecret ?? "")
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({ name, baseUrl, clientId, clientSecret })
@@ -351,7 +385,9 @@ function SettingForm({
             required
             disabled={saving}
           />
-          <FieldDescription>Herkenbare naam voor dit koppelingsprofile.</FieldDescription>
+          <FieldDescription>
+            Herkenbare naam voor dit koppelingsprofile.
+          </FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-base-url">Base URL</FieldLabel>
@@ -363,7 +399,9 @@ function SettingForm({
             required
             disabled={saving}
           />
-          <FieldDescription>Basis-URL van de ZGW API-implementatie.</FieldDescription>
+          <FieldDescription>
+            Basis-URL van de ZGW API-implementatie.
+          </FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-client-id">Client ID</FieldLabel>
@@ -393,12 +431,7 @@ function SettingForm({
         </Field>
       </form>
       <DrawerFooter>
-        <Button
-          type="submit"
-          form="setting-form"
-          size="sm"
-          disabled={saving}
-        >
+        <Button type="submit" form="setting-form" size="sm" disabled={saving}>
           <Check />
           {saving ? "Opslaan..." : "Opslaan"}
         </Button>
