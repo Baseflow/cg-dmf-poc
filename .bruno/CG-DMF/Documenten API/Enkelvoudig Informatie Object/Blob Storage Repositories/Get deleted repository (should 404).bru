@@ -1,0 +1,23 @@
+meta {
+  name: Get deleted repository (should 404)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/admin/storage-repositories/{{blobRepoId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 404", function() {
+    expect(res.status).to.equal(404);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

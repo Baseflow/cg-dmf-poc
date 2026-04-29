@@ -1,0 +1,43 @@
+meta {
+  name: Update repository
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/admin/storage-repositories/{{blobRepoId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "test-repo-bruno-updated",
+    "url": "http://localhost:9001",
+    "bucket": "documenten-updated"
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("name was updated", function() {
+    expect(res.body.name).to.equal("test-repo-bruno-updated");
+  });
+
+  test("url was updated", function() {
+    expect(res.body.url).to.equal("http://localhost:9001");
+  });
+
+  test("bucket was updated", function() {
+    expect(res.body.bucket).to.equal("documenten-updated");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

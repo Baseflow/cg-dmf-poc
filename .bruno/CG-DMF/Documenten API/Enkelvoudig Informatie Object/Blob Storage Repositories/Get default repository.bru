@@ -1,0 +1,29 @@
+meta {
+  name: Get default repository
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/admin/storage-repositories/default
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200 or 404", function() {
+    expect([200, 404]).to.include(res.status);
+  });
+
+  test("if 200, response has isDefault true", function() {
+    if (res.status === 200) {
+      expect(res.body.isDefault).to.equal(true);
+    }
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

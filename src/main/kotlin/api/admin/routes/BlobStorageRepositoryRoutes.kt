@@ -196,14 +196,16 @@ fun Route.blobStorageRepositoryRoutes() {
                     repoName = body.name
                     this.storageType = storageType.label
                     url = body.url
-                    accessKeyHash = BlobStorageRegistrar.sha256(body.accessKey)
-                    secretKeyHash = BlobStorageRegistrar.sha256(body.secretKey)
+                    accessKey = body.accessKey
+                    secretKey = body.secretKey
                     bucket = body.bucket
                     region = body.region
                     disableChecksums = body.disableChecksums
                     disableChunkedEncoding = body.disableChunkedEncoding
                     extraProperties = body.extraProperties
                     isDefault = body.isDefault
+                    createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             }
 
@@ -267,8 +269,8 @@ fun Route.blobStorageRepositoryRoutes() {
                 body.name?.let { entity.repoName = it }
                 storageType?.let { entity.storageType = it.label }
                 body.url?.let { entity.url = it }
-                body.accessKey?.let { entity.accessKeyHash = BlobStorageRegistrar.sha256(it) }
-                body.secretKey?.let { entity.secretKeyHash = BlobStorageRegistrar.sha256(it) }
+                body.accessKey?.let { entity.accessKey = it }
+                body.secretKey?.let { entity.secretKey = it }
                 body.bucket?.let { entity.bucket = it }
                 body.region?.let { entity.region = it }
                 body.disableChecksums?.let { entity.disableChecksums = it }
@@ -284,28 +286,28 @@ fun Route.blobStorageRepositoryRoutes() {
                 }
                 entity.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
-                Pair(oldName, entity.toResponse())
+                Pair(oldName, entity)
             } ?: return@patch call.respondProblem(
                 HttpStatusCode.NotFound,
                 notFound("Blob storage repository with id '$id' not found.", call.request.path()),
             )
 
-            val (oldName, response) = updated
+            val (oldName, entity) = updated
             val cfg = BlobStorageRepoConfig(
                 index = -1,
-                name = response.name,
-                type = BlobStorageType.fromLabel(response.storageType),
-                url = response.url,
-                accessKey = body.accessKey ?: "",
-                secretKey = body.secretKey ?: "",
-                bucket = response.bucket,
-                region = response.region,
-                disableChecksums = response.disableChecksums,
-                disableChunkedEncoding = response.disableChunkedEncoding,
+                name = entity.repoName,
+                type = BlobStorageType.fromLabel(entity.storageType),
+                url = entity.url,
+                accessKey = entity.accessKey,
+                secretKey = entity.secretKey,
+                bucket = entity.bucket,
+                region = entity.region,
+                disableChecksums = entity.disableChecksums,
+                disableChunkedEncoding = entity.disableChunkedEncoding,
             )
             BlobStorageRegistrar.updateProvider(cfg, oldName = oldName)
 
-            call.respond(HttpStatusCode.OK, response)
+            call.respond(HttpStatusCode.OK, entity.toResponse())
         }
 
         /**
@@ -344,7 +346,8 @@ fun Route.blobStorageRepositoryRoutes() {
     }
 }
 
-private fun String.maskSecret(): String = if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
+private fun String.maskSecret(): String =
+    if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
 
 private fun BlobStorageRepositoryEntity.toResponse() = BlobStorageRepositoryResponse(
     id = id.value.toString(),
