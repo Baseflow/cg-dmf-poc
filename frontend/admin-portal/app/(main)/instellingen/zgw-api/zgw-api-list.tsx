@@ -32,7 +32,7 @@ import { SecretInput } from "@/components/ui/secret-input"
 import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, MoreHorizontal, X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import * as React from "react"
 import {
   createZgwApiSetting,
@@ -165,9 +165,8 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-7">
-                  <MoreHorizontal className="size-4" />
-                  <span className="sr-only">Acties</span>
+                <Button variant="ghost" size="sm">
+                  Acties
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

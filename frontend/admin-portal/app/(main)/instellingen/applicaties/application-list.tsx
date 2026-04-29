@@ -45,7 +45,6 @@ import { type ColumnDef } from "@tanstack/react-table"
 import {
   Check,
   Copy,
-  MoreHorizontal,
   RefreshCw,
   X,
 } from "lucide-react"
@@ -232,9 +231,8 @@ export function ApplicationList({
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-7">
-                  <MoreHorizontal className="size-4" />
-                  <span className="sr-only">Acties</span>
+                <Button variant="ghost" size="sm">
+                  Acties
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
