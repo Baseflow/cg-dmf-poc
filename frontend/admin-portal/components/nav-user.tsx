@@ -35,7 +35,6 @@ export function NavUser() {
   const { isMobile } = useSidebar()
   const { data: session, status } = useSession()
 
-  // ── Loading state ────────────────────────────────────────────────────────
   if (status === "loading") {
     return (
       <SidebarMenu>
@@ -52,7 +51,6 @@ export function NavUser() {
     )
   }
 
-  // ── Unauthenticated state ─────────────────────────────────────────────────
   if (status === "unauthenticated" || !session) {
     return (
       <SidebarMenu>
@@ -80,7 +78,6 @@ export function NavUser() {
     )
   }
 
-  // ── Authenticated state ───────────────────────────────────────────────────
   const user = session.user
   const initials = getInitials(user?.name)
 
