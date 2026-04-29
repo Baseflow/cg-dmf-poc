@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Reads [BlobStorageConfig] on startup, hashes secrets, and
@@ -35,7 +36,7 @@ object BlobStorageRegistrar {
     private val logger = LoggerFactory.getLogger(BlobStorageRegistrar::class.java)
 
     /** Provider instances keyed by repository name. */
-    private val providers = mutableMapOf<String, BlobStorageProvider>()
+    private val providers = ConcurrentHashMap<String, BlobStorageProvider>()
 
     /** Name of the currently designated default provider (may be `null` before [initialise]). */
     @Volatile
@@ -63,7 +64,7 @@ object BlobStorageRegistrar {
             // Honour the is_default flag that is already persisted in the DB.
             defaultProviderName = defaultProviderName
                 ?: dbConfigs.firstOrNull { it.index == -1 }?.name
-                ?: dbConfigs.first().name
+                    ?: dbConfigs.first().name
             logger.info(
                 "Registered {} blob storage provider(s) from database: {} — default: {}",
                 providers.size,
@@ -198,8 +199,9 @@ object BlobStorageRegistrar {
      */
     fun updateProvider(cfg: BlobStorageRepoConfig, oldName: String? = null) {
         val nameToRemove = oldName ?: cfg.name
+        val newProvider = createProvider(cfg)
         providers.remove(nameToRemove)
-        providers[cfg.name] = createProvider(cfg)
+        providers[cfg.name] = newProvider
 
         if (defaultProviderName == nameToRemove) {
             defaultProviderName = cfg.name
