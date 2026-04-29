@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useIsMobile } from "./use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 function mockWindowInnerWidth(width: number) {
   Object.defineProperty(window, "innerWidth", {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { usePathname } from "next/navigation"
 import { describe, expect, it, vi } from "vitest"
-import { DynamicBreadcrumb } from "./dynamic-breadcrumb"
+import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb"
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),

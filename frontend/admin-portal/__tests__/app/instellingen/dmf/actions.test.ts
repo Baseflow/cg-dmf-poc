@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { saveDmfSettings } from "./actions"
+import { saveDmfSettings } from "@/app/(main)/instellingen/dmf/actions"
 
 vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ accessToken: "test-token" }),

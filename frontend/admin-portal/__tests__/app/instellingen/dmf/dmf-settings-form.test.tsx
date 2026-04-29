@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import DmfSettingsForm from "./dmf-settings-form"
+import DmfSettingsForm from "@/app/(main)/instellingen/dmf/dmf-settings-form"
 
-vi.mock("./actions", () => ({
+vi.mock("@/app/(main)/instellingen/dmf/actions", () => ({
   saveDmfSettings: vi.fn(),
 }))
 
-import { saveDmfSettings } from "./actions"
+import { saveDmfSettings } from "@/app/(main)/instellingen/dmf/actions"
 
 const defaultSettings = {
   triggerSize: 4294967296,
