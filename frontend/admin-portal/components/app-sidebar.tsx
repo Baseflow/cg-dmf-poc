@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { navigation } from "@/lib/navigation"
+import Link from "next/link"
 import { NavSettings } from "./nav-settings"
 
 export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
@@ -28,10 +29,10 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <a href="#" className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2">
                 <BaseflowAvatar />
                 <span className="text-base font-semibold">Baseflow</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
