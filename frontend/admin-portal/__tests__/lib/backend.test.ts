@@ -34,7 +34,7 @@ describe("apiFetch", () => {
 
   it("uses an empty Bearer token when session has no accessToken", async () => {
     const { auth } = await import("@/auth")
-    vi.mocked(auth).mockResolvedValueOnce(null)
+    vi.mocked(auth as () => Promise<null>).mockResolvedValueOnce(null)
     vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
     await apiFetch("/test")
     const [, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
