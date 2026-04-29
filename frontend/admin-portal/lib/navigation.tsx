@@ -38,7 +38,7 @@ export const navigation = {
   documents: [
     {
       name: "OpenAPI Spec",
-      url: "https://cg-dmf.dev.baseflow.com/docs",
+      url: "/api-docs",
       icon: <FileTextIcon />,
     },
     {
