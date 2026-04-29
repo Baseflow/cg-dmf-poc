@@ -26,7 +26,7 @@ export default function MainLayout({
             <DynamicBreadcrumb />
           </div>
         </header>
-        {children}
+        <main className="flex flex-1 flex-col">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )
