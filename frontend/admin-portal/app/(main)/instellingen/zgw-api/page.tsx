@@ -11,7 +11,7 @@ export default async function Page() {
   const settings: ZgwApiSetting[] = await res.json()
 
   return (
-    <div className="flex min-h-svh flex-col gap-4 p-6">
+    <div className="p-6">
       <ZgwApiList settings={settings} />
     </div>
   )

@@ -1,13 +1,6 @@
 "use client"
 
 import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-  type RowSelectionState,
-} from "@tanstack/react-table"
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -18,7 +11,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Drawer,
   DrawerClose,
@@ -37,16 +29,10 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Check, MoreHorizontal, Plus, Trash2, X } from "lucide-react"
+import { type ColumnDef } from "@tanstack/react-table"
+import { Check, MoreHorizontal, X } from "lucide-react"
 import * as React from "react"
 import {
   createZgwApiSetting,
@@ -59,8 +45,6 @@ import {
 export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
   const isMobile = useIsMobile()
 
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
-
   const [drawerOpen, setDrawerOpen] = React.useState(false)
   const [editingSetting, setEditingSetting] =
     React.useState<ZgwApiSetting | null>(null)
@@ -69,17 +53,10 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
 
   const [deleteTarget, setDeleteTarget] =
     React.useState<ZgwApiSetting | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
   const [isDeleting, startDelete] = React.useTransition()
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
-
-  const selectedIds = React.useMemo(
-    () =>
-      Object.entries(rowSelection)
-        .filter(([, v]) => v)
-        .map(([id]) => id),
-    [rowSelection]
-  )
 
   const openAdd = React.useCallback(() => {
     setEditingSetting(null)
@@ -130,11 +107,6 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
     startDelete(async () => {
       try {
         await deleteZgwApiSetting(deleteTarget.id)
-        setRowSelection((prev) => {
-          const next = { ...prev }
-          delete next[deleteTarget.id]
-          return next
-        })
         setDeleteTarget(null)
       } catch (e) {
         setDeleteError(
@@ -150,8 +122,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
     setDeleteError(null)
     startDelete(async () => {
       try {
-        await deleteZgwApiSettings(selectedIds)
-        setRowSelection({})
+        await deleteZgwApiSettings(bulkDeleteIds)
         setBulkDeleteOpen(false)
       } catch (e) {
         setDeleteError(
@@ -165,31 +136,6 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
 
   const columns = React.useMemo<ColumnDef<ZgwApiSetting>[]>(
     () => [
-      {
-        id: "select",
-        header: ({ table }) => (
-          <Checkbox
-            checked={
-              table.getIsAllRowsSelected()
-                ? true
-                : table.getIsSomeRowsSelected()
-                  ? "indeterminate"
-                  : false
-            }
-            onCheckedChange={(checked) =>
-              table.toggleAllRowsSelected(!!checked)
-            }
-            aria-label="Selecteer alles"
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(checked) => row.toggleSelected(!!checked)}
-            aria-label="Selecteer rij"
-          />
-        ),
-      },
       {
         accessorKey: "name",
         header: "Naam",
@@ -243,90 +189,20 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
     [openDetails]
   )
 
-  const table = useReactTable({
-    data: settings,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    onRowSelectionChange: setRowSelection,
-    getRowId: (row) => row.id,
-    state: { rowSelection },
-  })
-
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            ZGW API-koppelingsprofielen voor het DMF-systeem.
-          </p>
-          <div className="flex items-center gap-2">
-            {selectedIds.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setBulkDeleteOpen(true)}
-              >
-                <Trash2 />
-                {selectedIds.length} verwijderen
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={openAdd}>
-              <Plus />
-              Toevoegen
-            </Button>
-          </div>
-        </div>
-
-        {settings.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Nog geen ZGW API-instellingen geconfigureerd.
-            </p>
-            <Button variant="outline" size="sm" onClick={openAdd}>
-              <Plus />
-              Instelling toevoegen
-            </Button>
-          </div>
-        ) : (
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </div>
+      <SettingsTable
+        data={settings}
+        columns={columns}
+        description="ZGW API-koppelingsprofielen voor het DMF-systeem."
+        emptyMessage="Nog geen ZGW API-instellingen geconfigureerd."
+        emptyAddLabel="Instelling toevoegen"
+        onAdd={openAdd}
+        onBulkDelete={(ids) => {
+          setBulkDeleteIds(ids)
+          setBulkDeleteOpen(true)
+        }}
+      />
 
       <Drawer
         open={drawerOpen}
@@ -394,7 +270,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
             <AlertDialogTitle>Instellingen verwijderen</AlertDialogTitle>
             <AlertDialogDescription>
               Weet je zeker dat je{" "}
-              <strong>{selectedIds.length} instellingen</strong> wilt
+              <strong>{bulkDeleteIds.length} instellingen</strong> wilt
               verwijderen? Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -410,7 +286,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
             >
               {isDeleting
                 ? "Verwijderen..."
-                : `${selectedIds.length} verwijderen`}
+                : `${bulkDeleteIds.length} verwijderen`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
