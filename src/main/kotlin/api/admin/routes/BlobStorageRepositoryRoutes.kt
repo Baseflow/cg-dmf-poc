@@ -7,6 +7,7 @@ import com.baseflow.api.models.CreateBlobStorageRepositoryRequest
 import com.baseflow.api.models.SetDefaultRepositoryRequest
 import com.baseflow.api.models.UpdateBlobStorageRepositoryRequest
 import com.baseflow.api.models.badRequest
+import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.config.BlobStorageRepoConfig
@@ -19,7 +20,12 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.sql.SQLException
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -186,27 +192,40 @@ fun Route.blobStorageRepositoryRoutes() {
                 )
             }
 
-            val created = transaction {
-                // If this one should be default, clear existing defaults first
-                if (body.isDefault) {
-                    BlobStorageRepositoryEntity.all().filter { it.isDefault }.forEach { it.isDefault = false }
-                }
+            val created = runCatching {
+                transaction {
+                    // If this one should be default, clear existing defaults first
+                    if (body.isDefault) {
+                        BlobStorageRepositoryEntity.all().filter { it.isDefault }.forEach { it.isDefault = false }
+                    }
 
-                BlobStorageRepositoryEntity.new {
-                    repoName = body.name
-                    this.storageType = storageType.label
-                    url = body.url
-                    accessKey = body.accessKey
-                    secretKey = body.secretKey
-                    bucket = body.bucket
-                    region = body.region
-                    disableChecksums = body.disableChecksums
-                    disableChunkedEncoding = body.disableChunkedEncoding
-                    extraProperties = body.extraProperties
-                    isDefault = body.isDefault
-                    createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                }.toResponse()
+                    BlobStorageRepositoryEntity.new {
+                        repoName = body.name
+                        this.storageType = storageType.label
+                        url = body.url
+                        accessKey = body.accessKey
+                        secretKey = body.secretKey
+                        bucket = body.bucket
+                        region = body.region
+                        disableChecksums = body.disableChecksums
+                        disableChunkedEncoding = body.disableChunkedEncoding
+                        extraProperties = encodeExtraProperties(body.extraProperties)
+                        isDefault = body.isDefault
+                        createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    }.toResponse()
+                }
+            }.getOrElse { ex ->
+                if (ex.isUniqueNameViolation()) {
+                    return@post call.respondProblem(
+                        HttpStatusCode.Conflict,
+                        conflict(
+                            "A blob storage repository with name '${body.name}' already exists.",
+                            call.request.path(),
+                        ),
+                    )
+                }
+                throw ex
             }
 
             val cfg = BlobStorageRepoConfig(
@@ -220,6 +239,7 @@ fun Route.blobStorageRepositoryRoutes() {
                 region = body.region,
                 disableChecksums = body.disableChecksums,
                 disableChunkedEncoding = body.disableChunkedEncoding,
+                extraProperties = body.extraProperties,
             )
             BlobStorageRegistrar.registerProvider(cfg, makeDefault = body.isDefault)
 
@@ -260,33 +280,46 @@ fun Route.blobStorageRepositoryRoutes() {
                 }
             }
 
-            val updated = transaction {
-                val entity = BlobStorageRepositoryEntity.findById(id)
-                    ?: return@transaction null
+            val updated = runCatching {
+                transaction {
+                    val entity = BlobStorageRepositoryEntity.findById(id)
+                        ?: return@transaction null
 
-                val oldName = entity.repoName
+                    val oldName = entity.repoName
 
-                body.name?.let { entity.repoName = it }
-                storageType?.let { entity.storageType = it.label }
-                body.url?.let { entity.url = it }
-                body.accessKey?.let { entity.accessKey = it }
-                body.secretKey?.let { entity.secretKey = it }
-                body.bucket?.let { entity.bucket = it }
-                body.region?.let { entity.region = it }
-                body.disableChecksums?.let { entity.disableChecksums = it }
-                body.disableChunkedEncoding?.let { entity.disableChunkedEncoding = it }
-                body.extraProperties?.let { entity.extraProperties = it }
-                body.isDefault?.let { makeDefault ->
-                    if (makeDefault) {
-                        BlobStorageRepositoryEntity.all()
-                            .filter { it.id != entity.id && it.isDefault }
-                            .forEach { it.isDefault = false }
+                    body.name?.let { entity.repoName = it }
+                    storageType?.let { entity.storageType = it.label }
+                    body.url?.let { entity.url = it }
+                    body.accessKey?.let { entity.accessKey = it }
+                    body.secretKey?.let { entity.secretKey = it }
+                    body.bucket?.let { entity.bucket = it }
+                    body.region?.let { entity.region = it }
+                    body.disableChecksums?.let { entity.disableChecksums = it }
+                    body.disableChunkedEncoding?.let { entity.disableChunkedEncoding = it }
+                    body.extraProperties?.let { entity.extraProperties = encodeExtraProperties(it) }
+                    body.isDefault?.let { makeDefault ->
+                        if (makeDefault) {
+                            BlobStorageRepositoryEntity.all()
+                                .filter { it.id != entity.id && it.isDefault }
+                                .forEach { it.isDefault = false }
+                        }
+                        entity.isDefault = makeDefault
                     }
-                    entity.isDefault = makeDefault
-                }
-                entity.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    entity.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
 
-                Pair(oldName, entity)
+                    Pair(oldName, entity)
+                }
+            }.getOrElse { ex ->
+                if (ex.isUniqueNameViolation()) {
+                    return@patch call.respondProblem(
+                        HttpStatusCode.Conflict,
+                        conflict(
+                            "A blob storage repository with name '${body.name}' already exists.",
+                            call.request.path(),
+                        ),
+                    )
+                }
+                throw ex
             } ?: return@patch call.respondProblem(
                 HttpStatusCode.NotFound,
                 notFound("Blob storage repository with id '$id' not found.", call.request.path()),
@@ -304,6 +337,7 @@ fun Route.blobStorageRepositoryRoutes() {
                 region = entity.region,
                 disableChecksums = entity.disableChecksums,
                 disableChunkedEncoding = entity.disableChunkedEncoding,
+                extraProperties = decodeExtraProperties(entity.extraProperties),
             )
             BlobStorageRegistrar.updateProvider(cfg, oldName = oldName)
 
@@ -346,8 +380,40 @@ fun Route.blobStorageRepositoryRoutes() {
     }
 }
 
-private fun String.maskSecret(): String =
-    if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
+private fun String.maskSecret(): String = if (length <= 8) "****" else "${take(4)}${"*".repeat(length - 8)}${takeLast(4)}"
+
+/**
+ * Returns true if this exception (or any exception in its cause chain, including
+ * [java.sql.SQLException.getNextException] siblings) indicates a unique-constraint
+ * violation (SQL state 23505).
+ *
+ * PostgreSQL wraps the actual constraint error inside a [java.sql.BatchUpdateException];
+ * the real cause is accessible via [java.sql.SQLException.getNextException].
+ */
+private fun Throwable.isUniqueNameViolation(): Boolean {
+    var t: Throwable? = this
+    while (t != null) {
+        if (t is SQLException) {
+            var sqlEx: SQLException? = t
+            while (sqlEx != null) {
+                if (sqlEx.sqlState == "23505") return true
+                sqlEx = sqlEx.nextException
+            }
+        }
+        t = t.cause
+    }
+    return false
+}
+
+private fun encodeExtraProperties(map: Map<String, String>): String =
+    Json.encodeToString(JsonObject.serializer(), JsonObject(map.mapValues { JsonPrimitive(it.value) }))
+
+private fun decodeExtraProperties(json: String): Map<String, String> = runCatching {
+    Json.parseToJsonElement(json)
+        .let { it as? JsonObject }
+        ?.mapValues { (_, v) -> v.jsonPrimitive.content }
+        ?: emptyMap()
+}.getOrDefault(emptyMap())
 
 private fun BlobStorageRepositoryEntity.toResponse() = BlobStorageRepositoryResponse(
     id = id.value.toString(),
@@ -360,7 +426,7 @@ private fun BlobStorageRepositoryEntity.toResponse() = BlobStorageRepositoryResp
     region = region,
     disableChecksums = disableChecksums,
     disableChunkedEncoding = disableChunkedEncoding,
-    extraProperties = extraProperties,
+    extraProperties = decodeExtraProperties(extraProperties),
     isDefault = isDefault,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),

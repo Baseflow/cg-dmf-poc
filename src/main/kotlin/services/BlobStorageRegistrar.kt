@@ -64,7 +64,7 @@ object BlobStorageRegistrar {
             // Honour the is_default flag that is already persisted in the DB.
             defaultProviderName = defaultProviderName
                 ?: dbConfigs.firstOrNull { it.index == -1 }?.name
-                    ?: dbConfigs.first().name
+                ?: dbConfigs.first().name
             logger.info(
                 "Registered {} blob storage provider(s) from database: {} — default: {}",
                 providers.size,

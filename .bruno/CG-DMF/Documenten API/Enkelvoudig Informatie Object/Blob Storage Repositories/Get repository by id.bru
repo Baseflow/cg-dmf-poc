@@ -1,7 +1,7 @@
 meta {
   name: Get repository by id
   type: http
-  seq: 3
+  seq: 4
 }
 
 get {
@@ -14,15 +14,15 @@ tests {
   test("status is 200", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("response has correct id", function() {
     expect(res.body.id).to.equal(bru.getVar("blobRepoId"));
   });
-
+  
   test("response has correct name", function() {
     expect(res.body.name).to.equal("test-repo-bruno");
   });
-
+  
   test("response has all required fields", function() {
     expect(res.body.id).to.be.a("string");
     expect(res.body.name).to.be.a("string");
@@ -40,4 +40,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-

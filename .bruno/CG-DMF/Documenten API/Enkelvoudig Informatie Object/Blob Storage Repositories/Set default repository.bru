@@ -1,7 +1,7 @@
 meta {
   name: Set default repository
   type: http
-  seq: 6
+  seq: 7
 }
 
 put {
@@ -20,11 +20,11 @@ tests {
   test("status is 200", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("response has isDefault true", function() {
     expect(res.body.isDefault).to.equal(true);
   });
-
+  
   test("response name matches requested name", function() {
     expect(res.body.name).to.equal("test-repo-bruno-updated");
   });
@@ -34,4 +34,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-

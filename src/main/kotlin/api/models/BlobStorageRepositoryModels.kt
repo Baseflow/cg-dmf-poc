@@ -16,7 +16,7 @@ data class BlobStorageRepositoryResponse(
     val region: String? = null,
     val disableChecksums: Boolean,
     val disableChunkedEncoding: Boolean,
-    val extraProperties: String,
+    val extraProperties: Map<String, String>,
     val isDefault: Boolean,
     val createdAt: String,
     val updatedAt: String,
@@ -36,7 +36,7 @@ data class CreateBlobStorageRepositoryRequest(
     val region: String? = null,
     val disableChecksums: Boolean = false,
     val disableChunkedEncoding: Boolean = false,
-    val extraProperties: String = "{}",
+    val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean = false,
 )
 
@@ -51,6 +51,6 @@ data class UpdateBlobStorageRepositoryRequest(
     val region: String? = null,
     val disableChecksums: Boolean? = null,
     val disableChunkedEncoding: Boolean? = null,
-    val extraProperties: String? = null,
+    val extraProperties: Map<String, String>? = null,
     val isDefault: Boolean? = null,
 )

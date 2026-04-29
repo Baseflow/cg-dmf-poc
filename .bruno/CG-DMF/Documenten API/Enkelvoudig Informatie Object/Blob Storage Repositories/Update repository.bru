@@ -1,7 +1,7 @@
 meta {
   name: Update repository
   type: http
-  seq: 4
+  seq: 5
 }
 
 patch {
@@ -22,15 +22,15 @@ tests {
   test("status is 200", function() {
     expect(res.status).to.equal(200);
   });
-
+  
   test("name was updated", function() {
     expect(res.body.name).to.equal("test-repo-bruno-updated");
   });
-
+  
   test("url was updated", function() {
     expect(res.body.url).to.equal("http://localhost:9001");
   });
-
+  
   test("bucket was updated", function() {
     expect(res.body.bucket).to.equal("documenten-updated");
   });
@@ -40,4 +40,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-
