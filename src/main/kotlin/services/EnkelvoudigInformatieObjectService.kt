@@ -725,8 +725,8 @@ class EnkelvoudigInformatieObjectService(
                 titel = latestVersion?.titel.orEmpty()
                 auteur = latestVersion?.auteur.orEmpty()
                 creatieDatum = latestVersion?.creatieDatum
-                    ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
                 formaat = fileType ?: latestVersion?.formaat
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
