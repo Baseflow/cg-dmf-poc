@@ -64,7 +64,7 @@ object BlobStorageRegistrar {
             // Honour the is_default flag that is already persisted in the DB.
             defaultProviderName = defaultProviderName
                 ?: dbConfigs.firstOrNull { it.index == -1 }?.name
-                ?: dbConfigs.first().name
+                    ?: dbConfigs.first().name
             logger.info(
                 "Registered {} blob storage provider(s) from database: {} — default: {}",
                 providers.size,
@@ -185,9 +185,9 @@ object BlobStorageRegistrar {
      * Registers a new provider from a freshly persisted [BlobStorageRepositoryEntity].
      * The entity must already be saved in the database before calling this.
      */
-    fun registerProvider(cfg: BlobStorageRepoConfig, makeDefault: Boolean = false) {
+    fun registerProvider(cfg: BlobStorageRepoConfig) {
         providers[cfg.name] = createProvider(cfg)
-        if (makeDefault || defaultProviderName == null) {
+        if (cfg.isDefault || defaultProviderName == null) {
             defaultProviderName = cfg.name
         }
         logger.info("Registered new blob storage provider '{}'", cfg.name)
@@ -203,8 +203,8 @@ object BlobStorageRegistrar {
         providers.remove(nameToRemove)
         providers[cfg.name] = newProvider
 
-        if (defaultProviderName == nameToRemove) {
-            defaultProviderName = cfg.name
+        if (cfg.isDefault) {
+            setDefaultProvider(cfg.name)
         }
         logger.info("Updated blob storage provider '{}' (was '{}')", cfg.name, nameToRemove)
     }

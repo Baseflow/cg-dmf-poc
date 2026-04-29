@@ -240,8 +240,9 @@ fun Route.blobStorageRepositoryRoutes() {
                 disableChecksums = body.disableChecksums,
                 disableChunkedEncoding = body.disableChunkedEncoding,
                 extraProperties = body.extraProperties,
+                isDefault = body.isDefault,
             )
-            BlobStorageRegistrar.registerProvider(cfg, makeDefault = body.isDefault)
+            BlobStorageRegistrar.registerProvider(cfg)
 
             call.respond(HttpStatusCode.Created, created)
         }
@@ -328,6 +329,7 @@ fun Route.blobStorageRepositoryRoutes() {
                 disableChecksums = entity.disableChecksums,
                 disableChunkedEncoding = entity.disableChunkedEncoding,
                 extraProperties = decodeExtraProperties(entity.extraProperties),
+                isDefault = entity.isDefault,
             )
             BlobStorageRegistrar.updateProvider(cfg, oldName = oldName)
 
