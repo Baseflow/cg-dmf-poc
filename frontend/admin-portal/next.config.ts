@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next"
+
+const nextConfig: NextConfig = {
   async rewrites() {
     return {
       // Checked only after all app routes (including dynamic ones like [...nextauth]).

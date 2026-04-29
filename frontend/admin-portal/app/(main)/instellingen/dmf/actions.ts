@@ -1,9 +1,8 @@
 "use server"
 
-import { auth } from "@/auth"
+import { apiFetch } from "@/lib/backend"
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
-
-const API_URL = process.env.BACKEND_URL ?? "http://localhost:8080"
 
 export interface DmfSettings {
   triggerSize: number
@@ -48,16 +47,12 @@ export async function saveDmfSettings(
     return { errors }
   }
 
-  const session = await auth()
-  const res = await fetch(`${API_URL}/admin/dmf-settings`, {
+  const res = await apiFetch("/admin/dmf-settings", {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${session?.accessToken}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(result.data),
   })
 
   if (!res.ok) return { error: "Opslaan mislukt. Probeer het opnieuw." }
+  revalidatePath("/instellingen/dmf")
   return { saved: true }
 }

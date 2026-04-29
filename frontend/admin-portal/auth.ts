@@ -1,7 +1,6 @@
 import NextAuth from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import Keycloak from "next-auth/providers/keycloak"
-import { log } from "node:console"
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
@@ -42,7 +41,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, account }) {
-      log("JWT")
       if (account) {
         return {
           ...token,
@@ -57,7 +55,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(token)
     },
     async session({ session, token }) {
-      log("SESSION")
       session.accessToken = token.accessToken
       session.error = token.error
       return session
@@ -67,7 +64,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signOut(message) {
       if (!("token" in message) || !message.token?.refreshToken) return
       const { token } = message
-      log("SIGNOUT")
       await fetch(
         `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/logout`,
         {

@@ -1,9 +1,7 @@
 "use server"
 
-import { auth } from "@/auth"
+import { apiFetch } from "@/lib/backend"
 import { revalidatePath } from "next/cache"
-
-const API_URL = process.env.BACKEND_URL ?? "http://localhost:8080"
 
 export interface ApplicationSetting {
   id: string
@@ -21,13 +19,8 @@ type ApplicationInput = {
 }
 
 export async function createApplication(data: ApplicationInput) {
-  const session = await auth()
-  const res = await fetch(`${API_URL}/admin/application-settings`, {
+  const res = await apiFetch("/admin/application-settings", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${session?.accessToken}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -35,13 +28,8 @@ export async function createApplication(data: ApplicationInput) {
 }
 
 export async function updateApplication(id: string, data: ApplicationInput) {
-  const session = await auth()
-  const res = await fetch(`${API_URL}/admin/application-settings/${id}`, {
+  const res = await apiFetch(`/admin/application-settings/${id}`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${session?.accessToken}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -49,10 +37,8 @@ export async function updateApplication(id: string, data: ApplicationInput) {
 }
 
 export async function deleteApplication(id: string) {
-  const session = await auth()
-  const res = await fetch(`${API_URL}/admin/application-settings/${id}`, {
+  const res = await apiFetch(`/admin/application-settings/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${session?.accessToken}` },
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   revalidatePath("/instellingen/applicaties")
@@ -62,15 +48,10 @@ export async function rotateApplicationSecret(
   id: string,
   newSecret?: string
 ): Promise<string> {
-  const session = await auth()
-  const res = await fetch(
-    `${API_URL}/admin/application-settings/${id}/rotate-secret`,
+  const res = await apiFetch(
+    `/admin/application-settings/${id}/rotate-secret`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(newSecret ? { newSecret } : {}),
     }
   )

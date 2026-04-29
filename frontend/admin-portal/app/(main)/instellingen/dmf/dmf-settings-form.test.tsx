@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import DmfSettingsForm from "./dmf-settings-form"
 
-// Mock the server action
 vi.mock("./actions", () => ({
   saveDmfSettings: vi.fn(),
 }))
@@ -19,6 +18,9 @@ const defaultSettings = {
 describe("DmfSettingsForm", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Ensure the mock always returns a valid FormState so useActionState never
+    // sets state to undefined. Individual tests override this as needed.
+    vi.mocked(saveDmfSettings).mockResolvedValue({})
   })
 
   it("renders with initial values", () => {
@@ -33,6 +35,10 @@ describe("DmfSettingsForm", () => {
   })
 
   it("shows validation error when triggerSize is 0", async () => {
+    vi.mocked(saveDmfSettings).mockResolvedValueOnce({
+      errors: { triggerSize: "Moet minimaal 1 byte zijn." },
+    })
+
     render(<DmfSettingsForm initialSettings={defaultSettings} />)
 
     const triggerInput = screen.getByDisplayValue("4294967296")
@@ -42,10 +48,13 @@ describe("DmfSettingsForm", () => {
     expect(
       await screen.findByText("Moet minimaal 1 byte zijn.")
     ).toBeInTheDocument()
-    expect(saveDmfSettings).not.toHaveBeenCalled()
   })
 
   it("shows validation error when chunkSize is empty", async () => {
+    vi.mocked(saveDmfSettings).mockResolvedValueOnce({
+      errors: { chunkSize: "Moet minimaal 1 byte zijn." },
+    })
+
     const user = userEvent.setup()
     render(<DmfSettingsForm initialSettings={defaultSettings} />)
 
@@ -58,45 +67,38 @@ describe("DmfSettingsForm", () => {
     expect(
       await screen.findByText(/moet minimaal 1 byte zijn/i)
     ).toBeInTheDocument()
-    expect(saveDmfSettings).not.toHaveBeenCalled()
   })
 
-  it("calls saveDmfSettings with correct values on valid submit", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce(undefined)
+  it("calls saveDmfSettings on valid submit and passes form values", async () => {
     const user = userEvent.setup()
 
     render(
       <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: false,
-        }}
+        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: false }}
       />
     )
 
     await user.click(screen.getByRole("button", { name: /opslaan/i }))
 
     await waitFor(() => {
-      expect(saveDmfSettings).toHaveBeenCalledWith({
-        triggerSize: 100,
-        chunkSize: 50,
-        validationEnabled: false,
-      })
+      expect(saveDmfSettings).toHaveBeenCalled()
     })
+
+    const [, formData] = vi.mocked(saveDmfSettings).mock.calls[0] as [
+      unknown,
+      FormData,
+    ]
+    expect(formData.get("triggerSize")).toBe("100")
+    expect(formData.get("chunkSize")).toBe("50")
   })
 
   it("shows success message after successful save", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce(undefined)
+    vi.mocked(saveDmfSettings).mockResolvedValueOnce({ saved: true })
     const user = userEvent.setup()
 
     render(
       <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: true,
-        }}
+        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: true }}
       />
     )
 
@@ -108,16 +110,14 @@ describe("DmfSettingsForm", () => {
   })
 
   it("shows error message when save fails", async () => {
-    vi.mocked(saveDmfSettings).mockRejectedValueOnce(new Error("HTTP 500"))
+    vi.mocked(saveDmfSettings).mockResolvedValueOnce({
+      error: "Opslaan mislukt. Probeer het opnieuw.",
+    })
     const user = userEvent.setup()
 
     render(
       <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: false,
-        }}
+        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: false }}
       />
     )
 
@@ -129,16 +129,11 @@ describe("DmfSettingsForm", () => {
   })
 
   it("toggles validationEnabled when checkbox is clicked", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce(undefined)
     const user = userEvent.setup()
 
     render(
       <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: false,
-        }}
+        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: false }}
       />
     )
 
@@ -149,9 +144,13 @@ describe("DmfSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: /opslaan/i }))
 
     await waitFor(() => {
-      expect(saveDmfSettings).toHaveBeenCalledWith(
-        expect.objectContaining({ validationEnabled: true })
-      )
+      expect(saveDmfSettings).toHaveBeenCalled()
     })
+
+    const [, formData] = vi.mocked(saveDmfSettings).mock.calls[0] as [
+      unknown,
+      FormData,
+    ]
+    expect(formData.get("validationEnabled")).toBe("on")
   })
 })

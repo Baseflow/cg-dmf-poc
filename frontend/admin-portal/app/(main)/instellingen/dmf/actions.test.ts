@@ -1,12 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { saveDmfSettings } from "./actions"
 
-// Mock the auth module so we can control the token
 vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ accessToken: "test-token" }),
 }))
 
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}))
+
 const originalFetch = global.fetch
+
+function makeFormData(values: {
+  triggerSize: string
+  chunkSize: string
+  validationEnabled?: "on"
+}) {
+  const fd = new FormData()
+  fd.append("triggerSize", values.triggerSize)
+  fd.append("chunkSize", values.chunkSize)
+  if (values.validationEnabled) fd.append("validationEnabled", values.validationEnabled)
+  return fd
+}
 
 describe("saveDmfSettings", () => {
   beforeEach(() => {
@@ -23,11 +38,10 @@ describe("saveDmfSettings", () => {
       new Response(null, { status: 200 })
     )
 
-    await saveDmfSettings({
-      triggerSize: 1024,
-      chunkSize: 512,
-      validationEnabled: true,
-    })
+    await saveDmfSettings(
+      {},
+      makeFormData({ triggerSize: "1024", chunkSize: "512", validationEnabled: "on" })
+    )
 
     expect(global.fetch).toHaveBeenCalledOnce()
     const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [
@@ -48,11 +62,10 @@ describe("saveDmfSettings", () => {
       new Response(null, { status: 200 })
     )
 
-    await saveDmfSettings({
-      triggerSize: 1024,
-      chunkSize: 512,
-      validationEnabled: false,
-    })
+    await saveDmfSettings(
+      {},
+      makeFormData({ triggerSize: "1024", chunkSize: "512" })
+    )
 
     const [, options] = vi.mocked(global.fetch).mock.calls[0] as [
       string,
@@ -62,13 +75,36 @@ describe("saveDmfSettings", () => {
     expect(headers["Authorization"]).toBe("Bearer test-token")
   })
 
-  it("throws when the response is not ok", async () => {
+  it("returns field errors without calling fetch when validation fails", async () => {
+    const state = await saveDmfSettings(
+      {},
+      makeFormData({ triggerSize: "0", chunkSize: "512" })
+    )
+    expect(state.errors?.triggerSize).toBeTruthy()
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it("returns error state when the response is not ok", async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(null, { status: 500 })
     )
 
-    await expect(
-      saveDmfSettings({ triggerSize: 1, chunkSize: 1, validationEnabled: true })
-    ).rejects.toThrow("HTTP 500")
+    const state = await saveDmfSettings(
+      {},
+      makeFormData({ triggerSize: "1", chunkSize: "1" })
+    )
+    expect(state.error).toBeTruthy()
+  })
+
+  it("returns saved: true on success", async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(null, { status: 200 })
+    )
+
+    const state = await saveDmfSettings(
+      {},
+      makeFormData({ triggerSize: "1024", chunkSize: "512" })
+    )
+    expect(state.saved).toBe(true)
   })
 })
