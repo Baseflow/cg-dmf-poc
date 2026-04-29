@@ -45,3 +45,15 @@ export async function deleteOidcProvider(id: string) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   revalidatePath("/instellingen/oidc")
 }
+
+export async function deleteOidcProviders(ids: string[]) {
+  await Promise.all(
+    ids.map(async (id) => {
+      const res = await apiFetch(`/admin/oidc-providers/${id}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    })
+  )
+  revalidatePath("/instellingen/oidc")
+}

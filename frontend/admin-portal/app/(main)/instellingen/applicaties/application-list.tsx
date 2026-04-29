@@ -39,13 +39,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SecretInput } from "@/components/ui/secret-input"
+import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { type ColumnDef } from "@tanstack/react-table"
 import {
   Check,
-  ChevronRight,
   Copy,
-  MoreVertical,
-  Plus,
+  MoreHorizontal,
   RefreshCw,
   X,
 } from "lucide-react"
@@ -54,6 +54,7 @@ import { z } from "zod"
 import {
   createApplication,
   deleteApplication,
+  deleteApplications,
   rotateApplicationSecret,
   type ApplicationSetting,
   updateApplication,
@@ -75,6 +76,8 @@ export function ApplicationList({
 
   const [deleteTarget, setDeleteTarget] =
     React.useState<ApplicationSetting | null>(null)
+  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
   const [isDeleting, startDelete] = React.useTransition()
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
@@ -88,19 +91,19 @@ export function ApplicationList({
   const [copied, setCopied] = React.useState(false)
   const [isRotating, startRotate] = React.useTransition()
 
-  function openAdd() {
+  const openAdd = React.useCallback(() => {
     setEditing(null)
     setDrawerError(null)
     setDrawerOpen(true)
-  }
+  }, [])
 
-  function openEdit(app: ApplicationSetting) {
+  const openEdit = React.useCallback((app: ApplicationSetting) => {
     setEditing(app)
     setDrawerError(null)
     setDrawerOpen(true)
-  }
+  }, [])
 
-  function openRotate(app: ApplicationSetting) {
+  const openRotate = React.useCallback((app: ApplicationSetting) => {
     setRotateTarget(app)
     setRotateMode("auto")
     setRotateNewSecret("")
@@ -108,7 +111,7 @@ export function ApplicationList({
     setRotatedSecret("")
     setRotateError(null)
     setCopied(false)
-  }
+  }, [])
 
   function closeRotate() {
     if (isRotating) return
@@ -161,6 +164,22 @@ export function ApplicationList({
     })
   }
 
+  function handleDeleteBulk() {
+    setDeleteError(null)
+    startDelete(async () => {
+      try {
+        await deleteApplications(bulkDeleteIds)
+        setBulkDeleteOpen(false)
+      } catch (e) {
+        setDeleteError(
+          e instanceof Error
+            ? e.message
+            : "Verwijderen mislukt. Probeer het opnieuw."
+        )
+      }
+    })
+  }
+
   function handleRotate() {
     if (!rotateTarget) return
     setRotateError(null)
@@ -191,79 +210,69 @@ export function ApplicationList({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const columns = React.useMemo<ColumnDef<ApplicationSetting>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Naam",
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.name}</span>
+        ),
+      },
+      {
+        accessorKey: "clientId",
+        header: "Client ID",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.clientId}</span>
+        ),
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-7">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEdit(row.original)}>
+                  Bewerken
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openRotate(row.original)}>
+                  Secret roteren
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setDeleteTarget(row.original)}
+                >
+                  Verwijderen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
+      },
+    ],
+    [openEdit, openRotate]
+  )
+
   return (
     <>
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Applicatie-instellingen voor client credentials.
-          </p>
-          <Button variant="outline" size="sm" onClick={openAdd}>
-            <Plus />
-            Toevoegen
-          </Button>
-        </div>
-
-        {applications.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Nog geen applicaties geconfigureerd.
-            </p>
-            <Button variant="outline" size="sm" onClick={openAdd}>
-              <Plus />
-              Applicatie toevoegen
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col divide-y rounded-lg border">
-            {applications.map((app) => (
-              <div
-                key={app.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50"
-              >
-                <button
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
-                  onClick={() => openEdit(app)}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{app.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {app.clientId}
-                    </p>
-                  </div>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0"
-                    >
-                      <MoreVertical className="size-4" />
-                      <span className="sr-only">Acties</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEdit(app)}>
-                      Bewerken
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openRotate(app)}>
-                      Secret roteren
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setDeleteTarget(app)}
-                    >
-                      Verwijderen
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SettingsTable
+        data={applications}
+        columns={columns}
+        description="Applicatie-instellingen voor client credentials."
+        emptyMessage="Nog geen applicaties geconfigureerd."
+        emptyAddLabel="Applicatie toevoegen"
+        onAdd={openAdd}
+        onBulkDelete={(ids) => {
+          setBulkDeleteIds(ids)
+          setBulkDeleteOpen(true)
+        }}
+      />
 
       <Drawer
         open={drawerOpen}
@@ -312,6 +321,42 @@ export function ApplicationList({
               disabled={isDeleting}
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setBulkDeleteOpen(false)
+            setDeleteError(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Applicaties verwijderen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je{" "}
+              <strong>{bulkDeleteIds.length} applicaties</strong> wilt
+              verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <FieldError>{deleteError}</FieldError>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Annuleren
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteBulk}
+              disabled={isDeleting}
+            >
+              {isDeleting
+                ? "Verwijderen..."
+                : `${bulkDeleteIds.length} verwijderen`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

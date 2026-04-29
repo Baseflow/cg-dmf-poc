@@ -56,3 +56,15 @@ export async function deleteRepository(id: string) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   revalidatePath("/instellingen/repositories")
 }
+
+export async function deleteRepositories(ids: string[]) {
+  await Promise.all(
+    ids.map(async (id) => {
+      const res = await apiFetch(`/admin/storage-repositories/${id}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    })
+  )
+  revalidatePath("/instellingen/repositories")
+}

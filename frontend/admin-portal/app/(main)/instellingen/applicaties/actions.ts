@@ -44,6 +44,18 @@ export async function deleteApplication(id: string) {
   revalidatePath("/instellingen/applicaties")
 }
 
+export async function deleteApplications(ids: string[]) {
+  await Promise.all(
+    ids.map(async (id) => {
+      const res = await apiFetch(`/admin/application-settings/${id}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    })
+  )
+  revalidatePath("/instellingen/applicaties")
+}
+
 export async function rotateApplicationSecret(
   id: string,
   newSecret?: string

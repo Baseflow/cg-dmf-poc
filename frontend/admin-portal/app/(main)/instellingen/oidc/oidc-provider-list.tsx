@@ -29,12 +29,15 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
+import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Check, ChevronRight, MoreVertical, Plus, X } from "lucide-react"
+import { type ColumnDef } from "@tanstack/react-table"
+import { Check, MoreHorizontal, X } from "lucide-react"
 import * as React from "react"
 import {
   createOidcProvider,
   deleteOidcProvider,
+  deleteOidcProviders,
   type OidcProvider,
   updateOidcProvider,
 } from "./actions"
@@ -55,20 +58,22 @@ export function OidcProviderList({
   const [deleteTarget, setDeleteTarget] = React.useState<OidcProvider | null>(
     null
   )
+  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
   const [isDeleting, startDelete] = React.useTransition()
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
-  function openAdd() {
+  const openAdd = React.useCallback(() => {
     setEditingProvider(null)
     setDrawerError(null)
     setDrawerOpen(true)
-  }
+  }, [])
 
-  function openEdit(provider: OidcProvider) {
+  const openEdit = React.useCallback((provider: OidcProvider) => {
     setEditingProvider(provider)
     setDrawerError(null)
     setDrawerOpen(true)
-  }
+  }, [])
 
   function handleSave(data: {
     name: string
@@ -118,73 +123,91 @@ export function OidcProviderList({
     })
   }
 
+  function handleDeleteBulk() {
+    setDeleteError(null)
+    startDelete(async () => {
+      try {
+        await deleteOidcProviders(bulkDeleteIds)
+        setBulkDeleteOpen(false)
+      } catch (e) {
+        setDeleteError(
+          e instanceof Error
+            ? e.message
+            : "Verwijderen mislukt. Probeer het opnieuw."
+        )
+      }
+    })
+  }
+
+  const columns = React.useMemo<ColumnDef<OidcProvider>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Naam",
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.name}</span>
+        ),
+      },
+      {
+        accessorKey: "issuer",
+        header: "Issuer",
+        cell: ({ row }) => (
+          <span className="max-w-xs truncate text-muted-foreground">
+            {row.original.issuer}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "clientId",
+        header: "Client ID",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.clientId}</span>
+        ),
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-7">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEdit(row.original)}>
+                  Bewerken
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setDeleteTarget(row.original)}
+                >
+                  Verwijderen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
+      },
+    ],
+    [openEdit]
+  )
+
   return (
     <>
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            OpenID Connect authenticatieproviders.
-          </p>
-          <Button variant="outline" size="sm" onClick={openAdd}>
-            <Plus />
-            Toevoegen
-          </Button>
-        </div>
-
-        {providers.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Nog geen providers geconfigureerd.
-            </p>
-            <Button variant="outline" size="sm" onClick={openAdd}>
-              <Plus />
-              Provider toevoegen
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col divide-y rounded-lg border">
-            {providers.map((provider) => (
-              <div
-                key={provider.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50"
-              >
-                <button
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
-                  onClick={() => openEdit(provider)}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{provider.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {provider.issuer}
-                    </p>
-                  </div>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0"
-                    >
-                      <MoreVertical className="size-4" />
-                      <span className="sr-only">Acties</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setDeleteTarget(provider)}
-                    >
-                      Verwijderen
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SettingsTable
+        data={providers}
+        columns={columns}
+        description="OpenID Connect authenticatieproviders."
+        emptyMessage="Nog geen providers geconfigureerd."
+        emptyAddLabel="Provider toevoegen"
+        onAdd={openAdd}
+        onBulkDelete={(ids) => {
+          setBulkDeleteIds(ids)
+          setBulkDeleteOpen(true)
+        }}
+      />
 
       <Drawer
         open={drawerOpen}
@@ -204,6 +227,42 @@ export function OidcProviderList({
           />
         </DrawerContent>
       </Drawer>
+
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setBulkDeleteOpen(false)
+            setDeleteError(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Providers verwijderen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je{" "}
+              <strong>{bulkDeleteIds.length} providers</strong> wilt
+              verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <FieldError>{deleteError}</FieldError>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Annuleren
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteBulk}
+              disabled={isDeleting}
+            >
+              {isDeleting
+                ? "Verwijderen..."
+                : `${bulkDeleteIds.length} verwijderen`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -287,7 +346,7 @@ function ProviderForm({
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        <FieldError>{error}</FieldError>
         <Field>
           <FieldLabel htmlFor="provider-name">Naam</FieldLabel>
           <Input

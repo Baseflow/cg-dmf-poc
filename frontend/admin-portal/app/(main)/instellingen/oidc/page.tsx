@@ -9,7 +9,7 @@ export default async function Page() {
   const providers: OidcProvider[] = await res.json()
 
   return (
-    <div className="flex min-h-svh p-6">
+    <div className="p-6">
       <OidcProviderList providers={providers} />
     </div>
   )

@@ -39,11 +39,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Check, ChevronRight, MoreVertical, Plus, X } from "lucide-react"
+import { type ColumnDef } from "@tanstack/react-table"
+import { Check, MoreHorizontal, X } from "lucide-react"
 import * as React from "react"
 import {
   createRepository,
+  deleteRepositories,
   deleteRepository,
   type Repository,
   type StorageType,
@@ -65,20 +68,22 @@ export function RepositoryList({
   const [deleteTarget, setDeleteTarget] = React.useState<Repository | null>(
     null
   )
+  const [bulkDeleteIds, setBulkDeleteIds] = React.useState<string[]>([])
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false)
   const [isDeleting, startDelete] = React.useTransition()
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
-  function openAdd() {
+  const openAdd = React.useCallback(() => {
     setEditingRepo(null)
     setDrawerError(null)
     setDrawerOpen(true)
-  }
+  }, [])
 
-  function openEdit(repo: Repository) {
+  const openEdit = React.useCallback((repo: Repository) => {
     setEditingRepo(repo)
     setDrawerError(null)
     setDrawerOpen(true)
-  }
+  }, [])
 
   function handleSave(data: {
     name: string
@@ -147,88 +152,108 @@ export function RepositoryList({
     })
   }
 
+  function handleDeleteBulk() {
+    setDeleteError(null)
+    startDelete(async () => {
+      try {
+        await deleteRepositories(bulkDeleteIds)
+        setBulkDeleteOpen(false)
+      } catch (e) {
+        setDeleteError(
+          e instanceof Error
+            ? e.message
+            : "Verwijderen mislukt. Probeer het opnieuw."
+        )
+      }
+    })
+  }
+
+  const columns = React.useMemo<ColumnDef<Repository>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Naam",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{row.original.name}</span>
+            {row.original.isDefault && (
+              <Badge variant="outline" className="text-xs">
+                Standaard
+              </Badge>
+            )}
+            {!row.original.enabled && (
+              <Badge
+                variant="secondary"
+                className="text-xs text-muted-foreground"
+              >
+                Uitgeschakeld
+              </Badge>
+            )}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "storageType",
+        header: "Type",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.storageType}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "url",
+        header: "URL",
+        cell: ({ row }) => (
+          <span className="max-w-xs truncate text-muted-foreground">
+            {row.original.url}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-7">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEdit(row.original)}>
+                  Bewerken
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setDeleteTarget(row.original)}
+                >
+                  Verwijderen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ),
+      },
+    ],
+    [openEdit]
+  )
+
   return (
     <>
-      <div className="flex w-full max-w-sm flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Object store repositories.
-          </p>
-          <Button variant="outline" size="sm" onClick={openAdd}>
-            <Plus />
-            Toevoegen
-          </Button>
-        </div>
-
-        {repositories.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              Nog geen repositories geconfigureerd.
-            </p>
-            <Button variant="outline" size="sm" onClick={openAdd}>
-              <Plus />
-              Repository toevoegen
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col divide-y rounded-lg border">
-            {repositories.map((repo) => (
-              <div
-                key={repo.id}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50"
-              >
-                <button
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
-                  onClick={() => openEdit(repo)}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{repo.name}</p>
-                      {repo.isDefault && (
-                        <Badge variant="outline" className="text-xs">
-                          Standaard
-                        </Badge>
-                      )}
-                      {!repo.enabled && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs text-muted-foreground"
-                        >
-                          Uitgeschakeld
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {repo.storageType}
-                    </p>
-                  </div>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0"
-                    >
-                      <MoreVertical className="size-4" />
-                      <span className="sr-only">Acties</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setDeleteTarget(repo)}
-                    >
-                      Verwijderen
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SettingsTable
+        data={repositories}
+        columns={columns}
+        description="Object store repositories."
+        emptyMessage="Nog geen repositories geconfigureerd."
+        emptyAddLabel="Repository toevoegen"
+        onAdd={openAdd}
+        onBulkDelete={(ids) => {
+          setBulkDeleteIds(ids)
+          setBulkDeleteOpen(true)
+        }}
+      />
 
       <Drawer
         open={drawerOpen}
@@ -248,6 +273,42 @@ export function RepositoryList({
           />
         </DrawerContent>
       </Drawer>
+
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setBulkDeleteOpen(false)
+            setDeleteError(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Repositories verwijderen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je{" "}
+              <strong>{bulkDeleteIds.length} repositories</strong> wilt
+              verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <FieldError>{deleteError}</FieldError>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Annuleren
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteBulk}
+              disabled={isDeleting}
+            >
+              {isDeleting
+                ? "Verwijderen..."
+                : `${bulkDeleteIds.length} verwijderen`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteTarget !== null}
