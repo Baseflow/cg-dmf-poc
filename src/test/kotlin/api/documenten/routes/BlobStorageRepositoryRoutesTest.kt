@@ -3,7 +3,9 @@
 package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.models.BlobStorageRepositoryResponse
+import com.baseflow.api.models.CreateBlobStorageRepositoryRequest
 import com.baseflow.api.models.SetDefaultRepositoryRequest
+import com.baseflow.api.models.UpdateBlobStorageRepositoryRequest
 import com.baseflow.entities.BlobStorageRepositories
 import com.baseflow.entities.BlobStorageRepositoryEntity
 import com.baseflow.services.BlobStorageProvider
@@ -321,5 +323,344 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
         assertNotNull(body.extraProperties)
         assertNotNull(body.createdAt)
         assertNotNull(body.updatedAt)
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /admin/storage-repositories
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `POST creates a new repository and returns 201`() = testApplication {
+        application { setup() }
+
+        val request = CreateBlobStorageRepositoryRequest(
+            name = "new-repo",
+            storageType = "S3",
+            url = "http://localhost:9000",
+            accessKey = "minioadmin",
+            secretKey = "minioadmin",
+            bucket = "docs",
+            region = "eu-west-1",
+        )
+        val response = client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertNotNull(body.id)
+        assertEquals("new-repo", body.name)
+        assertEquals("S3", body.storageType)
+        assertEquals("http://localhost:9000", body.url)
+        assertEquals("docs", body.bucket)
+        assertEquals("eu-west-1", body.region)
+        assertFalse(body.isDefault)
+    }
+
+    @Test
+    fun `POST persists the new repository in the database`() = testApplication {
+        application { setup() }
+
+        val request = CreateBlobStorageRepositoryRequest(
+            name = "persisted-repo",
+            storageType = "S3",
+            url = "http://localhost:9000",
+            accessKey = "key",
+            secretKey = "secret",
+            bucket = "bucket",
+        )
+        client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        val entity = transaction {
+            BlobStorageRepositoryEntity.all().firstOrNull { it.repoName == "persisted-repo" }
+        }
+        assertNotNull(entity)
+        assertEquals("S3", entity.storageType)
+        assertEquals("bucket", entity.bucket)
+    }
+
+    @Test
+    fun `POST with isDefault=true marks it as default`() = testApplication {
+        application { setup() }
+        insertRepo("existing", isDefault = true)
+        BlobStorageRegistrar.registerForTesting(repoAlpha, isDefault = true)
+
+        val request = CreateBlobStorageRepositoryRequest(
+            name = "new-default",
+            storageType = "S3",
+            url = "http://localhost:9000",
+            accessKey = "key",
+            secretKey = "secret",
+            bucket = "bucket",
+            isDefault = true,
+        )
+        val response = client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertTrue(body.isDefault)
+
+        // The previously-default repo should no longer be default
+        transaction {
+            val old = BlobStorageRepositoryEntity.all().first { it.repoName == "existing" }
+            assertFalse(old.isDefault)
+        }
+    }
+
+    @Test
+    fun `POST returns 400 for blank name`() = testApplication {
+        application { setup() }
+
+        val request = CreateBlobStorageRepositoryRequest(
+            name = "",
+            storageType = "S3",
+            url = "http://localhost:9000",
+            accessKey = "key",
+            secretKey = "secret",
+            bucket = "bucket",
+        )
+        val response = client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `POST returns 400 for unknown storageType`() = testApplication {
+        application { setup() }
+
+        val response = client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"name":"x","storageType":"UNKNOWN","url":"http://x","accessKey":"k","secretKey":"s","bucket":"b"}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `POST returns 409 when name already exists`() = testApplication {
+        application { setup() }
+        insertRepo("duplicate-repo")
+
+        val request = CreateBlobStorageRepositoryRequest(
+            name = "duplicate-repo",
+            storageType = "S3",
+            url = "http://localhost:9000",
+            accessKey = "key",
+            secretKey = "secret",
+            bucket = "bucket",
+        )
+        val response = client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    @Test
+    fun `POST stores extraProperties and returns them as a map`() = testApplication {
+        application { setup() }
+
+        val request = CreateBlobStorageRepositoryRequest(
+            name = "repo-with-extras",
+            storageType = "S3",
+            url = "http://localhost:9000",
+            accessKey = "minioadmin",
+            secretKey = "minioadmin",
+            bucket = "container",
+            extraProperties = mapOf("CUSTOM_KEY" to "custom-value", "ANOTHER" to "42"),
+        )
+        val response = client.post("/admin/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertEquals("custom-value", body.extraProperties["CUSTOM_KEY"])
+        assertEquals("42", body.extraProperties["ANOTHER"])
+    }
+
+    // -------------------------------------------------------------------------
+    // PATCH /admin/storage-repositories/{id}
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `PATCH updates name and returns 200`() = testApplication {
+        application { setup() }
+        val id = insertRepo("original-name")
+        BlobStorageRegistrar.registerForTesting(repoAlpha)
+
+        val request = UpdateBlobStorageRepositoryRequest(name = "renamed-repo")
+        val response = client.patch("/admin/storage-repositories/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertEquals("renamed-repo", body.name)
+        assertEquals(id.toString(), body.id)
+    }
+
+    @Test
+    fun `PATCH updates only the supplied fields`() = testApplication {
+        application { setup() }
+        val id = insertRepo("patch-repo", url = "http://old:9000", bucket = "old-bucket")
+        BlobStorageRegistrar.registerForTesting(repoAlpha)
+
+        val request = UpdateBlobStorageRepositoryRequest(url = "http://new:9000")
+        val response = client.patch("/admin/storage-repositories/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertEquals("http://new:9000", body.url)
+        // Unchanged fields stay the same
+        assertEquals("old-bucket", body.bucket)
+        assertEquals("patch-repo", body.name)
+    }
+
+    @Test
+    fun `PATCH sets isDefault and clears existing default`() = testApplication {
+        application { setup() }
+        val idAlpha = insertRepo("alpha", isDefault = true)
+        val idBeta = insertRepo("beta", isDefault = false)
+        BlobStorageRegistrar.registerForTesting(repoAlpha, isDefault = true)
+        BlobStorageRegistrar.registerForTesting(repoBeta)
+
+        val request = UpdateBlobStorageRepositoryRequest(isDefault = true)
+        val response = client.patch("/admin/storage-repositories/$idBeta") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertTrue(body.isDefault)
+
+        transaction {
+            assertFalse(BlobStorageRepositoryEntity.findById(idAlpha)!!.isDefault)
+            assertTrue(BlobStorageRepositoryEntity.findById(idBeta)!!.isDefault)
+        }
+    }
+
+    @Test
+    fun `PATCH returns 404 for unknown id`() = testApplication {
+        application { setup() }
+
+        val request = UpdateBlobStorageRepositoryRequest(name = "irrelevant")
+        val response = client.patch("/admin/storage-repositories/${UUID.randomUUID()}") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `PATCH returns 400 for malformed UUID`() = testApplication {
+        application { setup() }
+
+        val request = UpdateBlobStorageRepositoryRequest(name = "irrelevant")
+        val response = client.patch("/admin/storage-repositories/not-a-uuid") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `PATCH returns 409 when renaming to an existing name`() = testApplication {
+        application { setup() }
+        insertRepo("repo-a")
+        val idB = insertRepo("repo-b")
+        BlobStorageRegistrar.registerForTesting(repoAlpha)
+        BlobStorageRegistrar.registerForTesting(repoBeta)
+
+        val request = UpdateBlobStorageRepositoryRequest(name = "repo-a")
+        val response = client.patch("/admin/storage-repositories/$idB") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    @Test
+    fun `PATCH updates extraProperties`() = testApplication {
+        application { setup() }
+        val id = insertRepo("extra-repo")
+        BlobStorageRegistrar.registerForTesting(repoAlpha)
+
+        val request = UpdateBlobStorageRepositoryRequest(extraProperties = mapOf("CONTAINER_NAME" to "updated"))
+        val response = client.patch("/admin/storage-repositories/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositoryRequest.serializer(), request))
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositoryResponse>(response.bodyAsText())
+        assertEquals("updated", body.extraProperties["CONTAINER_NAME"])
+    }
+
+    // -------------------------------------------------------------------------
+    // DELETE /admin/storage-repositories/{id}
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `DELETE removes the repository and returns 204`() = testApplication {
+        application { setup() }
+        val id = insertRepo("to-delete")
+        BlobStorageRegistrar.registerForTesting(repoAlpha)
+
+        val response = client.delete("/admin/storage-repositories/$id")
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
+
+        val entity = transaction { BlobStorageRepositoryEntity.findById(id) }
+        assertEquals(null, entity)
+    }
+
+    @Test
+    fun `DELETE returns 404 for unknown id`() = testApplication {
+        application { setup() }
+
+        val response = client.delete("/admin/storage-repositories/${UUID.randomUUID()}")
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `DELETE returns 400 for malformed UUID`() = testApplication {
+        application { setup() }
+
+        val response = client.delete("/admin/storage-repositories/not-a-uuid")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `DELETE unregisters the provider from BlobStorageRegistrar`() = testApplication {
+        application { setup() }
+        val id = insertRepo("alpha")
+        BlobStorageRegistrar.registerForTesting(repoAlpha)
+
+        client.delete("/admin/storage-repositories/$id")
+
+        assertEquals(null, BlobStorageRegistrar.providerByName("alpha"))
     }
 }

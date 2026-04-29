@@ -1,0 +1,42 @@
+meta {
+  name: Get repository by id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/admin/storage-repositories/{{blobRepoId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("response has correct id", function() {
+    expect(res.body.id).to.equal(bru.getVar("blobRepoId"));
+  });
+  
+  test("response has correct name", function() {
+    expect(res.body.name).to.equal("test-repo-bruno");
+  });
+  
+  test("response has all required fields", function() {
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.name).to.be.a("string");
+    expect(res.body.storageType).to.be.a("string");
+    expect(res.body.url).to.be.a("string");
+    expect(res.body.bucket).to.be.a("string");
+    expect(res.body.accessKeyMasked).to.be.a("string");
+    expect(res.body.secretKeyMasked).to.be.a("string");
+    expect(res.body.createdAt).to.be.a("string");
+    expect(res.body.updatedAt).to.be.a("string");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
