@@ -1,3 +1,4 @@
+import { AuthErrorHandler } from "@/components/auth-error-handler"
 import { SessionProvider } from "@/components/session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -35,6 +36,7 @@ export default function RootLayout({
         <ThemeProvider>
           <TooltipProvider>
             <SessionProvider>
+              <AuthErrorHandler />
               {children}
             </SessionProvider>
           </TooltipProvider>

@@ -30,7 +30,6 @@ function getInitials(name: string | null | undefined): string {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase()
 }
 
-
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { data: session, status } = useSession()
@@ -58,17 +57,22 @@ export function NavUser() {
           <SidebarMenuButton
             size="lg"
             onClick={() => signIn("keycloak")}
-            tooltip="Log in"
+            tooltip="Inloggen"
           >
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarFallback className="rounded-lg bg-muted">
-                <CircleUserRoundIcon className="size-4 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg bg-muted">
+                  <CircleUserRoundIcon className="size-4 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-sidebar bg-muted-foreground/40" />
+            </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Log in</span>
+              <span className="truncate font-medium text-muted-foreground">
+                Log in
+              </span>
               <span className="truncate text-xs text-muted-foreground">
-                Klik hier om in te loggen
+                Klik om in te loggen
               </span>
             </div>
             <LogInIcon className="ml-auto size-4 text-muted-foreground" />
