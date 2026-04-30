@@ -15,4 +15,6 @@ data class CheckFileInfoResponse(
     val userCanWrite: Boolean,
     @SerialName("SupportsAutosave")
     val supportsAutosave: Boolean = false,
+    @SerialName("UserFriendlyName")
+    val userFriendlyName: String,
 )
