@@ -47,7 +47,7 @@ export const navigation = {
       icon: <DockerIcon />,
     },
     {
-      name: "Link naar GitHub",
+      name: "GitHub Repository",
       url: "https://github.com/Baseflow/cg-dmf-poc",
       icon: <GitHubIcon />,
     },
