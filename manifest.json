@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25223670364",
+    "runNumber": "459",
+    "branch": "dependabot/gradle/com.fasterxml.jackson.core-jackson-core-2.21.3",
+    "date": "2026-05-01T17:02:42Z",
+    "path": "integration/25223670364/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25223672645",
     "runNumber": "460",
     "branch": "dependabot/gradle/com.zaxxer-HikariCP-7.0.2",
