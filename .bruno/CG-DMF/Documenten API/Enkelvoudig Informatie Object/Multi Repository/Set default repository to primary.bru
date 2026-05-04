@@ -1,0 +1,26 @@
+meta {
+  name: Set default repository to primary
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/admin/storage-repositories/default
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "{{storage.defaultRepo}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

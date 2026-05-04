@@ -12,9 +12,14 @@ put {
 
 body:json {
   {
-    //"name": "azure-dev"
-    "name": "minio-local"
+    "name": "{{storage.defaultRepo}}"
   }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
 }
 
 settings {

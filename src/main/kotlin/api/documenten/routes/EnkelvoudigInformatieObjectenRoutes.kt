@@ -8,6 +8,7 @@ import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.latestVersion
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.EIOOrdering
@@ -908,10 +909,8 @@ private suspend fun RoutingContext.download() {
         val uuid = UUID.fromString(uuidString)
 
         val eio = transaction {
-            val record =
-                EIORecordEntity.findById(uuid) ?: return@transaction null
-            val eio = record.versions.maxByOrNull { it.versie }
-            return@transaction eio
+            val record = EIORecordEntity.findById(uuid) ?: return@transaction null
+            record.latestVersion()
         }
 
         if (eio == null) {
@@ -953,7 +952,7 @@ private suspend fun RoutingContext.download() {
 
         // Stream the object from storage directly to the HTTP response
         call.respondOutputStream {
-            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
+            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this, repoName = eio.bestandsRepository)
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))

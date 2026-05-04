@@ -86,17 +86,17 @@ export const options = {
     },
   },
   thresholds: {
-    // 95th percentile response times
-    'http_req_duration{name:eio_get}':    ['p(95)<500'],
-    'http_req_duration{name:eio_list}':   ['p(95)<1000'],
-    'http_req_duration{name:eio_create}': ['p(95)<3000'],
-    'http_req_duration{name:eio_patch}':  ['p(95)<3000'],
-    'http_req_duration{name:oio_list}':   ['p(95)<1000'],
-    'http_req_duration{name:oio_create}': ['p(95)<3000'],
-    // Overall error rate must stay below 1 %
-    'http_req_failed': ['rate<0.01'],
-    // Custom success rate
-    'perf_success_rate': ['rate>0.99'],
+    // Median (p50) — normal-case baseline
+    // p(95) — tail / worst-case ceiling
+    'http_req_duration{name:eio_get}':    ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:eio_list}':   ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:eio_create}': ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:eio_patch}':  ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:oio_list}':   ['p(50)<60',  'p(95)<200'],
+    'http_req_duration{name:oio_create}': ['p(50)<60',  'p(95)<200'],
+    // Reliability gate: no failed functional checks across all scenarios.
+    // Uses Counter threshold to avoid flaky Rate-threshold booleans in summary export.
+    'perf_errors_total': ['count==0'],
   },
 };
 
@@ -105,6 +105,7 @@ export const options = {
 // ---------------------------------------------------------------------------
 
 const perfSuccessRate = new Rate('perf_success_rate');
+const perfErrorsTotal = new Counter('perf_errors_total');
 const eioGetErrors    = new Counter('eio_get_errors');
 const eioListErrors   = new Counter('eio_list_errors');
 const eioCreateErrors = new Counter('eio_create_errors');
@@ -216,7 +217,10 @@ function scenarioGetEio(headers) {
   const res = getEio(BASE_URL, headers, id);
   const ok  = check(res, { 'GET eio 200': (r) => r.status === 200 });
   perfSuccessRate.add(ok ? 1 : 0);
-  if (!ok) eioGetErrors.add(1);
+  if (!ok) {
+    perfErrorsTotal.add(1);
+    eioGetErrors.add(1);
+  }
 }
 
 function scenarioListEio(headers) {
@@ -236,7 +240,10 @@ function scenarioListEio(headers) {
   const res = listEio(BASE_URL, headers, params);
   const ok  = check(res, { 'LIST eio 200': (r) => r.status === 200 });
   perfSuccessRate.add(ok ? 1 : 0);
-  if (!ok) eioListErrors.add(1);
+  if (!ok) {
+    perfErrorsTotal.add(1);
+    eioListErrors.add(1);
+  }
 
   // Cache IDs from result to improve GET/PATCH coverage
   if (ok) {
@@ -256,6 +263,7 @@ function scenarioCreateEio(headers, iotUrls) {
   const ok  = check(res, { 'CREATE eio 201': (r) => r.status === 201 });
   perfSuccessRate.add(ok ? 1 : 0);
   if (!ok) {
+    perfErrorsTotal.add(1);
     eioCreateErrors.add(1);
   } else {
     // Register newly created ID for subsequent reads
@@ -271,7 +279,10 @@ function scenarioPatchEio(headers) {
   // 200 or 409 (locked) are both acceptable here
   const ok  = check(res, { 'PATCH eio 200 or 409': (r) => r.status === 200 || r.status === 409 });
   perfSuccessRate.add(ok ? 1 : 0);
-  if (!ok) eioPatchErrors.add(1);
+  if (!ok) {
+    perfErrorsTotal.add(1);
+    eioPatchErrors.add(1);
+  }
 }
 
 function scenarioListOio(headers) {
@@ -282,6 +293,10 @@ function scenarioListOio(headers) {
   const res = listOio(BASE_URL, headers, params);
   const ok  = check(res, { 'LIST oio 200': (r) => r.status === 200 });
   perfSuccessRate.add(ok ? 1 : 0);
+  if (!ok) {
+    perfErrorsTotal.add(1);
+    oioListErrors.add(1);
+  }
   // A fresh UUID is used for the object URL, so 201 is the expected successful response here.
   // Any non-201 response is treated as a failure by the performance metrics below.
 }
@@ -295,7 +310,10 @@ function scenarioCreateOio(headers) {
   // 201 OK, 400 might happen if there is already an OIO with the same (eio, object) tuple
   const ok  = check(res, { 'CREATE oio 201': (r) => r.status === 201 });
   perfSuccessRate.add(ok ? 1 : 0);
-  if (!ok) oioCreateErrors.add(1);
+  if (!ok) {
+    perfErrorsTotal.add(1);
+    oioCreateErrors.add(1);
+  }
 }
 
 // ---------------------------------------------------------------------------

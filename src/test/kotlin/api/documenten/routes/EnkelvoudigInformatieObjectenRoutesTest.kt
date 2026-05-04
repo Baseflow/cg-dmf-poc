@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2025-2026 Gemeente Utrecht
-package com.baseflow.api.routes
+package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.DOCUMENTEN_API_VERSION
@@ -665,5 +665,25 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
 
         assertEquals(1, results.size)
         assertEquals(eio.id, results[0].jsonObject["id"]?.jsonPrimitive?.content)
+    }
+
+    // ── download ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `GET download returns 200 with content headers for an EIO that has content`() = testApplication {
+        application { setup() }
+
+        val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(withContent = true)))
+        }
+        assertEquals(HttpStatusCode.Created, created.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText()).id
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$id/download")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertContains(response.headers.names(), HttpHeaders.ContentDisposition)
+        assertContains(response.headers.names(), HttpHeaders.ContentType)
     }
 }

@@ -11,6 +11,7 @@ internal object DatabaseConfig : Config() {
     val user: String = envOrSystem("DB_USER", "documenten")
     val password: String = envOrSystem("DB_PASSWORD", "documenten")
     val driver: String = envOrSystem("DB_DRIVER", "org.postgresql.Driver")
+    val poolSize: Int = envOrSystem("DB_POOL_SIZE", "10").toInt()
 
     override fun printConfig() {
         logger.info("DatabaseConfig: url={}, user={}, driver={}", url, user, driver)

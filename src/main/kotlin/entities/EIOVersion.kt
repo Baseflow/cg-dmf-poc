@@ -44,6 +44,7 @@ object EIOVersions : UUIDTable("eio_versions") {
     val identificatie = varchar("identificatie", 40).default("")
     val informatieobject_type = varchar("informatieobject_type", 200).default("")
     val bestandsLocatie = varchar("bestands_locatie", 1000).default("")
+    val bestandsRepository = varchar("bestands_repository", 100).default("")
 
     init {
         // Unique composite index: a record cannot have two rows with the same version number.
@@ -90,4 +91,12 @@ class EIOVersionEntity(id: EntityID<UUID>) :
     override var identificatie by EIOVersions.identificatie
     override var informatieobject_type by EIOVersions.informatieobject_type
     var bestandsLocatie by EIOVersions.bestandsLocatie
+    var bestandsRepository by EIOVersions.bestandsRepository
 }
+
+/** Returns the highest-versie version for this record using a single indexed DB lookup. */
+fun EIORecordEntity.latestVersion(): EIOVersionEntity? = EIOVersionEntity
+    .find { EIOVersions.recordId eq this.id }
+    .orderBy(EIOVersions.versie to SortOrder.DESC)
+    .limit(1)
+    .firstOrNull()
