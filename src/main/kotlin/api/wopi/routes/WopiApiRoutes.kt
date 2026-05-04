@@ -21,7 +21,6 @@ import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
-import io.ktor.server.routing.openapi.hide
 import io.ktor.utils.io.ExperimentalKtorApi
 import io.ktor.utils.io.toByteArray
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -32,7 +31,6 @@ fun Route.wopiApiRoutes() {
     install(AuditTrailPlugin)
 
     route(WOPI_API_BASE_PATH) {
-
         route("/files/{file_id}") {
             get { getFileMetadata() }.describe {
                 operationId = "getFileMetadata"
@@ -108,7 +106,6 @@ fun Route.wopiApiRoutes() {
                     }
                 }
             }
-
         }
     }
 }
