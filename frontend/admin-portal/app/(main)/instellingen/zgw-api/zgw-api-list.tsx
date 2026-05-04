@@ -240,6 +240,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
       />
 
       <Drawer
+        key={isMobile ? "bottom" : "right"}
         open={drawerOpen}
         onOpenChange={(open) => {
           if (!open && !isSaving) setDrawerOpen(false)
@@ -351,9 +352,35 @@ function SettingForm({
   const [name, setName] = useState(setting?.name ?? "")
   const [baseUrl, setBaseUrl] = useState(setting?.baseUrl ?? "")
   const [clientId, setClientId] = useState(setting?.clientId ?? "")
-  const [clientSecret, setClientSecret] = useState(setting?.clientSecret ?? "")
+  const [clientSecret, setClientSecret] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string
+    baseUrl?: string
+    clientId?: string
+  }>({})
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    const errors: typeof fieldErrors = {}
+    if (!name.trim()) errors.name = "Naam is verplicht."
+    if (!baseUrl.trim()) {
+      errors.baseUrl = "Base URL is verplicht."
+    } else {
+      try {
+        new URL(baseUrl)
+      } catch {
+        errors.baseUrl = "Voer een geldige URL in (bijv. https://openzaak.example.com)."
+      }
+    }
+    if (!clientId.trim()) errors.clientId = "Client ID is verplicht."
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+
+    setFieldErrors({})
     onSave({ name, baseUrl, clientId, clientSecret })
   }
 
@@ -372,6 +399,7 @@ function SettingForm({
       <form
         id="setting-form"
         onSubmit={handleSubmit}
+        noValidate
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
         <FieldError>{error}</FieldError>
@@ -382,12 +410,12 @@ function SettingForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="OpenZaak productie"
-            required
             disabled={saving}
           />
           <FieldDescription>
             Herkenbare naam voor dit koppelingsprofile.
           </FieldDescription>
+          <FieldError>{fieldErrors.name}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-base-url">Base URL</FieldLabel>
@@ -396,12 +424,12 @@ function SettingForm({
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://openzaak.example.com"
-            required
             disabled={saving}
           />
           <FieldDescription>
             Basis-URL van de ZGW API-implementatie.
           </FieldDescription>
+          <FieldError>{fieldErrors.baseUrl}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-client-id">Client ID</FieldLabel>
@@ -410,10 +438,10 @@ function SettingForm({
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             placeholder="client-id"
-            required
             disabled={saving}
           />
           <FieldDescription>Client-ID voor JWT-authenticatie.</FieldDescription>
+          <FieldError>{fieldErrors.clientId}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-client-secret">Client secret</FieldLabel>

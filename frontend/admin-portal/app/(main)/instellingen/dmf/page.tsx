@@ -10,7 +10,10 @@ export default async function Page() {
 
   return (
     <div className="p-6">
-      <DmfSettingsForm initialSettings={settings} />
+      <DmfSettingsForm
+        key={`${settings.triggerSize}-${settings.chunkSize}-${settings.validationEnabled}`}
+        initialSettings={settings}
+      />
     </div>
   )
 }

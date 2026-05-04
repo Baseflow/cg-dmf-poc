@@ -36,7 +36,7 @@ export default function DmfSettingsForm({
             type="number"
             min={1}
             defaultValue={initialSettings.triggerSize}
-            placeholder="standaard: 4294967296"
+            placeholder="bytes"
             disabled={isPending}
           />
           <FieldDescription>
@@ -54,7 +54,7 @@ export default function DmfSettingsForm({
             type="number"
             min={1}
             defaultValue={initialSettings.chunkSize}
-            placeholder="standaard: 3221225472"
+            placeholder="bytes"
             disabled={isPending}
           />
           <FieldDescription>

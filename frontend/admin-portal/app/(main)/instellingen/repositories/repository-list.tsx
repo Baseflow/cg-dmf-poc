@@ -286,6 +286,7 @@ export function RepositoryList({
       />
 
       <Drawer
+        key={isMobile ? "bottom" : "right"}
         open={drawerOpen}
         onOpenChange={(open) => {
           if (!open && !isSaving) setDrawerOpen(false)

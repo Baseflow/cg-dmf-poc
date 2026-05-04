@@ -234,6 +234,7 @@ export function OidcProviderList({
       />
 
       <Drawer
+        key={isMobile ? "bottom" : "right"}
         open={drawerOpen}
         onOpenChange={(open) => {
           if (!open && !isSaving) setDrawerOpen(false)
@@ -345,11 +346,35 @@ function ProviderForm({
   const [name, setName] = useState(provider?.name ?? "")
   const [issuer, setIssuer] = useState(provider?.issuer ?? "")
   const [clientId, setClientId] = useState(provider?.clientId ?? "")
-  const [clientSecret, setClientSecret] = useState(
-    provider?.clientSecret ?? ""
-  )
+  const [clientSecret, setClientSecret] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string
+    issuer?: string
+    clientId?: string
+  }>({})
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    const errors: typeof fieldErrors = {}
+    if (!name.trim()) errors.name = "Naam is verplicht."
+    if (!issuer.trim()) {
+      errors.issuer = "Issuer is verplicht."
+    } else {
+      try {
+        new URL(issuer)
+      } catch {
+        errors.issuer = "Voer een geldige URL in (bijv. https://auth.example.com)."
+      }
+    }
+    if (!clientId.trim()) errors.clientId = "Client ID is verplicht."
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+
+    setFieldErrors({})
     onSave({ name, issuer, clientId, clientSecret })
   }
 
@@ -368,6 +393,7 @@ function ProviderForm({
       <form
         id="provider-form"
         onSubmit={handleSubmit}
+        noValidate
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
         <FieldError>{error}</FieldError>
@@ -378,10 +404,10 @@ function ProviderForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Keycloak productie"
-            required
             disabled={saving}
           />
           <FieldDescription>Herkenbare naam voor deze OIDC-provider.</FieldDescription>
+          <FieldError>{fieldErrors.name}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="provider-issuer">Issuer</FieldLabel>
@@ -390,10 +416,10 @@ function ProviderForm({
             value={issuer}
             onChange={(e) => setIssuer(e.target.value)}
             placeholder="https://auth.example.com/realms/my-realm"
-            required
             disabled={saving}
           />
           <FieldDescription>Discovery-URL van de OIDC-provider.</FieldDescription>
+          <FieldError>{fieldErrors.issuer}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="provider-client-id">Client ID</FieldLabel>
@@ -402,10 +428,10 @@ function ProviderForm({
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             placeholder="my-client-id"
-            required
             disabled={saving}
           />
           <FieldDescription>Client-ID van de OIDC-registratie.</FieldDescription>
+          <FieldError>{fieldErrors.clientId}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="provider-client-secret">

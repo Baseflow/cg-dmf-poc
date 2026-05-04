@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation"
 import React from "react"
 
 const routeLabels: Record<string, string> = {
+  instellingen: "Instellingen",
   oidc: "OIDC",
   "zgw-api": "ZGW API",
   dmf: "DMF",
