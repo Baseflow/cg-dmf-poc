@@ -111,18 +111,18 @@ fun Route.wopiApiRoutes() {
 }
 
 private suspend fun RoutingContext.updateFileContents() {
-    val fileId = call.parameters["file_id"]
-    if (fileId == null) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-        return
-    }
-
     val wopiOverride = call.request.headers["X-WOPI-Override"]
     if (wopiOverride != "PUT") {
         call.respondProblem(
             HttpStatusCode.BadRequest,
             badRequest("X-WOPI-Override header must be PUT", call.request.path()),
         )
+        return
+    }
+
+    val fileId = call.parameters["file_id"]
+    if (fileId == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
         return
     }
 
