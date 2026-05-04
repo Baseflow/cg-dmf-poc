@@ -10,11 +10,13 @@ import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.Parameters
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
@@ -55,15 +57,16 @@ private suspend fun RoutingContext.updateFileContents() {
         val uuid = UUID.fromString(fileId)
         val bytes = call.receiveChannel().toByteArray()
         val response = service.updateWithBytes(id = uuid, bytes = bytes)
-        // TODO(elitsa): improve problem response
         if (response == null) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Er is iets misgegaan met de update.", call.request.path()),
+                notFound("Enkelvoudigobject not found", call.request.path()),
             )
             return
         }
-        call.respond(HttpStatusCode.OK)
+        // This is a Collabora-specific response object, not part of the WOPI protocol.
+        val lastModified = response.beginRegistratie
+        call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to lastModified))
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
@@ -166,8 +169,8 @@ private suspend fun RoutingContext.getFileMetadata() {
                 userCanWrite = true,
                 supportsAutosave = false,
                 userFriendlyName = "Unknown user",
-                supportsLocks = true,
-                supportsGetLock = true,
+                supportsLocks = false,
+                supportsGetLock = false,
                 supportsUpdate = true,
                 lastModifiedTime = result.beginRegistratie,
                 version = result.versie.toString(),
