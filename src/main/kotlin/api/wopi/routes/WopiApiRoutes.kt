@@ -85,12 +85,30 @@ fun Route.wopiApiRoutes() {
             }
         }
 
-        get("/files/{file_id}/contents") {
-            getFileContents()
-        }.hide()
-
         post("/files/{file_id}/contents") {
             updateFileContents()
+        }.describe {
+            operationId = "updateFileContents"
+            tag("wopi")
+            summary = "Update (Save) file contents."
+            description =
+                "Saves the contents of a file to the host."
+            parameters {
+                path("file_id") {
+                    description = "The UUID of the file to save the contents for."
+                    required = true
+                }
+            }
+            responses {
+                response(200) {
+                    description = "File successfully saved."
+                }
+                response(400) { description = "Bad request." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden." }
+                response(404) { description = "Not found." }
+                response(500) { description = "Internal server error." }
+            }
         }
     }
 }
