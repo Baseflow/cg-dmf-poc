@@ -45,7 +45,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:3.4.2")
 
     // Connection pool
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("com.zaxxer:HikariCP:7.0.2")
 
     // Database - Exposed ORM
     implementation("org.jetbrains.exposed:exposed-core:1.2.0")
