@@ -12,6 +12,7 @@ import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.models.wopi.WopiLockResult
+import com.baseflow.services.models.wopi.WopiUnlockResult
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -58,7 +59,16 @@ fun Route.wopiApiRoutes() {
                 }
             }
 
-            post { lockFile() }.describe {
+            post {
+                when (call.request.headers["X-WOPI-Override"]) {
+                    "LOCK" -> lockFile()
+                    "UNLOCK" -> unlockFile()
+                    else -> call.respondProblem(
+                        HttpStatusCode.NotImplemented,
+                        badRequest("Unsupported X-WOPI-Override value", call.request.path()),
+                    )
+                }
+            }.describe { // TODO(elitsa): Add documentation suitable for both LOCK and UNLOCK
                 operationId = "lockFile"
                 tag("wopi")
                 summary = "Locks a file"
@@ -136,15 +146,49 @@ fun Route.wopiApiRoutes() {
     }
 }
 
-private suspend fun RoutingContext.lockFile() {
-    val wopiOverride = call.request.headers["X-WOPI-Override"]
-    if (wopiOverride != "LOCK") {
+private suspend fun RoutingContext.unlockFile() {
+    val lock = call.request.headers["X-WOPI-Lock"]
+    if (lock == null) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
-            badRequest("X-WOPI-Override header must be LOCK", call.request.path()),
+            badRequest("X-WOPI-Lock header is required but missing", call.request.path()),
         )
         return
     }
+
+    val fileId = call.parameters["file_id"]
+    if (fileId == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(fileId)
+        when (val result = service.wopiUnlock(uuid, lock)) {
+            null -> call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+            is WopiUnlockResult.Success -> call.respond(HttpStatusCode.OK)
+            is WopiUnlockResult.NotLocked -> {
+                call.response.header("X-WOPI-Lock", "")
+                call.respondProblem(HttpStatusCode.Conflict, badRequest("File is not locked", call.request.path()))
+            }
+
+            is WopiUnlockResult.LockMismatch -> {
+                call.response.header("X-WOPI-Lock", result.currentFileLock.lock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    badRequest("Lock mismatch: file is locked with a different token", call.request.path())
+                )
+            }
+        }
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path())
+        )
+    }
+}
+
+private suspend fun RoutingContext.lockFile() {
 
     val lock = call.request.headers["X-WOPI-Lock"]
     if (lock == null) {

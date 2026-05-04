@@ -20,6 +20,6 @@ sealed class WopiLockResult {
 
 sealed class WopiUnlockResult {
     data object Success : WopiUnlockResult()
-    data object InvalidLock : WopiUnlockResult()
     data object NotLocked : WopiUnlockResult()
+    data class LockMismatch(val currentFileLock: WopiLockPayload) : WopiUnlockResult()
 }
