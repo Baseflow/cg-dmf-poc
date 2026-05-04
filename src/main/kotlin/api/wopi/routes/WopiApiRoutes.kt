@@ -68,7 +68,8 @@ fun Route.wopiApiRoutes() {
                         badRequest("Unsupported X-WOPI-Override value", call.request.path()),
                     )
                 }
-            }.describe { // TODO(elitsa): Add documentation suitable for both LOCK and UNLOCK
+            }.describe {
+                // TODO(elitsa): Add documentation suitable for both LOCK and UNLOCK
                 operationId = "lockFile"
                 tag("wopi")
                 summary = "Locks a file"
@@ -176,20 +177,19 @@ private suspend fun RoutingContext.unlockFile() {
                 call.response.header("X-WOPI-Lock", result.currentFileLock.lock)
                 call.respondProblem(
                     HttpStatusCode.Conflict,
-                    badRequest("Lock mismatch: file is locked with a different token", call.request.path())
+                    badRequest("Lock mismatch: file is locked with a different token", call.request.path()),
                 )
             }
         }
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
-            badRequest(e.message ?: "Invalid UUID format", call.request.path())
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
         )
     }
 }
 
 private suspend fun RoutingContext.lockFile() {
-
     val lock = call.request.headers["X-WOPI-Lock"]
     if (lock == null) {
         call.respondProblem(
