@@ -10,6 +10,8 @@ import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.RequestScope
 import com.baseflow.entities.*
 import com.baseflow.services.models.*
+import com.baseflow.services.models.wopi.WopiLockPayload
+import com.baseflow.services.models.wopi.WopiLockResult
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
@@ -344,7 +346,13 @@ class EnkelvoudigInformatieObjectService(
 
             val repoName = latestVersion?.bestandsRepository?.takeUnless { it.isBlank() }
             val uploadResultaat =
-                getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty(), repoName)
+                getUploadResultaat(
+                    request,
+                    record,
+                    newVersionNumber,
+                    latestVersion?.bestandsLocatie.orEmpty(),
+                    repoName,
+                )
             val bestandsFormaat =
                 mergeNullable(
                     partial,
@@ -796,6 +804,23 @@ class EnkelvoudigInformatieObjectService(
             val token = UUID.randomUUID().toString()
             record.lockToken = token
             LockResult.Success(LockPayload(lock = token))
+        }
+    }
+
+    fun wopiLock(id: UUID, lockValue: String): WopiLockResult? {
+        val trimmedLock = lockValue.trim()
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction null
+            val storedLock = record.lockToken?.trim()
+            if (storedLock != null) {
+                if (storedLock == trimmedLock) {
+                    return@transaction WopiLockResult.AlreadyLocked
+                } else {
+                    return@transaction WopiLockResult.LockMismatch(currentFileLock = WopiLockPayload(lock = storedLock))
+                }
+            }
+            record.lockToken = trimmedLock
+            WopiLockResult.Success
         }
     }
 
