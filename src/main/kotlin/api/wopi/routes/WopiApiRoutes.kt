@@ -72,6 +72,7 @@ private suspend fun RoutingContext.updateFileContents() {
             return
         }
         // This is a Collabora-specific response object, not part of the WOPI protocol.
+        // Important for supporting collaboration features.
         val lastModified = response.beginRegistratie
         call.response.headers.append("X-WOPI-ItemVersion", response.versie.toString())
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to lastModified))
