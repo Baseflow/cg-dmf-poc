@@ -166,6 +166,11 @@ private suspend fun RoutingContext.getFileMetadata() {
                 userCanWrite = true,
                 supportsAutosave = false,
                 userFriendlyName = "Unknown user",
+                supportsLocks = true,
+                supportsGetLock = true,
+                supportsUpdate = true,
+                lastModifiedTime = result.beginRegistratie,
+                version = result.versie.toString(),
             )
             call.respond(
                 HttpStatusCode.OK,
