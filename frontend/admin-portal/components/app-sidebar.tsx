@@ -1,7 +1,8 @@
 "use client"
 
-import * as React from "react"
+import { type ComponentProps } from "react"
 
+import { BaseflowAvatar } from "@/components/icons"
 import { NavDocuments } from "@/components/nav-documents"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -14,11 +15,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavSettings } from "./nav-settings"
-import { BaseflowAvatar } from "@/components/icons"
 import { navigation } from "@/lib/navigation"
+import Link from "next/link"
+import { NavSettings } from "./nav-settings"
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -28,12 +29,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <a href="#" className="flex items-center gap-2">
-                <span className="size-5 text-foreground [&>svg]:size-full">
-                  <BaseflowAvatar />
-                </span>
+              <Link href="/" className="flex items-center gap-2">
+                <BaseflowAvatar />
                 <span className="text-base font-semibold">Baseflow</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

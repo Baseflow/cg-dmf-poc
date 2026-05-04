@@ -31,14 +31,14 @@ export const navigation = {
     },
     {
       name: "Applicaties",
-      url: "/instellingen/applicatie-instellingen",
+      url: "/instellingen/applicaties",
       icon: <KeyIcon />,
     },
   ],
   documents: [
     {
       name: "OpenAPI Spec",
-      url: "https://cg-dmf.dev.baseflow.com/docs",
+      url: "/api-docs",
       icon: <FileTextIcon />,
     },
     {
@@ -47,7 +47,7 @@ export const navigation = {
       icon: <DockerIcon />,
     },
     {
-      name: "Link naar GitHub",
+      name: "GitHub Repository",
       url: "https://github.com/Baseflow/cg-dmf-poc",
       icon: <GitHubIcon />,
     },

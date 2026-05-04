@@ -1,71 +1,62 @@
 "use client"
 
-import * as React from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   CircleUserRoundIcon,
   EllipsisVerticalIcon,
   LogInIcon,
   LogOutIcon,
 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
+import { signIn, signOut, useSession } from "next-auth/react"
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return ""
+  const parts = name.trim().split(/\s+/)
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase()
+}
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { authenticated, isLoading, user, keycloak } = useAuth()
+  const { data: session, status } = useSession()
 
-  // ── Loading state ────────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size="lg" disabled>
-            <Skeleton className="h-8 w-8 rounded-lg" />
-            <div className="grid flex-1 gap-1">
-              <Skeleton className="h-3 w-24 rounded" />
-              <Skeleton className="h-3 w-32 rounded" />
-            </div>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    )
-  }
-
-  // ── Unauthenticated state ─────────────────────────────────────────────────
-  if (!authenticated || !user) {
+  if (status === "unauthenticated" || !session) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
             size="lg"
-            onClick={() => keycloak.login()}
-            tooltip="Log in"
+            onClick={() => signIn("keycloak")}
+            tooltip="Inloggen"
           >
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarFallback className="rounded-lg bg-muted">
-                <CircleUserRoundIcon className="size-4 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg bg-muted">
+                  <CircleUserRoundIcon className="size-4 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-sidebar bg-muted-foreground/40" />
+            </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Log in</span>
+              <span className="truncate font-medium text-muted-foreground">
+                Log in
+              </span>
               <span className="truncate text-xs text-muted-foreground">
-                Klik hier om in te loggen
+                Klik om in te loggen
               </span>
             </div>
             <LogInIcon className="ml-auto size-4 text-muted-foreground" />
@@ -75,7 +66,9 @@ export function NavUser() {
     )
   }
 
-  // ── Authenticated state ───────────────────────────────────────────────────
+  const user = session.user
+  const initials = getInitials(user?.name)
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -87,13 +80,13 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarFallback className="rounded-lg">
-                  {user.initials || user.name.slice(0, 2).toUpperCase()}
+                  {initials || user?.name?.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{user?.name}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {user.email}
+                  {user?.email}
                 </span>
               </div>
               <EllipsisVerticalIcon className="ml-auto size-4" />
@@ -109,28 +102,21 @@ export function NavUser() {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarFallback className="rounded-lg">
-                    {user.initials || user.name.slice(0, 2).toUpperCase()}
+                    {initials || user?.name?.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{user?.name}</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
+                    {user?.email}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <CircleUserRoundIcon />
-                Account
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={() => keycloak.logout()}
+              onClick={() => signOut()}
             >
               <LogOutIcon />
               Log out

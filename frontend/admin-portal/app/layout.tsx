@@ -1,29 +1,22 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
+import { AuthErrorHandler } from "@/components/auth-error-handler"
+import { SessionProvider } from "@/components/session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AuthProvider } from "@/contexts/auth-context"
 import type { Metadata } from "next"
-import { IBM_Plex_Mono, Poppins } from "next/font/google"
+import { IBM_Plex_Mono, Source_Sans_3 } from "next/font/google"
+
 import "./globals.css"
 
-const fontSans = Poppins({
+const fontSans = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700"],
-})
-
-const fontSerif = Poppins({
-  subsets: ["latin"],
-  variable: "--font-serif",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
 })
 
 const fontMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
 })
 
 export const metadata: Metadata = {
@@ -38,26 +31,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
+        className={`${fontSans.variable} ${fontMono.variable} antialiased`}
       >
         <ThemeProvider>
           <TooltipProvider>
-            <AuthProvider>
-              <SidebarProvider
-                style={
-                  {
-                    "--sidebar-width": "calc(var(--spacing) * 72)",
-                    "--header-height": "calc(var(--spacing) * 12)",
-                  } as React.CSSProperties
-                }
-              >
-                <AppSidebar variant="inset" />
-                <SidebarInset>
-                  <SiteHeader />
-                  {children}
-                </SidebarInset>
-              </SidebarProvider>
-            </AuthProvider>
+            <SessionProvider>
+              <AuthErrorHandler />
+              {children}
+            </SessionProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>

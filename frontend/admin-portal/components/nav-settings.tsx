@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/contexts/auth-context"
+import { useSession } from "next-auth/react"
 
 export function NavSettings({
   items,
@@ -19,9 +19,9 @@ export function NavSettings({
     icon: React.ReactNode
   }[]
 }) {
-  const { authenticated, isLoading } = useAuth()
+  const { status } = useSession()
 
-  if (isLoading || !authenticated) {
+  if (status !== "authenticated") {
     return null
   }
 
