@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { signIn, useSession } from "next-auth/react"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { LoginButton } from "@/app/(main)/login-button"
 
 vi.mock("next-auth/react", () => ({
@@ -10,6 +10,8 @@ vi.mock("next-auth/react", () => ({
 }))
 
 describe("LoginButton", () => {
+  beforeEach(() => vi.clearAllMocks())
+
   it("renders the login button when unauthenticated", () => {
     vi.mocked(useSession).mockReturnValue({
       data: null,
