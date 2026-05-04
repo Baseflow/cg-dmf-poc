@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25311292065",
+    "runNumber": "478",
+    "branch": "dependabot/docker/gradle-9.5.0-jdk21",
+    "date": "2026-05-04T09:29:24Z",
+    "path": "integration/25311292065/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25311095152",
     "runNumber": "470",
     "branch": "CGDMF-73-authorization",
