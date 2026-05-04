@@ -32,83 +32,83 @@ fun Route.wopiApiRoutes() {
     install(AuditTrailPlugin)
 
     route(WOPI_API_BASE_PATH) {
-        get("/files/{file_id}") {
-            getFileMetadata()
-        }.describe {
-            operationId = "getFileMetadata"
-            tag("wopi")
-            summary = "Get a file metadata."
-            description =
-                "Gets the metadata of a file."
-            parameters {
-                path("file_id") {
-                    description = "The UUID of the file to retrieve metadata for."
-                    required = true
-                }
-            }
-            responses {
-                response(200) {
-                    description = "The metadata of a file"
-                    ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
-                }
-                response(400) { description = "Bad request." }
-                response(401) { description = "Unauthorized." }
-                response(403) { description = "Forbidden." }
-                response(404) { description = "Not found." }
-                response(500) { description = "Internal server error." }
-            }
-        }
 
-        get("/files/{file_id}/contents") {
-            getFileContents()
-        }.describe {
-            operationId = "getFileContents"
-            tag("wopi")
-            summary = "Get file contents."
-            description =
-                "Gets the contents of a file."
-            parameters {
-                path("file_id") {
-                    description = "The UUID of the file to retrieve the contents for."
-                    required = true
+        route("/files/{file_id}") {
+            get { getFileMetadata() }.describe {
+                operationId = "getFileMetadata"
+                tag("wopi")
+                summary = "Get a file metadata."
+                description =
+                    "Gets the metadata of a file."
+                parameters {
+                    path("file_id") {
+                        description = "The UUID of the file to retrieve metadata for."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "The metadata of a file"
+                        ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
+                    }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                    response(500) { description = "Internal server error." }
                 }
             }
-            responses {
-                response(200) {
-                    description = "The binary data contents of a file"
-                }
-                response(400) { description = "Bad request." }
-                response(401) { description = "Unauthorized." }
-                response(403) { description = "Forbidden." }
-                response(404) { description = "Not found." }
-                response(500) { description = "Internal server error." }
-            }
-        }
 
-        post("/files/{file_id}/contents") {
-            updateFileContents()
-        }.describe {
-            operationId = "updateFileContents"
-            tag("wopi")
-            summary = "Update (Save) file contents."
-            description =
-                "Saves the contents of a file to the host."
-            parameters {
-                path("file_id") {
-                    description = "The UUID of the file to save the contents for."
-                    required = true
+            route("/contents") {
+                get { getFileContents() }.describe {
+                    operationId = "getFileContents"
+                    tag("wopi")
+                    summary = "Get file contents."
+                    description =
+                        "Gets the contents of a file."
+                    parameters {
+                        path("file_id") {
+                            description = "The UUID of the file to retrieve the contents for."
+                            required = true
+                        }
+                    }
+                    responses {
+                        response(200) {
+                            description = "The binary data contents of a file"
+                        }
+                        response(400) { description = "Bad request." }
+                        response(401) { description = "Unauthorized." }
+                        response(403) { description = "Forbidden." }
+                        response(404) { description = "Not found." }
+                        response(500) { description = "Internal server error." }
+                    }
+                }
+
+                post { updateFileContents() }.describe {
+                    operationId = "updateFileContents"
+                    tag("wopi")
+                    summary = "Update (Save) file contents."
+                    description =
+                        "Saves the contents of a file to the host."
+                    parameters {
+                        path("file_id") {
+                            description = "The UUID of the file to save the contents for."
+                            required = true
+                        }
+                    }
+                    responses {
+                        response(200) {
+                            description = "File successfully saved."
+                        }
+                        response(400) { description = "Bad request." }
+                        response(401) { description = "Unauthorized." }
+                        response(403) { description = "Forbidden." }
+                        response(404) { description = "Not found." }
+                        response(500) { description = "Internal server error." }
+                    }
                 }
             }
-            responses {
-                response(200) {
-                    description = "File successfully saved."
-                }
-                response(400) { description = "Bad request." }
-                response(401) { description = "Unauthorized." }
-                response(403) { description = "Forbidden." }
-                response(404) { description = "Not found." }
-                response(500) { description = "Internal server error." }
-            }
+
         }
     }
 }
