@@ -10,13 +10,11 @@ import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.entities.EIORecordEntity
-import com.baseflow.services.AuditTrailService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.Parameters
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
@@ -53,6 +51,15 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "PUT") {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Override header must be PUT", call.request.path()),
+        )
+        return
+    }
+
     try {
         val uuid = UUID.fromString(fileId)
         val bytes = call.receiveChannel().toByteArray()
@@ -66,6 +73,7 @@ private suspend fun RoutingContext.updateFileContents() {
         }
         // This is a Collabora-specific response object, not part of the WOPI protocol.
         val lastModified = response.beginRegistratie
+        call.response.headers.append("X-WOPI-ItemVersion", response.versie.toString())
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to lastModified))
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
