@@ -1,0 +1,27 @@
+meta {
+  name: List repositories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/admin/storage-repositories
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response is an array", function() {
+    expect(Array.isArray(res.body)).to.equal(true);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

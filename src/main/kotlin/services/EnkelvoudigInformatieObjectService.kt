@@ -26,7 +26,9 @@ import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import java.io.OutputStream
 import java.util.*
+import kotlin.collections.isNullOrEmpty
 import kotlin.io.encoding.Base64
+import kotlin.text.isNullOrEmpty
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -100,7 +102,8 @@ class EnkelvoudigInformatieObjectService(
             bestandsLocatie = uploadResultaat.bestandsLocatie
             bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
         }
-        val trefwoorden = request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
+        val trefwoorden =
+            request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
         trefwoorden.forEach { woord ->
             EIOVersionTrefwoordEntity.new {
                 versionId = eioVersion
@@ -712,6 +715,76 @@ class EnkelvoudigInformatieObjectService(
                 EIOVersionTrefwoorden.trefwoordId inSubQuery trefwoordIds
             }
             .withDistinct()
+    }
+
+    /**
+     * Update an EnkelvoudigInformatieObject with raw bytes (e.g. from WOPI PutFile).
+     * Retrieves the existing record and creates a new version with the provided file bytes,
+     * preserving all other metadata from the latest version.
+     */
+    @OptIn(ExperimentalTime::class)
+    suspend fun updateWithBytes(id: UUID, bytes: ByteArray): EnkelvoudigInformatieObjectResponse? {
+        return suspendTransaction {
+            val record = EIORecordEntity.findById(id) ?: return@suspendTransaction null
+
+            val latestVersion = record.versions.maxByOrNull { it.versie }
+            auditContext.captureOld(record.toResponse(latestVersion))
+            val newVersionNumber = (latestVersion?.versie ?: 1) + 1
+
+            val fileType = StorageService.detectFileFormat(bytes)
+            val newBestandsLocatie =
+                "${record.id.value}/$newVersionNumber/${latestVersion?.bestandsnaam ?: latestVersion?.titel ?: "document-${record.id.value}"}"
+            storageService.uploadFile(newBestandsLocatie, bytes)
+
+            val version = EIOVersionEntity.new {
+                recordId = record
+                versie = newVersionNumber
+                bronOrganisatie = latestVersion?.bronOrganisatie.orEmpty()
+                informatieobject_type = latestVersion?.informatieobject_type.orEmpty()
+                taal = latestVersion?.taal.orEmpty()
+                bestandsnaam = latestVersion?.bestandsnaam.orEmpty()
+                titel = latestVersion?.titel.orEmpty()
+                auteur = latestVersion?.auteur.orEmpty()
+                creatieDatum = latestVersion?.creatieDatum
+                    ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                formaat = fileType ?: latestVersion?.formaat
+                bestandsomvang = bytes.size.toLong()
+                bestandsLocatie = newBestandsLocatie
+                link = latestVersion?.link.orEmpty()
+                integriteitAlgoritme = latestVersion?.integriteitAlgoritme.orEmpty()
+                integriteitWaarde = latestVersion?.integriteitWaarde.orEmpty()
+                integriteitsDatum = latestVersion?.integriteitsDatum
+                verschijningsVorm = latestVersion?.verschijningsVorm.orEmpty()
+                vertrouwlijkheidsAanduiding = latestVersion?.vertrouwlijkheidsAanduiding.orEmpty()
+                status = latestVersion?.status.orEmpty()
+                beschrijving = latestVersion?.beschrijving.orEmpty()
+                indicatieGebruiksrecht = latestVersion?.indicatieGebruiksrecht ?: false
+                ondertekening_soort = latestVersion?.ondertekening_soort.orEmpty()
+                ondertekenings_datum = latestVersion?.ondertekenings_datum
+                identificatie = latestVersion?.identificatie.orEmpty()
+            }
+
+            val trefwoorden = if (latestVersion != null) {
+                (EIOVersionTrefwoorden innerJoin Trefwoorden)
+                    .select(Trefwoorden.woord)
+                    .where { EIOVersionTrefwoorden.versionId eq latestVersion.id }
+                    .orderBy(Trefwoorden.woord to SortOrder.ASC)
+                    .map { it[Trefwoorden.woord] }
+            } else {
+                emptyList()
+            }
+            trefwoorden.forEach { woord ->
+                EIOVersionTrefwoordEntity.new {
+                    versionId = version
+                    trefwoordId = TrefwoordEntity.findOrCreate(woord)
+                }
+            }
+
+            val response = record.toResponse(version, emptyList(), trefwoorden)
+            auditContext.captureNew(response, version)
+            response
+        }
     }
 
     fun lock(id: UUID): LockResult? {

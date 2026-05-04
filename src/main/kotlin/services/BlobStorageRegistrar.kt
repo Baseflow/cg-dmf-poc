@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Reads [BlobStorageConfig] on startup, hashes secrets, and
@@ -35,7 +36,7 @@ object BlobStorageRegistrar {
     private val logger = LoggerFactory.getLogger(BlobStorageRegistrar::class.java)
 
     /** Provider instances keyed by repository name. */
-    private val providers = mutableMapOf<String, BlobStorageProvider>()
+    private val providers = ConcurrentHashMap<String, BlobStorageProvider>()
 
     /** Name of the currently designated default provider (may be `null` before [initialise]). */
     @Volatile
@@ -178,6 +179,54 @@ object BlobStorageRegistrar {
         }
         defaultProviderName = name
         logger.info("Default blob storage repository changed to '{}'", name)
+    }
+
+    /**
+     * Registers a new provider from a freshly persisted [BlobStorageRepositoryEntity].
+     * The entity must already be saved in the database before calling this.
+     */
+    fun registerProvider(cfg: BlobStorageRepoConfig) {
+        providers[cfg.name] = createProvider(cfg)
+        if (cfg.isDefault || defaultProviderName == null) {
+            defaultProviderName = cfg.name
+        }
+        logger.info("Registered new blob storage provider '{}'", cfg.name)
+    }
+
+    /**
+     * Replaces the provider for an existing repository, e.g. after updating its config.
+     * [oldName] is required when the repository is being renamed.
+     */
+    fun updateProvider(cfg: BlobStorageRepoConfig, oldName: String? = null) {
+        val nameToRemove = oldName ?: cfg.name
+        val newProvider = createProvider(cfg)
+        providers.remove(nameToRemove)
+        providers[cfg.name] = newProvider
+
+        if (cfg.isDefault) {
+            setDefaultProvider(cfg.name)
+        }
+        logger.info("Updated blob storage provider '{}' (was '{}')", cfg.name, nameToRemove)
+    }
+
+    /**
+     * Removes the provider for [name] from the in-memory registry.
+     * If it was the default, the default is cleared (or reassigned to the first remaining provider).
+     */
+    fun unregisterProvider(name: String) {
+        providers.remove(name)
+        if (defaultProviderName == name) {
+            defaultProviderName = providers.keys.firstOrNull()
+            if (defaultProviderName != null) {
+                transaction {
+                    BlobStorageRepositoryEntity
+                        .find { BlobStorageRepositories.repoName eq defaultProviderName!! }
+                        .firstOrNull()
+                        ?.let { it.isDefault = true }
+                }
+            }
+        }
+        logger.info("Unregistered blob storage provider '{}'", name)
     }
 
     // ---- test helpers (internal visibility keeps them out of prod call-sites) ----
