@@ -1,42 +1,13 @@
+import { auth } from "@/auth"
 import { BaseflowAvatar } from "@/components/icons"
-import { LoginButton } from "./login-button"
+import { Button } from "@/components/ui/button"
+import { navigation } from "@/lib/navigation"
 import Link from "next/link"
-import { FileKey2, FolderOpen, KeyRound, Settings, Layers } from "lucide-react"
+import { login } from "./actions"
 
-const navItems = [
-  {
-    href: "/instellingen/oidc",
-    icon: KeyRound,
-    label: "OIDC",
-    description: "OpenID Connect authenticatieproviders beheren",
-  },
-  {
-    href: "/instellingen/zgw-api",
-    icon: Layers,
-    label: "ZGW API",
-    description: "ZGW API-koppelingsprofielen configureren",
-  },
-  {
-    href: "/instellingen/repositories",
-    icon: FolderOpen,
-    label: "Repositories",
-    description: "Object store repositories instellen",
-  },
-  {
-    href: "/instellingen/dmf",
-    icon: Settings,
-    label: "DMF",
-    description: "DMF-systeeminstellingen aanpassen",
-  },
-  {
-    href: "/instellingen/applicaties",
-    icon: FileKey2,
-    label: "Applicaties",
-    description: "Gekoppelde applicaties beheren",
-  },
-]
+export default async function Page() {
+  const session = await auth()
 
-export default function Page() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 p-8">
       <div className="flex flex-col items-center gap-4 text-center">
@@ -49,24 +20,34 @@ export default function Page() {
             Configureer en beheer Document Management Framework integraties
           </p>
         </div>
-        <LoginButton />
+        {!session && (
+          <form action={login}>
+            <Button type="submit">Log in</Button>
+          </form>
+        )}
       </div>
 
-      <nav className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {navItems.map(({ href, icon: Icon, label, description }) => (
-          <Link
-            key={href}
-            href={href}
-            className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-          >
-            <div className="flex items-center gap-2">
-              <Icon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-              <span className="text-sm font-medium">{label}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">{description}</p>
-          </Link>
-        ))}
-      </nav>
+      {session && (
+        <nav className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {navigation.primary.settings.map(
+            ({ url, icon, name, description }) => (
+              <Link
+                key={url}
+                href={url}
+                className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
+                    {icon}
+                  </span>
+                  <span className="text-sm font-medium">{name}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </Link>
+            )
+          )}
+        </nav>
+      )}
     </div>
   )
 }
