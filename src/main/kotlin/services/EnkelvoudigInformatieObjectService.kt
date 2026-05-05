@@ -26,9 +26,7 @@ import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import java.io.OutputStream
 import java.util.*
-import kotlin.collections.isNullOrEmpty
 import kotlin.io.encoding.Base64
-import kotlin.text.isNullOrEmpty
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -52,80 +50,81 @@ class EnkelvoudigInformatieObjectService(
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse = suspendTransaction {
-        request.controleerVerplichteVelden()
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse =
+        suspendTransaction {
+            request.controleerVerplichteVelden()
 
-        val record = EIORecordEntity.new {
-        }
-
-        // Validate informatieobjecttype against catalogus
-        val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
-        val version = 1
-
-        val uploadResultaat = getUploadResultaat(request, record, version)
-        val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
-        val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
-
-        if (!request.inhoud.isNullOrEmpty()) {
-            require(bestandsFormaat != null) {
-                "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+            val record = EIORecordEntity.new {
             }
-        }
 
-        val eioVersion = EIOVersionEntity.new {
-            recordId = record
-            versie = version
-            bronOrganisatie = request.bronorganisatie!!
-            informatieobject_type = request.informatieobjecttype
-            taal = request.taal!!
-            bestandsnaam = request.bestandsnaam.orEmpty()
-            titel = request.titel!!
-            auteur = request.auteur!!
-            creatieDatum = request.creatiedatum!!
-            beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            formaat = bestandsFormaat
-            bestandsomvang = bestandsOmvang
-            link = request.link.orEmpty()
-            integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
-            integriteitWaarde = request.integriteit?.waarde.orEmpty()
-            integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
-            verschijningsVorm = request.verschijningsvorm.orEmpty()
-            vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
-                ?: ioType?.vertrouwelijkheidaanduiding
-                ?: ""
-            status = request.status?.toString().orEmpty()
-            beschrijving = request.beschrijving.orEmpty()
-            indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
-            ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
-            ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
-            identificatie = request.identificatie.orEmpty()
-            bestandsLocatie = uploadResultaat.bestandsLocatie
-            bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
-        }
-        val trefwoorden =
-            request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
-        trefwoorden.forEach { woord ->
-            EIOVersionTrefwoordEntity.new {
-                versionId = eioVersion
-                trefwoordId = TrefwoordEntity.findOrCreate(woord)
+            // Validate informatieobjecttype against catalogus
+            val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
+            val version = 1
+
+            val uploadResultaat = getUploadResultaat(request, record, version)
+            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
+
+            if (!request.inhoud.isNullOrEmpty()) {
+                require(bestandsFormaat != null) {
+                    "Unable to determine file format from content. Please specify the 'formaat' field in the request."
+                }
             }
-        }
 
-        // When the declared file size exceeds the trigger threshold, lock the record and
-        // create the bestandsdelen rows so the API consumer can upload the parts individually.
-        val bestandsDelen: List<BestandsDeelResponse>
-        if (request.inhoud.isNullOrEmpty() && bestandsDeelService.requiresChunking(request.bestandsomvang)) {
-            val lockToken = UUID.randomUUID().toString()
-            record.lockToken = lockToken
-            bestandsDelen = bestandsDeelService.createBestandsDelen(eioVersion, bestandsOmvang!!, lockToken)
-        } else {
-            bestandsDelen = emptyList()
-        }
+            val eioVersion = EIOVersionEntity.new {
+                recordId = record
+                versie = version
+                bronOrganisatie = request.bronorganisatie!!
+                informatieobject_type = request.informatieobjecttype
+                taal = request.taal!!
+                bestandsnaam = request.bestandsnaam.orEmpty()
+                titel = request.titel!!
+                auteur = request.auteur!!
+                creatieDatum = request.creatiedatum!!
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                formaat = bestandsFormaat
+                bestandsomvang = bestandsOmvang
+                link = request.link.orEmpty()
+                integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
+                integriteitWaarde = request.integriteit?.waarde.orEmpty()
+                integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
+                verschijningsVorm = request.verschijningsvorm.orEmpty()
+                vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
+                    ?: ioType?.vertrouwelijkheidaanduiding
+                        ?: ""
+                status = request.status?.toString().orEmpty()
+                beschrijving = request.beschrijving.orEmpty()
+                indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
+                ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
+                ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
+                identificatie = request.identificatie.orEmpty()
+                bestandsLocatie = uploadResultaat.bestandsLocatie
+                bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
+            }
+            val trefwoorden =
+                request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
+            trefwoorden.forEach { woord ->
+                EIOVersionTrefwoordEntity.new {
+                    versionId = eioVersion
+                    trefwoordId = TrefwoordEntity.findOrCreate(woord)
+                }
+            }
 
-        val response = record.toResponse(eioVersion, bestandsDelen, trefwoorden)
-        auditContext.captureNew(response, eioVersion)
-        response as EnkelvoudigInformatieObjectResponse
-    }
+            // When the declared file size exceeds the trigger threshold, lock the record and
+            // create the bestandsdelen rows so the API consumer can upload the parts individually.
+            val bestandsDelen: List<BestandsDeelResponse>
+            if (request.inhoud.isNullOrEmpty() && bestandsDeelService.requiresChunking(request.bestandsomvang)) {
+                val lockToken = UUID.randomUUID().toString()
+                record.lockToken = lockToken
+                bestandsDelen = bestandsDeelService.createBestandsDelen(eioVersion, bestandsOmvang!!, lockToken)
+            } else {
+                bestandsDelen = emptyList()
+            }
+
+            val response = record.toResponse(eioVersion, bestandsDelen, trefwoorden)
+            auditContext.captureNew(response, eioVersion)
+            response as EnkelvoudigInformatieObjectResponse
+        }
 
     private fun getUploadResultaat(
         request: EnkelvoudigInformatieObjectRequest,
@@ -344,7 +343,13 @@ class EnkelvoudigInformatieObjectService(
 
             val repoName = latestVersion?.bestandsRepository?.takeUnless { it.isBlank() }
             val uploadResultaat =
-                getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty(), repoName)
+                getUploadResultaat(
+                    request,
+                    record,
+                    newVersionNumber,
+                    latestVersion?.bestandsLocatie.orEmpty(),
+                    repoName
+                )
             val bestandsFormaat =
                 mergeNullable(
                     partial,
@@ -729,11 +734,19 @@ class EnkelvoudigInformatieObjectService(
 
             val latestVersion = record.versions.maxByOrNull { it.versie }
             auditContext.captureOld(record.toResponse(latestVersion))
-            val newVersionNumber = (latestVersion?.versie ?: 1) + 1
+            val newVersionNumber = (latestVersion?.versie ?: 0) + 1
 
             val fileType = StorageService.detectFileFormat(bytes)
+            val bestandsnaamVoorOpslag =
+                (
+                    latestVersion?.bestandsnaam?.ifBlank { null }
+                        ?: latestVersion?.titel?.ifBlank { null }
+                        ?: "document-${record.id.value}"
+                    )
+                    .replace("\\", "_")
+                    .replace("/", "_")
             val newBestandsLocatie =
-                "${record.id.value}/$newVersionNumber/${latestVersion?.bestandsnaam ?: latestVersion?.titel ?: "document-${record.id.value}"}"
+                "${record.id.value}/$newVersionNumber/$bestandsnaamVoorOpslag"
             storageService.uploadFile(newBestandsLocatie, bytes)
 
             val version = EIOVersionEntity.new {
@@ -746,8 +759,8 @@ class EnkelvoudigInformatieObjectService(
                 titel = latestVersion?.titel.orEmpty()
                 auteur = latestVersion?.auteur.orEmpty()
                 creatieDatum = latestVersion?.creatieDatum
-                    ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = fileType ?: latestVersion?.formaat
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
