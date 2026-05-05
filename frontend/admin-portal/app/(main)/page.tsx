@@ -29,7 +29,9 @@ export default async function Page() {
 
       {session && (
         <nav className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {navigation.primary.settings.map(
+          {(
+            navigation.primary.find((g) => g.id === "instellingen")?.items ?? []
+          ).map(
             ({ url, icon, name, description }) => (
               <Link
                 key={url}

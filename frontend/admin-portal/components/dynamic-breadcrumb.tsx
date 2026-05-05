@@ -12,41 +12,35 @@ import { navigation } from "@/lib/navigation"
 import { usePathname } from "next/navigation"
 import React from "react"
 
-const groupLabels: Record<string, string> = {
-  settings: "Instellingen",
-  documents: "Documenten",
-}
-
 type Crumb =
   | { type: "label"; label: string }
   | { type: "link"; label: string; href: string }
   | { type: "page"; label: string }
 
 function buildCrumbs(pathname: string): Crumb[] {
-  for (const [groupKey, items] of Object.entries(navigation.primary)) {
-    const match = items.find(
+  for (const group of navigation.primary) {
+    const match = group.items.find(
       (item) => pathname === item.url || pathname.startsWith(item.url + "/")
     )
     if (!match) continue
 
-    const crumbs: Crumb[] = [
-      { type: "label", label: groupLabels[groupKey] ?? groupKey },
-    ]
+    const crumbs: Crumb[] = [{ type: "label", label: group.label }]
 
     const isExact = pathname === match.url
     if (isExact) {
       crumbs.push({ type: "page", label: match.name })
     } else {
       crumbs.push({ type: "link", label: match.name, href: match.url })
-      const remaining = pathname.slice(match.url.length).split("/").filter(Boolean)
+      const remaining = pathname
+        .slice(match.url.length)
+        .split("/")
+        .filter(Boolean)
       remaining.forEach((seg, i) => {
         const href = match.url + "/" + remaining.slice(0, i + 1).join("/")
         const isLast = i === remaining.length - 1
         const label = seg.charAt(0).toUpperCase() + seg.slice(1)
         crumbs.push(
-          isLast
-            ? { type: "page", label }
-            : { type: "link", label, href }
+          isLast ? { type: "page", label } : { type: "link", label, href }
         )
       })
     }
