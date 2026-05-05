@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export interface ZgwApiSetting {
@@ -26,7 +27,7 @@ export async function createZgwApiSetting(data: ZgwApiSettingInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }
 
 export async function updateZgwApiSetting(
@@ -38,7 +39,7 @@ export async function updateZgwApiSetting(
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }
 
 export async function deleteZgwApiSetting(id: string) {
@@ -46,7 +47,7 @@ export async function deleteZgwApiSetting(id: string) {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }
 
 export async function deleteZgwApiSettings(ids: string[]) {
@@ -58,5 +59,5 @@ export async function deleteZgwApiSettings(ids: string[]) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }

@@ -52,7 +52,7 @@ export function NavUser() {
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium text-muted-foreground">
-                Log in
+                Inloggen
               </span>
               <span className="truncate text-xs text-muted-foreground">
                 Klik om in te loggen

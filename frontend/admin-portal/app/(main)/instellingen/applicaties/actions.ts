@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export interface ApplicationSetting {
@@ -24,7 +25,7 @@ export async function createApplication(data: ApplicationInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function updateApplication(id: string, data: ApplicationInput) {
@@ -33,7 +34,7 @@ export async function updateApplication(id: string, data: ApplicationInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function deleteApplication(id: string) {
@@ -41,7 +42,7 @@ export async function deleteApplication(id: string) {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function deleteApplications(ids: string[]) {
@@ -53,7 +54,7 @@ export async function deleteApplications(ids: string[]) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function rotateApplicationSecret(
@@ -69,6 +70,6 @@ export async function rotateApplicationSecret(
   )
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const { secret } = (await res.json()) as { secret: string }
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
   return secret
 }

@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export type StorageType = "S3" | "Azure Blob Storage"
@@ -37,7 +38,7 @@ export async function createRepository(data: RepositoryInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function updateRepository(id: string, data: RepositoryInput) {
@@ -46,7 +47,7 @@ export async function updateRepository(id: string, data: RepositoryInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function deleteRepository(id: string) {
@@ -54,7 +55,7 @@ export async function deleteRepository(id: string) {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function deleteRepositories(ids: string[]) {
@@ -66,5 +67,5 @@ export async function deleteRepositories(ids: string[]) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }

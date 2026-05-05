@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export interface OidcProvider {
@@ -26,7 +27,7 @@ export async function createOidcProvider(data: OidcProviderInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/oidc")
+  revalidatePath(ROUTES.instellingen.oidc)
 }
 
 export async function updateOidcProvider(id: string, data: OidcProviderInput) {
@@ -35,7 +36,7 @@ export async function updateOidcProvider(id: string, data: OidcProviderInput) {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/oidc")
+  revalidatePath(ROUTES.instellingen.oidc)
 }
 
 export async function deleteOidcProvider(id: string) {
@@ -43,7 +44,7 @@ export async function deleteOidcProvider(id: string) {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/oidc")
+  revalidatePath(ROUTES.instellingen.oidc)
 }
 
 export async function deleteOidcProviders(ids: string[]) {
@@ -55,5 +56,5 @@ export async function deleteOidcProviders(ids: string[]) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/oidc")
+  revalidatePath(ROUTES.instellingen.oidc)
 }

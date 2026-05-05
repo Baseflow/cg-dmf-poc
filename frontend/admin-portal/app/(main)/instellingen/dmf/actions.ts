@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -53,6 +54,6 @@ export async function saveDmfSettings(
   })
 
   if (!res.ok) return { error: "Opslaan mislukt. Probeer het opnieuw." }
-  revalidatePath("/instellingen/dmf")
+  revalidatePath(ROUTES.instellingen.dmf)
   return { saved: true }
 }
