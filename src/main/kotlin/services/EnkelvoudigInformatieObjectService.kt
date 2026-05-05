@@ -29,9 +29,7 @@ import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import java.io.OutputStream
 import java.util.*
-import kotlin.collections.isNullOrEmpty
 import kotlin.io.encoding.Base64
-import kotlin.text.isNullOrEmpty
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -738,11 +736,19 @@ class EnkelvoudigInformatieObjectService(
 
             val latestVersion = record.versions.maxByOrNull { it.versie }
             auditContext.captureOld(record.toResponse(latestVersion))
-            val newVersionNumber = (latestVersion?.versie ?: 1) + 1
+            val newVersionNumber = (latestVersion?.versie ?: 0) + 1
 
             val fileType = StorageService.detectFileFormat(bytes)
+            val bestandsnaamVoorOpslag =
+                (
+                    latestVersion?.bestandsnaam?.ifBlank { null }
+                        ?: latestVersion?.titel?.ifBlank { null }
+                        ?: "document-${record.id.value}"
+                    )
+                    .replace("\\", "_")
+                    .replace("/", "_")
             val newBestandsLocatie =
-                "${record.id.value}/$newVersionNumber/${latestVersion?.bestandsnaam ?: latestVersion?.titel ?: "document-${record.id.value}"}"
+                "${record.id.value}/$newVersionNumber/$bestandsnaamVoorOpslag"
             storageService.uploadFile(newBestandsLocatie, bytes)
 
             val version = EIOVersionEntity.new {
@@ -755,8 +761,8 @@ class EnkelvoudigInformatieObjectService(
                 titel = latestVersion?.titel.orEmpty()
                 auteur = latestVersion?.auteur.orEmpty()
                 creatieDatum = latestVersion?.creatieDatum
-                    ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 formaat = fileType ?: latestVersion?.formaat
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
