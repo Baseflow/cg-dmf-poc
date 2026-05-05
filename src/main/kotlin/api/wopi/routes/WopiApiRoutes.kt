@@ -69,21 +69,20 @@ fun Route.wopiApiRoutes() {
                     )
                 }
             }.describe {
-                // TODO(elitsa): Add documentation suitable for both LOCK and UNLOCK
-                operationId = "lockFile"
+                operationId = "lock/unlock a file"
                 tag("wopi")
-                summary = "Locks a file"
+                summary = "Locks/unlocks a file"
                 description =
-                    "The WOPI-client locks a file."
+                    "The WOPI-client locks or unlocks a file, based on the X-WOPI-Override header. Supported values are LOCK and UNLOCK."
                 parameters {
                     path("file_id") {
-                        description = "The UUID of the file to lock."
+                        description = "The UUID of the file to lock/unlock."
                         required = true
                     }
                 }
                 responses {
                     response(200) {
-                        description = "Successfully locked the file."
+                        description = "Successfully locked/unlocked the file."
                     }
                     response(400) { description = "Bad request." }
                     response(401) { description = "Unauthorized." }
