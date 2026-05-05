@@ -38,9 +38,9 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavSettings items={navigation.settings} />
-        <NavDocuments items={navigation.documents} />
-        <NavSecondary items={navigation.navSecondary} className="mt-auto" />
+        <NavSettings items={navigation.primary.settings} />
+        <NavDocuments items={navigation.primary.documents} />
+        <NavSecondary items={navigation.secondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
