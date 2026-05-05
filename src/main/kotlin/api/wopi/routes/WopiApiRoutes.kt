@@ -61,7 +61,7 @@ fun Route.wopiApiRoutes() {
 
             post {
                 when (call.request.headers["X-WOPI-Override"]) {
-                    "LOCK" -> lockFile()
+                    "LOCK" -> lockFileOperations()
                     "UNLOCK" -> unlockFile()
                     else -> call.respondProblem(
                         HttpStatusCode.NotImplemented,
@@ -186,6 +186,26 @@ private suspend fun RoutingContext.unlockFile() {
             badRequest(e.message ?: "Invalid UUID format", call.request.path()),
         )
     }
+}
+
+private suspend fun RoutingContext.lockFileOperations() {
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "LOCK") {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Override header must be LOCK", call.request.path()),
+        )
+        return
+    }
+
+    when (call.request.headers["X-WOPI-OldLock"]) {
+        null -> lockFile()
+        else -> unlockAndRelock()
+    }
+}
+
+private suspend fun RoutingContext.unlockAndRelock() {
+
 }
 
 private suspend fun RoutingContext.lockFile() {
