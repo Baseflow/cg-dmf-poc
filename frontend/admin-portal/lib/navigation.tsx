@@ -4,6 +4,7 @@ import {
   BookOpen,
   Braces,
   Database,
+  FileCode,
   FileCog,
   LucideFileExclamationPoint,
   Plug,
@@ -35,8 +36,13 @@ export const navigation: {
       items: [
         {
           name: "OpenAPI UI",
-          url: "/api-docs",
+          url: "/documenten-api/openapi-ui",
           icon: <BookOpen />,
+        },
+        {
+          name: "OpenAPI UI (Ktor)",
+          url: "/documenten-api/openapi-ui-ktor",
+          icon: <FileCode />,
         },
         {
           name: "OpenAPI JSON",
