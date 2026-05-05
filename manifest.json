@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25368183579",
+    "runNumber": "492",
+    "branch": "task/CGDMF-96-lock",
+    "date": "2026-05-05T09:27:32Z",
+    "path": "integration/25368183579/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25367802797",
     "runNumber": "491",
     "branch": "task/CGDMF-94",
