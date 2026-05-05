@@ -11,7 +11,8 @@ export default async function Page() {
   const applications: ApplicationSetting[] = await res.json()
 
   return (
-    <div className="p-6">
+    <div className="flex flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold">Applicaties</h1>
       <ApplicationList applications={applications} />
     </div>
   )

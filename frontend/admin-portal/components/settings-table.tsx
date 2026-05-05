@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus, Trash2 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 
 interface SettingsTableProps<T extends { id: string }> {
   data: T[]
@@ -28,6 +28,7 @@ interface SettingsTableProps<T extends { id: string }> {
   onAdd: () => void
   addLabel?: string
   emptyAddLabel?: string
+  emptyIcon?: ReactNode
   onBulkDelete?: (ids: string[]) => void
 }
 
@@ -39,6 +40,7 @@ export function SettingsTable<T extends { id: string }>({
   onAdd,
   addLabel = "Toevoegen",
   emptyAddLabel,
+  emptyIcon,
   onBulkDelete,
 }: SettingsTableProps<T>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -116,6 +118,11 @@ export function SettingsTable<T extends { id: string }>({
 
       {data.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border py-12 text-center">
+          {emptyIcon && (
+            <span className="text-muted-foreground/40 [&>svg]:h-10 [&>svg]:w-10">
+              {emptyIcon}
+            </span>
+          )}
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           <Button variant="outline" size="sm" onClick={onAdd}>
             <Plus />

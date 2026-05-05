@@ -15,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -38,9 +37,10 @@ import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, ChevronDown, X } from "lucide-react"
+import { Check, MoreHorizontal, Plug, X } from "lucide-react"
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -63,6 +63,8 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
   )
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
+  const [drawerDirty, setDrawerDirty] = useState(false)
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<ZgwApiSetting | null>(null)
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
@@ -70,15 +72,26 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
   const [isDeleting, startDelete] = useTransition()
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const handleDrawerCloseAttempt = useCallback(() => {
+    if (isSaving) return
+    if (drawerDirty) {
+      setCloseConfirmOpen(true)
+    } else {
+      setDrawerOpen(false)
+    }
+  }, [isSaving, drawerDirty])
+
   const openAdd = useCallback(() => {
     setEditingSetting(null)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
   const openDetails = useCallback((setting: ZgwApiSetting) => {
     setEditingSetting(setting)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
@@ -200,9 +213,9 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Acties
-                  <ChevronDown />
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -232,6 +245,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
         description="ZGW API-koppelingsprofielen voor het DMF-systeem."
         emptyMessage="Nog geen ZGW API-instellingen geconfigureerd."
         emptyAddLabel="Instelling toevoegen"
+        emptyIcon={<Plug />}
         onAdd={openAdd}
         onBulkDelete={(ids) => {
           setBulkDeleteIds(ids)
@@ -243,7 +257,7 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
         key={isMobile ? "bottom" : "right"}
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!open && !isSaving) setDrawerOpen(false)
+          if (!open) handleDrawerCloseAttempt()
         }}
         direction={isMobile ? "bottom" : "right"}
       >
@@ -254,10 +268,39 @@ export function ZgwApiList({ settings }: { settings: ZgwApiSetting[] }) {
             saving={isSaving}
             error={drawerError}
             onSave={handleSave}
-            onCancel={() => setDrawerOpen(false)}
+            onCancel={handleDrawerCloseAttempt}
+            onDirtyChange={setDrawerDirty}
           />
         </DrawerContent>
       </Drawer>
+
+      <AlertDialog
+        open={closeConfirmOpen}
+        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
+              sluiten?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setCloseConfirmOpen(false)
+                setDrawerOpen(false)
+                setDrawerDirty(false)
+              }}
+            >
+              Sluiten
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -337,6 +380,7 @@ function SettingForm({
   error,
   onSave,
   onCancel,
+  onDirtyChange,
 }: {
   setting: ZgwApiSetting | null
   saving: boolean
@@ -348,6 +392,7 @@ function SettingForm({
     clientSecret: string
   }) => void
   onCancel: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const [name, setName] = useState(setting?.name ?? "")
   const [baseUrl, setBaseUrl] = useState(setting?.baseUrl ?? "")
@@ -358,6 +403,16 @@ function SettingForm({
     baseUrl?: string
     clientId?: string
   }>({})
+
+  const isDirty =
+    name !== (setting?.name ?? "") ||
+    baseUrl !== (setting?.baseUrl ?? "") ||
+    clientId !== (setting?.clientId ?? "") ||
+    clientSecret !== ""
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -463,18 +518,16 @@ function SettingForm({
           <Check />
           {saving ? "Opslaan..." : "Opslaan"}
         </Button>
-        <DrawerClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            <X />
-            Annuleren
-          </Button>
-        </DrawerClose>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={saving}
+        >
+          <X />
+          Annuleren
+        </Button>
       </DrawerFooter>
     </>
   )

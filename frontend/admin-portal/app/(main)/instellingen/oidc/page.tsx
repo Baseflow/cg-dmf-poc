@@ -9,7 +9,8 @@ export default async function Page() {
   const providers: OidcProvider[] = await res.json()
 
   return (
-    <div className="p-6">
+    <div className="flex flex-col gap-6 p-6">
+      <h1 className="text-2xl font-semibold">OpenID Connect authenticatieproviders</h1>
       <OidcProviderList providers={providers} />
     </div>
   )

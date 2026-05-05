@@ -4,7 +4,6 @@ import {
   BookOpen,
   Braces,
   Database,
-  FileCode,
   FileCog,
   LucideFileExclamationPoint,
   Plug,
@@ -38,11 +37,6 @@ export const navigation: {
           name: "OpenAPI UI",
           url: "/api-docs",
           icon: <BookOpen />,
-        },
-        {
-          name: "Ktor OpenAPI UI",
-          url: "/api-docs",
-          icon: <FileCode />,
         },
         {
           name: "OpenAPI JSON",
@@ -107,7 +101,7 @@ export const navigation: {
   ],
   secondary: [
     {
-      name: "Rapporteer problemen",
+      name: "Problemen melden",
       url: "https://github.com/Baseflow/cg-dmf-poc/issues",
       icon: <LucideFileExclamationPoint />,
     },
