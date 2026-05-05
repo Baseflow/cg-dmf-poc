@@ -2,35 +2,6 @@ import NextAuth from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import Keycloak from "next-auth/providers/keycloak"
 
-async function refreshAccessToken(token: JWT): Promise<JWT> {
-  try {
-    const response = await fetch(
-      `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: process.env.KEYCLOAK_CLIENT_ID!,
-          client_secret: process.env.KEYCLOAK_CLIENT_SECRET!,
-          grant_type: "refresh_token",
-          refresh_token: token.refreshToken!,
-        }),
-      }
-    )
-    const refreshed = await response.json()
-    if (!response.ok) throw refreshed
-    return {
-      ...token,
-      accessToken: refreshed.access_token,
-      refreshToken: refreshed.refresh_token ?? token.refreshToken,
-      expiresAt: Date.now() + refreshed.expires_in * 1000,
-      error: undefined,
-    }
-  } catch {
-    return { ...token, error: "RefreshAccessTokenError" }
-  }
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Keycloak({
@@ -80,3 +51,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   debug: process.env.NODE_ENV === "development",
 })
+
+async function refreshAccessToken(token: JWT): Promise<JWT> {
+  try {
+    const response = await fetch(
+      `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: process.env.KEYCLOAK_CLIENT_ID!,
+          client_secret: process.env.KEYCLOAK_CLIENT_SECRET!,
+          grant_type: "refresh_token",
+          refresh_token: token.refreshToken!,
+        }),
+      }
+    )
+    const refreshed = await response.json()
+    if (!response.ok) throw refreshed
+    return {
+      ...token,
+      accessToken: refreshed.access_token,
+      refreshToken: refreshed.refresh_token ?? token.refreshToken,
+      expiresAt: Date.now() + refreshed.expires_in * 1000,
+      error: undefined,
+    }
+  } catch {
+    return { ...token, error: "RefreshAccessTokenError" }
+  }
+}

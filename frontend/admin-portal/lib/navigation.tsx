@@ -1,11 +1,13 @@
 import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 import {
+  AppWindow,
+  BookOpen,
+  Braces,
   Database,
-  FileText,
-  FileTextIcon,
-  Layers,
-  LayoutGrid,
+  FileCode,
+  FileCog,
   LucideFileExclamationPoint,
+  Plug
 } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -30,22 +32,38 @@ export const navigation: {
   primary: [
     {
       id: "documenten",
-      label: "Documenten",
+      label: "Documenten API",
       items: [
         {
-          name: "OpenAPI Spec",
+          name: "OpenAPI UI",
           url: "/api-docs",
-          icon: <FileTextIcon />,
+          icon: <BookOpen />,
+        },
+        {
+          name: "Ktor OpenAPI UI",
+          url: "/api-docs",
+          icon: <FileCode />,
+        },
+        {
+          name: "OpenAPI JSON",
+          url: "https://cg-dmf.dev.baseflow.com/docs/openapi/documenten.json",
+          icon: <Braces />,
+        },
+      ],
+    },
+    {
+      id: "links",
+      label: "Links",
+      items: [
+        {
+          name: "GitHub Repository",
+          url: "https://github.com/Baseflow/cg-dmf-poc",
+          icon: <GitHubIcon />,
         },
         {
           name: "Docker Image",
           url: "https://hub.docker.com/r/baseflow/cg-dmf-poc",
           icon: <DockerIcon />,
-        },
-        {
-          name: "GitHub Repository",
-          url: "https://github.com/Baseflow/cg-dmf-poc",
-          icon: <GitHubIcon />,
         },
       ],
     },
@@ -63,13 +81,13 @@ export const navigation: {
         {
           name: "ZGW API",
           url: "/instellingen/zgw-api",
-          icon: <Layers />,
+          icon: <Plug />,
           description: "ZGW API-koppelingsprofielen",
         },
         {
           name: "DMF",
           url: "/instellingen/dmf",
-          icon: <FileText />,
+          icon: <FileCog />,
           description: "DMF-systeeminstellingen",
         },
         {
@@ -81,7 +99,7 @@ export const navigation: {
         {
           name: "Applicaties",
           url: "/instellingen/applicaties",
-          icon: <LayoutGrid />,
+          icon: <AppWindow />,
           description: "Gekoppelde applicaties",
         },
       ],
