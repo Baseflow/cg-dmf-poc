@@ -17,37 +17,83 @@ export default async function Page() {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold">CG DMF Admin Portal</h1>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Configureer en beheer Document Management Framework integraties
+            Configureer en beheer Document Management Framework integraties.
           </p>
         </div>
         {!session && (
-          <form action={login}>
-            <Button type="submit">Log in</Button>
-          </form>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-sm text-muted-foreground">
+              Log in om de instellingen te bekijken en te wijzigen.
+            </p>
+            <form action={login}>
+              <Button type="submit">Inloggen</Button>
+            </form>
+          </div>
         )}
       </div>
 
-      {session && (
-        <nav className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(
-            navigation.primary.find((g) => g.id === "instellingen")?.items ?? []
-          ).map(({ url, icon, name, description }) => (
-            <Link
-              key={url}
-              href={url}
-              className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
-                  {icon}
-                </span>
-                <span className="text-sm font-medium">{name}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">{description}</p>
-            </Link>
-          ))}
-        </nav>
-      )}
+      <div className="flex w-full max-w-2xl flex-col gap-8">
+        {["documenten", "links"].map((id) => {
+          const group = navigation.primary.find((g) => g.id === id)
+          if (!group) return null
+          return (
+            <section key={id} className="flex flex-col gap-3">
+              <h2 className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                {group.label}
+              </h2>
+              <nav className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {group.items.map(({ url, icon, name, description }) => (
+                  <Link
+                    key={url}
+                    href={url}
+                    className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
+                        {icon}
+                      </span>
+                      <span className="text-sm font-medium">{name}</span>
+                    </div>
+                    {description && (
+                      <p className="text-xs text-muted-foreground">
+                        {description}
+                      </p>
+                    )}
+                  </Link>
+                ))}
+              </nav>
+            </section>
+          )
+        })}
+
+        {session && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+              {navigation.primary.find((g) => g.id === "instellingen")?.label}
+            </h2>
+            <nav className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                navigation.primary.find((g) => g.id === "instellingen")
+                  ?.items ?? []
+              ).map(({ url, icon, name, description }) => (
+                <Link
+                  key={url}
+                  href={url}
+                  className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
+                      {icon}
+                    </span>
+                    <span className="text-sm font-medium">{name}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                </Link>
+              ))}
+            </nav>
+          </section>
+        )}
+      </div>
     </div>
   )
 }
