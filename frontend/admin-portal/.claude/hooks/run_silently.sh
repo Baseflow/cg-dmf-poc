@@ -1,6 +1,6 @@
 #!/bin/bash
 
-run_silent() {
+run_silently() {
     local description="$1"
     local command="$2"
     local tmp_file=$(mktemp)

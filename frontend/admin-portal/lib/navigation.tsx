@@ -7,7 +7,7 @@ import {
   FileCode,
   FileCog,
   LucideFileExclamationPoint,
-  Plug
+  Plug,
 } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -82,13 +82,13 @@ export const navigation: {
           name: "ZGW API",
           url: "/instellingen/zgw-api",
           icon: <Plug />,
-          description: "ZGW API-koppelingsprofielen",
+          description: "ZGW API koppelingsprofielen",
         },
         {
           name: "DMF",
           url: "/instellingen/dmf",
           icon: <FileCog />,
-          description: "DMF-systeeminstellingen",
+          description: "DMF systeeminstellingen",
         },
         {
           name: "Repositories",
