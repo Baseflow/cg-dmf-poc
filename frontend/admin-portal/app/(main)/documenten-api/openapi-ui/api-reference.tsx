@@ -1,19 +1,17 @@
-"use client"
+import { ApiReferenceClient } from "./api-reference-client"
 
-import { ApiReferenceReact } from "@scalar/api-reference-react"
-import "@scalar/api-reference-react/style.css"
-import { useTheme } from "next-themes"
+const SPEC_URL = process.env.DOCUMENTEN_API_OPENAPI_SPEC_URL
 
-export function ApiReference({ specUrl }: { specUrl: string }) {
-  const { resolvedTheme } = useTheme()
+if (!SPEC_URL) throw new Error("Documenten API OpenAPI spec URL is not defined")
 
-  return (
-    <ApiReferenceReact
-      configuration={{
-        url: specUrl,
-        darkMode: resolvedTheme === "dark",
-        layout: "modern",
-      }}
-    />
-  )
+export async function ApiReference() {
+  const res = await fetch(SPEC_URL!)
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch Documenten API OpenAPI spec: ${res.status}`
+    )
+  }
+  const content = await res.text()
+
+  return <ApiReferenceClient content={content} />
 }
