@@ -221,7 +221,7 @@ private suspend fun RoutingContext.updateFileContents() {
         if (response == null) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Enkelvoudigobject not found", call.request.path()),
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
             )
             return
         }
