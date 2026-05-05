@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25364896119",
+    "runNumber": "489",
+    "branch": "task/CGDMF-97-unlock",
+    "date": "2026-05-05T08:10:08Z",
+    "path": "integration/25364896119/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25362575810",
     "runNumber": "488",
     "branch": "CGDMF-73-authorization",
