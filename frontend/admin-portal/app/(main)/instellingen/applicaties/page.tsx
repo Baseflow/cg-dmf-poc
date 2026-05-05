@@ -3,7 +3,7 @@ import { type ApplicationSetting } from "./actions"
 import { ApplicationList } from "./application-list"
 
 export default async function Page() {
-  const res = await apiFetch("/admin/application-settings")
+  const res = await apiFetch("/settings/application-settings")
   if (!res.ok)
     throw new Error(
       `Kon de applicatie-instellingen niet laden. (HTTP ${res.status})`

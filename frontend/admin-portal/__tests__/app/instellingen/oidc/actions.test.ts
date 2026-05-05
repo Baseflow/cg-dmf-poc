@@ -27,7 +27,7 @@ describe("OIDC provider actions", () => {
   })
 
   describe("createOidcProvider", () => {
-    it("sends a POST request to /admin/oidc-providers", async () => {
+    it("sends a POST request to /settings/oidc-providers", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createOidcProvider({ name: "Provider", issuer: "https://issuer.example", clientId: "c1" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -61,7 +61,7 @@ describe("OIDC provider actions", () => {
   })
 
   describe("updateOidcProvider", () => {
-    it("sends a PUT request to /admin/oidc-providers/:id", async () => {
+    it("sends a PUT request to /settings/oidc-providers/:id", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await updateOidcProvider("provider-1", {
         name: "Updated",
@@ -83,7 +83,7 @@ describe("OIDC provider actions", () => {
   })
 
   describe("deleteOidcProvider", () => {
-    it("sends a DELETE request to /admin/oidc-providers/:id", async () => {
+    it("sends a DELETE request to /settings/oidc-providers/:id", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteOidcProvider("provider-1")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -105,8 +105,8 @@ describe("OIDC provider actions", () => {
       const urls = vi.mocked(global.fetch).mock.calls.map(([url]) => url as string)
       expect(urls).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("/admin/oidc-providers/p-1"),
-          expect.stringContaining("/admin/oidc-providers/p-2"),
+          expect.stringContaining("/settings/oidc-providers/p-1"),
+          expect.stringContaining("/settings/oidc-providers/p-2"),
         ])
       )
     })

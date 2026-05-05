@@ -20,12 +20,12 @@ import io.ktor.server.routing.routing
  * Provides internal management endpoints (not part of the public Documenten API).
  *
  * Endpoints:
- * - /admin/storage-repositories — manage blob storage repositories
- * - /admin/oidc-providers — manage OIDC provider configurations
- * - /admin/application-settings — manage application credential configurations
+ * - /settings/storage-repositories — manage blob storage repositories
+ * - /settings/oidc-providers — manage OIDC provider configurations
+ * - /settings/application-settings — manage application credential configurations
  */
 fun Route.adminRoutes() {
-    route("/admin") {
+    route("/settings") {
         dmfSettingsRoutes()
         zgwApiSettingsRoutes()
         blobStorageRepositoryRoutes()

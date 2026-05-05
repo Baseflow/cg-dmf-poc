@@ -19,7 +19,7 @@ type ApplicationInput = {
 }
 
 export async function createApplication(data: ApplicationInput) {
-  const res = await apiFetch("/admin/application-settings", {
+  const res = await apiFetch("/settings/application-settings", {
     method: "POST",
     body: JSON.stringify(data),
   })
@@ -28,7 +28,7 @@ export async function createApplication(data: ApplicationInput) {
 }
 
 export async function updateApplication(id: string, data: ApplicationInput) {
-  const res = await apiFetch(`/admin/application-settings/${id}`, {
+  const res = await apiFetch(`/settings/application-settings/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
@@ -37,7 +37,7 @@ export async function updateApplication(id: string, data: ApplicationInput) {
 }
 
 export async function deleteApplication(id: string) {
-  const res = await apiFetch(`/admin/application-settings/${id}`, {
+  const res = await apiFetch(`/settings/application-settings/${id}`, {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -47,7 +47,7 @@ export async function deleteApplication(id: string) {
 export async function deleteApplications(ids: string[]) {
   await Promise.all(
     ids.map(async (id) => {
-      const res = await apiFetch(`/admin/application-settings/${id}`, {
+      const res = await apiFetch(`/settings/application-settings/${id}`, {
         method: "DELETE",
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -61,7 +61,7 @@ export async function rotateApplicationSecret(
   newSecret?: string
 ): Promise<string> {
   const res = await apiFetch(
-    `/admin/application-settings/${id}/rotate-secret`,
+    `/settings/application-settings/${id}/rotate-secret`,
     {
       method: "POST",
       body: JSON.stringify(newSecret ? { newSecret } : {}),

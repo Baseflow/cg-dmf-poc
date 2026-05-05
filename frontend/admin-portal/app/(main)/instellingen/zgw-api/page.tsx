@@ -3,7 +3,7 @@ import { type ZgwApiSetting } from "./actions"
 import { ZgwApiList } from "./zgw-api-list"
 
 export default async function Page() {
-  const res = await apiFetch("/admin/zgw-api-settings")
+  const res = await apiFetch("/settings/zgw-api-settings")
   if (!res.ok)
     throw new Error(
       `Kon de ZGW API-instellingen niet laden. (HTTP ${res.status})`

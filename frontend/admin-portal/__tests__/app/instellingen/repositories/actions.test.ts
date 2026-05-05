@@ -36,7 +36,7 @@ describe("repository actions", () => {
   })
 
   describe("createRepository", () => {
-    it("sends a POST request to /admin/storage-repositories", async () => {
+    it("sends a POST request to /settings/storage-repositories", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createRepository(baseInput)
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -68,7 +68,7 @@ describe("repository actions", () => {
   })
 
   describe("updateRepository", () => {
-    it("sends a PUT request to /admin/storage-repositories/:id", async () => {
+    it("sends a PUT request to /settings/storage-repositories/:id", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await updateRepository("repo-1", { ...baseInput, name: "Updated Repo" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -84,7 +84,7 @@ describe("repository actions", () => {
   })
 
   describe("deleteRepository", () => {
-    it("sends a DELETE request to /admin/storage-repositories/:id", async () => {
+    it("sends a DELETE request to /settings/storage-repositories/:id", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteRepository("repo-1")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -106,9 +106,9 @@ describe("repository actions", () => {
       const urls = vi.mocked(global.fetch).mock.calls.map(([url]) => url as string)
       expect(urls).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("/admin/storage-repositories/r-1"),
-          expect.stringContaining("/admin/storage-repositories/r-2"),
-          expect.stringContaining("/admin/storage-repositories/r-3"),
+          expect.stringContaining("/settings/storage-repositories/r-1"),
+          expect.stringContaining("/settings/storage-repositories/r-2"),
+          expect.stringContaining("/settings/storage-repositories/r-3"),
         ])
       )
     })

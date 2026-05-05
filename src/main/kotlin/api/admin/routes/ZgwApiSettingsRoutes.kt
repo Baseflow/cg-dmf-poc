@@ -26,7 +26,7 @@ import java.util.UUID
 /**
  * Admin routes for managing ZGW API connection profiles.
  *
- * Mounted at `/admin/zgw-api-settings`.
+ * Mounted at `/settings/zgw-api-settings`.
  *
  * Endpoints:
  * - `GET    /`      — list all profiles

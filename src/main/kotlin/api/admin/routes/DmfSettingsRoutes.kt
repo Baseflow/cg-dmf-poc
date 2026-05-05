@@ -20,7 +20,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 /**
  * Admin routes for managing DMF settings.
  *
- * Mounted at `/admin/dmf-settings`.
+ * Mounted at `/settings/dmf-settings`.
  *
  * Endpoints:
  * - `GET /`  — retrieve current settings
