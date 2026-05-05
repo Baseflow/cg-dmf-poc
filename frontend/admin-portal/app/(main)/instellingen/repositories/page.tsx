@@ -3,7 +3,7 @@ import { type Repository } from "./actions"
 import { RepositoryList } from "./repository-list"
 
 export default async function Page() {
-  const res = await apiFetch("/admin/storage-repositories")
+  const res = await apiFetch("/settings/storage-repositories")
   if (!res.ok)
     throw new Error(`Kon de repositories niet laden. (HTTP ${res.status})`)
   const repositories: Repository[] = await res.json()

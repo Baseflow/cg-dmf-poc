@@ -28,7 +28,7 @@ describe("application actions", () => {
   })
 
   describe("createApplication", () => {
-    it("sends a POST request to /admin/application-settings", async () => {
+    it("sends a POST request to /settings/application-settings", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createApplication({ name: "App", clientId: "client-1" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -58,7 +58,7 @@ describe("application actions", () => {
   })
 
   describe("updateApplication", () => {
-    it("sends a PUT request to /admin/application-settings/:id", async () => {
+    it("sends a PUT request to /settings/application-settings/:id", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await updateApplication("abc-123", { name: "Updated", clientId: "c2" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -74,7 +74,7 @@ describe("application actions", () => {
   })
 
   describe("deleteApplication", () => {
-    it("sends a DELETE request to /admin/application-settings/:id", async () => {
+    it("sends a DELETE request to /settings/application-settings/:id", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteApplication("abc-123")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
@@ -96,9 +96,9 @@ describe("application actions", () => {
       const urls = vi.mocked(global.fetch).mock.calls.map(([url]) => url as string)
       expect(urls).toEqual(
         expect.arrayContaining([
-          expect.stringContaining("/admin/application-settings/id-1"),
-          expect.stringContaining("/admin/application-settings/id-2"),
-          expect.stringContaining("/admin/application-settings/id-3"),
+          expect.stringContaining("/settings/application-settings/id-1"),
+          expect.stringContaining("/settings/application-settings/id-2"),
+          expect.stringContaining("/settings/application-settings/id-3"),
         ])
       )
     })
@@ -112,7 +112,7 @@ describe("application actions", () => {
   })
 
   describe("rotateApplicationSecret", () => {
-    it("sends a POST to /admin/application-settings/:id/rotate-secret and returns the secret", async () => {
+    it("sends a POST to /settings/application-settings/:id/rotate-secret and returns the secret", async () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(JSON.stringify({ secret: "new-secret-value" }), { status: 200 })
       )

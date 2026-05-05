@@ -26,7 +26,7 @@ import java.util.UUID
 /**
  * Admin routes for managing OIDC provider configurations.
  *
- * Mounted at `/admin/oidc-providers`.
+ * Mounted at `/settings/oidc-providers`.
  *
  * Endpoints:
  * - `GET    /`      — list all providers

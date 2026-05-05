@@ -47,7 +47,7 @@ export async function saveDmfSettings(
     return { errors }
   }
 
-  const res = await apiFetch("/admin/dmf-settings", {
+  const res = await apiFetch("/settings/dmf-settings", {
     method: "PUT",
     body: JSON.stringify(result.data),
   })

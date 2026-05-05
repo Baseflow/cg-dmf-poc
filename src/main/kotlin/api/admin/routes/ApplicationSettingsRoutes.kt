@@ -29,7 +29,7 @@ import java.util.UUID
 /**
  * Admin routes for managing application credential configurations.
  *
- * Mounted at `/admin/application-settings`.
+ * Mounted at `/settings/application-settings`.
  *
  * Endpoints:
  * - `GET    /`                    — list all applications

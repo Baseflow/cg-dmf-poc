@@ -3,7 +3,7 @@ import { type OidcProvider } from "./actions"
 import { OidcProviderList } from "./oidc-provider-list"
 
 export default async function Page() {
-  const res = await apiFetch("/admin/oidc-providers")
+  const res = await apiFetch("/settings/oidc-providers")
   if (!res.ok)
     throw new Error(`Kon de OIDC-providers niet laden. (HTTP ${res.status})`)
   const providers: OidcProvider[] = await res.json()

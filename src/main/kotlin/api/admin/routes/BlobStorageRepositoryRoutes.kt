@@ -28,7 +28,7 @@ import java.util.UUID
 /**
  * Admin routes for managing blob storage repositories.
  *
- * Mounted at `/admin/storage-repositories`.
+ * Mounted at `/settings/storage-repositories`.
  *
  * Endpoints:
  * - `GET    /`          — list all repositories
