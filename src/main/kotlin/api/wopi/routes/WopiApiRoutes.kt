@@ -6,6 +6,7 @@ import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.badRequest
+import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
@@ -120,6 +121,8 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
+    val lockValue = call.request.headers["X-WOPI-Lock"]
+
     val fileId = call.parameters["file_id"]
     if (fileId == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -128,6 +131,27 @@ private suspend fun RoutingContext.updateFileContents() {
 
     try {
         val uuid = UUID.fromString(fileId)
+        val currentFile = service.getById(uuid)
+
+        // Determine whether saving is allowed and what lock token to echo back.
+        val lockMismatch: String? = when {
+            lockValue == null && (currentFile?.bestandsomvang ?: 0L) > 0L -> {
+                "" // File already has content but no lock was provided — reject with 409.
+            }
+            lockValue != null && lockValue != currentFile?.lock -> {
+                currentFile?.lock ?: "" // Provided lock token does not match the current lock — reject with 409.
+            }
+            else -> null // Save is allowed; null means no mismatch.
+        }
+
+        if (lockMismatch != null) {
+            call.response.headers.append("X-WOPI-Lock", lockMismatch)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("Lock mismatch."))
+            return
+        }
+
+        // Operation is considered valid, proceed with saving the file contents.
+        val responseHeaderLock = currentFile?.lock ?: ""
         val bytes = call.receiveChannel().toByteArray()
         val response = service.updateWithBytes(id = uuid, bytes = bytes)
         if (response == null) {
@@ -137,11 +161,9 @@ private suspend fun RoutingContext.updateFileContents() {
             )
             return
         }
-        // This is a Collabora-specific response object, not part of the WOPI protocol.
-        // Important for supporting collaboration features.
-        val lastModified = response.beginRegistratie
+        call.response.headers.append("X-WOPI-Lock", responseHeaderLock)
         call.response.headers.append("X-WOPI-ItemVersion", response.versie.toString())
-        call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to lastModified))
+        call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to response.beginRegistratie))
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
@@ -149,6 +171,7 @@ private suspend fun RoutingContext.updateFileContents() {
         )
     }
 }
+
 
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.parameters["file_id"]
