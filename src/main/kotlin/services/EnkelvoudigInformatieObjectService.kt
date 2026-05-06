@@ -765,8 +765,8 @@ class EnkelvoudigInformatieObjectService(
                 bestandsLocatie = newBestandsLocatie
                 link = latestVersion?.link.orEmpty()
                 integriteitAlgoritme = latestVersion?.integriteitAlgoritme.orEmpty()
-                integriteitWaarde = latestVersion?.integriteitWaarde.orEmpty()
-                integriteitsDatum = latestVersion?.integriteitsDatum
+                integriteitWaarde = ""
+                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 verschijningsVorm = latestVersion?.verschijningsVorm.orEmpty()
                 vertrouwlijkheidsAanduiding = latestVersion?.vertrouwlijkheidsAanduiding.orEmpty()
                 status = latestVersion?.status.orEmpty()

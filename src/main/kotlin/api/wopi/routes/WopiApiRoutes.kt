@@ -172,7 +172,6 @@ private suspend fun RoutingContext.updateFileContents() {
     }
 }
 
-
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.parameters["file_id"]
     if (fileId == null) {
