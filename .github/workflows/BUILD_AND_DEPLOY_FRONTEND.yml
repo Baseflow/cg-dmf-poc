@@ -41,6 +41,7 @@ jobs:
           vulnerability_scan: false
           dockerfile: frontend/admin-portal/Dockerfile
           context: frontend/admin-portal
+          repository: cg-dmf-admin-portal
           version: ${{ steps.get_version.outputs.version }}
 
       - name: Login to Docker Hub
@@ -57,5 +58,5 @@ jobs:
           SOURCE_TAG="${{ steps.acr.outputs.tag }}"
           DEST_TAG="baseflow/cg-dmf-admin-portal:${SOURCE_TAG##*:}"
           docker tag ${SOURCE_TAG} ${DEST_TAG}
-          docker push baseflow/cg-dmf-poc --all-tags
+          docker push baseflow/cg-dmf-admin-portal --all-tags
 
