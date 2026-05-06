@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: EUPL-1.2
 -- Copyright (C) 2026 Gemeente Utrecht
 --
--- V17: Create dmf_settings table (singleton row) for runtime-configurable DMF settings.
+-- V21: Create dmf_settings table (singleton row) for runtime-configurable DMF settings.
 -- The single row is seeded with sensible defaults matching the previous environment-variable defaults.
 
 CREATE TABLE dmf_settings

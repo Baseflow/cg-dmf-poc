@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: EUPL-1.2
 -- Copyright (C) 2026 Gemeente Utrecht
 --
--- V14: Create zgw_api_settings table for storing ZGW API connection profiles.
+-- V22: Create zgw_api_settings table for storing ZGW API connection profiles.
 
 CREATE TABLE zgw_api_settings
 (

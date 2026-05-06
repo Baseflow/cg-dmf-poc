@@ -1,16 +1,15 @@
 -- SPDX-License-Identifier: EUPL-1.2
 -- Copyright (C) 2026 Gemeente Utrecht
 --
--- V12: Create OIDC providers table for storing multiple OIDC provider configurations
+-- V19: Create application_settings table for storing application credentials
 
-CREATE TABLE oidc_providers
+CREATE TABLE application_settings
 (
     id                       UUID          NOT NULL,
     name                     VARCHAR(100)  NOT NULL,
-    issuer                   TEXT          NOT NULL,
     client_id                TEXT          NOT NULL,
     client_secret_encrypted  TEXT,                        -- NULL = no client secret configured
     updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pk_oidc_providers PRIMARY KEY (id),
-    CONSTRAINT uq_oidc_providers_name UNIQUE (name)
+    CONSTRAINT pk_application_settings PRIMARY KEY (id),
+    CONSTRAINT uq_application_settings_name UNIQUE (name)
 );
