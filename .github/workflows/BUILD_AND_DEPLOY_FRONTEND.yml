@@ -27,7 +27,7 @@ jobs:
       - name: Get project version from admin-portal package.json file
         id: get_version
         run: |
-          VERSION=$(jq -r '.version' front-end/admin-portal/package.json)
+          VERSION=$(jq -r '.version' frontend/admin-portal/package.json)
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - uses: ./.github/actions/docker
