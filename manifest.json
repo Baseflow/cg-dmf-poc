@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25436776121",
+    "runNumber": "504",
+    "branch": "CGDMF-73-authorization",
+    "date": "2026-05-06T13:06:25Z",
+    "path": "integration/25436776121/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25436773370",
     "runNumber": "55",
