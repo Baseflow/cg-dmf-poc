@@ -13,6 +13,8 @@ import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionTrefwoorden
+import com.baseflow.entities.Trefwoorden
 import com.baseflow.services.models.DeleteResult
 import com.baseflow.services.models.EIOOrdering
 import com.baseflow.services.models.LockResult
@@ -28,8 +30,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.ByteArrayOutputStream
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 import kotlin.io.encoding.Base64
 import kotlin.test.*
 
@@ -40,6 +45,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @BeforeTest
     fun setup() {
+        BlobStorageRegistrar.resetForTesting()
         Database.connect(
             "jdbc:h2:mem:test_eio;DB_CLOSE_DELAY=-1;",
             driver = "org.h2.Driver",
@@ -52,8 +58,8 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any()) } returns Unit
-        every { mockStorageService.deleteFiles(any()) } returns Unit
+        every { mockStorageService.uploadFile(any(), any(), anyNullable()) } returns Unit
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         mockAuditTrailService = mockk<AuditTrailService>()
         every { mockAuditTrailService.removeAuditTrailsForResource(any()) } returns Unit
@@ -69,6 +75,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @AfterTest
     fun teardown() {
+        BlobStorageRegistrar.resetForTesting()
         transaction {
             // Drop in reverse order of dependencies
             SchemaUtils.drop(*AllTables.tables.reversedArray())
@@ -211,7 +218,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     fun `delete should return NotFound for unknown id`() {
         val res = service.delete(UUID.randomUUID())
         assertTrue(res is DeleteResult.NotFound)
-        verify(exactly = 0) { mockStorageService.deleteFiles(any()) }
+        verify(exactly = 0) { mockStorageService.deleteFiles(any(), anyNullable()) }
         verify(exactly = 0) { mockAuditTrailService.removeAuditTrailsForResource(any()) }
     }
 
@@ -223,7 +230,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         service.lock(id)
         val res = service.delete(id)
         assertTrue(res is DeleteResult.Locked)
-        verify(exactly = 0) { mockStorageService.deleteFiles(any()) }
+        verify(exactly = 0) { mockStorageService.deleteFiles(any(), anyNullable()) }
         verify(exactly = 0) { mockAuditTrailService.removeAuditTrailsForResource(any()) }
     }
 
@@ -235,7 +242,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertTrue(res is DeleteResult.Success)
         // and now it should not exist
         assertFalse(service.exists(id))
-        verify { mockStorageService.deleteFiles(match { it.contains("$id/1/test.pdf") }) }
+        verify { mockStorageService.deleteFiles(match { it.contains("$id/1/test.pdf") }, null) }
         verify { mockAuditTrailService.removeAuditTrailsForResource(id) }
     }
 
@@ -749,6 +756,118 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals("${resp.id}/2/${req.bestandsnaam}", eio.bestandsLocatie)
     }
 
+    // ── bestandsRepository routing ────────────────────────────────────────────
+
+    @Test
+    fun `streamByBestandsnaam passes named repoName to downloadFileTo`() {
+        every { mockStorageService.downloadFileTo(any(), any(), eq("archive-repo")) } returns CompletableFuture.completedFuture(null)
+        service.streamByBestandsnaam("path/to/file.pdf", ByteArrayOutputStream(), "archive-repo")
+        verify { mockStorageService.downloadFileTo("path/to/file.pdf", any(), "archive-repo") }
+    }
+
+    @Test
+    fun `streamByBestandsnaam uses default provider (null) when repoName is blank`() {
+        every { mockStorageService.downloadFileTo(any(), any(), null) } returns CompletableFuture.completedFuture(null)
+        service.streamByBestandsnaam("path/to/file.pdf", ByteArrayOutputStream(), "")
+        verify { mockStorageService.downloadFileTo("path/to/file.pdf", any(), null) }
+    }
+
+    @Test
+    fun `create resolves default repository name for upload and persistence`() = runBlocking {
+        val defaultProvider = mockk<BlobStorageProvider>()
+        every { defaultProvider.name } returns "default-repo"
+        BlobStorageRegistrar.registerForTesting(defaultProvider, isDefault = true)
+
+        val req = generateTestDocument(withContent = true)
+        val response = service.create(req)
+
+        verify { mockStorageService.uploadFile(any(), any(), "default-repo") }
+        transaction {
+            val latest = EIORecordEntity.findById(UUID.fromString(response.id))!!.versions.maxByOrNull { it.versie }!!
+            assertEquals("default-repo", latest.bestandsRepository)
+        }
+    }
+
+    @Test
+    fun `update inherits bestandsRepository from the previous version when no new file is uploaded`() = runBlocking {
+        val created = service.create(generateTestDocument())
+        val id = UUID.fromString(created.id)
+
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!.bestandsRepository = "repo-a"
+        }
+
+        service.update(id, generateTestDocument())
+
+        transaction {
+            val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+            assertEquals(2, v2.versie)
+            assertEquals("repo-a", v2.bestandsRepository)
+        }
+    }
+
+    @Test
+    fun `update with new content uploads to and persists previous version repository`() = runBlocking {
+        val created = service.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!.bestandsRepository = "repo-a"
+        }
+
+        service.update(id, generateTestDocument(withContent = true))
+
+        verify { mockStorageService.uploadFile(any(), any(), "repo-a") }
+        transaction {
+            val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+            assertEquals(2, v2.versie)
+            assertEquals("repo-a", v2.bestandsRepository)
+        }
+    }
+
+    @Test
+    fun `delete calls deleteFiles once per distinct bestandsRepository`() = runBlocking {
+        val created = service.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.first { it.versie == 1 }.bestandsRepository = "repo-a"
+        }
+
+        service.update(id, generateTestDocument(withContent = true))
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.first { it.versie == 2 }.bestandsRepository = "repo-b"
+        }
+
+        service.delete(id)
+
+        verify { mockStorageService.deleteFiles(any(), "repo-a") }
+        verify { mockStorageService.deleteFiles(any(), "repo-b") }
+        verify(exactly = 2) { mockStorageService.deleteFiles(any(), anyNullable()) }
+    }
+
+    @Test
+    fun `delete deduplicates keys per repository before batch delete`() = runBlocking {
+        val created = service.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.first { it.versie == 1 }.bestandsRepository = "repo-a"
+        }
+
+        service.update(id, generateTestDocument(withContent = false))
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.first { it.versie == 2 }.bestandsRepository = "repo-a"
+        }
+
+        service.delete(id)
+
+        val keysSlot = mutableListOf<List<String>>()
+        verify(exactly = 1) { mockStorageService.deleteFiles(capture(keysSlot), "repo-a") }
+        assertEquals(1, keysSlot.size)
+        assertEquals(keysSlot.first().distinct().size, keysSlot.first().size)
+    }
+
     @Test
     fun `getAll totalCount should be correct when ordering and pagination are applied`() = runBlocking {
         // Create 5 distinct records
@@ -785,6 +904,32 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals(5L, totalCount3)
         assertEquals(1, page3Results.size)
         assertEquals("Esdoorn", page3Results[0].titel)
+    }
+
+    @Test
+    fun `trefwoorden with the same lowercase value share one trefwoord record`() = runBlocking {
+        // Two documents with the same trefwoord, one in uppercase and one in lowercase
+        val req1 = generateTestDocument().copy(trefwoorden = listOf("Ruimte", "duurzaam"))
+        val req2 = generateTestDocument().copy(trefwoorden = listOf("RUIMTE", "DUURZAAM"))
+
+        val resp1 = service.create(req1)
+        val resp2 = service.create(req2)
+
+        // Both responses should have lowercase trefwoorden (order not guaranteed)
+        assertEquals(listOf("duurzaam", "ruimte"), resp1.trefwoorden.sorted())
+        assertEquals(listOf("duurzaam", "ruimte"), resp2.trefwoorden.sorted())
+
+        // The trefwoorden table should only have 2 unique records (not 4)
+        val trefwoordCount = transaction {
+            Trefwoorden.selectAll().count()
+        }
+        assertEquals(2L, trefwoordCount, "Expected 2 unique trefwoord records, shared across both documents")
+
+        // The join table should have 4 rows (2 per document)
+        val joinCount = transaction {
+            EIOVersionTrefwoorden.selectAll().count()
+        }
+        assertEquals(4L, joinCount, "Expected 4 rows in the join table (2 trefwoorden × 2 documents)")
     }
 
     @Test

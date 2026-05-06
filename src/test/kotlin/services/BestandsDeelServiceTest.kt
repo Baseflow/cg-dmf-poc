@@ -104,7 +104,7 @@ class BestandsDeelServiceTest {
         bestandsDeelService = BestandsDeelService(smallConfig)
 
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any()) } returns Unit
+        every { mockStorageService.uploadFile(any(), any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         eioService = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
@@ -171,7 +171,7 @@ class BestandsDeelServiceTest {
 
         val capturedKeys = mutableListOf<String>()
         val capturedContent = mutableListOf<ByteArray>()
-        every { mockStorageService.uploadFile(capture(capturedKeys), capture(capturedContent)) } returns Unit
+        every { mockStorageService.uploadFile(capture(capturedKeys), capture(capturedContent), anyNullable()) } returns Unit
 
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, chunkBytes, mockStorageService)
 
@@ -195,7 +195,7 @@ class BestandsDeelServiceTest {
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, null, mockStorageService)
 
         assertIs<UploadFilePartResult.Success>(result)
-        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any()) }
+        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any(), anyNullable()) }
     }
 
     @Test
@@ -230,7 +230,7 @@ class BestandsDeelServiceTest {
         assertIs<UploadFilePartResult.OmvangMismatch>(result)
         assertEquals(part.omvang, result.expected)
         assertEquals(3L, result.actual)
-        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any()) }
+        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any(), anyNullable()) }
     }
 
     @Test
@@ -264,6 +264,41 @@ class BestandsDeelServiceTest {
         val repeat = bestandsDeelService.uploadFilePart(uuid, firstPart.lock, null, mockStorageService)
         assertIs<UploadFilePartResult.Success>(repeat)
         assertTrue(repeat.response.voltooid)
+    }
+
+    // ── bestandsRepository routing ────────────────────────────────────────────
+
+    @Test
+    fun `uploadFilePart routes chunk to the named repository stored on the version`() = runBlocking {
+        val eio = eioService.create(generateTestDocument().copy(bestandsomvang = 11L))
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
+
+        transaction {
+            BestandsDeelEntity.findById(uuid)!!.versionId.bestandsRepository = "archive-repo"
+        }
+
+        val capturedRepos = mutableListOf<String?>()
+        every { mockStorageService.uploadFile(any(), any(), captureNullable(capturedRepos)) } returns Unit
+
+        bestandsDeelService.uploadFilePart(uuid, part.lock, ByteArray(4), mockStorageService)
+
+        assertEquals("archive-repo", capturedRepos.single())
+    }
+
+    @Test
+    fun `uploadFilePart uses the default provider (null repoName) when bestandsRepository is blank`() = runBlocking {
+        val eio = eioService.create(generateTestDocument().copy(bestandsomvang = 11L))
+        val part = eio.bestandsdelen.first()
+        val uuid = UUID.fromString(part.url.substringAfterLast("/"))
+        // bestandsRepository defaults to "" — blank means default provider
+
+        val capturedRepos = mutableListOf<String?>()
+        every { mockStorageService.uploadFile(any(), any(), captureNullable(capturedRepos)) } returns Unit
+
+        bestandsDeelService.uploadFilePart(uuid, part.lock, ByteArray(4), mockStorageService)
+
+        assertNull(capturedRepos.single())
     }
 
     // ── getBestandsDelenForVersions ───────────────────────────────────────────

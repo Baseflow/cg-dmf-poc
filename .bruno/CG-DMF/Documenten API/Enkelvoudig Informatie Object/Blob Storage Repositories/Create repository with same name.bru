@@ -1,0 +1,48 @@
+meta {
+  name: Create repository with same name
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/admin/storage-repositories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "test-repo-bruno",
+    "storageType": "S3",
+    "url": "http://localhost:9000",
+    "accessKey": "minioadmin",
+    "secretKey": "minioadmin",
+    "bucket": "documenten",
+    "region": "eu-west-1",
+    "disableChecksums": false,
+    "disableChunkedEncoding": false,
+    "extraProperties": {},
+    "isDefault": false
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.detail: eq A blob storage repository with name 'test-repo-bruno' already exists.
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.id) {
+    bru.setVar("blobRepoId", res.body.id);
+    bru.setVar("blobRepoName", res.body.name);
+  }
+}
+
+tests {
+     
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

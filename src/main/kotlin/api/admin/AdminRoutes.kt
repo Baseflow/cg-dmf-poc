@@ -2,11 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.admin
 
-import com.baseflow.api.admin.routes.applicationSettingsRoutes
 import com.baseflow.api.admin.routes.blobStorageRepositoryRoutes
-import com.baseflow.api.admin.routes.dmfSettingsRoutes
-import com.baseflow.api.admin.routes.oidcProvidersRoutes
-import com.baseflow.api.admin.routes.zgwApiSettingsRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
@@ -20,24 +16,20 @@ import io.ktor.server.routing.routing
  * Provides internal management endpoints (not part of the public Documenten API).
  *
  * Endpoints:
- * - /settings/storage-repositories — manage blob storage repositories
- * - /settings/oidc-providers — manage OIDC provider configurations
- * - /settings/application-settings — manage application credential configurations
+ * - /admin/storage-repositories — manage blob storage repositories
  */
 fun Route.adminRoutes() {
-    route("/settings") {
-        dmfSettingsRoutes()
-        zgwApiSettingsRoutes()
+    route("/admin") {
         blobStorageRepositoryRoutes()
-        oidcProvidersRoutes()
-        applicationSettingsRoutes()
     }
 }
 
 fun Application.adminModule(useAuthentication: Boolean = true) {
     routing {
         if (useAuthentication) {
-            authenticate("auth-jwt", strategy = AuthenticationStrategy.FirstSuccessful) {
+            // TODO: do we really want auth-zgw enabled on admin routes ?
+            // For now enable for integration tests, but we should find another way.
+            authenticate("auth-jwt", "auth-zgw", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 adminRoutes()
             }
         } else {

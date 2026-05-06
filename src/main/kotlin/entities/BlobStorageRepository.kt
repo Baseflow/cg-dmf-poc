@@ -2,8 +2,12 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.entities
 
+import com.baseflow.config.EncryptionConfig
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
+import org.jetbrains.exposed.v1.crypt.Algorithms
+import org.jetbrains.exposed.v1.crypt.Encryptor
+import org.jetbrains.exposed.v1.crypt.encryptedVarchar
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
@@ -11,16 +15,38 @@ import org.jetbrains.exposed.v1.datetime.datetime
 import java.util.UUID
 
 /**
+ * Lazily-delegating [Encryptor] that creates the real AES-256-PBE-CBC encryptor the
+ * first time it is actually used (i.e. on the first read/write of an encrypted column).
+ *
+ * This avoids requiring [EncryptionConfig.secretKey] and [EncryptionConfig.salt] at
+ * class-loading time, which would break unit tests that create the schema without having
+ * the encryption environment variables set.
+ */
+private val blobStorageEncryptor: Encryptor by lazy {
+    Algorithms.AES_256_PBE_CBC(EncryptionConfig.secretKey, EncryptionConfig.salt)
+}
+
+private val lazyEncryptor = Encryptor(
+    encryptFn = { blobStorageEncryptor.encrypt(it) },
+    decryptFn = { blobStorageEncryptor.decrypt(it) },
+    maxColLengthFn = { blobStorageEncryptor.maxColLength(it) },
+)
+
+/**
  * Table storing blob storage repository configurations.
- * Secrets (access key, secret key) are stored as SHA-256 hashes for env-var-synced entries
- * and as encrypted values (via SecretCrypto) for admin-managed entries.
+ * Secrets (access key, secret key) are stored AES-256-CBC encrypted using the
+ * application-level encryption key ([EncryptionConfig.secretKey]).
+ *
+ * The `512` passed to [encryptedVarchar] is the ciphertext column length (VARCHAR(512)).
+ * For AES-256-PBE-CBC, this accommodates plaintexts up to ~350 chars, well beyond any
+ * realistic credential length.
  */
 object BlobStorageRepositories : UUIDTable("blob_storage_repositories") {
     val repoName = varchar("name", 100).uniqueIndex()
     val storageType = varchar("storage_type", 50)
     val url = varchar("url", 500)
-    val accessKeyHash = varchar("access_key_hash", 64)
-    val secretKeyHash = varchar("secret_key_hash", 64)
+    val accessKeyEncrypted = encryptedVarchar("access_key_encrypted", 512, lazyEncryptor)
+    val secretKeyEncrypted = encryptedVarchar("secret_key_encrypted", 512, lazyEncryptor)
     val bucket = varchar("bucket", 255)
     val region = varchar("region", 50).nullable()
     val disableChecksums = bool("disable_checksums").default(false)
@@ -29,10 +55,6 @@ object BlobStorageRepositories : UUIDTable("blob_storage_repositories") {
     val isDefault = bool("is_default").default(false)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
-    val accessKeyEncrypted = text("access_key_encrypted").nullable()
-    val secretKeyEncrypted = text("secret_key_encrypted").nullable()
-    val storageAccountName = varchar("storage_account_name", 255).nullable()
-    val enabled = bool("enabled").default(true)
 }
 
 class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
@@ -41,8 +63,10 @@ class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var repoName by BlobStorageRepositories.repoName
     var storageType by BlobStorageRepositories.storageType
     var url by BlobStorageRepositories.url
-    var accessKeyHash by BlobStorageRepositories.accessKeyHash
-    var secretKeyHash by BlobStorageRepositories.secretKeyHash
+
+    // Named accessKey/secretKey because Exposed decrypts transparently on read.
+    var accessKey by BlobStorageRepositories.accessKeyEncrypted
+    var secretKey by BlobStorageRepositories.secretKeyEncrypted
     var bucket by BlobStorageRepositories.bucket
     var region by BlobStorageRepositories.region
     var disableChecksums by BlobStorageRepositories.disableChecksums
@@ -51,8 +75,4 @@ class BlobStorageRepositoryEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var isDefault by BlobStorageRepositories.isDefault
     var createdAt by BlobStorageRepositories.createdAt
     var updatedAt by BlobStorageRepositories.updatedAt
-    var accessKeyEncrypted by BlobStorageRepositories.accessKeyEncrypted
-    var secretKeyEncrypted by BlobStorageRepositories.secretKeyEncrypted
-    var storageAccountName by BlobStorageRepositories.storageAccountName
-    var enabled by BlobStorageRepositories.enabled
 }

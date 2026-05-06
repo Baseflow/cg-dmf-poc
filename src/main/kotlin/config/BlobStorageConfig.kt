@@ -21,6 +21,7 @@ data class BlobStorageRepoConfig(
     val disableChunkedEncoding: Boolean = false,
     /** Any additional custom env values keyed by their suffix (e.g. "CONTAINER_NAME" → value). */
     val extraProperties: Map<String, String> = emptyMap(),
+    val isDefault: Boolean = false,
 )
 
 /**

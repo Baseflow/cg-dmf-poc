@@ -4,7 +4,7 @@ package com.baseflow.api.admin.routes
 
 import com.baseflow.api.routes.TestBase
 import com.baseflow.config.SecretCrypto
-import com.baseflow.entities.OidcProviderEntity
+import com.baseflow.entities.OidcProviderSettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -44,7 +44,7 @@ class OidcProvidersRoutesTest : TestBase("oidc_providers") {
 
         val id = UUID.randomUUID()
         transaction {
-            OidcProviderEntity.new(id) {
+            OidcProviderSettingEntity.new(id) {
                 name = "Test Provider"
                 issuer = "https://auth.example.com"
                 clientId = "my-client"
@@ -177,7 +177,7 @@ class OidcProvidersRoutesTest : TestBase("oidc_providers") {
 
         val id = UUID.randomUUID()
         transaction {
-            OidcProviderEntity.new(id) {
+            OidcProviderSettingEntity.new(id) {
                 name = "Old Name"
                 issuer = "https://old.example.com"
                 clientId = "old-client"
@@ -206,7 +206,7 @@ class OidcProvidersRoutesTest : TestBase("oidc_providers") {
 
         val id = UUID.randomUUID()
         transaction {
-            OidcProviderEntity.new(id) {
+            OidcProviderSettingEntity.new(id) {
                 name = "My Provider"
                 issuer = "https://auth.example.com"
                 clientId = "my-client"
@@ -247,14 +247,14 @@ class OidcProvidersRoutesTest : TestBase("oidc_providers") {
         val idA = UUID.randomUUID()
         val idB = UUID.randomUUID()
         transaction {
-            OidcProviderEntity.new(idA) {
+            OidcProviderSettingEntity.new(idA) {
                 name = "Provider A"
                 issuer = "https://auth.example.com"
                 clientId = "client-a"
                 clientSecretEncrypted = null
                 updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
             }
-            OidcProviderEntity.new(idB) {
+            OidcProviderSettingEntity.new(idB) {
                 name = "Provider B"
                 issuer = "https://other.example.com"
                 clientId = "client-b"
@@ -278,7 +278,7 @@ class OidcProvidersRoutesTest : TestBase("oidc_providers") {
 
         val id = UUID.randomUUID()
         transaction {
-            OidcProviderEntity.new(id) {
+            OidcProviderSettingEntity.new(id) {
                 name = "To Delete"
                 issuer = "https://auth.example.com"
                 clientId = "my-client"
