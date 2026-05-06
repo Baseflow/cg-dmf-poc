@@ -10,22 +10,13 @@ data class BlobStorageRepositorySettingsResponse(
     val name: String,
     val storageType: String,
     val url: String,
-    val accessKeyHash: String,
-    val secretKeyHash: String,
     val bucket: String,
-    val region: String? = null,
-    val disableChecksums: Boolean,
-    val disableChunkedEncoding: Boolean,
-    val extraProperties: String,
     val isDefault: Boolean,
     val enabled: Boolean,
-    val createdAt: String,
-    val updatedAt: String,
-    /** Decrypted access key. Null for env-var-synced entries where only a hash is stored. */
     val accessKey: String? = null,
-    /** Decrypted secret key (S3 only). Null for Azure or env-var-synced entries. */
     val secretKey: String? = null,
     val storageAccountName: String? = null,
+    val updatedAt: String,
 )
 
 @Serializable
