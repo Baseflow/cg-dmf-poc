@@ -30,6 +30,7 @@ object AllTables {
         OIORecords,
         AuditTrails,
         BestandsDelen,
+        BlobStorageRepositories,
         BlobStorageRepositorySettingsTable,
         OidcProviderSettingsTable,
         ApplicationSettingsTable,
