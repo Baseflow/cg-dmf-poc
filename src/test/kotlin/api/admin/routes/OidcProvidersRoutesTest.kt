@@ -2,9 +2,9 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.admin.routes
 
-import com.baseflow.api.routes.TestBase
+import com.baseflow.api.documenten.routes.TestBase
 import com.baseflow.config.SecretCrypto
-import com.baseflow.entities.OidcProviderSettingEntity
+import com.baseflow.entities.settings.OidcProviderSettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
