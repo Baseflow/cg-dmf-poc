@@ -1,6 +1,14 @@
 [
   {
     "category": "k6",
+    "runId": "25409415029",
+    "runNumber": "54",
+    "branch": "develop",
+    "date": "2026-05-06T00:19:20Z",
+    "path": "k6/25409415029/index.html"
+  },
+  {
+    "category": "k6",
     "runId": "25387303532",
     "runNumber": "53",
     "branch": "CGDMF-73-authorization",
