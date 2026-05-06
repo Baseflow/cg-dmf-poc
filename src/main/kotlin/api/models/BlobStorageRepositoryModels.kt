@@ -10,49 +10,47 @@ data class BlobStorageRepositoryResponse(
     val name: String,
     val storageType: String,
     val url: String,
-    val accessKeyHash: String,
-    val secretKeyHash: String,
+    val accessKeyMasked: String,
+    val secretKeyMasked: String,
     val bucket: String,
     val region: String? = null,
     val disableChecksums: Boolean,
     val disableChunkedEncoding: Boolean,
-    val extraProperties: String,
+    val extraProperties: Map<String, String>,
     val isDefault: Boolean,
-    val enabled: Boolean,
     val createdAt: String,
     val updatedAt: String,
-    /** Decrypted access key. Null for env-var-synced entries where only a hash is stored. */
-    val accessKey: String? = null,
-    /** Decrypted secret key (S3 only). Null for Azure or env-var-synced entries. */
-    val secretKey: String? = null,
-    val storageAccountName: String? = null,
 )
 
 @Serializable
 data class SetDefaultRepositoryRequest(val name: String)
 
 @Serializable
-data class CreateStorageRepositoryRequest(
+data class CreateBlobStorageRepositoryRequest(
     val name: String,
     val storageType: String,
-    val url: String = "",
+    val url: String,
     val accessKey: String,
-    val secretKey: String? = null,
-    val storageAccountName: String? = null,
-    val bucket: String? = null,
+    val secretKey: String,
+    val bucket: String,
+    val region: String? = null,
+    val disableChecksums: Boolean = false,
+    val disableChunkedEncoding: Boolean = false,
+    val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean = false,
-    val enabled: Boolean = true,
 )
 
 @Serializable
-data class UpdateStorageRepositoryRequest(
-    val name: String,
-    val storageType: String,
-    val url: String = "",
+data class UpdateBlobStorageRepositoryRequest(
+    val name: String? = null,
+    val storageType: String? = null,
+    val url: String? = null,
     val accessKey: String? = null,
     val secretKey: String? = null,
-    val storageAccountName: String? = null,
     val bucket: String? = null,
-    val isDefault: Boolean = false,
-    val enabled: Boolean = true,
+    val region: String? = null,
+    val disableChecksums: Boolean? = null,
+    val disableChunkedEncoding: Boolean? = null,
+    val extraProperties: Map<String, String>? = null,
+    val isDefault: Boolean? = null,
 )

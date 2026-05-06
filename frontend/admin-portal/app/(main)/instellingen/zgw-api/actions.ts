@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export interface ZgwApiSetting {
@@ -21,42 +22,42 @@ type ZgwApiSettingInput = {
 }
 
 export async function createZgwApiSetting(data: ZgwApiSettingInput) {
-  const res = await apiFetch("/admin/zgw-api-settings", {
+  const res = await apiFetch("/settings/zgw-api-settings", {
     method: "POST",
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }
 
 export async function updateZgwApiSetting(
   id: string,
   data: ZgwApiSettingInput
 ) {
-  const res = await apiFetch(`/admin/zgw-api-settings/${id}`, {
+  const res = await apiFetch(`/settings/zgw-api-settings/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }
 
 export async function deleteZgwApiSetting(id: string) {
-  const res = await apiFetch(`/admin/zgw-api-settings/${id}`, {
+  const res = await apiFetch(`/settings/zgw-api-settings/${id}`, {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }
 
 export async function deleteZgwApiSettings(ids: string[]) {
   await Promise.all(
     ids.map(async (id) => {
-      const res = await apiFetch(`/admin/zgw-api-settings/${id}`, {
+      const res = await apiFetch(`/settings/zgw-api-settings/${id}`, {
         method: "DELETE",
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/zgw-api")
+  revalidatePath(ROUTES.instellingen.zgwApi)
 }

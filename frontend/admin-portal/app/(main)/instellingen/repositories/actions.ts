@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export type StorageType = "S3" | "Azure Blob Storage"
@@ -32,39 +33,39 @@ type RepositoryInput = {
 }
 
 export async function createRepository(data: RepositoryInput) {
-  const res = await apiFetch("/admin/storage-repositories", {
+  const res = await apiFetch("/settings/storage-repositories", {
     method: "POST",
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function updateRepository(id: string, data: RepositoryInput) {
-  const res = await apiFetch(`/admin/storage-repositories/${id}`, {
+  const res = await apiFetch(`/settings/storage-repositories/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function deleteRepository(id: string) {
-  const res = await apiFetch(`/admin/storage-repositories/${id}`, {
+  const res = await apiFetch(`/settings/storage-repositories/${id}`, {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function deleteRepositories(ids: string[]) {
   await Promise.all(
     ids.map(async (id) => {
-      const res = await apiFetch(`/admin/storage-repositories/${id}`, {
+      const res = await apiFetch(`/settings/storage-repositories/${id}`, {
         method: "DELETE",
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/repositories")
+  revalidatePath(ROUTES.instellingen.repositories)
 }

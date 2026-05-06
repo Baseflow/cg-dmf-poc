@@ -11,8 +11,21 @@ get {
 }
 
 script:post-response {
-  const repoId = res.body[res.body.length - 1].id;
-  bru.setVar("repoId", repoId);
+  if (res.status === 200 && Array.isArray(res.body) && res.body.length > 0) {
+    const repoId = res.body[res.body.length - 1].id;
+    bru.setVar("repoId", repoId);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response contains at least one repository", function() {
+    expect(Array.isArray(res.body)).to.equal(true);
+    expect(res.body.length).to.be.greaterThan(0);
+  });
 }
 
 settings {

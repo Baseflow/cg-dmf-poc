@@ -15,10 +15,11 @@ import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.path
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.routing.openapi.hide
+import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -30,11 +31,56 @@ fun Route.wopiApiRoutes() {
     route(WOPI_API_BASE_PATH) {
         get("/files/{file_id}") {
             getFileMetadata()
-        }.hide()
+        }.describe {
+            operationId = "getFileMetadata"
+            tag("wopi")
+            summary = "Get a file metadata."
+            description =
+                "Gets the metadata of a file."
+            parameters {
+                path("file_id") {
+                    description = "The UUID of the file to retrieve metadata for."
+                    required = true
+                }
+            }
+            responses {
+                response(200) {
+                    description = "The metadata of a file"
+                    ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
+                }
+                response(400) { description = "Bad request." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden." }
+                response(404) { description = "Not found." }
+                response(500) { description = "Internal server error." }
+            }
+        }
 
         get("/files/{file_id}/contents") {
             getFileContents()
-        }.hide()
+        }.describe {
+            operationId = "getFileContents"
+            tag("wopi")
+            summary = "Get file contents."
+            description =
+                "Gets the contents of a file."
+            parameters {
+                path("file_id") {
+                    description = "The UUID of the file to retrieve the contents for."
+                    required = true
+                }
+            }
+            responses {
+                response(200) {
+                    description = "The binary data contents of a file"
+                }
+                response(400) { description = "Bad request." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden." }
+                response(404) { description = "Not found." }
+                response(500) { description = "Internal server error." }
+            }
+        }
     }
 }
 
@@ -97,7 +143,7 @@ private suspend fun RoutingContext.getFileContents() {
 
         // Stream the object from storage directly to the HTTP response
         call.respondOutputStream {
-            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this)
+            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this, repoName = eio.bestandsRepository)
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))

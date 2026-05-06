@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
 export interface ApplicationSetting {
@@ -19,41 +20,41 @@ type ApplicationInput = {
 }
 
 export async function createApplication(data: ApplicationInput) {
-  const res = await apiFetch("/admin/application-settings", {
+  const res = await apiFetch("/settings/application-settings", {
     method: "POST",
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function updateApplication(id: string, data: ApplicationInput) {
-  const res = await apiFetch(`/admin/application-settings/${id}`, {
+  const res = await apiFetch(`/settings/application-settings/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function deleteApplication(id: string) {
-  const res = await apiFetch(`/admin/application-settings/${id}`, {
+  const res = await apiFetch(`/settings/application-settings/${id}`, {
     method: "DELETE",
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function deleteApplications(ids: string[]) {
   await Promise.all(
     ids.map(async (id) => {
-      const res = await apiFetch(`/admin/application-settings/${id}`, {
+      const res = await apiFetch(`/settings/application-settings/${id}`, {
         method: "DELETE",
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     })
   )
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
 }
 
 export async function rotateApplicationSecret(
@@ -61,7 +62,7 @@ export async function rotateApplicationSecret(
   newSecret?: string
 ): Promise<string> {
   const res = await apiFetch(
-    `/admin/application-settings/${id}/rotate-secret`,
+    `/settings/application-settings/${id}/rotate-secret`,
     {
       method: "POST",
       body: JSON.stringify(newSecret ? { newSecret } : {}),
@@ -69,6 +70,6 @@ export async function rotateApplicationSecret(
   )
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const { secret } = (await res.json()) as { secret: string }
-  revalidatePath("/instellingen/applicaties")
+  revalidatePath(ROUTES.instellingen.applicaties)
   return secret
 }

@@ -13,6 +13,11 @@ const val DOCUMENTEN_API_VERSION: String = "1.5.0"
 const val DOCUMENTEN_API_BASE_PATH: String = "/documenten/api/v1"
 
 /**
+ * Central place to define the WOPI API version used across the application and tests.
+ */
+const val WOPI_API_VERSION: String = "1.0.0"
+
+/**
  * Base path for the WOPI API routes. Reuse this constant across routes and tests.
  */
 const val WOPI_API_BASE_PATH: String = "/wopi/api/v1"

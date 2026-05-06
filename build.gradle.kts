@@ -1,12 +1,12 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
 plugins {
-    kotlin("jvm") version "2.3.20"
+    kotlin("jvm") version "2.3.21"
     application
-    kotlin("plugin.serialization") version "2.3.20"
-    id("com.github.ben-manes.versions") version "0.53.0"
+    kotlin("plugin.serialization") version "2.3.21"
+    id("com.github.ben-manes.versions") version "0.54.0"
     // KSP plugin for annotation processing (required by koin-annotations)
-    id("com.google.devtools.ksp") version "2.3.6"
+    id("com.google.devtools.ksp") version "2.3.7"
     // Code formatting with Spotless and ktlint
     id("com.diffplug.spotless") version "8.4.0"
 }
@@ -44,6 +44,9 @@ dependencies {
     implementation("io.ktor:ktor-server-auth:3.4.2")
     implementation("io.ktor:ktor-server-auth-jwt:3.4.2")
 
+    // Connection pool
+    implementation("com.zaxxer:HikariCP:7.0.2")
+
     // Database - Exposed ORM
     implementation("org.jetbrains.exposed:exposed-core:1.2.0")
     implementation("org.jetbrains.exposed:exposed-dao:1.2.0")
@@ -52,7 +55,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.2.0")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.2.0")
     implementation("org.jetbrains.exposed:exposed-json:1.2.0")
-    implementation("org.postgresql:postgresql:42.7.10")
+    implementation("org.jetbrains.exposed:exposed-crypt:1.2.0")
+    implementation("org.postgresql:postgresql:42.7.11")
 
     // Database migrations
     implementation("org.flywaydb:flyway-core:12.4.0")
@@ -69,11 +73,11 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
-    implementation("com.auth0:jwks-rsa:0.23.0")
+    implementation("com.auth0:jwks-rsa:0.23.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.35")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.35")
+    implementation("software.amazon.awssdk:s3:2.43.2")
+    implementation("software.amazon.awssdk:netty-nio-client:2.43.2")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.33.3")
@@ -101,7 +105,7 @@ dependencies {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.2") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.3") {
             because("Minimum version from transitive dependencies")
         }
     }
@@ -172,11 +176,11 @@ val copySwaggerUi by tasks.registering(Copy::class) {
     into(swaggerUiDest)
 }
 
-// Also copy our hand-written index.html into the same build directory
+// Also copy our hand-written *.html Swagger files into the same build directory
 val copySwaggerUiIndex by tasks.registering(Copy::class) {
     group = "swagger-ui"
-    description = "Copy the Swagger UI index.html into the build resources directory"
-    from(layout.projectDirectory.file("frontend/swagger-ui/index.html"))
+    description = "Copy the Swagger UI documenten-api.html into the build resources directory"
+    from(layout.projectDirectory.dir("frontend/swagger-ui")) { include("*.html") }
     into(swaggerUiDest)
 }
 
@@ -186,6 +190,7 @@ sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/swagger
 tasks.named("processResources") {
     dependsOn(copySwaggerUi, copySwaggerUiIndex)
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Static OpenAPI specs ───────────────────────────────────────────────────
@@ -219,7 +224,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
-    environment("CLIENT_SECRET_ENCRYPTION_KEY", "test-encryption-key-for-unit-tests")
+    // Provide default encryption keys for unit tests so that the lazy Encryptor
+    // in BlobStorageRepositories can initialise when encrypted columns are used.
+    environment("ENCRYPTION_SECRET_KEY", System.getenv("ENCRYPTION_SECRET_KEY") ?: "test-secret-key-for-unit-tests")
+    environment("ENCRYPTION_SALT", System.getenv("ENCRYPTION_SALT") ?: "deadbeefcafe0123456789abcdef0123")
 }
 
 tasks.jar {

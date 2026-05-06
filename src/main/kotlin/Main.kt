@@ -7,6 +7,7 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
 import com.baseflow.api.infra.healthModule
 import com.baseflow.api.infra.openApiModule
+import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopiApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
@@ -17,6 +18,8 @@ import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -42,16 +45,20 @@ fun main() {
     } else {
         S3Config.printConfig()
     }
-    Database.connect(
-        url = DatabaseConfig.url,
-        driver = DatabaseConfig.driver,
-        user = DatabaseConfig.user,
-        password = DatabaseConfig.password,
+    val dataSource = HikariDataSource(
+        HikariConfig().apply {
+            jdbcUrl = DatabaseConfig.url
+            driverClassName = DatabaseConfig.driver
+            username = DatabaseConfig.user
+            password = DatabaseConfig.password
+            maximumPoolSize = DatabaseConfig.poolSize
+        },
     )
+    Database.connect(dataSource)
 
     // apply migrations
     val flyway = Flyway.configure()
-        .dataSource(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
+        .dataSource(dataSource)
         .load()
 
     // Targeted repair: V7 was amended to remove the pgcrypto dependency.
@@ -95,6 +102,7 @@ fun Application.module() {
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
     adminModule() // Admin API at /admin
+    settingsModule() // Settings API at /settings
     wopiApiModule() // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { RouteError } from "@/components/route-error"
 
 export default function Error({
   error,
@@ -9,14 +9,5 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6">
-      <p className="text-sm text-muted-foreground">
-        {error.message || "Er is een fout opgetreden."}
-      </p>
-      <Button variant="outline" size="sm" onClick={reset}>
-        Opnieuw proberen
-      </Button>
-    </div>
-  )
+  return <RouteError error={error} reset={reset} />
 }

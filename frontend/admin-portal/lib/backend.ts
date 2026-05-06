@@ -7,10 +7,15 @@ export async function apiFetch(
   init: RequestInit = {}
 ): Promise<Response> {
   const session = await auth()
+  const authHeaders: Record<string, string> = session?.accessToken
+    ? { Authorization: `Bearer ${session.accessToken}` }
+    : {}
+
   return fetch(`${BACKEND_URL}${path}`, {
+    cache: "no-store",
     ...init,
     headers: {
-      Authorization: `Bearer ${session?.accessToken ?? ""}`,
+      ...authHeaders,
       ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...init.headers,
     },

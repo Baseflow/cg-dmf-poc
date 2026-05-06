@@ -15,7 +15,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   CircleUserRoundIcon,
   EllipsisVerticalIcon,
@@ -53,7 +52,7 @@ export function NavUser() {
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium text-muted-foreground">
-                Log in
+                Inloggen
               </span>
               <span className="truncate text-xs text-muted-foreground">
                 Klik om in te loggen
@@ -80,7 +79,7 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarFallback className="rounded-lg">
-                  {initials || user?.name?.slice(0, 2).toUpperCase()}
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -119,7 +118,7 @@ export function NavUser() {
               onClick={() => signOut()}
             >
               <LogOutIcon />
-              Log out
+              Uitloggen
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

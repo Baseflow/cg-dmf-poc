@@ -1,60 +1,113 @@
 import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
 import {
-  DatabaseIcon,
-  FanIcon,
-  FileTextIcon,
-  KeyIcon,
+  AppWindow,
+  BookOpen,
+  Braces,
+  Database,
+  FileCode,
+  FileCog,
   LucideFileExclamationPoint,
+  Plug,
 } from "lucide-react"
+import type { ReactNode } from "react"
 
-export const navigation = {
-  settings: [
+export type NavItem = {
+  name: string
+  url: string
+  icon: ReactNode
+  description?: string
+}
+
+export type NavGroup = {
+  id: string
+  label: string
+  requiresAuth?: boolean
+  items: NavItem[]
+}
+
+export const navigation: {
+  primary: NavGroup[]
+  secondary: NavItem[]
+} = {
+  primary: [
     {
-      name: "OIDC",
-      url: "/instellingen/oidc",
-      icon: <OidcIcon />,
+      id: "documenten",
+      label: "Documenten API",
+      items: [
+        {
+          name: "OpenAPI UI",
+          url: "/documenten-api/openapi-ui",
+          icon: <BookOpen />,
+        },
+        {
+          name: "OpenAPI UI (Ktor)",
+          url: "/documenten-api/openapi-ui-ktor",
+          icon: <FileCode />,
+        },
+        {
+          name: "OpenAPI JSON",
+          url: "https://cg-dmf.dev.baseflow.com/docs/openapi/documenten.json",
+          icon: <Braces />,
+        },
+      ],
     },
     {
-      name: "ZGW API",
-      url: "/instellingen/zgw-api",
-      icon: <FanIcon />,
+      id: "links",
+      label: "Links",
+      items: [
+        {
+          name: "GitHub Repository",
+          url: "https://github.com/Baseflow/cg-dmf-poc",
+          icon: <GitHubIcon />,
+        },
+        {
+          name: "Docker Image",
+          url: "https://hub.docker.com/r/baseflow/cg-dmf-poc",
+          icon: <DockerIcon />,
+        },
+      ],
     },
     {
-      name: "DMF",
-      url: "/instellingen/dmf",
-      icon: <FileTextIcon />,
-    },
-    {
-      name: "Repositories",
-      url: "/instellingen/repositories",
-      icon: <DatabaseIcon />,
-    },
-    {
-      name: "Applicaties",
-      url: "/instellingen/applicaties",
-      icon: <KeyIcon />,
+      id: "instellingen",
+      label: "Instellingen",
+      requiresAuth: true,
+      items: [
+        {
+          name: "OIDC",
+          url: "/instellingen/oidc",
+          icon: <OidcIcon />,
+          description: "OpenID Connect authenticatieproviders",
+        },
+        {
+          name: "ZGW API",
+          url: "/instellingen/zgw-api",
+          icon: <Plug />,
+          description: "ZGW API koppelingsprofielen",
+        },
+        {
+          name: "DMF",
+          url: "/instellingen/dmf",
+          icon: <FileCog />,
+          description: "DMF systeeminstellingen",
+        },
+        {
+          name: "Repositories",
+          url: "/instellingen/repositories",
+          icon: <Database />,
+          description: "Object store repositories",
+        },
+        {
+          name: "Applicaties",
+          url: "/instellingen/applicaties",
+          icon: <AppWindow />,
+          description: "Gekoppelde applicaties",
+        },
+      ],
     },
   ],
-  documents: [
+  secondary: [
     {
-      name: "OpenAPI Spec",
-      url: "/api-docs",
-      icon: <FileTextIcon />,
-    },
-    {
-      name: "Docker Image",
-      url: "https://hub.docker.com/r/baseflow/cg-dmf-poc",
-      icon: <DockerIcon />,
-    },
-    {
-      name: "GitHub Repository",
-      url: "https://github.com/Baseflow/cg-dmf-poc",
-      icon: <GitHubIcon />,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Rapporteer problemen",
+      name: "Problemen melden",
       url: "https://github.com/Baseflow/cg-dmf-poc/issues",
       icon: <LucideFileExclamationPoint />,
     },

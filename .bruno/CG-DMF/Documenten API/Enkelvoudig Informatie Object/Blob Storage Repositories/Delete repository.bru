@@ -1,0 +1,22 @@
+meta {
+  name: Delete repository
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/admin/storage-repositories/{{blobRepoId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 204", function() {
+    expect(res.status).to.equal(204);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -42,8 +41,8 @@ import { SecretCell } from "@/components/secret-cell"
 import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, ChevronDown, X } from "lucide-react"
-import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
+import { Check, Database, MoreHorizontal, X } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createRepository,
   deleteRepositories,
@@ -64,6 +63,8 @@ export function RepositoryList({
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null)
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
+  const [drawerDirty, setDrawerDirty] = useState(false)
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<Repository | null>(
     null
@@ -73,15 +74,26 @@ export function RepositoryList({
   const [isDeleting, startDelete] = useTransition()
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const handleDrawerCloseAttempt = useCallback(() => {
+    if (isSaving) return
+    if (drawerDirty) {
+      setCloseConfirmOpen(true)
+    } else {
+      setDrawerOpen(false)
+    }
+  }, [isSaving, drawerDirty])
+
   const openAdd = useCallback(() => {
     setEditingRepo(null)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
   const openEdit = useCallback((repo: Repository) => {
     setEditingRepo(repo)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
@@ -246,9 +258,9 @@ export function RepositoryList({
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Acties
-                  <ChevronDown />
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -278,6 +290,7 @@ export function RepositoryList({
         description="Object store repositories."
         emptyMessage="Nog geen repositories geconfigureerd."
         emptyAddLabel="Repository toevoegen"
+        emptyIcon={<Database />}
         onAdd={openAdd}
         onBulkDelete={(ids) => {
           setBulkDeleteIds(ids)
@@ -289,7 +302,7 @@ export function RepositoryList({
         key={isMobile ? "bottom" : "right"}
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!open && !isSaving) setDrawerOpen(false)
+          if (!open) handleDrawerCloseAttempt()
         }}
         direction={isMobile ? "bottom" : "right"}
       >
@@ -300,10 +313,39 @@ export function RepositoryList({
             saving={isSaving}
             error={drawerError}
             onSave={handleSave}
-            onCancel={() => setDrawerOpen(false)}
+            onCancel={handleDrawerCloseAttempt}
+            onDirtyChange={setDrawerDirty}
           />
         </DrawerContent>
       </Drawer>
+
+      <AlertDialog
+        open={closeConfirmOpen}
+        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
+              sluiten?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setCloseConfirmOpen(false)
+                setDrawerOpen(false)
+                setDrawerDirty(false)
+              }}
+            >
+              Sluiten
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={bulkDeleteOpen}
@@ -383,6 +425,7 @@ function RepositoryForm({
   error,
   onSave,
   onCancel,
+  onDirtyChange,
 }: {
   repo: Repository | null
   saving: boolean
@@ -399,6 +442,7 @@ function RepositoryForm({
     enabled: boolean
   }) => void
   onCancel: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const [name, setName] = useState(repo?.name ?? "")
   const [storageType, setStorageType] = useState<StorageType>(
@@ -413,6 +457,21 @@ function RepositoryForm({
   const [bucket, setBucket] = useState(repo?.bucket ?? "")
   const [isDefault, setIsDefault] = useState(repo?.isDefault ?? false)
   const [enabled, setEnabled] = useState(repo?.enabled ?? true)
+
+  const isDirty =
+    name !== (repo?.name ?? "") ||
+    storageType !== ((repo?.storageType as StorageType) ?? "S3") ||
+    url !== (repo?.url ?? "") ||
+    accessKey !== (repo?.accessKey ?? "") ||
+    secretKey !== "" ||
+    storageAccountName !== (repo?.storageAccountName ?? "") ||
+    bucket !== (repo?.bucket ?? "") ||
+    isDefault !== (repo?.isDefault ?? false) ||
+    enabled !== (repo?.enabled ?? true)
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const isS3 = storageType === "S3"
   const isAzure = storageType === "Azure Blob Storage"
@@ -610,18 +669,16 @@ function RepositoryForm({
           <Check />
           {saving ? "Opslaan..." : "Opslaan"}
         </Button>
-        <DrawerClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            <X />
-            Annuleren
-          </Button>
-        </DrawerClose>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={saving}
+        >
+          <X />
+          Annuleren
+        </Button>
       </DrawerFooter>
     </>
   )

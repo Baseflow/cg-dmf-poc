@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -29,12 +28,13 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
+import { OidcIcon } from "@/components/icons"
 import { SecretCell } from "@/components/secret-cell"
 import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, ChevronDown, X } from "lucide-react"
-import { useCallback, useMemo, useState, useTransition, type FormEvent } from "react"
+import { Check, MoreHorizontal, X } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState, useTransition, type FormEvent } from "react"
 import {
   createOidcProvider,
   deleteOidcProvider,
@@ -55,6 +55,8 @@ export function OidcProviderList({
     useState<OidcProvider | null>(null)
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
+  const [drawerDirty, setDrawerDirty] = useState(false)
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<OidcProvider | null>(
     null
@@ -64,15 +66,26 @@ export function OidcProviderList({
   const [isDeleting, startDelete] = useTransition()
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const handleDrawerCloseAttempt = useCallback(() => {
+    if (isSaving) return
+    if (drawerDirty) {
+      setCloseConfirmOpen(true)
+    } else {
+      setDrawerOpen(false)
+    }
+  }, [isSaving, drawerDirty])
+
   const openAdd = useCallback(() => {
     setEditingProvider(null)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
   const openEdit = useCallback((provider: OidcProvider) => {
     setEditingProvider(provider)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
@@ -194,9 +207,9 @@ export function OidcProviderList({
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Acties
-                  <ChevronDown />
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -226,6 +239,7 @@ export function OidcProviderList({
         description="OpenID Connect authenticatieproviders."
         emptyMessage="Nog geen providers geconfigureerd."
         emptyAddLabel="Provider toevoegen"
+        emptyIcon={<OidcIcon />}
         onAdd={openAdd}
         onBulkDelete={(ids) => {
           setBulkDeleteIds(ids)
@@ -237,7 +251,7 @@ export function OidcProviderList({
         key={isMobile ? "bottom" : "right"}
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!open && !isSaving) setDrawerOpen(false)
+          if (!open) handleDrawerCloseAttempt()
         }}
         direction={isMobile ? "bottom" : "right"}
       >
@@ -248,10 +262,39 @@ export function OidcProviderList({
             saving={isSaving}
             error={drawerError}
             onSave={handleSave}
-            onCancel={() => setDrawerOpen(false)}
+            onCancel={handleDrawerCloseAttempt}
+            onDirtyChange={setDrawerDirty}
           />
         </DrawerContent>
       </Drawer>
+
+      <AlertDialog
+        open={closeConfirmOpen}
+        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
+              sluiten?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setCloseConfirmOpen(false)
+                setDrawerOpen(false)
+                setDrawerDirty(false)
+              }}
+            >
+              Sluiten
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={bulkDeleteOpen}
@@ -331,6 +374,7 @@ function ProviderForm({
   error,
   onSave,
   onCancel,
+  onDirtyChange,
 }: {
   provider: OidcProvider | null
   saving: boolean
@@ -342,6 +386,7 @@ function ProviderForm({
     clientSecret: string
   }) => void
   onCancel: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const [name, setName] = useState(provider?.name ?? "")
   const [issuer, setIssuer] = useState(provider?.issuer ?? "")
@@ -352,6 +397,16 @@ function ProviderForm({
     issuer?: string
     clientId?: string
   }>({})
+
+  const isDirty =
+    name !== (provider?.name ?? "") ||
+    issuer !== (provider?.issuer ?? "") ||
+    clientId !== (provider?.clientId ?? "") ||
+    clientSecret !== ""
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -460,18 +515,16 @@ function ProviderForm({
           <Check />
           {saving ? "Opslaan..." : "Opslaan"}
         </Button>
-        <DrawerClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            <X />
-            Annuleren
-          </Button>
-        </DrawerClose>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={saving}
+        >
+          <X />
+          Annuleren
+        </Button>
       </DrawerFooter>
     </>
   )

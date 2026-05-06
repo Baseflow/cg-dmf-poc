@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dialog"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -48,9 +47,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SecretInput } from "@/components/ui/secret-input"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Check, ChevronDown, Copy, RefreshCw, X } from "lucide-react"
+import { AlertTriangle, AppWindow, Check, Copy, MoreHorizontal, RefreshCw, X } from "lucide-react"
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -88,6 +88,9 @@ export function ApplicationList({
   const [isDeleting, startDelete] = useTransition()
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const [drawerDirty, setDrawerDirty] = useState(false)
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
+
   const [rotateTarget, setRotateTarget] = useState<ApplicationSetting | null>(
     null
   )
@@ -99,15 +102,26 @@ export function ApplicationList({
   const [copied, setCopied] = useState(false)
   const [isRotating, startRotate] = useTransition()
 
+  const handleDrawerCloseAttempt = useCallback(() => {
+    if (isSaving) return
+    if (drawerDirty) {
+      setCloseConfirmOpen(true)
+    } else {
+      setDrawerOpen(false)
+    }
+  }, [isSaving, drawerDirty])
+
   const openAdd = useCallback(() => {
     setEditing(null)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
   const openEdit = useCallback((app: ApplicationSetting) => {
     setEditing(app)
     setDrawerError(null)
+    setDrawerDirty(false)
     setDrawerOpen(true)
   }, [])
 
@@ -263,9 +277,9 @@ export function ApplicationList({
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Acties
-                  <ChevronDown />
+                <Button variant="ghost" size="icon" className="size-8">
+                  <MoreHorizontal className="size-4" />
+                  <span className="sr-only">Acties</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -298,6 +312,7 @@ export function ApplicationList({
         description="Applicatie-instellingen voor client credentials."
         emptyMessage="Nog geen applicaties geconfigureerd."
         emptyAddLabel="Applicatie toevoegen"
+        emptyIcon={<AppWindow />}
         onAdd={openAdd}
         onBulkDelete={(ids) => {
           setBulkDeleteIds(ids)
@@ -308,7 +323,7 @@ export function ApplicationList({
       <Drawer
         open={drawerOpen}
         onOpenChange={(open) => {
-          if (!open && !isSaving) setDrawerOpen(false)
+          if (!open) handleDrawerCloseAttempt()
         }}
         direction={isMobile ? "bottom" : "right"}
       >
@@ -319,10 +334,39 @@ export function ApplicationList({
             saving={isSaving}
             error={drawerError}
             onSave={handleSave}
-            onCancel={() => setDrawerOpen(false)}
+            onCancel={handleDrawerCloseAttempt}
+            onDirtyChange={setDrawerDirty}
           />
         </DrawerContent>
       </Drawer>
+
+      <AlertDialog
+        open={closeConfirmOpen}
+        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
+              sluiten?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Terug</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setCloseConfirmOpen(false)
+                setDrawerOpen(false)
+                setDrawerDirty(false)
+              }}
+            >
+              Sluiten
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -403,11 +447,15 @@ export function ApplicationList({
           {rotatePhase === "success" ? (
             <>
               <DialogHeader>
-                <DialogTitle>Nieuw secret</DialogTitle>
-                <DialogDescription>
-                  Dit secret wordt maar één keer getoond. Kopieer het nu.
-                </DialogDescription>
+                <DialogTitle>Nieuw secret gegenereerd</DialogTitle>
               </DialogHeader>
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-400">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <p className="text-sm">
+                  Dit secret wordt maar één keer getoond. Kopieer het nu voordat
+                  je dit venster sluit.
+                </p>
+              </div>
               <div className="flex gap-2">
                 <Input
                   readOnly
@@ -422,7 +470,7 @@ export function ApplicationList({
                   aria-label="Kopieer secret"
                 >
                   {copied ? (
-                    <Check className="size-4" />
+                    <Check className="size-4 text-green-600" />
                   ) : (
                     <Copy className="size-4" />
                   )}
@@ -529,6 +577,7 @@ function AppForm({
   error,
   onSave,
   onCancel,
+  onDirtyChange,
 }: {
   app: ApplicationSetting | null
   saving: boolean
@@ -539,11 +588,21 @@ function AppForm({
     clientSecret: string
   }) => void
   onCancel: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const [name, setName] = useState(app?.name ?? "")
   const [clientId, setClientId] = useState(app?.clientId ?? "")
   const [clientSecret, setClientSecret] = useState(app?.clientSecret ?? "")
   const [fieldErrors, setFieldErrors] = useState<AppFormErrors>({})
+
+  const isDirty =
+    name !== (app?.name ?? "") ||
+    clientId !== (app?.clientId ?? "") ||
+    clientSecret !== ""
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -625,18 +684,16 @@ function AppForm({
           <Check />
           {saving ? "Opslaan..." : "Opslaan"}
         </Button>
-        <DrawerClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            <X />
-            Annuleren
-          </Button>
-        </DrawerClose>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={saving}
+        >
+          <X />
+          Annuleren
+        </Button>
       </DrawerFooter>
     </>
   )

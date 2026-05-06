@@ -1,0 +1,62 @@
+meta {
+  name: Create repository
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/admin/storage-repositories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "test-repo-bruno",
+    "storageType": "S3",
+    "url": "http://localhost:9000",
+    "accessKey": "minioadmin",
+    "secretKey": "minioadmin",
+    "bucket": "documenten",
+    "region": "eu-west-1",
+    "disableChecksums": false,
+    "disableChunkedEncoding": false,
+    "extraProperties": {},
+    "isDefault": false
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body.id) {
+    bru.setVar("blobRepoId", res.body.id);
+    bru.setVar("blobRepoName", res.body.name);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+  
+  test("response contains id", function() {
+    expect(res.body.id).to.be.a("string");
+  });
+  
+  test("response has correct name", function() {
+    expect(res.body.name).to.equal("test-repo-bruno");
+  });
+  
+  test("response has correct storageType", function() {
+    expect(res.body.storageType).to.equal("S3");
+  });
+  
+  test("secrets are masked", function() {
+    expect(res.body.accessKeyMasked).to.include("mini**dmin");
+    expect(res.body.secretKeyMasked).to.include("mini**dmin");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
