@@ -1,0 +1,13 @@
+services:
+  admin-portal:
+    image: baseflow/cg-dmf-admin-portal:latest
+    ports:
+      - "3000:3000"
+    environment:
+      NEXTAUTH_URL: https://cg-dmf.dev.baseflow.com/admin-backend/
+      NEXTAUTH_SECRET: zOIiai31/Ee0xaRxyET++ItWnvpeGCM/uv6F1Sh11qg=
+      KEYCLOAK_URL: https://auth.gzac.baseflow.com/
+      KEYCLOAK_REALM: valtimo
+      KEYCLOAK_CLIENT_ID: dmf-dashboard
+      # KEYCLOAK_CLIENT_SECRET: changeme
+      BACKEND_URL: https://cg-dmf.dev.baseflow.com
