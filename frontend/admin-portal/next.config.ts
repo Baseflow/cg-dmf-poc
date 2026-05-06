@@ -1,6 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async rewrites() {
     return {
       // Checked only after all app routes (including dynamic ones like [...nextauth]).
