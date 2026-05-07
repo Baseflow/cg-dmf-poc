@@ -17,4 +17,5 @@ settings {
 
 assert {
   res.status: eq 200
+  res.body[res.body.length-1].informatieobject: endsWith {{createdId}}
 }
