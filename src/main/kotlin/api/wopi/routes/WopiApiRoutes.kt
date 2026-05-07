@@ -181,6 +181,18 @@ private suspend fun RoutingContext.getFileContents() {
         return
     }
 
+    val maxExpectedSize: Int = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
+        try {
+            it.toInt()
+        } catch (e: NumberFormatException) {
+            call.respondProblem(
+                HttpStatusCode.PreconditionFailed,
+                badRequest("File is larger than X-WOPI-MaxExpectedSize.", call.request.path()),
+            )
+            return
+        }
+    } ?: Int.MAX_VALUE
+
     try {
         val uuid = UUID.fromString(fileId)
 
@@ -196,6 +208,13 @@ private suspend fun RoutingContext.getFileContents() {
                 HttpStatusCode.NotFound,
                 notFound("EnkelvoudigInformatieObject not found", call.request.path()),
             )
+            return
+        }
+
+        // Check if the file size exceeds the maximum expected size
+        val fileSize = eio.bestandsomvang ?: 0L
+        if (fileSize > maxExpectedSize) {
+            call.respond(HttpStatusCode.PreconditionFailed)
             return
         }
 
