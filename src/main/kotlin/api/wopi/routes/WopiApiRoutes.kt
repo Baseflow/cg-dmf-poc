@@ -64,6 +64,7 @@ fun Route.wopiApiRoutes() {
                 when (call.request.headers["X-WOPI-Override"]) {
                     "LOCK" -> lockFile()
                     "UNLOCK" -> unlockFile()
+                    "REFRESH_LOCK" -> refreshLock()
                     else -> call.respondProblem(
                         HttpStatusCode.NotImplemented,
                         badRequest("Unsupported X-WOPI-Override value", call.request.path()),
@@ -144,6 +145,46 @@ fun Route.wopiApiRoutes() {
                 }
             }
         }
+    }
+}
+
+private suspend fun RoutingContext.refreshLock() {
+    val lockValue = call.request.headers["X-WOPI-Lock"]
+
+    val fileId = call.parameters["file_id"]
+    if (fileId == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(fileId)
+        val currentFile = service.getById(uuid)
+
+        // Determine whether saving is allowed and what lock token to echo back.
+        val lockMismatch: String? = when {
+            lockValue == null -> {
+                "" // File already has content but no lock was provided — reject with 409.
+            }
+            lockValue != currentFile?.lock -> {
+                currentFile?.lock ?: "" // Provided lock token does not match the current lock — reject with 409.
+            }
+            else -> null
+        }
+
+        if (lockMismatch != null) {
+            call.response.headers.append("X-WOPI-Lock", lockMismatch)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("Lock mismatch."))
+            return
+        }
+
+        // TODO refresh the lock
+
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
     }
 }
 
