@@ -5,6 +5,7 @@ package com.baseflow.api.wopi.routes
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
+import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
@@ -17,6 +18,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
+import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
@@ -112,8 +114,8 @@ private suspend fun RoutingContext.updateFileContents() {
     val wopiOverride = call.request.headers["X-WOPI-Override"]
     if (wopiOverride != "PUT") {
         call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest("X-WOPI-Override header must be PUT", call.request.path()),
+            HttpStatusCode.NotImplemented,
+            badRequest("Operation not supported.", call.request.path()),
         )
         return
     }
@@ -126,10 +128,31 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
-    try {
-        val uuid = UUID.fromString(fileId)
-        val currentFile = service.getById(uuid)
+    var uuid: UUID
 
+    try {
+        uuid = UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
+
+    var currentFile: EnkelvoudigInformatieObjectResponse? = null
+
+    try {
+        currentFile = service.getById(uuid)
+    } catch (_: NotFoundException) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("File not found", call.request.path()),
+        )
+        return
+    }
+
+    try {
         // Determine whether saving is allowed and what lock token to echo back.
         val lockMismatch: String? = when {
             lockValue == null && (currentFile?.bestandsomvang ?: 0L) > 0L -> {
@@ -164,10 +187,7 @@ private suspend fun RoutingContext.updateFileContents() {
         call.response.headers.append("X-WOPI-ItemVersion", response.versie.toString())
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to response.beginRegistratie))
     } catch (e: IllegalArgumentException) {
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
-        )
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid input", call.request.path()))
     }
 }
 
