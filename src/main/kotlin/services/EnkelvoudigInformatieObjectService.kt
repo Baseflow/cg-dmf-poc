@@ -740,7 +740,10 @@ class EnkelvoudigInformatieObjectService(
         data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)
         data class MergeContext(val parts: List<PartInfo>, val mergedLocatie: String, val latestVersionId: UUID)
 
-        // Single transaction: validate lock, collect part metadata, clear the lock.
+        // Transaction 1: validate lock and collect part metadata.
+        // When there are no parts to merge the lock is also cleared here (nothing can fail after this).
+        // When parts exist the lock is intentionally kept until the merge succeeds, so a failed
+        // upload does not leave the record permanently unlocked with missing content.
         // No blob I/O happens here so the DB connection is held for the minimum time.
         var mergeCtx: MergeContext? = null
         val preUnlockResult: UnlockResult? = transaction {
@@ -774,8 +777,10 @@ class EnkelvoudigInformatieObjectService(
                 }
             }
 
-            // Clear the lock now so the record is unblocked while blob I/O runs outside.
-            record.lockToken = null
+            // No parts to merge: clear the lock immediately (nothing can fail after this point).
+            if (mergeCtx == null) {
+                record.lockToken = null
+            }
             UnlockResult.Success
         }
 
@@ -817,17 +822,20 @@ class EnkelvoudigInformatieObjectService(
                     id,
                 )
 
-                // Follow-up transaction: persist the new bestandsLocatie and remove all part DB rows
-                // in a single batched DELETE rather than one round-trip per part.
+                // Follow-up transaction: persist the new bestandsLocatie, remove all part DB rows
+                // in a single batched DELETE, and only now clear the lock – guaranteeing the lock
+                // is only released after a successful merge and upload.
                 val partIds = ctx.parts.map { it.bestandsDeelId }
                 transaction {
                     EIOVersionEntity.findById(ctx.latestVersionId)?.let { v ->
                         v.bestandsLocatie = ctx.mergedLocatie
                     }
                     BestandsDelen.deleteWhere { BestandsDelen.id inList partIds }
+                    EIORecordEntity.findById(id)?.lockToken = null
                 }
             } catch (e: Exception) {
                 logger.error("Failed to merge bestandsdelen for EIO {}: {}", id, e.message, e)
+                throw e
             }
         }
 

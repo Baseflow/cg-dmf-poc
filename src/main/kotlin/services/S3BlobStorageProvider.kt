@@ -58,8 +58,9 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             .build()
 
         val httpClientBuilder = NettyNioAsyncHttpClient.builder()
-            .connectionTimeout(TIMEOUT)
-            .readTimeout(TIMEOUT)
+            .connectionTimeout(CONNECTION_TIMEOUT)
+            .readTimeout(READ_WRITE_TIMEOUT)
+            .writeTimeout(READ_WRITE_TIMEOUT)
 
         val clientBuilder = S3AsyncClient.builder()
             .region(Region.of(config.region ?: "eu-west-1"))
@@ -213,6 +214,18 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
     }
 
     companion object {
-        val TIMEOUT: Duration = Duration.ofSeconds(5)
+        /** Maximum time to wait for a TCP connection to be established. */
+        val CONNECTION_TIMEOUT: Duration = Duration.ofSeconds(10)
+
+        /**
+         * Maximum idle time between consecutive read/write buffers during a streaming transfer.
+         * This is NOT a total-transfer timeout – a 1 GB upload over a slow link will succeed as
+         * long as each individual chunk of data arrives within this window.
+         * 60 s gives ample headroom for S3-side processing pauses without masking dead connections.
+         */
+        val READ_WRITE_TIMEOUT: Duration = Duration.ofSeconds(60)
+
+        /** Kept for callers that still reference the old constant (e.g. health-check .get() calls). */
+        val TIMEOUT: Duration = CONNECTION_TIMEOUT
     }
 }
