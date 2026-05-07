@@ -5,6 +5,7 @@ package com.baseflow.api.wopi.routes
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
+import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
@@ -19,6 +20,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
+import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
@@ -49,14 +51,12 @@ fun Route.wopiApiRoutes() {
                 }
                 responses {
                     response(200) {
-                        description = "The metadata of a file"
+                        description = "Success."
                         ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
                     }
-                    response(400) { description = "Bad request." }
-                    response(401) { description = "Unauthorized." }
-                    response(403) { description = "Forbidden." }
-                    response(404) { description = "Not found." }
-                    response(500) { description = "Internal server error." }
+                    response(401) { description = "Invalid access token." }
+                    response(404) { description = "Resource not found or user unauthorized." }
+                    response(500) { description = "Server error." }
                 }
             }
 
@@ -108,14 +108,11 @@ fun Route.wopiApiRoutes() {
                         }
                     }
                     responses {
-                        response(200) {
-                            description = "The binary data contents of a file"
-                        }
-                        response(400) { description = "Bad request." }
-                        response(401) { description = "Unauthorized." }
-                        response(403) { description = "Forbidden." }
-                        response(404) { description = "Not found." }
-                        response(500) { description = "Internal server error." }
+                        response(200) { description = "Success." }
+                        response(401) { description = "Invalid access token." }
+                        response(404) { description = "Resource not found or user unauthorized." }
+                        response(412) { description = "File is larger than X-WOPI-MaxExpectedSize." }
+                        response(500) { description = "Server error." }
                     }
                 }
 
@@ -132,14 +129,16 @@ fun Route.wopiApiRoutes() {
                         }
                     }
                     responses {
-                        response(200) {
-                            description = "File successfully saved."
+                        response(200) { description = "Success" }
+                        response(401) { description = "Invalid access token." }
+                        response(404) { description = "Resource not found or user unauthorized." }
+                        response(409) {
+                            description =
+                                "Lock mismatch or locked by another interface. You must include an X-WOPI-Lock response header containing the value of the current lock on the file when using this response code."
                         }
-                        response(400) { description = "Bad request." }
-                        response(401) { description = "Unauthorized." }
-                        response(403) { description = "Forbidden." }
-                        response(404) { description = "Not found." }
-                        response(500) { description = "Internal server error." }
+                        response(413) { description = "File is too large. The maximum file size is host-specific." }
+                        response(500) { description = "Server error." }
+                        response(501) { description = "Operation not supported." }
                     }
                 }
             }
@@ -246,8 +245,8 @@ private suspend fun RoutingContext.updateFileContents() {
     val wopiOverride = call.request.headers["X-WOPI-Override"]
     if (wopiOverride != "PUT") {
         call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest("X-WOPI-Override header must be PUT", call.request.path()),
+            HttpStatusCode.NotImplemented,
+            badRequest("Operation not supported.", call.request.path()),
         )
         return
     }
@@ -260,18 +259,41 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
-    try {
-        val uuid = UUID.fromString(fileId)
-        val currentFile = service.getById(uuid)
+    var uuid: UUID
 
+    try {
+        uuid = UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
+
+    var currentFile: EnkelvoudigInformatieObjectResponse? = null
+
+    try {
+        currentFile = service.getById(uuid)
+    } catch (_: NotFoundException) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("File not found", call.request.path()),
+        )
+        return
+    }
+
+    try {
         // Determine whether saving is allowed and what lock token to echo back.
         val lockMismatch: String? = when {
             lockValue == null && (currentFile?.bestandsomvang ?: 0L) > 0L -> {
                 "" // File already has content but no lock was provided — reject with 409.
             }
+
             lockValue != null && lockValue != currentFile?.lock -> {
                 currentFile?.lock ?: "" // Provided lock token does not match the current lock — reject with 409.
             }
+
             else -> null // Save is allowed; null means no mismatch.
         }
 
@@ -296,13 +318,9 @@ private suspend fun RoutingContext.updateFileContents() {
         call.response.headers.append("X-WOPI-ItemVersion", response.versie.toString())
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to response.beginRegistratie))
     } catch (e: IllegalArgumentException) {
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
-        )
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid input", call.request.path()))
     }
 }
-
 
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.parameters["file_id"]
@@ -313,6 +331,18 @@ private suspend fun RoutingContext.getFileContents() {
         )
         return
     }
+
+    val maxExpectedSize: Int = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
+        try {
+            it.toInt()
+        } catch (e: NumberFormatException) {
+            call.respondProblem(
+                HttpStatusCode.PreconditionFailed,
+                badRequest("File is larger than X-WOPI-MaxExpectedSize.", call.request.path()),
+            )
+            return
+        }
+    } ?: Int.MAX_VALUE
 
     try {
         val uuid = UUID.fromString(fileId)
@@ -329,6 +359,13 @@ private suspend fun RoutingContext.getFileContents() {
                 HttpStatusCode.NotFound,
                 notFound("EnkelvoudigInformatieObject not found", call.request.path()),
             )
+            return
+        }
+
+        // Check if the file size exceeds the maximum expected size
+        val fileSize = eio.bestandsomvang ?: 0L
+        if (fileSize > maxExpectedSize) {
+            call.respond(HttpStatusCode.PreconditionFailed)
             return
         }
 
