@@ -104,7 +104,15 @@ class BestandsDeelServiceTest {
         bestandsDeelService = BestandsDeelService(smallConfig)
 
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every {
+            mockStorageService.uploadFile(
+                any<String>(),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        } returns Unit
         val auditContext = AuditContext()
         eioService = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
@@ -171,7 +179,13 @@ class BestandsDeelServiceTest {
 
         val capturedKeys = mutableListOf<String>()
         val capturedContent = mutableListOf<ByteArray>()
-        every { mockStorageService.uploadFile(capture(capturedKeys), capture(capturedContent), anyNullable()) } returns Unit
+        every {
+            mockStorageService.uploadFile(
+                capture(capturedKeys),
+                capture(capturedContent),
+                anyNullable(),
+            )
+        } returns Unit
 
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, chunkBytes, mockStorageService)
 
@@ -195,7 +209,15 @@ class BestandsDeelServiceTest {
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, null, mockStorageService)
 
         assertIs<UploadFilePartResult.Success>(result)
-        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any(), anyNullable()) }
+        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) }
+        io.mockk.verify(exactly = 0) {
+            mockStorageService.uploadFile(
+                any<String>(),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        }
     }
 
     @Test
@@ -230,7 +252,15 @@ class BestandsDeelServiceTest {
         assertIs<UploadFilePartResult.OmvangMismatch>(result)
         assertEquals(part.omvang, result.expected)
         assertEquals(3L, result.actual)
-        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any(), any(), anyNullable()) }
+        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) }
+        io.mockk.verify(exactly = 0) {
+            mockStorageService.uploadFile(
+                any<String>(),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        }
     }
 
     @Test

@@ -45,7 +45,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:3.4.2")
 
     // Connection pool
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("com.zaxxer:HikariCP:7.0.2")
 
     // Database - Exposed ORM
     implementation("org.jetbrains.exposed:exposed-core:1.2.0")
@@ -56,7 +56,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.2.0")
     implementation("org.jetbrains.exposed:exposed-json:1.2.0")
     implementation("org.jetbrains.exposed:exposed-crypt:1.2.0")
-    implementation("org.postgresql:postgresql:42.7.10")
+    implementation("org.postgresql:postgresql:42.7.11")
 
     // Database migrations
     implementation("org.flywaydb:flyway-core:12.4.0")
@@ -76,8 +76,8 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.23.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.42.41")
-    implementation("software.amazon.awssdk:netty-nio-client:2.42.41")
+    implementation("software.amazon.awssdk:s3:2.43.2")
+    implementation("software.amazon.awssdk:netty-nio-client:2.43.2")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.33.3")
@@ -105,7 +105,7 @@ dependencies {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.2") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.3") {
             because("Minimum version from transitive dependencies")
         }
     }

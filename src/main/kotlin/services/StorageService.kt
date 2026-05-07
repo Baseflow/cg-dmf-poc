@@ -7,6 +7,7 @@ import com.baseflow.config.S3Config
 import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipInputStream
@@ -67,6 +68,14 @@ open class StorageService(
      */
     fun uploadFile(objectName: String, content: ByteArray, repoName: String? = null) {
         resolveProvider(repoName).uploadFile(objectName, content)
+    }
+
+    /**
+     * Upload from a stream of known [contentLength] bytes. Avoids materialising the full content
+     * in memory – use this for large files (e.g. merged bestandsdelen).
+     */
+    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null) {
+        resolveProvider(repoName).uploadFile(objectName, stream, contentLength)
     }
 
     /**

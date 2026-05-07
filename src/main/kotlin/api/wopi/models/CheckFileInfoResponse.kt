@@ -26,5 +26,5 @@ data class CheckFileInfoResponse(
     @SerialName("LastModifiedTime")
     val lastModifiedTime: String,
     @SerialName("Version")
-    val version: String? = null,
+    val version: String,
 )

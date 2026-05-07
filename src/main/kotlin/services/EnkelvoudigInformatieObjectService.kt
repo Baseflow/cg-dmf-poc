@@ -20,6 +20,7 @@ import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -27,6 +28,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
 import java.io.OutputStream
+import java.nio.file.Files
 import java.util.*
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -750,6 +752,8 @@ class EnkelvoudigInformatieObjectService(
                 "${record.id.value}/$newVersionNumber/$bestandsnaamVoorOpslag"
             storageService.uploadFile(newBestandsLocatie, bytes)
 
+            val integrityResult =
+                IntegrityCalculationService.calculateIntegrity(bytes, latestVersion?.integriteitAlgoritme)
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber
@@ -766,9 +770,9 @@ class EnkelvoudigInformatieObjectService(
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
                 link = latestVersion?.link.orEmpty()
-                integriteitAlgoritme = latestVersion?.integriteitAlgoritme.orEmpty()
-                integriteitWaarde = latestVersion?.integriteitWaarde.orEmpty()
-                integriteitsDatum = latestVersion?.integriteitsDatum
+                integriteitAlgoritme = integrityResult.algorithm
+                integriteitWaarde = integrityResult.hash
+                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 verschijningsVorm = latestVersion?.verschijningsVorm.orEmpty()
                 vertrouwlijkheidsAanduiding = latestVersion?.vertrouwlijkheidsAanduiding.orEmpty()
                 status = latestVersion?.status.orEmpty()
@@ -831,15 +835,110 @@ class EnkelvoudigInformatieObjectService(
     }
 
     fun unlock(id: UUID, lock: String): UnlockResult? {
-        return transaction {
+        // Collect bestandsdelen info inside the transaction, then do blob I/O outside.
+        data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)
+        data class MergeContext(val parts: List<PartInfo>, val mergedLocatie: String, val latestVersionId: UUID)
+
+        // Transaction 1: validate lock and collect part metadata.
+        // When there are no parts to merge the lock is also cleared here (nothing can fail after this).
+        // When parts exist the lock is intentionally kept until the merge succeeds, so a failed
+        // upload does not leave the record permanently unlocked with missing content.
+        // No blob I/O happens here so the DB connection is held for the minimum time.
+        var mergeCtx: MergeContext? = null
+        val preUnlockResult: UnlockResult? = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val current = record.lockToken ?: return@transaction UnlockResult.NotLocked
-            if (current != lock) {
-                return@transaction UnlockResult.InvalidLock
+            if (current != lock) return@transaction UnlockResult.InvalidLock
+
+            val latestVersion = record.versions.maxByOrNull { it.versie }
+            if (latestVersion != null) {
+                val allParts = BestandsDeelEntity
+                    .find { BestandsDelen.versionId eq latestVersion.id }
+                    .sortedBy { it.volgnummer }
+                val parts = allParts.filter { it.voltooid }
+                if (parts.size < allParts.count()) {
+                    throw IllegalStateException("Not all parts are marked as completed")
+                }
+
+                if (parts.isNotEmpty()) {
+                    val partInfos = parts.map { part ->
+                        PartInfo(
+                            storageKey = bestandsDeelStorageKey(
+                                recordId = record.id.value,
+                                versie = latestVersion.versie,
+                                bestandsDeelId = part.id.value,
+                            ),
+                            bestandsDeelId = part.id.value,
+                        )
+                    }
+                    val mergedLocatie = "${record.id.value}/${latestVersion.versie}/${latestVersion.bestandsnaam}"
+                    mergeCtx = MergeContext(partInfos, mergedLocatie, latestVersion.id.value)
+                }
             }
-            record.lockToken = null
+
+            // No parts to merge: clear the lock immediately (nothing can fail after this point).
+            if (mergeCtx == null) {
+                record.lockToken = null
+            }
             UnlockResult.Success
         }
+
+        if (preUnlockResult != UnlockResult.Success) {
+            return preUnlockResult
+        }
+
+        // Blob I/O: merge parts → upload → delete part blobs – all outside any DB transaction.
+        val ctx = mergeCtx
+        if (ctx != null) {
+            val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
+            try {
+                // Stream each part into a temp file to avoid materialising the full
+                // merged content in memory (parts can be gigabytes in total).
+                val tempFile = Files.createTempFile("eio-merge-", ".tmp")
+                try {
+                    Files.newOutputStream(tempFile).use { out ->
+                        for (part in ctx.parts) {
+                            storageService.downloadFileTo(part.storageKey, out).get()
+                        }
+                    }
+                    val contentLength = Files.size(tempFile)
+                    Files.newInputStream(tempFile).use { input ->
+                        storageService.uploadFile(ctx.mergedLocatie, input, contentLength)
+                    }
+                } finally {
+                    Files.deleteIfExists(tempFile)
+                }
+
+                // Delete individual part blobs now that the merged object is safely stored.
+                // Best-effort: blob deletion failures are logged but do not abort the unlock.
+                val partKeys = ctx.parts.map { it.storageKey }
+                storageService.deleteFiles(partKeys)
+
+                logger.info(
+                    "Merged {} bestandsdeel(en) into '{}' for EIO {}",
+                    ctx.parts.size,
+                    ctx.mergedLocatie,
+                    id,
+                )
+
+                // Follow-up transaction: persist the new bestandsLocatie, remove all part DB rows
+                // in a single batched DELETE, and only now clear the lock – guaranteeing the lock
+                // is only released after a successful merge and upload.
+                val partIds = ctx.parts.map { it.bestandsDeelId }
+                transaction {
+                    EIOVersionEntity.findById(ctx.latestVersionId)?.let { v ->
+                        v.bestandsLocatie = ctx.mergedLocatie
+                    }
+                    BestandsDelen.deleteWhere { BestandsDelen.id inList partIds }
+                    EIORecordEntity.findById(id)?.lockToken = null
+                }
+            } catch (e: Exception) {
+                logger.error("Failed to merge bestandsdelen for EIO {}: {}", id, e.message, e)
+                throw e
+            }
+        }
+
+        return UnlockResult.Success
     }
 
     fun delete(id: UUID): DeleteResult {

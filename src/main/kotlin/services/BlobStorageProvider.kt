@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
 
@@ -16,6 +17,14 @@ interface BlobStorageProvider {
 
     /** Upload [content] as [objectName] (key / blob name). */
     fun uploadFile(objectName: String, content: ByteArray)
+
+    /**
+     * Upload a stream of known [contentLength] bytes as [objectName].
+     * The default implementation buffers into a ByteArray; backends may override for true streaming.
+     */
+    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long) {
+        uploadFile(objectName, stream.readBytes())
+    }
 
     /** Stream the object identified by [objectName] directly to [output]. */
     fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void>
