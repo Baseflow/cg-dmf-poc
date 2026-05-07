@@ -27,6 +27,7 @@ class DmfSettingsRoutesTest : SettingsTestBase("dmf_settings") {
         val response = client.get("/settings/dmf-settings")
 
         assertEquals(HttpStatusCode.OK, response.status)
+        // DmfSettingsResponse has no nullable fields, so default Json is sufficient here
         val body = Json.decodeFromString<DmfSettingsResponse>(response.bodyAsText())
         assertEquals(4_294_967_296L, body.triggerSize)
         assertEquals(3_221_225_472L, body.chunkSize)

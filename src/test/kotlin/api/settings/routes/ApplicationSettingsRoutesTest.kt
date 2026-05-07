@@ -326,7 +326,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
         assertEquals(HttpStatusCode.OK, response.status)
         val body = json.decodeFromString<RotateSecretResponse>(response.bodyAsText())
         assertEquals(64, body.secret.length)
-        assertTrue(body.secret.all { it in '0'..'9' || it in 'a'..'f' })
+        assertTrue(Regex("^[0-9a-fA-F]{64}$").matches(body.secret))
     }
 
     @Test

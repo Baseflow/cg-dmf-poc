@@ -19,6 +19,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -205,6 +206,37 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         val body = Json.decodeFromString<BlobStorageRepositorySettingsResponse>(response.bodyAsText())
         assertEquals("updated-repo", body.name)
         assertEquals("AzureBlob", body.storageType)
+    }
+
+    @Test
+    fun `PUT persists non-secret changes verified by subsequent GET`() = testApplication {
+        application { setup() }
+        val id = insertRepo("original-repo", url = "http://old-url", bucket = "old-bucket")
+
+        client.put("/settings/storage-repositories/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                UpdateBlobStorageRepositorySettingsRequest(
+                    name = "updated-repo",
+                    storageType = "AzureBlob",
+                    url = "http://new-url",
+                    bucket = "new-bucket",
+                    isDefault = true,
+                    enabled = false,
+                )))
+        }
+
+        val getResponse = client.get("/settings/storage-repositories")
+        assertEquals(HttpStatusCode.OK, getResponse.status)
+        // BlobStorageRepositorySettingsResponse has nullable fields with = null defaults, so default Json works fine
+        val body = Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(getResponse.bodyAsText())
+            .single { it.id == id.toString() }
+        assertEquals("updated-repo", body.name)
+        assertEquals("AzureBlob", body.storageType)
+        assertEquals("http://new-url", body.url)
+        assertEquals("new-bucket", body.bucket)
+        assertTrue(body.isDefault)
+        assertFalse(body.enabled)
     }
 
     @Test
