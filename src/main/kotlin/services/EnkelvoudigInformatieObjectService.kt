@@ -18,6 +18,7 @@ import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
@@ -805,6 +806,7 @@ class EnkelvoudigInformatieObjectService(
                 }
 
                 // Delete individual part blobs now that the merged object is safely stored.
+                // Best-effort: blob deletion failures are logged but do not abort the unlock.
                 val partKeys = ctx.parts.map { it.storageKey }
                 storageService.deleteFiles(partKeys)
 
@@ -815,14 +817,14 @@ class EnkelvoudigInformatieObjectService(
                     id,
                 )
 
-                // Follow-up transaction: persist the new bestandsLocatie and remove the part DB rows.
+                // Follow-up transaction: persist the new bestandsLocatie and remove all part DB rows
+                // in a single batched DELETE rather than one round-trip per part.
+                val partIds = ctx.parts.map { it.bestandsDeelId }
                 transaction {
                     EIOVersionEntity.findById(ctx.latestVersionId)?.let { v ->
                         v.bestandsLocatie = ctx.mergedLocatie
                     }
-                    ctx.parts.forEach { part ->
-                        BestandsDeelEntity.findById(part.bestandsDeelId)?.delete()
-                    }
+                    BestandsDelen.deleteWhere { BestandsDelen.id inList partIds }
                 }
             } catch (e: Exception) {
                 logger.error("Failed to merge bestandsdelen for EIO {}: {}", id, e.message, e)

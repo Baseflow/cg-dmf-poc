@@ -62,7 +62,8 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } returns Unit
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         mockAuditTrailService = mockk<AuditTrailService>()
@@ -281,16 +282,21 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
 
         val mergedKey = "$id/1/big.pdf"
-        val mergedSlot = mutableListOf<ByteArray>()
-        every { mockStorageService.uploadFile(eq(mergedKey), capture(mergedSlot), anyNullable()) } returns Unit
+        val mergedBytesSlot = mutableListOf<ByteArray>()
+        every { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) } answers {
+            // Read the stream eagerly so we can assert on its contents later.
+            val captured = secondArg<java.io.InputStream>().readBytes()
+            mergedBytesSlot.add(captured)
+            Unit
+        }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
 
         val unlockRes = serviceWithChunking.unlock(id, token)
         assertTrue(unlockRes is UnlockResult.Success)
 
-        // Verify merged content was uploaded
-        verify { mockStorageService.uploadFile(eq(mergedKey), any(), anyNullable()) }
-        val merged = mergedSlot.first()
+        // Verify merged content was uploaded via the streaming overload
+        verify { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) }
+        val merged = mergedBytesSlot.first()
         assertEquals(totalSize.toInt(), merged.size)
         assertContentEquals(chunkBytes1 + chunkBytes2, merged)
 
