@@ -56,6 +56,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test list empty objectinformatieobjecten returns empty array`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT")
 
@@ -69,6 +70,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test create objectinformatieobject returns 201 with location header`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
@@ -102,6 +104,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test create duplicate objectinformatieobject returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
@@ -128,6 +131,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test get objectinformatieobject by id returns 200`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
@@ -157,6 +161,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test get non-existent objectinformatieobject returns 404`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val nonExistentId = UUID.randomUUID()
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$nonExistentId")
@@ -167,6 +172,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test head existing objectinformatieobject returns 200`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
@@ -190,6 +196,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test head non-existent objectinformatieobject returns 404`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val nonExistentId = UUID.randomUUID()
         val response = client.head("$API_BASE/$RESOURCE_SEGMENT/$nonExistentId")
@@ -200,6 +207,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test delete objectinformatieobject returns 204`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
         val createRequest = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
@@ -226,6 +234,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test delete non-existent objectinformatieobject returns 404`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val nonExistentId = UUID.randomUUID()
         val response = client.delete("$API_BASE/$RESOURCE_SEGMENT/$nonExistentId")
@@ -236,6 +245,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test filter by informatieobject returns matching relations`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val sharedEioId = createTestEIO()
         val sharedEioUrl = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$sharedEioId"
 
@@ -302,6 +312,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test filter by object returns matching relations`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val sharedObjectUrl = "https://example.com/zaken/api/v1/zaken/87654321-4321-4321-4321-210987654321"
 
@@ -364,6 +375,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test create objectinformatieobject with different object types`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         // Create an actual EIO via API
         val eioId = createTestEIO()
@@ -408,6 +420,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test get objectinformatieobject with invalid uuid returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/not-a-uuid")
 
@@ -419,6 +432,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test create objectinformatieobject with invalid json returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)
@@ -435,6 +449,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test head objectinformatieobject returns 200 for existing`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val eioId = createTestEIO()
         val request = CreateOIORequest(
@@ -457,6 +472,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test head objectinformatieobject returns 404 for non-existing`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val response = client.head("$API_BASE/$RESOURCE_SEGMENT/${UUID.randomUUID()}")
         assertEquals(HttpStatusCode.NotFound, response.status)

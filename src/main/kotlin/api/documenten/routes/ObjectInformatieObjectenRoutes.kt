@@ -7,6 +7,7 @@ import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
+import com.baseflow.api.routes.checkScope
 import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.models.CreateOIOResult
 import com.baseflow.services.models.DeleteOIOResult
@@ -84,7 +85,9 @@ open class ObjectInformatieObjectenRoutes(
                     summary = "Alle ${resourceSegment.title} relaties opvragen."
                     description = "Geeft een lijst van OBJECTINFORMATIEOBJECT relaties, gefilterd via query-parameters."
                     parameters {
-                        query("informatieobject") { description = "Filter op URL-referentie naar het INFORMATIEOBJECT." }
+                        query("informatieobject") {
+                            description = "Filter op URL-referentie naar het INFORMATIEOBJECT."
+                        }
                         query("object") { description = "Filter op URL-referentie naar het gerelateerde OBJECT." }
                         query("expand") { description = "Velden om te expanderen." }
                         query("page") { description = "**EXPERIMENTEEL** Paginanummer." }
@@ -129,7 +132,7 @@ open class ObjectInformatieObjectenRoutes(
                     summary = "Maak een ${resourceSegment.title} relatie aan."
                     description =
                         "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
-                        "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                            "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
                     requestBody {
                         required = true
                         description = "Gegevens van de aan te maken relatie."
@@ -247,7 +250,7 @@ open class ObjectInformatieObjectenRoutes(
                         summary = "Verwijder een ${resourceSegment.title} relatie."
                         description =
                             "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
-                            "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                                "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
                         parameters {
                             path("uuid") { description = "Unieke resource identifier (UUID4)." }
                         }
@@ -263,6 +266,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.list() {
+        call.checkScope("documenten.lezen")
         val informatieobject = call.request.queryParameters["informatieobject"]
         val subjectObject = call.request.queryParameters["object"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
@@ -289,6 +293,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.create() {
+        call.checkScope("documenten.aanmaken")
         val request = call.receive<CreateOIORequest>()
 
         when (val result = service.create(request)) {
@@ -312,6 +317,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.head(resourceTitle: String) {
+        call.checkScope("documenten.lezen")
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
@@ -339,6 +345,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.get(resourceTitle: String) {
+        call.checkScope("documenten.lezen")
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(
@@ -368,6 +375,7 @@ open class ObjectInformatieObjectenRoutes(
     }
 
     private suspend fun RoutingContext.delete(resourceTitle: String) {
+        call.checkScope("documenten.verwijderen")
         val uuidString = call.parameters["uuid"]
         if (uuidString == null) {
             call.respondProblem(

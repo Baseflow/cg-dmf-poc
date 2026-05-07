@@ -24,6 +24,7 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
     @Test
     fun `test malformed JSON returns ProblemDetailsResponse`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val malformedJson = "{ \"identificatie\": \"test\", \"bronorganisatie\": \"012345678\", " // Missing closing brace and other fields
 
@@ -42,6 +43,7 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
     @Test
     fun `test invalid objectType value in JSON returns specific error message`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         // OIO request with an objectType containing spaces, which is invalid per SubjectType validation
         val invalidJson = """
@@ -78,6 +80,7 @@ class GlobalExceptionHandlerTest : TestBase("global_exception_test") {
                 }
             }
         }
+        val client = authenticatedClient()
 
         val response = client.get("/test-serialization-error")
 

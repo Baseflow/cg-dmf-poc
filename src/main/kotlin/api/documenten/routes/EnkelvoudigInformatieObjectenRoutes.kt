@@ -7,6 +7,7 @@ import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
+import com.baseflow.api.routes.checkScope
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.latestVersion
 import com.baseflow.services.EnkelvoudigInformatieObjectService
@@ -91,12 +92,12 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             summary = "Alle (enkelvoudige) INFORMATIEOBJECTen opvragen."
             description =
                 "Geeft een gepagineerde lijst van ENKELVOUDIGINFORMATIEOBJECTen. " +
-                "Alleen de laatste versie van elk INFORMATIEOBJECT wordt getoond."
+                    "Alleen de laatste versie van elk INFORMATIEOBJECT wordt getoond."
             parameters {
                 query("bronorganisatie") {
                     description =
                         "Het RSIN van de Niet-natuurlijk persoon zijnde de organisatie die het INFORMATIEOBJECT " +
-                        "heeft gecreëerd of heeft ontvangen en als eerste in een samenwerkingsketen heeft vastgelegd."
+                            "heeft gecreëerd of heeft ontvangen en als eerste in een samenwerkingsketen heeft vastgelegd."
                 }
                 query("identificatie") {
                     description = "Een binnen een gegeven context ondubbelzinnige referentie naar het INFORMATIEOBJECT."
@@ -113,7 +114,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 query("informatieobjecttype") {
                     description =
                         "**EXPERIMENTEEL** URL-referentie naar de gerelateerde INFORMATIEOBJECTTYPE " +
-                        "(in deze of een andere API)."
+                            "(in deze of een andere API)."
                 }
                 query("vertrouwelijkheidaanduiding") {
                     description = "**EXPERIMENTEEL** De vertrouwelijkheidaanduiding van het INFORMATIEOBJECT. " +
@@ -123,27 +124,27 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 query("titel") {
                     description =
                         "**EXPERIMENTEEL** De titel van het INFORMATIEOBJECT " +
-                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                            "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("auteur") {
                     description =
                         "**EXPERIMENTEEL** De persoon of organisatie die dit INFORMATIEOBJECT heeft aangemaakt " +
-                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                            "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("status") {
                     description =
                         "**EXPERIMENTEEL** Filter op de status van het INFORMATIEOBJECT. " +
-                        "Mogelijke waarden: in_bewerking, ter_vaststelling, definitief, gearchiveerd."
+                            "Mogelijke waarden: in_bewerking, ter_vaststelling, definitief, gearchiveerd."
                 }
                 query("beschrijving") {
                     description =
                         "**EXPERIMENTEEL** De beschrijving van het INFORMATIEOBJECT " +
-                        "(bevat de gegeven waarde, hoofdletterongevoelig)."
+                            "(bevat de gegeven waarde, hoofdletterongevoelig)."
                 }
                 query("trefwoorden__overlap") {
                     description =
                         "**EXPERIMENTEEL** Een lijst van trefwoorden gescheiden door komma's, " +
-                        "geeft alle EnkelvoudigInformatieObjecten terug die ten minste een van de opgegeven trefwoorden hebben."
+                            "geeft alle EnkelvoudigInformatieObjecten terug die ten minste een van de opgegeven trefwoorden hebben."
                 }
                 query("locked") {
                     description = "**EXPERIMENTEEL** Filter op vergrendeld (true) of ontgrendeld (false)."
@@ -151,29 +152,29 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 query("creatiedatum__gte") {
                     description =
                         "**EXPERIMENTEEL** De aanmakingsdatum van het INFORMATIEOBJECT " +
-                        "(groter of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
+                            "(groter of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
                 }
                 query("creatiedatum__lte") {
                     description =
                         "**EXPERIMENTEEL** De aanmakingsdatum van het INFORMATIEOBJECT " +
-                        "(kleiner of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
+                            "(kleiner of gelijk aan de gegeven datum, formaat: YYYY-MM-DD)."
                 }
                 query("registratiedatum__gte") {
                     description =
                         "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het INFORMATIEOBJECT " +
-                        "(groter of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
+                            "(groter of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
                 }
                 query("registratiedatum__lte") {
                     description =
                         "**EXPERIMENTEEL** De registratiedatum (`beginRegistratie`) van het INFORMATIEOBJECT " +
-                        "(kleiner of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
+                            "(kleiner of gelijk aan de gegeven datum/tijd, formaat: date-time, bijv. 2025-01-01T00:00:00)."
                 }
                 query("ordering") {
                     description =
                         "**EXPERIMENTEEL** Sorteer op één of meer velden (komma-gescheiden). " +
-                        "Gebruik een `-` prefix voor aflopende volgorde. " +
-                        "Mogelijke waarden: auteur, bestandsomvang, creatiedatum, formaat, status, titel, " +
-                        "vertrouwelijkheidaanduiding (en hun `-`-varianten)."
+                            "Gebruik een `-` prefix voor aflopende volgorde. " +
+                            "Mogelijke waarden: auteur, bestandsomvang, creatiedatum, formaat, status, titel, " +
+                            "vertrouwelijkheidaanduiding (en hun `-`-varianten)."
                 }
                 query("objectinformatieobjecten__object") {
                     description =
@@ -187,7 +188,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             responses {
                 response(200) {
                     description = "Lijst van ENKELVOUDIGINFORMATIEOBJECTen."
-                    ContentType.Application.Json { schema = jsonSchema<PaginatedResponse<EnkelvoudigInformatieObjectResponse>>() }
+                    ContentType.Application.Json {
+                        schema = jsonSchema<PaginatedResponse<EnkelvoudigInformatieObjectResponse>>()
+                    }
                 }
                 response(400) { description = "Bad request." }
                 response(401) { description = "Unauthorized." }
@@ -282,7 +285,9 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
             responses {
                 response(200) {
                     description = "Lijst van gevonden ENKELVOUDIGINFORMATIEOBJECTen."
-                    ContentType.Application.Json { schema = jsonSchema<PaginatedResponse<EnkelvoudigInformatieObjectResponse>>() }
+                    ContentType.Application.Json {
+                        schema = jsonSchema<PaginatedResponse<EnkelvoudigInformatieObjectResponse>>()
+                    }
                 }
                 response(400) { description = "Bad request." }
                 response(401) { description = "Unauthorized." }
@@ -356,7 +361,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     header("If-None-Match") {
                         description =
                             "Conditioneel GET: geef de ETag-waarde van de eerder ontvangen response mee. " +
-                            "De server antwoordt met 304 Not Modified als de resource niet gewijzigd is."
+                                "De server antwoordt met 304 Not Modified als de resource niet gewijzigd is."
                         required = false
                     }
                 }
@@ -495,7 +500,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                 summary = "Verwijder een ENKELVOUDIGINFORMATIEOBJECT."
                 description =
                     "Verwijdert het INFORMATIEOBJECT en alle bijbehorende versies. " +
-                    "Alleen mogelijk als er geen OBJECTINFORMATIEOBJECTen aan gerelateerd zijn."
+                        "Alleen mogelijk als er geen OBJECTINFORMATIEOBJECTen aan gerelateerd zijn."
                 parameters {
                     path("uuid") { description = "Unieke resource identifier (UUID4)." }
                 }
@@ -637,12 +642,14 @@ private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
 
 private suspend fun RoutingContext.list() {
+    call.checkScope("documenten.lezen")
     val (page, pageSize, filter) = getFilters()
     val (items, totalCount) = service.getAll(filter)
     call.respond(PaginatedResponse.from(call, RESOURCE_SEGMENT, items, totalCount, page, pageSize))
 }
 
 private suspend fun RoutingContext.create() {
+    call.checkScope("documenten.aanmaken")
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     try {
         val response = service.create(request)
@@ -663,6 +670,7 @@ private suspend fun RoutingContext.create() {
 }
 
 private suspend fun RoutingContext.zoek() {
+    call.checkScope("documenten.lezen")
     val request = call.receive<EIOZoekRequest>()
     val (page, pageSize, filter) = getFilters(request.uuidIn, request.expand)
 
@@ -746,6 +754,7 @@ private fun splitOnComma(params: String?): List<String> = (
     )
 
 private suspend fun RoutingContext.head() {
+    call.checkScope("documenten.lezen")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -770,6 +779,7 @@ private suspend fun RoutingContext.head() {
 }
 
 private suspend fun RoutingContext.get() {
+    call.checkScope("documenten.lezen")
     // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
@@ -799,6 +809,7 @@ private suspend fun RoutingContext.get() {
 }
 
 private suspend fun RoutingContext.put() {
+    call.checkScope("documenten.bijwerken")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -831,6 +842,7 @@ private suspend fun RoutingContext.put() {
 }
 
 private suspend fun RoutingContext.patch() {
+    call.checkScope("documenten.bijwerken")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -861,6 +873,7 @@ private suspend fun RoutingContext.patch() {
 }
 
 private suspend fun RoutingContext.delete() {
+    call.checkScope("documenten.verwijderen")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -898,6 +911,7 @@ private suspend fun RoutingContext.delete() {
 }
 
 private suspend fun RoutingContext.download() {
+    call.checkScope("documenten.lezen")
     // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
@@ -960,6 +974,7 @@ private suspend fun RoutingContext.download() {
 }
 
 private suspend fun RoutingContext.lock() {
+    call.checkScope("documenten.lock")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
@@ -986,6 +1001,7 @@ private suspend fun RoutingContext.lock() {
 }
 
 private suspend fun RoutingContext.unlock() {
+    call.checkScope("documenten.geforceerd-unlock")
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))

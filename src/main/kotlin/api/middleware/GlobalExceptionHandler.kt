@@ -5,6 +5,7 @@ package com.baseflow.api.middleware
 import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.routes.ScopeAuthorizationException
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.JsonConvertException
 import io.ktor.server.application.*
@@ -21,6 +22,19 @@ fun Application.configureStatusPages() {
     val logger = LoggerFactory.getLogger("GlobalExceptionHandler")
 
     install(StatusPages) {
+        exception<ScopeAuthorizationException> { call, cause ->
+            logger.warn("Access denied at ${call.request.path()}: ${cause.message}")
+            call.respondProblem(
+                HttpStatusCode.Forbidden,
+                ProblemDetailsResponse(
+                    title = "Insufficient permissions",
+                    status = HttpStatusCode.Forbidden.value,
+                    detail = "Required scopes: ${cause.requiredScopes.joinToString(", ")}",
+                    instance = call.request.path()
+                )
+            )
+        }
+
         exception<BadRequestException> { call, cause ->
             logger.error("Bad request at ${call.request.path()}: ${cause.message}")
 

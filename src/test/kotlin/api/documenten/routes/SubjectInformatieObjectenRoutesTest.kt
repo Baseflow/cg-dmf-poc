@@ -53,6 +53,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     @Test
     fun `test list empty subjectinformatieobjecten returns paginated empty results`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT")
 
@@ -69,6 +70,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     @Test
     fun `test create subjectinformatieobject returns 201 with location header`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
 
         val request = CreateOIORequest(
@@ -93,6 +95,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     @Test
     fun `test subjectinformatieobjecten list paging`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
 
         // Create 12 relations
@@ -131,6 +134,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     @Test
     fun `test get subjectinformatieobject by id`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
@@ -154,6 +158,7 @@ class SubjectInformatieObjectenRoutesTest : TestBase("subject_oio_routes") {
     @Test
     fun `test delete subjectinformatieobject`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
         val eioId = createTestEIO()
         val request = CreateOIORequest(
             informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",

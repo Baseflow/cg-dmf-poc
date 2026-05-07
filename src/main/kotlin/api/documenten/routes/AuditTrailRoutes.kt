@@ -4,6 +4,7 @@ package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.AuditTrailResponse
+import com.baseflow.api.routes.checkScope
 import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
 import io.ktor.openapi.jsonSchema
@@ -13,11 +14,9 @@ import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
 import java.util.*
 
-private val RoutingContext.service: AuditTrailService
-    get() = call.attributes[RequestScopeKey].get()
-
 @OptIn(ExperimentalKtorApi::class)
 fun Route.auditTrailRoutes() {
+    // Require "audittrails.lezen" scope for all audit trail routes
     route("/{uuid}/audittrail/{auditTrailUuid}") {
         /**
          * Een specifieke audit trail regel opvragen.
@@ -38,10 +37,10 @@ fun Route.auditTrailRoutes() {
          * @tag AuditTrail
          */
         get {
-            val resourceUuid =
-                call.parameters["uuid"]
-                    ?.let { UUID.fromString(it) }
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid resource UUID")
+            call.checkScope("audittrails.lezen")
+            val resourceUuid = call.parameters["uuid"]
+                ?.let { UUID.fromString(it) }
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid resource UUID")
 
             val auditTrailUuid =
                 call.parameters["auditTrailUuid"]
@@ -93,10 +92,10 @@ fun Route.auditTrailRoutes() {
          * @tag AuditTrail
          */
         get {
-            val resourceUuid =
-                call.parameters["uuid"]
-                    ?.let { UUID.fromString(it) }
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid UUID")
+            call.checkScope("audittrails.lezen")
+            val resourceUuid = call.parameters["uuid"]
+                ?.let { UUID.fromString(it) }
+                ?: return@get call.respond(HttpStatusCode.BadRequest, "Invalid UUID")
 
             val auditTrails = service.listByResource(resourceUuid)
             call.respond(auditTrails)
@@ -120,3 +119,7 @@ fun Route.auditTrailRoutes() {
             }
     }
 }
+
+private val RoutingContext.service: AuditTrailService
+    get() = call.attributes[RequestScopeKey].get()
+

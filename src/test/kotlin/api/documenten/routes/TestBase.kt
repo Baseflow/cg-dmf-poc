@@ -2,15 +2,26 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.documenten.routes
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.admin.adminModule
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
+import com.baseflow.config.OpenZaakConfig
 import com.baseflow.config.appModule
 import com.baseflow.services.StorageService
 import com.baseflow.tooling.AllTables
+import io.ktor.client.*
+import io.ktor.client.plugins.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.response.*
+import io.ktor.server.testing.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.mockk.every
 import io.mockk.mockk
@@ -29,6 +40,30 @@ open class TestBase(dbNamePrefix: String) {
     /** Exposed so individual tests can assert on upload/download calls. */
     lateinit var mockStorageService: StorageService
         protected set
+
+    companion object {
+        const val TEST_JWT_SECRET = "test-secret-key-for-testing-only"
+        const val TEST_JWT_ISSUER = "test-issuer"
+
+        // All scopes used in the application
+        val ALL_SCOPES = listOf(
+            "documenten.lezen",
+            "documenten.aanmaken",
+            "documenten.bijwerken",
+            "documenten.verwijderen",
+            "documenten.lock",
+            "documenten.geforceerd-unlock"
+        ).joinToString(" ")
+
+        fun generateTestToken(scopes: String = ALL_SCOPES): String {
+            return JWT.create()
+                .withIssuer(TEST_JWT_ISSUER)
+                .withSubject("testuser")
+                .withClaim("scope", scopes)
+                .withClaim("username", "testuser")
+                .sign(Algorithm.HMAC256(TEST_JWT_SECRET))
+        }
+    }
 
     fun connectDb() {
         Database.connect(
@@ -71,7 +106,65 @@ open class TestBase(dbNamePrefix: String) {
         install(ContentNegotiation) {
             json(apiJsonConfig())
         }
-        documentenApiModule(useAuthentication = false)
+
+        // Install test JWT authentication - register both providers used by documentenApiModule
+        install(Authentication) {
+            jwt("auth-jwt") {
+                verifier(
+                    JWT.require(Algorithm.HMAC256(TEST_JWT_SECRET))
+                        .withIssuer(TEST_JWT_ISSUER)
+                        .build()
+                )
+                validate { credential ->
+                    if (credential.payload.getClaim("username").asString() != "") {
+                        JWTPrincipal(credential.payload)
+                    } else {
+                        null
+                    }
+                }
+                challenge { _, _ ->
+                    call.respondText(
+                        text = "Unauthorized",
+                        status = HttpStatusCode.Unauthorized
+                    )
+                }
+            }
+            // Also register auth-zgw with the same config for tests
+            jwt("auth-zgw") {
+                verifier(
+                    JWT.require(Algorithm.HMAC256(TEST_JWT_SECRET))
+                        .withIssuer(TEST_JWT_ISSUER)
+                        .build()
+                )
+                validate { credential ->
+                    if (credential.payload.getClaim("username").asString() != "") {
+                        JWTPrincipal(credential.payload)
+                    } else {
+                        null
+                    }
+                }
+                challenge { _, _ ->
+                    call.respondText(
+                        text = "Unauthorized",
+                        status = HttpStatusCode.Unauthorized
+                    )
+                }
+            }
+        }
+
+        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
+        documentenApiModule(useAuthentication = true, openZaakConfig = openZaakConfig)
+    }
+
+    /**
+     * Creates an HTTP client with a default Bearer token containing all scopes.
+     */
+    fun ApplicationTestBuilder.authenticatedClient(): HttpClient {
+        return createClient {
+            install(DefaultRequest) {
+                header(HttpHeaders.Authorization, "Bearer ${generateTestToken()}")
+            }
+        }
         adminModule(useAuthentication = false)
     }
 }
