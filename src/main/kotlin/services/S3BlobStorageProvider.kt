@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI
 import java.nio.ByteBuffer
@@ -88,6 +89,26 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             logger.info("Uploaded {}/{} (ETag: {})", bucketName, objectName, response.eTag())
         } catch (e: Exception) {
             logger.error("Failed to upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
+            throw e
+        }
+    }
+
+    override fun uploadFile(objectName: String, stream: InputStream, contentLength: Long) {
+        try {
+            ensureBucketExists()
+            logger.debug("Streaming upload of {} to bucket {} ({} bytes)", objectName, bucketName, contentLength)
+            val putRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectName)
+                .contentLength(contentLength)
+                .build()
+            val response = s3Client.putObject(
+                putRequest,
+                AsyncRequestBody.fromInputStream(stream, contentLength, java.util.concurrent.Executors.newSingleThreadExecutor()),
+            ).join()
+            logger.info("Uploaded {}/{} via stream (ETag: {})", bucketName, objectName, response.eTag())
+        } catch (e: Exception) {
+            logger.error("Failed to stream-upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
             throw e
         }
     }

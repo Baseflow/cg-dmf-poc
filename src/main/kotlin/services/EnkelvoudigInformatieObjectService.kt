@@ -24,8 +24,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
-import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import java.nio.file.Files
 import java.util.*
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
@@ -782,14 +782,22 @@ class EnkelvoudigInformatieObjectService(
             if (mergeCtx != null) {
                 val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
                 try {
-                    val merged = ByteArrayOutputStream()
-                    for (part in mergeCtx.parts) {
-                        val buf = ByteArrayOutputStream()
-                        storageService.downloadFileTo(part.storageKey, buf).get()
-                        merged.write(buf.toByteArray())
+                    // Stream each part into a temp file to avoid materialising the full
+                    // merged content in memory (parts can be gigabytes in total).
+                    val tempFile = Files.createTempFile("eio-merge-", ".tmp")
+                    try {
+                        Files.newOutputStream(tempFile).use { out ->
+                            for (part in mergeCtx.parts) {
+                                storageService.downloadFileTo(part.storageKey, out).get()
+                            }
+                        }
+                        val contentLength = Files.size(tempFile)
+                        Files.newInputStream(tempFile).use { input ->
+                            storageService.uploadFile(mergeCtx.mergedLocatie, input, contentLength)
+                        }
+                    } finally {
+                        Files.deleteIfExists(tempFile)
                     }
-                    val mergedBytes = merged.toByteArray()
-                    storageService.uploadFile(mergeCtx.mergedLocatie, mergedBytes)
 
                     // Update bestandsLocatie on the version.
                     EIOVersionEntity.findById(mergeCtx.latestVersionId)?.let { v ->
