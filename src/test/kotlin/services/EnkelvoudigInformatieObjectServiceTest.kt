@@ -11,7 +11,10 @@ import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.BestandsDeelConfig
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.entities.BestandsDeelEntity
+import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionTrefwoorden
 import com.baseflow.entities.Trefwoorden
@@ -28,6 +31,7 @@ import com.baseflow.tooling.AllTables
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -58,7 +62,8 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } returns Unit
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         mockAuditTrailService = mockk<AuditTrailService>()
@@ -204,6 +209,147 @@ class EnkelvoudigInformatieObjectServiceTest {
             assertNotNull(rec)
             assertEquals(token, rec.lockToken)
         }
+    }
+
+    @Test
+    fun `unlock should return null for unknown id`() = runBlocking {
+        val res = service.unlock(UUID.randomUUID(), "some-token")
+        assertNull(res)
+    }
+
+    @Test
+    fun `unlock with bestandsdelen merges parts uploads merged file and removes parts`() = runBlocking {
+        // Use a small trigger size so chunking kicks in for our test file
+        val smallChunkConfig = object : BestandsDeelConfig() {
+            override val triggerSizeBytes: Long = 1L
+            override val chunkSizeBytes: Long = 100L
+        }
+        val auditContext = AuditContext()
+        val serviceWithChunking = EnkelvoudigInformatieObjectService(
+            storageService = mockStorageService,
+            ApplicationConfig,
+            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            mockAuditTrailService,
+            auditContext,
+            BestandsDeelService(smallChunkConfig),
+        )
+
+        val chunkBytes1 = ByteArray(100) { it.toByte() }
+        val chunkBytes2 = ByteArray(50) { (it + 100).toByte() }
+        val totalSize = (chunkBytes1.size + chunkBytes2.size).toLong()
+
+        val req = generateTestDocument(bestandsnaam = "big.pdf").copy(
+            bestandsomvang = totalSize,
+            inhoud = null,
+            formaat = "application/pdf",
+        )
+        val created = serviceWithChunking.create(req)
+        val id = UUID.fromString(created.id)
+
+        // When chunking is triggered, the EIO is auto-locked on create; retrieve the token from DB
+        val token = transaction {
+            EIORecordEntity.findById(id)!!.lockToken!!
+        }
+
+        // Simulate uploading both parts
+        val latestVersion = transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+        }
+        val parts = transaction {
+            BestandsDeelEntity
+                .find { BestandsDelen.versionId eq latestVersion.id }
+                .sortedBy { it.volgnummer }
+        }
+        assertEquals(2, parts.size)
+
+        // Mark parts as voltooid and set up download stubs
+        transaction {
+            parts[0].voltooid = true
+            parts[1].voltooid = true
+        }
+
+        val part1Key = bestandsDeelStorageKey(id, 1, parts[0].id.value)
+        val part2Key = bestandsDeelStorageKey(id, 1, parts[1].id.value)
+        every { mockStorageService.downloadFileTo(eq(part1Key), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            out.write(chunkBytes1)
+            CompletableFuture.completedFuture(null)
+        }
+        every { mockStorageService.downloadFileTo(eq(part2Key), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            out.write(chunkBytes2)
+            CompletableFuture.completedFuture(null)
+        }
+
+        val mergedKey = "$id/1/big.pdf"
+        val mergedBytesSlot = mutableListOf<ByteArray>()
+        every { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) } answers {
+            // Read the stream eagerly so we can assert on its contents later.
+            val captured = secondArg<java.io.InputStream>().readBytes()
+            mergedBytesSlot.add(captured)
+            Unit
+        }
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
+
+        val unlockRes = serviceWithChunking.unlock(id, token)
+        assertTrue(unlockRes is UnlockResult.Success)
+
+        // Verify merged content was uploaded via the streaming overload
+        verify { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) }
+        val merged = mergedBytesSlot.first()
+        assertEquals(totalSize.toInt(), merged.size)
+        assertContentEquals(chunkBytes1 + chunkBytes2, merged)
+
+        // Lock should be cleared
+        transaction {
+            val rec = EIORecordEntity.findById(id)
+            assertNotNull(rec)
+            assertNull(rec.lockToken)
+        }
+
+        // bestandsdelen rows should be removed
+        transaction {
+            val remaining = BestandsDeelEntity
+                .find { BestandsDelen.versionId eq latestVersion.id }
+                .count()
+            assertEquals(0L, remaining)
+        }
+    }
+
+    @Test
+    fun `unlock should throw when not all bestandsdelen are completed`() = runBlocking {
+        val smallChunkConfig = object : BestandsDeelConfig() {
+            override val triggerSizeBytes: Long = 1L
+            override val chunkSizeBytes: Long = 100L
+        }
+        val auditContext = AuditContext()
+        val serviceWithChunking = EnkelvoudigInformatieObjectService(
+            storageService = mockStorageService,
+            ApplicationConfig,
+            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            mockAuditTrailService,
+            auditContext,
+            BestandsDeelService(smallChunkConfig),
+        )
+
+        val req = generateTestDocument(bestandsnaam = "big.pdf").copy(
+            bestandsomvang = 150L,
+            inhoud = null,
+            formaat = "application/pdf",
+        )
+        val created = serviceWithChunking.create(req)
+        val id = UUID.fromString(created.id)
+
+        // When chunking is triggered, the EIO is auto-locked on create; retrieve the token from DB
+        val token = transaction {
+            EIORecordEntity.findById(id)!!.lockToken!!
+        }
+
+        // Leave bestandsdelen as voltooid = false (default)
+        val exception = assertFailsWith<IllegalStateException> {
+            serviceWithChunking.unlock(id, token)
+        }
+        assertEquals("Not all parts are marked as completed", exception.message)
     }
 
     @Test
