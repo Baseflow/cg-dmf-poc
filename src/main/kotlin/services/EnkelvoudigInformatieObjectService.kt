@@ -739,10 +739,13 @@ class EnkelvoudigInformatieObjectService(
         data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)
         data class MergeContext(val parts: List<PartInfo>, val mergedLocatie: String, val latestVersionId: UUID)
 
-        val mergeCtx: MergeContext? = transaction {
+        // Single transaction: validate lock, collect part metadata, clear the lock.
+        // No blob I/O happens here so the DB connection is held for the minimum time.
+        var mergeCtx: MergeContext? = null
+        val preUnlockResult: UnlockResult? = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val current = record.lockToken ?: return@transaction null // handled below
-            if (current != lock) return@transaction null // handled below
+            val current = record.lockToken ?: return@transaction UnlockResult.NotLocked
+            if (current != lock) return@transaction UnlockResult.InvalidLock
 
             val latestVersion = record.versions.maxByOrNull { it.versie }
             if (latestVersion != null) {
@@ -766,69 +769,67 @@ class EnkelvoudigInformatieObjectService(
                         )
                     }
                     val mergedLocatie = "${record.id.value}/${latestVersion.versie}/${latestVersion.bestandsnaam}"
-                    return@transaction MergeContext(partInfos, mergedLocatie, latestVersion.id.value)
-                }
-            }
-            null
-        }
-
-        // Need to resolve the actual unlock result independently of the merge branch.
-        val unlockResult = transaction {
-            val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val current = record.lockToken ?: return@transaction UnlockResult.NotLocked
-            if (current != lock) return@transaction UnlockResult.InvalidLock
-
-            // Perform merge: download & concatenate parts, upload merged file, clean up.
-            if (mergeCtx != null) {
-                val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
-                try {
-                    // Stream each part into a temp file to avoid materialising the full
-                    // merged content in memory (parts can be gigabytes in total).
-                    val tempFile = Files.createTempFile("eio-merge-", ".tmp")
-                    try {
-                        Files.newOutputStream(tempFile).use { out ->
-                            for (part in mergeCtx.parts) {
-                                storageService.downloadFileTo(part.storageKey, out).get()
-                            }
-                        }
-                        val contentLength = Files.size(tempFile)
-                        Files.newInputStream(tempFile).use { input ->
-                            storageService.uploadFile(mergeCtx.mergedLocatie, input, contentLength)
-                        }
-                    } finally {
-                        Files.deleteIfExists(tempFile)
-                    }
-
-                    // Update bestandsLocatie on the version.
-                    EIOVersionEntity.findById(mergeCtx.latestVersionId)?.let { v ->
-                        v.bestandsLocatie = mergeCtx.mergedLocatie
-                    }
-
-                    // Delete individual parts from blob storage and remove DB rows.
-                    val partKeys = mergeCtx.parts.map { it.storageKey }
-                    storageService.deleteFiles(partKeys)
-
-                    // Delete by IDs
-                    val partIds = mergeCtx.parts.map { it.bestandsDeelId }
-                    partIds.forEach { partId ->
-                        BestandsDeelEntity.findById(partId)?.delete()
-                    }
-
-                    logger.info(
-                        "Merged {} bestandsdeel(en) into '{}' for EIO {}",
-                        mergeCtx.parts.size,
-                        mergeCtx.mergedLocatie,
-                        id,
-                    )
-                } catch (e: Exception) {
-                    logger.error("Failed to merge bestandsdelen for EIO {}: {}", id, e.message, e)
+                    mergeCtx = MergeContext(partInfos, mergedLocatie, latestVersion.id.value)
                 }
             }
 
+            // Clear the lock now so the record is unblocked while blob I/O runs outside.
             record.lockToken = null
             UnlockResult.Success
         }
-        return unlockResult
+
+        if (preUnlockResult != UnlockResult.Success) {
+            return preUnlockResult
+        }
+
+        // Blob I/O: merge parts → upload → delete part blobs – all outside any DB transaction.
+        val ctx = mergeCtx
+        if (ctx != null) {
+            val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
+            try {
+                // Stream each part into a temp file to avoid materialising the full
+                // merged content in memory (parts can be gigabytes in total).
+                val tempFile = Files.createTempFile("eio-merge-", ".tmp")
+                try {
+                    Files.newOutputStream(tempFile).use { out ->
+                        for (part in ctx.parts) {
+                            storageService.downloadFileTo(part.storageKey, out).get()
+                        }
+                    }
+                    val contentLength = Files.size(tempFile)
+                    Files.newInputStream(tempFile).use { input ->
+                        storageService.uploadFile(ctx.mergedLocatie, input, contentLength)
+                    }
+                } finally {
+                    Files.deleteIfExists(tempFile)
+                }
+
+                // Delete individual part blobs now that the merged object is safely stored.
+                val partKeys = ctx.parts.map { it.storageKey }
+                storageService.deleteFiles(partKeys)
+
+                logger.info(
+                    "Merged {} bestandsdeel(en) into '{}' for EIO {}",
+                    ctx.parts.size,
+                    ctx.mergedLocatie,
+                    id,
+                )
+
+                // Follow-up transaction: persist the new bestandsLocatie and remove the part DB rows.
+                transaction {
+                    EIOVersionEntity.findById(ctx.latestVersionId)?.let { v ->
+                        v.bestandsLocatie = ctx.mergedLocatie
+                    }
+                    ctx.parts.forEach { part ->
+                        BestandsDeelEntity.findById(part.bestandsDeelId)?.delete()
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error("Failed to merge bestandsdelen for EIO {}: {}", id, e.message, e)
+            }
+        }
+
+        return UnlockResult.Success
     }
 
     fun delete(id: UUID): DeleteResult {
