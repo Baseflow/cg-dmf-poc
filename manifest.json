@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25483887446",
+    "runNumber": "512",
+    "branch": "CGDMF-125-Merge-bestandsdelen",
+    "date": "2026-05-07T08:13:38Z",
+    "path": "integration/25483887446/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25483814381",
     "runNumber": "511",
     "branch": "task/CGDMF-94",
