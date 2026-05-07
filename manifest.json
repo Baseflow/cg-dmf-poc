@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25506515784",
+    "runNumber": "523",
+    "branch": "CGDMF-73-authorization",
+    "date": "2026-05-07T15:54:13Z",
+    "path": "integration/25506515784/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25501577601",
     "runNumber": "520",
     "branch": "CGDMF-115-remove-oio-by-eio",
