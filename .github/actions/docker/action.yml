@@ -90,7 +90,7 @@ runs:
       run: |
         BRANCH_NAME="${GITHUB_REF##*/}"
         DATE=$(date +%y%m%d%H%M)
-        
+
         echo "Branch name: $BRANCH_NAME"
         echo "Release version: $VERSION"
 
@@ -104,6 +104,10 @@ runs:
           TAG="${IMAGE_NAME}:${VERSION}"
         elif [[ "$BRANCH_NAME" == "develop" ]] || [[ "$BRANCH_NAME" == release-* ]] || [[ "$BRANCH_NAME" == hotfix-* ]]; then
           TAG="${IMAGE_NAME}:${BRANCH_NAME}-${DATE}"
+        # temporary
+        elif [[ "$BRANCH_NAME" == "develop-admin-portal" ]]; then
+          TAG="${IMAGE_NAME}:${BRANCH_NAME}-${DATE}"
+        # / temporary
         else
           TAG="${IMAGE_NAME}:${BRANCH_NAME}"
         fi
@@ -131,7 +135,7 @@ runs:
           --tag ${TAG} \
           ${ARGS} \
           ${CONTEXT}
-    
+
     - uses: aquasecurity/trivy-action@master
       name: Vulnerability Scan
       if: inputs.build == 'true' && inputs.vulnerability_scan == 'true'

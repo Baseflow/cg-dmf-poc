@@ -23,6 +23,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI
 import java.nio.ByteBuffer
@@ -57,8 +58,9 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             .build()
 
         val httpClientBuilder = NettyNioAsyncHttpClient.builder()
-            .connectionTimeout(TIMEOUT)
-            .readTimeout(TIMEOUT)
+            .connectionTimeout(CONNECTION_TIMEOUT)
+            .readTimeout(READ_WRITE_TIMEOUT)
+            .writeTimeout(READ_WRITE_TIMEOUT)
 
         val clientBuilder = S3AsyncClient.builder()
             .region(Region.of(config.region ?: "eu-west-1"))
@@ -88,6 +90,26 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             logger.info("Uploaded {}/{} (ETag: {})", bucketName, objectName, response.eTag())
         } catch (e: Exception) {
             logger.error("Failed to upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
+            throw e
+        }
+    }
+
+    override fun uploadFile(objectName: String, stream: InputStream, contentLength: Long) {
+        try {
+            ensureBucketExists()
+            logger.debug("Streaming upload of {} to bucket {} ({} bytes)", objectName, bucketName, contentLength)
+            val putRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectName)
+                .contentLength(contentLength)
+                .build()
+            val response = s3Client.putObject(
+                putRequest,
+                AsyncRequestBody.fromInputStream(stream, contentLength, java.util.concurrent.Executors.newSingleThreadExecutor()),
+            ).join()
+            logger.info("Uploaded {}/{} via stream (ETag: {})", bucketName, objectName, response.eTag())
+        } catch (e: Exception) {
+            logger.error("Failed to stream-upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
             throw e
         }
     }
@@ -192,6 +214,18 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
     }
 
     companion object {
-        val TIMEOUT: Duration = Duration.ofSeconds(5)
+        /** Maximum time to wait for a TCP connection to be established. */
+        val CONNECTION_TIMEOUT: Duration = Duration.ofSeconds(10)
+
+        /**
+         * Maximum idle time between consecutive read/write buffers during a streaming transfer.
+         * This is NOT a total-transfer timeout – a 1 GB upload over a slow link will succeed as
+         * long as each individual chunk of data arrives within this window.
+         * 60 s gives ample headroom for S3-side processing pauses without masking dead connections.
+         */
+        val READ_WRITE_TIMEOUT: Duration = Duration.ofSeconds(60)
+
+        /** Kept for callers that still reference the old constant (e.g. health-check .get() calls). */
+        val TIMEOUT: Duration = CONNECTION_TIMEOUT
     }
 }
