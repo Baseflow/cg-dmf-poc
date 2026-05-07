@@ -1,0 +1,29 @@
+meta {
+  name: 05 Get metadata - no token (expect 401)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 401
+}
+
+script:post-response {
+  test("Response body explains missing token", function() {
+    const body = res.body;
+    // Either a string or an object with a detail/title field
+    const text = typeof body === "string" ? body : JSON.stringify(body);
+    expect(text.toLowerCase()).to.include("access_token");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

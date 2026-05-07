@@ -1,0 +1,21 @@
+meta {
+  name: 99 Cleanup - Delete EIO
+  type: http
+  seq: 99
+}
+
+delete {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiEioId}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

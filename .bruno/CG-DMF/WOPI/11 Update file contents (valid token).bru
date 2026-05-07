@@ -1,0 +1,44 @@
+meta {
+  name: 11 Update file contents (valid token)
+  type: http
+  seq: 11
+}
+
+// POST /wopi/api/v1/files/{file_id}/contents with X-WOPI-Override: PUT
+// The EIO was created without a lock and has content, so no lock token is needed
+// for the first save if bestandsomvang was 0, but our setup created content.
+// We use an empty lock token here, which should succeed for an unlocked file.
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}/contents
+  body: text
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: PUT
+  Content-Type: application/octet-stream
+}
+
+body:text {
+  Updated content from WOPI SLAT test
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  test("Response contains LastModifiedTime", function() {
+    expect(res.body).to.have.property("LastModifiedTime");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

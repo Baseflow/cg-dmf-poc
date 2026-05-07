@@ -1,0 +1,30 @@
+meta {
+  name: 12 Update file contents - missing WOPI-Override (expect 400)
+  type: http
+  seq: 12
+}
+
+// POST to contents without the required X-WOPI-Override: PUT header should return 400
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}/contents
+  body: text
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+body:text {
+  Some content
+}
+
+assert {
+  res.status: eq 400
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
