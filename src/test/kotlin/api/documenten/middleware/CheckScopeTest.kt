@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-
 package com.baseflow.api.middleware
 
 import com.auth0.jwt.JWT
@@ -25,13 +24,11 @@ class CheckScopeTest {
     private val jwtSecret = "test-secret-key-for-testing-only"
     private val jwtIssuer = "test-issuer"
 
-    private fun generateToken(scopes: String): String {
-        return JWT.create()
-            .withIssuer(jwtIssuer)
-            .withSubject("testuser")
-            .withClaim("scope", scopes)
-            .sign(Algorithm.HMAC256(jwtSecret))
-    }
+    private fun generateToken(scopes: String): String = JWT.create()
+        .withIssuer(jwtIssuer)
+        .withSubject("testuser")
+        .withClaim("scope", scopes)
+        .sign(Algorithm.HMAC256(jwtSecret))
 
     private fun ApplicationTestBuilder.setupTestApp() {
         application {
@@ -46,8 +43,8 @@ class CheckScopeTest {
                         mapOf(
                             "error" to "Insufficient permissions",
                             "detail" to "Required scopes: ${cause.requiredScopes.joinToString(", ")}",
-                            "code" to "insufficient_scope"
-                        )
+                            "code" to "insufficient_scope",
+                        ),
                     )
                 }
             }
@@ -57,7 +54,7 @@ class CheckScopeTest {
                     verifier(
                         JWT.require(Algorithm.HMAC256(jwtSecret))
                             .withIssuer(jwtIssuer)
-                            .build()
+                            .build(),
                     )
                     validate { credential ->
                         if (credential.payload.subject != null) {
@@ -189,7 +186,7 @@ class CheckScopeTest {
                     verifier(
                         JWT.require(Algorithm.HMAC256(jwtSecret))
                             .withIssuer(jwtIssuer)
-                            .build()
+                            .build(),
                     )
                     validate { credential ->
                         if (credential.payload.subject != null) {

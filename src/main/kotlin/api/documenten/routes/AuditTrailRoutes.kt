@@ -122,4 +122,3 @@ fun Route.auditTrailRoutes() {
 
 private val RoutingContext.service: AuditTrailService
     get() = call.attributes[RequestScopeKey].get()
-

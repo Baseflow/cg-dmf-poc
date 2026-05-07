@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-
 package com.baseflow.api.routes
 
 import io.ktor.server.application.*
@@ -26,16 +25,11 @@ class ScopeAuthorizationConfig {
     var wildcardEnabled: Boolean = true
 }
 
-fun ApplicationCall.checkScope(
-    vararg requiredScopes: String,
-) {
+fun ApplicationCall.checkScope(vararg requiredScopes: String) {
     checkScope(requiredScopes.toSet())
 }
 
-fun ApplicationCall.checkScope(
-    requiredScopes: Set<String>,
-    config: ScopeAuthorizationConfig = ScopeAuthorizationConfig()
-) {
+fun ApplicationCall.checkScope(requiredScopes: Set<String>, config: ScopeAuthorizationConfig = ScopeAuthorizationConfig()) {
     if (requiredScopes.isEmpty()) {
         return
     }
@@ -46,7 +40,7 @@ fun ApplicationCall.checkScope(
     if (principal == null) {
         logger.warn("No JWT principal found while checking required scopes {}, denying access", requiredScopes)
         throw ScopeAuthorizationException(
-            requiredScopes = requiredScopes
+            requiredScopes = requiredScopes,
         )
     }
 
@@ -71,10 +65,10 @@ fun ApplicationCall.checkScope(
         logger.warn(
             "Access denied. User missing scopes: {}. User has: {}",
             missingScopes,
-            userScopes
+            userScopes,
         )
         throw ScopeAuthorizationException(
-            requiredScopes = requiredScopes
+            requiredScopes = requiredScopes,
         )
     } else {
         logger.debug("Scope check passed")
@@ -135,6 +129,5 @@ private fun matchScope(userScope: String, requiredScope: String, wildcardEnabled
 /**
  * Exception thrown when a user lacks required scopes.
  */
-class ScopeAuthorizationException(
-    val requiredScopes: Set<String>
-) : Exception("Access denied. Required scopes: ${requiredScopes.joinToString(", ")}")
+class ScopeAuthorizationException(val requiredScopes: Set<String>) :
+    Exception("Access denied. Required scopes: ${requiredScopes.joinToString(", ")}")

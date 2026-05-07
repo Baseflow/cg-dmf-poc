@@ -481,6 +481,8 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test create objectinformatieobject with non-standard objectType returns 201`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
+
         val eioId = createTestEIO()
 
         // A type that is not zaak, verzoek or besluit but is a valid format should be accepted
@@ -502,6 +504,8 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     @Test
     fun `test create objectinformatieobject with invalid objectType format returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
+
         val eioId = createTestEIO()
 
         // Inject raw invalid JSON to bypass Kotlin-side SubjectType validation

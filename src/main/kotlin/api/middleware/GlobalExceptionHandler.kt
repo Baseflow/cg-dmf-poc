@@ -30,8 +30,8 @@ fun Application.configureStatusPages() {
                     title = "Insufficient permissions",
                     status = HttpStatusCode.Forbidden.value,
                     detail = "Required scopes: ${cause.requiredScopes.joinToString(", ")}",
-                    instance = call.request.path()
-                )
+                    instance = call.request.path(),
+                ),
             )
         }
 

@@ -699,6 +699,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
     @Test
     fun `GET download returns 200 with content headers for an EIO that has content`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
             contentType(ContentType.Application.Json)

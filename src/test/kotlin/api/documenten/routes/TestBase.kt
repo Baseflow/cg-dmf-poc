@@ -7,7 +7,6 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.admin.adminModule
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
-import com.baseflow.config.OpenZaakConfig
 import com.baseflow.config.appModule
 import com.baseflow.services.StorageService
 import com.baseflow.tooling.AllTables
@@ -20,9 +19,9 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.testing.*
-import io.ktor.server.plugins.contentnegotiation.*
 import io.mockk.every
 import io.mockk.mockk
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -52,17 +51,15 @@ open class TestBase(dbNamePrefix: String) {
             "documenten.bijwerken",
             "documenten.verwijderen",
             "documenten.lock",
-            "documenten.geforceerd-unlock"
+            "documenten.geforceerd-unlock",
         ).joinToString(" ")
 
-        fun generateTestToken(scopes: String = ALL_SCOPES): String {
-            return JWT.create()
-                .withIssuer(TEST_JWT_ISSUER)
-                .withSubject("testuser")
-                .withClaim("scope", scopes)
-                .withClaim("username", "testuser")
-                .sign(Algorithm.HMAC256(TEST_JWT_SECRET))
-        }
+        fun generateTestToken(scopes: String = ALL_SCOPES): String = JWT.create()
+            .withIssuer(TEST_JWT_ISSUER)
+            .withSubject("testuser")
+            .withClaim("scope", scopes)
+            .withClaim("username", "testuser")
+            .sign(Algorithm.HMAC256(TEST_JWT_SECRET))
     }
 
     fun connectDb() {
@@ -113,7 +110,7 @@ open class TestBase(dbNamePrefix: String) {
                 verifier(
                     JWT.require(Algorithm.HMAC256(TEST_JWT_SECRET))
                         .withIssuer(TEST_JWT_ISSUER)
-                        .build()
+                        .build(),
                 )
                 validate { credential ->
                     if (credential.payload.getClaim("username").asString() != "") {
@@ -125,7 +122,7 @@ open class TestBase(dbNamePrefix: String) {
                 challenge { _, _ ->
                     call.respondText(
                         text = "Unauthorized",
-                        status = HttpStatusCode.Unauthorized
+                        status = HttpStatusCode.Unauthorized,
                     )
                 }
             }
@@ -134,7 +131,7 @@ open class TestBase(dbNamePrefix: String) {
                 verifier(
                     JWT.require(Algorithm.HMAC256(TEST_JWT_SECRET))
                         .withIssuer(TEST_JWT_ISSUER)
-                        .build()
+                        .build(),
                 )
                 validate { credential ->
                     if (credential.payload.getClaim("username").asString() != "") {
@@ -146,25 +143,22 @@ open class TestBase(dbNamePrefix: String) {
                 challenge { _, _ ->
                     call.respondText(
                         text = "Unauthorized",
-                        status = HttpStatusCode.Unauthorized
+                        status = HttpStatusCode.Unauthorized,
                     )
                 }
             }
         }
 
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
-        documentenApiModule(useAuthentication = true, openZaakConfig = openZaakConfig)
+        documentenApiModule(useAuthentication = true)
+        adminModule(useAuthentication = false)
     }
 
     /**
      * Creates an HTTP client with a default Bearer token containing all scopes.
      */
-    fun ApplicationTestBuilder.authenticatedClient(): HttpClient {
-        return createClient {
-            install(DefaultRequest) {
-                header(HttpHeaders.Authorization, "Bearer ${generateTestToken()}")
-            }
+    fun ApplicationTestBuilder.authenticatedClient(): HttpClient = createClient {
+        install(DefaultRequest) {
+            header(HttpHeaders.Authorization, "Bearer ${generateTestToken()}")
         }
-        adminModule(useAuthentication = false)
     }
 }

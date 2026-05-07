@@ -91,6 +91,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel with valid uuid and correct lock returns 200`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val (uuid, lock) = createBestandsdeelInDb()
 
@@ -121,6 +122,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel without inhoud field still succeeds when lock is present`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val (uuid, lock) = createBestandsdeelInDb()
 
@@ -145,6 +147,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel with invalid UUID returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val response = client.put("$BESTANDSDELEN_PATH/not-a-valid-uuid") {
             setBody(
@@ -164,6 +167,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel without lock field returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val (uuid, _) = createBestandsdeelInDb()
 
@@ -192,6 +196,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel with blank lock value returns 400`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val (uuid, _) = createBestandsdeelInDb()
 
@@ -215,6 +220,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel with wrong lock token returns 403`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val (uuid, _) = createBestandsdeelInDb()
 
@@ -240,6 +246,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
     @Test
     fun `PUT bestandsdeel with unknown UUID returns 404`() = testApplication {
         application { setup() }
+        val client = authenticatedClient()
 
         val unknownUuid = UUID.randomUUID()
 
