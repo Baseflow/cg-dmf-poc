@@ -131,7 +131,7 @@ open class ObjectInformatieObjectenRoutes(
                     summary = "Maak een ${resourceSegment.title} relatie aan."
                     description =
                         "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
-                        "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                            "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
                     requestBody {
                         required = true
                         description = "Gegevens van de aan te maken relatie."
@@ -283,7 +283,7 @@ open class ObjectInformatieObjectenRoutes(
                         summary = "Verwijder een ${resourceSegment.title} relatie."
                         description =
                             "LET OP: Dit endpoint hoor je als consumer niet zelf aan te spreken. " +
-                            "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
+                                "Andere API's gebruiken dit endpoint bij het synchroniseren van relaties."
                         parameters {
                             path("uuid") { description = "Unieke resource identifier (UUID4)." }
                         }
@@ -415,7 +415,7 @@ open class ObjectInformatieObjectenRoutes(
 
         try {
             val informatieObject = UUID.fromString(informatieObjectStr)
-            when (service.deleteByVersionId(informatieObject)) {
+            when (service.deleteByEioVersionId(informatieObject)) {
                 is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
                 is DeleteOIOResult.NotFound -> call.respondProblem(
                     HttpStatusCode.NotFound,

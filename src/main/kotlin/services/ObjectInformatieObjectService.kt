@@ -166,13 +166,13 @@ open class ObjectInformatieObjectService(
     /**
      * Delete all ObjectInformatieObject relations for a given EIOVersion record_id
      */
-    fun deleteByVersionId(recordId: UUID): DeleteOIOResult = transaction {
+    fun deleteByEioVersionId(versionId: UUID): DeleteOIOResult = transaction {
         val entities = OIORecordEntity.find {
-            OIORecords.informatieobject eq recordId
+            OIORecords.informatieobject eq versionId
         }.toList()
 
         if (entities.isEmpty()) {
-            logger.warn("No OIO relations found for record_id=$recordId")
+            logger.warn("No OIO relations found for record_id=$versionId")
             return@transaction DeleteOIOResult.NotFound
         }
 
@@ -180,7 +180,7 @@ open class ObjectInformatieObjectService(
             auditContext.captureOld(entity.toResponse(), entity.informatieobjectVersie)
             auditTrailService.removeAuditTrailsForResource(entity.id.value)
             entity.delete()
-            logger.info("Deleted OIO relation with id=${entity.id.value} for record_id=$recordId")
+            logger.info("Deleted OIO relation with id=${entity.id.value} for record_id=$versionId")
         }
 
         DeleteOIOResult.Success
