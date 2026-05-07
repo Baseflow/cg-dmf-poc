@@ -24,6 +24,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.util.*
 import kotlin.io.encoding.Base64
@@ -727,15 +728,89 @@ class EnkelvoudigInformatieObjectService(
     }
 
     fun unlock(id: UUID, lock: String): UnlockResult? {
-        return transaction {
+        // Collect bestandsdelen info inside the transaction, then do blob I/O outside.
+        data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)
+        data class MergeContext(val parts: List<PartInfo>, val mergedLocatie: String, val latestVersionId: UUID)
+
+        val mergeCtx: MergeContext? = transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction null
+            val current = record.lockToken ?: return@transaction null // handled below
+            if (current != lock) return@transaction null // handled below
+
+            val latestVersion = record.versions.maxByOrNull { it.versie }
+            if (latestVersion != null) {
+                val parts = BestandsDeelEntity
+                    .find { BestandsDelen.versionId eq latestVersion.id }
+                    .sortedBy { it.volgnummer }
+                    .filter { it.voltooid }
+
+                if (parts.isNotEmpty()) {
+                    val partInfos = parts.map { part ->
+                        PartInfo(
+                            storageKey = bestandsDeelStorageKey(
+                                recordId = record.id.value,
+                                versie = latestVersion.versie,
+                                bestandsDeelId = part.id.value,
+                            ),
+                            bestandsDeelId = part.id.value,
+                        )
+                    }
+                    val mergedLocatie = "${record.id.value}/${latestVersion.versie}/${latestVersion.bestandsnaam}"
+                    return@transaction MergeContext(partInfos, mergedLocatie, latestVersion.id.value)
+                }
+            }
+            null
+        }
+
+        // Need to resolve the actual unlock result independently of the merge branch.
+        val unlockResult = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
             val current = record.lockToken ?: return@transaction UnlockResult.NotLocked
-            if (current != lock) {
-                return@transaction UnlockResult.InvalidLock
+            if (current != lock) return@transaction UnlockResult.InvalidLock
+
+            // Perform merge: download & concatenate parts, upload merged file, clean up.
+            if (mergeCtx != null) {
+                val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
+                try {
+                    val merged = ByteArrayOutputStream()
+                    for (part in mergeCtx.parts) {
+                        val buf = ByteArrayOutputStream()
+                        storageService.downloadFileTo(part.storageKey, buf).get()
+                        merged.write(buf.toByteArray())
+                    }
+                    val mergedBytes = merged.toByteArray()
+                    storageService.uploadFile(mergeCtx.mergedLocatie, mergedBytes)
+
+                    // Update bestandsLocatie on the version.
+                    EIOVersionEntity.findById(mergeCtx.latestVersionId)?.let { v ->
+                        v.bestandsLocatie = mergeCtx.mergedLocatie
+                    }
+
+                    // Delete individual parts from blob storage and remove DB rows.
+                    val partKeys = mergeCtx.parts.map { it.storageKey }
+                    storageService.deleteFiles(partKeys)
+
+                    // Delete by IDs
+                    val partIds = mergeCtx.parts.map { it.bestandsDeelId }
+                    partIds.forEach { partId ->
+                        BestandsDeelEntity.findById(partId)?.delete()
+                    }
+
+                    logger.info(
+                        "Merged {} bestandsdeel(en) into '{}' for EIO {}",
+                        mergeCtx.parts.size,
+                        mergeCtx.mergedLocatie,
+                        id,
+                    )
+                } catch (e: Exception) {
+                    logger.error("Failed to merge bestandsdelen for EIO {}: {}", id, e.message, e)
+                }
             }
+
             record.lockToken = null
             UnlockResult.Success
         }
+        return unlockResult
     }
 
     fun delete(id: UUID): DeleteResult {
