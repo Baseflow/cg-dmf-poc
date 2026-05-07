@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25508493441",
+    "runNumber": "526",
+    "branch": "CGDMF-48-Validate-API-scopes",
+    "date": "2026-05-07T16:31:58Z",
+    "path": "integration/25508493441/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25508485498",
     "runNumber": "525",
     "branch": "CGDMF-91-WOPI-authentication",
