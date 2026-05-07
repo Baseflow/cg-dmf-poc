@@ -262,11 +262,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
         application { setup() }
         val id = insertApp("app", clientSecret = "original-secret")
 
-        client.put("/settings/application-settings/$id") {
+        val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
             setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
                 UpdateApplicationSettingsRequest(name = "app", clientId = "client", clientSecret = null)))
         }
+        assertEquals(HttpStatusCode.OK, response.status)
 
         transaction {
             val entity = ApplicationSettingEntity.findById(id)!!
