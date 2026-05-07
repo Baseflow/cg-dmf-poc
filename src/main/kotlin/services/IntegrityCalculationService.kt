@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-
 package com.baseflow.services
 
 import com.baseflow.api.models.IntegriteitAlgoritme
@@ -11,14 +10,12 @@ class IntegrityCalculationService {
     companion object {
 
         fun calculateIntegrity(data: ByteArray, algorithm: String?): IntegrityCalculationResult {
-
             if (algorithm.isNullOrEmpty()) {
                 return IntegrityCalculationResult("", "")
             }
 
             val integriteitAlgoritme = IntegriteitAlgoritme.valueOf(algorithm)
             when (integriteitAlgoritme) {
-
                 IntegriteitAlgoritme.CRC_32 -> {
                     val crc32 = CRC32()
                     crc32.update(data)

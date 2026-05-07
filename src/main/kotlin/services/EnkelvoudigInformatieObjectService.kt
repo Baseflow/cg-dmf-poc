@@ -52,26 +52,25 @@ class EnkelvoudigInformatieObjectService(
      * Creates both EIORecord and initial EIOVersion in a transaction
      */
     @OptIn(ExperimentalTime::class)
-    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse =
-        suspendTransaction {
-            request.controleerVerplichteVelden()
+    suspend fun create(request: EnkelvoudigInformatieObjectRequest): EnkelvoudigInformatieObjectResponse = suspendTransaction {
+        request.controleerVerplichteVelden()
 
-            val record = EIORecordEntity.new {
+        val record = EIORecordEntity.new {
+        }
+
+        // Validate informatieobjecttype against catalogus
+        val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
+        val version = 1
+
+        val uploadResultaat = getUploadResultaat(request, record, version)
+        val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
+        val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
+
+        if (!request.inhoud.isNullOrEmpty()) {
+            require(bestandsFormaat != null) {
+                "Unable to determine file format from content. Please specify the 'formaat' field in the request."
             }
-
-            // Validate informatieobjecttype against catalogus
-            val ioType = catalogusService.validateInformatieobjecttype(request.informatieobjecttype!!)
-            val version = 1
-
-            val uploadResultaat = getUploadResultaat(request, record, version)
-            val bestandsOmvang = request.bestandsomvang ?: uploadResultaat.bestandsOmvang
-            val bestandsFormaat = request.formaat ?: uploadResultaat.bestandsFormaat
-
-            if (!request.inhoud.isNullOrEmpty()) {
-                require(bestandsFormaat != null) {
-                    "Unable to determine file format from content. Please specify the 'formaat' field in the request."
-                }
-            }
+        }
 
         val eioVersion = EIOVersionEntity.new {
             recordId = record
