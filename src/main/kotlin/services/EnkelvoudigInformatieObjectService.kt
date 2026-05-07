@@ -101,7 +101,8 @@ class EnkelvoudigInformatieObjectService(
             bestandsLocatie = uploadResultaat.bestandsLocatie
             bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
         }
-        val trefwoorden = request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
+        val trefwoorden =
+            request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
         trefwoorden.forEach { woord ->
             EIOVersionTrefwoordEntity.new {
                 versionId = eioVersion
@@ -342,7 +343,13 @@ class EnkelvoudigInformatieObjectService(
 
             val repoName = latestVersion?.bestandsRepository?.takeUnless { it.isBlank() }
             val uploadResultaat =
-                getUploadResultaat(request, record, newVersionNumber, latestVersion?.bestandsLocatie.orEmpty(), repoName)
+                getUploadResultaat(
+                    request,
+                    record,
+                    newVersionNumber,
+                    latestVersion?.bestandsLocatie.orEmpty(),
+                    repoName,
+                )
             val bestandsFormaat =
                 mergeNullable(
                     partial,
@@ -739,10 +746,13 @@ class EnkelvoudigInformatieObjectService(
 
             val latestVersion = record.versions.maxByOrNull { it.versie }
             if (latestVersion != null) {
-                val parts = BestandsDeelEntity
+                val allParts = BestandsDeelEntity
                     .find { BestandsDelen.versionId eq latestVersion.id }
                     .sortedBy { it.volgnummer }
-                    .filter { it.voltooid }
+                val parts = allParts.filter { it.voltooid }
+                if (parts.size < allParts.count()) {
+                    throw IllegalStateException("Not all parts are marked as completed")
+                }
 
                 if (parts.isNotEmpty()) {
                     val partInfos = parts.map { part ->
