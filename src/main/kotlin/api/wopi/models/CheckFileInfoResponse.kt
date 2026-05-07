@@ -11,4 +11,20 @@ data class CheckFileInfoResponse(
     val baseFileName: String,
     @SerialName("Size")
     val size: Long,
+    @SerialName("UserFriendlyName")
+    val userFriendlyName: String,
+    @SerialName("UserCanWrite")
+    val userCanWrite: Boolean,
+    @SerialName("SupportsLocks")
+    val supportsLocks: Boolean,
+    @SerialName("SupportsGetLock")
+    val supportsGetLock: Boolean,
+    @SerialName("SupportsUpdate")
+    val supportsUpdate: Boolean,
+    @SerialName("SupportsAutosave")
+    val supportsAutosave: Boolean,
+    @SerialName("LastModifiedTime")
+    val lastModifiedTime: String,
+    @SerialName("Version")
+    val version: String,
 )
