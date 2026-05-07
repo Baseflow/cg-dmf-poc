@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+package com.baseflow.api.wopi
+
+import com.baseflow.api.models.ProblemDetailsResponse
+import com.baseflow.api.models.respondProblem
+import com.baseflow.services.WopiSlatService
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.request.path
+import java.util.UUID
+
+/**
+ * Route-scoped Ktor plugin that validates a WOPI Short-Lived Access Token (SLAT).
+ *
+ * The token is read from the `access_token` query parameter (WOPI spec convention).
+ * The validated file UUID is stored in [WopiValidatedFileIdKey] so route handlers can retrieve it.
+ */
+val WopiSlatAuthPlugin = createRouteScopedPlugin(
+    name = "WopiSlatAuth",
+    createConfiguration = ::WopiSlatAuthConfig,
+) {
+    val slatService = pluginConfig.slatService
+
+    onCall { call ->
+        val token = call.request.queryParameters["access_token"]
+        if (token == null) {
+            call.respondProblem(
+                HttpStatusCode.Unauthorized,
+                ProblemDetailsResponse(
+                    title = "Unauthorized",
+                    status = HttpStatusCode.Unauthorized.value,
+                    detail = "Missing access_token query parameter.",
+                    instance = call.request.path(),
+                ),
+            )
+            return@onCall
+        }
+
+        val fileId = slatService.validate(token)
+        if (fileId == null) {
+            call.respondProblem(
+                HttpStatusCode.Unauthorized,
+                ProblemDetailsResponse(
+                    title = "Unauthorized",
+                    status = HttpStatusCode.Unauthorized.value,
+                    detail = "Invalid or expired access_token.",
+                    instance = call.request.path(),
+                ),
+            )
+            return@onCall
+        }
+
+        // Store the validated UUID so route handlers can use it without re-parsing path params
+        call.attributes.put(WopiValidatedFileIdKey, fileId)
+    }
+}
+
+class WopiSlatAuthConfig {
+    lateinit var slatService: WopiSlatService
+}
+
+/** Attribute key to retrieve the validated WOPI file UUID inside a route handler. */
+val WopiValidatedFileIdKey = io.ktor.util.AttributeKey<UUID>("WopiValidatedFileId")
