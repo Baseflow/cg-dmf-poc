@@ -47,14 +47,12 @@ fun Route.wopiApiRoutes() {
                 }
                 responses {
                     response(200) {
-                        description = "The metadata of a file"
+                        description = "Success."
                         ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
                     }
-                    response(400) { description = "Bad request." }
-                    response(401) { description = "Unauthorized." }
-                    response(403) { description = "Forbidden." }
-                    response(404) { description = "Not found." }
-                    response(500) { description = "Internal server error." }
+                    response(401) { description = "Invalid access token." }
+                    response(404) { description = "Resource not found or user unauthorized." }
+                    response(500) { description = "Server error." }
                 }
             }
 
@@ -72,14 +70,11 @@ fun Route.wopiApiRoutes() {
                         }
                     }
                     responses {
-                        response(200) {
-                            description = "The binary data contents of a file"
-                        }
-                        response(400) { description = "Bad request." }
-                        response(401) { description = "Unauthorized." }
-                        response(403) { description = "Forbidden." }
-                        response(404) { description = "Not found." }
-                        response(500) { description = "Internal server error." }
+                        response(200) { description = "Success." }
+                        response(401) { description = "Invalid access token." }
+                        response(404) { description = "Resource not found or user unauthorized." }
+                        response(412) { description = "File is larger than X-WOPI-MaxExpectedSize." }
+                        response(500) { description = "Server error." }
                     }
                 }
 
@@ -96,14 +91,16 @@ fun Route.wopiApiRoutes() {
                         }
                     }
                     responses {
-                        response(200) {
-                            description = "File successfully saved."
+                        response(200) { description = "Success" }
+                        response(401) { description = "Invalid access token." }
+                        response(404) { description = "Resource not found or user unauthorized." }
+                        response(409) {
+                            description =
+                                "Lock mismatch or locked by another interface. You must include an X-WOPI-Lock response header containing the value of the current lock on the file when using this response code."
                         }
-                        response(400) { description = "Bad request." }
-                        response(401) { description = "Unauthorized." }
-                        response(403) { description = "Forbidden." }
-                        response(404) { description = "Not found." }
-                        response(500) { description = "Internal server error." }
+                        response(413) { description = "File is too large. The maximum file size is host-specific." }
+                        response(500) { description = "Server error." }
+                        response(501) { description = "Operation not supported." }
                     }
                 }
             }
@@ -138,9 +135,11 @@ private suspend fun RoutingContext.updateFileContents() {
             lockValue == null && (currentFile?.bestandsomvang ?: 0L) > 0L -> {
                 "" // File already has content but no lock was provided — reject with 409.
             }
+
             lockValue != null && lockValue != currentFile?.lock -> {
                 currentFile?.lock ?: "" // Provided lock token does not match the current lock — reject with 409.
             }
+
             else -> null // Save is allowed; null means no mismatch.
         }
 
