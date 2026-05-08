@@ -232,7 +232,7 @@ private suspend fun RoutingContext.issueToken(slatService: WopiSlatService) {
     }
 
     val (token, expiresAt) = slatService.issue(uuid)
-    call.respond(HttpStatusCode.OK, WopiTokenResponse(accessToken = token, accessTokenTtl = expiresAt))
+    call.respond(HttpStatusCode.OK, WopiTokenResponse(accessToken = token, expiresAt = expiresAt))
 }
 
 private suspend fun RoutingContext.unlockFile() {
@@ -332,11 +332,14 @@ private suspend fun RoutingContext.updateFileContents() {
 
     val validatedFileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
         ?: run {
-            call.respondProblem(HttpStatusCode.Unauthorized, badRequest("Missing validated file id", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("Missing validated file id", call.request.path()),
+            )
             return
         }
 
-    var currentFile: EnkelvoudigInformatieObjectResponse? = null
+    var currentFile: EnkelvoudigInformatieObjectResponse?
 
     try {
         currentFile = service.getById(validatedFileId)
@@ -379,7 +382,10 @@ private suspend fun RoutingContext.updateFileContents() {
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
         ?: run {
-            call.respondProblem(HttpStatusCode.Unauthorized, badRequest("Missing validated file id", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("Missing validated file id", call.request.path()),
+            )
             return
         }
 
@@ -446,7 +452,10 @@ private suspend fun RoutingContext.getFileContents() {
 private suspend fun RoutingContext.getFileMetadata() {
     val fileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
         ?: run {
-            call.respondProblem(HttpStatusCode.Unauthorized, badRequest("Missing validated file id", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("Missing validated file id", call.request.path()),
+            )
             return
         }
 

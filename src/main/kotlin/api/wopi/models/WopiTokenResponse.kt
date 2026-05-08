@@ -10,6 +10,6 @@ data class WopiTokenResponse(
     @SerialName("access_token")
     val accessToken: String,
     /** Unix epoch seconds when the token expires. */
-    @SerialName("access_token_ttl")
-    val accessTokenTtl: Long,
+    @SerialName("access_token_expires_at")
+    val expiresAt: Long,
 )

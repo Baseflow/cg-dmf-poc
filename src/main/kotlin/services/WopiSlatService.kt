@@ -57,7 +57,7 @@ class WopiSlatService(
             val sigEncoded = token.substring(lastDot + 1)
 
             val payloadBytes = decoder.decode(payloadEncoded)
-            val payload = String(payloadBytes)
+            val payload = String(payloadBytes, Charsets.UTF_8)
             val providedSig = decoder.decode(sigEncoded)
 
             // Constant-time comparison to prevent timing attacks

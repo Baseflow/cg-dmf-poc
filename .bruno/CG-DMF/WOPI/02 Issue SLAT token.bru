@@ -12,18 +12,18 @@ post {
 
 vars:post-response {
   wopiAccessToken: res.body.access_token
-  wopiAccessTokenTtl: res.body.access_token_ttl
+  wopiAccessTokenTtl: res.body.access_token_expires_at
 }
 
 assert {
   res.status: eq 200
   res.body.access_token: isDefined
-  res.body.access_token_ttl: isDefined
+  res.body.access_token_expires_at: isDefined
 }
 
 script:post-response {
   const token = res.body.access_token;
-  const ttl = res.body.access_token_ttl;
+  const ttl = res.body.access_token_expires_at;
 
   bru.setVar("wopiAccessToken", token);
   bru.setVar("wopiAccessTokenTtl", ttl);
