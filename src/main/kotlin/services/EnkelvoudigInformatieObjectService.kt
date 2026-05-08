@@ -769,6 +769,7 @@ class EnkelvoudigInformatieObjectService(
                 formaat = fileType ?: latestVersion?.formaat
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
+                bestandsRepository = latestVersion?.bestandsRepository.orEmpty()
                 link = latestVersion?.link.orEmpty()
                 integriteitAlgoritme = integrityResult.algorithm
                 integriteitWaarde = integrityResult.hash
@@ -817,19 +818,18 @@ class EnkelvoudigInformatieObjectService(
         }
     }
 
-    fun wopiLock(id: UUID, lockValue: String): WopiLockResult? {
-        val trimmedLock = lockValue.trim()
+    fun wopiLock(id: UUID, wopiClientLock: String): WopiLockResult? {
         return transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val storedLock = record.lockToken?.trim()
-            if (storedLock != null) {
-                if (storedLock == trimmedLock) {
+            val storedLock = record.lockToken
+            if (!storedLock.isNullOrEmpty()) {
+                if (storedLock == wopiClientLock) {
                     return@transaction WopiLockResult.AlreadyLocked
                 } else {
                     return@transaction WopiLockResult.LockMismatch(currentFileLock = WopiLockPayload(lock = storedLock))
                 }
             }
-            record.lockToken = trimmedLock
+            record.lockToken = wopiClientLock
             WopiLockResult.Success
         }
     }

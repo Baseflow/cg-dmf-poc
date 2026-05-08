@@ -268,7 +268,7 @@ private suspend fun RoutingContext.lockFile() {
                 call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
                 call.respondProblem(
                     HttpStatusCode.Conflict,
-                    badRequest("Lock mismatch: file is locked with a different token"),
+                    conflict("Lock mismatch: file is locked with a different token"),
                 )
             }
         }
@@ -323,12 +323,12 @@ private suspend fun RoutingContext.getFileContents() {
         // Check if the file size exceeds the maximum expected size
         val fileSize = eio.bestandsomvang ?: 0L
         if (fileSize > maxExpectedSize) {
-            call.respond(HttpStatusCode.PreconditionFailed)
+            call.respond(HttpStatusCode.PreconditionFailed, badRequest("File is too large.", call.request.path()))
             return
         }
 
         // Use internal storage path for lookup, but public filename for the response header
-        val objectKey = eio.bestandsLocatie
+        val objectKey = eio.bestandsLocatie ?: eio.bestandsRepository
         if (objectKey.isBlank()) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
