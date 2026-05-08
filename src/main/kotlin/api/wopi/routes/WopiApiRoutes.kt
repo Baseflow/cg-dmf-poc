@@ -70,11 +70,10 @@ fun Route.wopiApiRoutes() {
                     )
                 }
             }.describe {
-                operationId = "lock/unlock a file"
                 tag("wopi")
                 summary = "Locks/unlocks a file"
                 description =
-                    "The WOPI-client locks or unlocks a file, based on the X-WOPI-Override header. Supported values are LOCK and UNLOCK."
+                    "The WOPI-client locks or unlocks a file, based on the `X-WOPI-Override` header. Supported values are LOCK and UNLOCK."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the file to lock/unlock."
@@ -169,14 +168,14 @@ private suspend fun RoutingContext.unlockFile() {
             is WopiUnlockResult.Success -> call.respond(HttpStatusCode.OK)
             is WopiUnlockResult.NotLocked -> {
                 call.response.header("X-WOPI-Lock", "")
-                call.respondProblem(HttpStatusCode.Conflict, badRequest("File is not locked", call.request.path()))
+                call.respondProblem(HttpStatusCode.Conflict, conflict("File is not locked", call.request.path()))
             }
 
             is WopiUnlockResult.LockMismatch -> {
                 call.response.header("X-WOPI-Lock", result.currentFileLock.lock)
                 call.respondProblem(
                     HttpStatusCode.Conflict,
-                    badRequest("Lock mismatch: file is locked with a different token", call.request.path()),
+                    conflict("Lock mismatch: file is locked with a different token", call.request.path()),
                 )
             }
         }
@@ -229,7 +228,7 @@ private suspend fun RoutingContext.lockFile() {
                 call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
                 call.respondProblem(
                     HttpStatusCode.Conflict,
-                    badRequest("Lock mismatch: file is locked with a different token"),
+                    conflict("Lock mismatch: file is locked with a different token"),
                 )
             }
         }
