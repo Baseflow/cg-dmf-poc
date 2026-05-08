@@ -847,6 +847,18 @@ class EnkelvoudigInformatieObjectService(
         }
     }
 
+    fun renameFile(id: UUID, newFileName: String): Boolean {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction false
+            val latestVersion = record.latestVersion() ?: return@transaction false
+            // Only update the display filename in the DB. The blob object key is not moved —
+            // WOPI RenameFile only changes the name shown to the user, not the storage location.
+            latestVersion.bestandsnaam = newFileName
+
+            true
+        }
+    }
+
     fun unlock(id: UUID, lock: String): UnlockResult? {
         // Collect bestandsdelen info inside the transaction, then do blob I/O outside.
         data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)

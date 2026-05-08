@@ -15,6 +15,7 @@ import com.baseflow.api.wopi.WopiFileIdPlugin
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
+import com.baseflow.api.wopi.models.RenameFileResponse
 import com.baseflow.api.wopi.models.WopiTokenResponse
 import com.baseflow.config.WopiConfig
 import com.baseflow.entities.EIORecordEntity
@@ -143,6 +144,39 @@ fun Route.wopiApiRoutes() {
                     response(404) { description = "Not found." }
                     response(409) { description = "Lock mismatch or locked by another interface." }
                     response(500) { description = "Internal server error." }
+                }
+            }
+
+            post {
+                renameFile()
+            }.describe {
+                operationId = "renameFile"
+                tag("wopi")
+                summary = "Rename a file."
+                description =
+                    "Renames the file. Requires `X-WOPI-Override: RENAME_FILE` and `X-WOPI-RequestedName` headers, " +
+                    "and a valid `access_token` query parameter. " +
+                    "If the file is locked, `X-WOPI-Lock` must match the current lock token."
+                parameters {
+                    path("file_id") {
+                        description = "The UUID of the file to rename."
+                        required = true
+                    }
+                    query("access_token") {
+                        description = "Short-lived access token obtained from POST /token/{file_id}."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "File renamed successfully."
+                        ContentType.Application.Json { schema = jsonSchema<RenameFileResponse>() }
+                    }
+                    response(400) { description = "Missing or invalid X-WOPI-RequestedName." }
+                    response(401) { description = "Invalid access token." }
+                    response(409) { description = "Lock mismatch." }
+                    response(500) { description = "Server error." }
+                    response(501) { description = "Operation not supported (wrong X-WOPI-Override value)." }
                 }
             }
 
@@ -436,3 +470,67 @@ private suspend fun RoutingContext.getFileMetadata() {
 
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
+
+private suspend fun RoutingContext.renameFile() {
+    // Dispatch guard: only handle RENAME_FILE override
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "RENAME_FILE") {
+        call.respondProblem(
+            HttpStatusCode.NotImplemented,
+            notImplemented("Operation not supported. Expected X-WOPI-Override: RENAME_FILE", call.request.path()),
+        )
+        return
+    }
+
+    // Requested name must be present and non-blank; it must not contain path separators or
+    // a leading dot (WOPI spec §3.3.5.3.1 – host should sanitise and reject illegal names).
+    val requestedName = call.request.headers["X-WOPI-RequestedName"]?.trim()
+    if (requestedName.isNullOrBlank()) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-RequestedName header is required and must not be blank.", call.request.path()),
+        )
+        return
+    }
+    if (requestedName.contains('/') || requestedName.contains('\\') || requestedName.startsWith('.')) {
+        // Respond 400 with X-WOPI-InvalidFileNameError per WOPI spec
+        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("Requested file name contains invalid characters.", call.request.path()),
+        )
+        return
+    }
+
+    val validatedFileId = call.attributes[WopiValidatedFileIdKey]
+
+    // Lock check: if the file is locked, the caller must supply the matching token
+    val lockValue = call.request.headers["X-WOPI-Lock"]
+    val currentFile = service.getById(validatedFileId)
+    if (currentFile == null) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+        )
+        return
+    }
+    if (currentFile.locked) {
+        val currentLock = currentFile.lock
+        if (lockValue.isNullOrEmpty() || lockValue != currentLock) {
+            call.response.headers.append("X-WOPI-Lock", currentLock)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("Lock mismatch."))
+            return
+        }
+    }
+
+    val renamed = service.renameFile(validatedFileId, requestedName)
+    if (!renamed) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+        )
+        return
+    }
+
+    call.respond(HttpStatusCode.OK, RenameFileResponse(name = requestedName))
+}

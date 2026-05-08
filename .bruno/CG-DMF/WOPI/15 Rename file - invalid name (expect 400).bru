@@ -1,0 +1,35 @@
+meta {
+  name: 15 Rename file - path separator in name (expect 400)
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}?access_token={{wopiAccessToken}}
+  body: none
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: RENAME_FILE
+  X-WOPI-RequestedName: ../evil/path.docx
+}
+
+assert {
+  res.status: eq 400
+}
+
+script:post-response {
+  test("Response includes X-WOPI-InvalidFileNameError header", function() {
+    expect(res.headers["x-wopi-invalidfilenameerror"]).to.be.a("string").and.not.empty;
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
