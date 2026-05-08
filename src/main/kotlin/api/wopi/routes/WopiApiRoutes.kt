@@ -160,8 +160,17 @@ private suspend fun RoutingContext.unlockFile() {
         return
     }
 
+    val uuid = try {
+        UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
+
     try {
-        val uuid = UUID.fromString(fileId)
         when (val result = service.wopiUnlock(uuid, lock)) {
             null -> call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
             is WopiUnlockResult.Success -> call.respond(HttpStatusCode.OK)
@@ -202,9 +211,17 @@ private suspend fun RoutingContext.lockFile() {
         return
     }
 
-    try {
-        val uuid = UUID.fromString(fileId)
+    val uuid = try {
+        UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
 
+    try {
         when (val response = service.wopiLock(uuid, lock)) {
             null -> {
                 call.respondProblem(
@@ -338,9 +355,17 @@ private suspend fun RoutingContext.getFileContents() {
         }
     } ?: Int.MAX_VALUE
 
-    try {
-        val uuid = UUID.fromString(fileId)
+    val uuid = try {
+        UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
 
+    try {
         val eio = transaction {
             val record =
                 EIORecordEntity.findById(uuid) ?: return@transaction null
@@ -408,8 +433,17 @@ private suspend fun RoutingContext.getFileMetadata() {
         return
     }
 
+    val uuid = try {
+        UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
+
     try {
-        val uuid = UUID.fromString(fileId)
         val result = service.getById(uuid, emptyList())
 
         if (result == null) {
