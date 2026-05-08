@@ -319,6 +319,69 @@ private suspend fun RoutingContext.updateFileContents() {
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to response.beginRegistratie))
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid input", call.request.path()))
+        return
+    }
+}
+
+private suspend fun RoutingContext.lockFile() {
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "LOCK") {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Override header must be LOCK", call.request.path()),
+        )
+        return
+    }
+
+    val lock = call.request.headers["X-WOPI-Lock"]
+    if (lock == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Lock header is required but missing", call.request.path()),
+        )
+        return
+    }
+
+    val fileId = call.parameters["file_id"]
+    if (fileId == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    try {
+        val uuid = UUID.fromString(fileId)
+
+        when (val response = service.wopiLock(uuid, lock)) {
+            null -> {
+                call.respondProblem(
+                    HttpStatusCode.NotFound,
+                    notFound("File not found", call.request.path()),
+                )
+                return
+            }
+
+            is WopiLockResult.Success -> {
+                call.respond(HttpStatusCode.OK)
+            }
+
+            is WopiLockResult.AlreadyLocked -> {
+                // TODO(elitsa): RefreshLock
+                call.respond(HttpStatusCode.OK)
+            }
+
+            is WopiLockResult.LockMismatch -> {
+                call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("Lock mismatch: file is locked with a different token"),
+                )
+            }
+        }
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
     }
 }
 
@@ -365,7 +428,7 @@ private suspend fun RoutingContext.getFileContents() {
         // Check if the file size exceeds the maximum expected size
         val fileSize = eio.bestandsomvang ?: 0L
         if (fileSize > maxExpectedSize) {
-            call.respond(HttpStatusCode.PreconditionFailed)
+            call.respond(HttpStatusCode.PreconditionFailed, badRequest("File is too large.", call.request.path()))
             return
         }
 

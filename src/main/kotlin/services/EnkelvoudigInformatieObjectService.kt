@@ -771,6 +771,7 @@ class EnkelvoudigInformatieObjectService(
                 formaat = fileType ?: latestVersion?.formaat
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
+                bestandsRepository = latestVersion?.bestandsRepository.orEmpty()
                 link = latestVersion?.link.orEmpty()
                 integriteitAlgoritme = integrityResult.algorithm
                 integriteitWaarde = integrityResult.hash
