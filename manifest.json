@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25556136256",
+    "runNumber": "543",
+    "branch": "task/CGDMF-96-lock",
+    "date": "2026-05-08T12:47:54Z",
+    "path": "integration/25556136256/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25555734003",
     "runNumber": "542",
     "branch": "CGDMF-101-Implement-RenameFile",
