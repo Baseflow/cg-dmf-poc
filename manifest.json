@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25560459364",
+    "runNumber": "546",
+    "branch": "dependabot/gradle/kotlin-e6a71b48a5",
+    "date": "2026-05-08T14:20:05Z",
+    "path": "integration/25560459364/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25557677126",
     "runNumber": "61",
