@@ -12,6 +12,7 @@ import com.baseflow.entities.*
 import com.baseflow.services.models.*
 import com.baseflow.services.models.wopi.WopiLockPayload
 import com.baseflow.services.models.wopi.WopiLockResult
+import com.baseflow.services.models.wopi.WopiUnlockResult
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
@@ -831,6 +832,18 @@ class EnkelvoudigInformatieObjectService(
             }
             record.lockToken = wopiClientLock
             WopiLockResult.Success
+        }
+    }
+
+    fun wopiUnlock(id: UUID, wopiClientLock: String): WopiUnlockResult? {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction null
+            val storedLock = record.lockToken ?: return@transaction WopiUnlockResult.NotLocked
+            if (storedLock != wopiClientLock) {
+                return@transaction WopiUnlockResult.LockMismatch(WopiLockPayload(lock = storedLock))
+            }
+            record.lockToken = null
+            WopiUnlockResult.Success
         }
     }
 
