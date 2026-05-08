@@ -222,7 +222,7 @@ private suspend fun RoutingContext.lockFile() {
     val wopiOverride = call.request.headers["X-WOPI-Override"]
     if (wopiOverride != "LOCK") {
         call.respondProblem(
-            HttpStatusCode.BadRequest,
+            HttpStatusCode.NotImplemented,
             badRequest("X-WOPI-Override header must be LOCK", call.request.path()),
         )
         return
