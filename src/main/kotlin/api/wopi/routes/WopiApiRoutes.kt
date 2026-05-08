@@ -243,9 +243,19 @@ private suspend fun RoutingContext.lockFile() {
         return
     }
 
-    try {
-        val uuid = UUID.fromString(fileId)
+    var uuid: UUID
 
+    try {
+        uuid = UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
+
+    try {
         when (val response = service.wopiLock(uuid, lock)) {
             null -> {
                 call.respondProblem(
@@ -275,7 +285,7 @@ private suspend fun RoutingContext.lockFile() {
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
-            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+            badRequest(e.message ?: "Unsuccessful locking of the file", call.request.path()),
         )
     }
 }
