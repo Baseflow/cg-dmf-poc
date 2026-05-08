@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25560491231",
+    "runNumber": "549",
+    "branch": "dependabot/gradle/org.flywaydb-flyway-database-postgresql-12.6.0",
+    "date": "2026-05-08T14:22:09Z",
+    "path": "integration/25560491231/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25560523894",
     "runNumber": "553",
     "branch": "dependabot/gradle/tools.jackson.core-jackson-core-3.1.3",
