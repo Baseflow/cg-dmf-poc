@@ -9,6 +9,7 @@ import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
+import com.baseflow.api.models.notImplemented
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
@@ -323,7 +324,7 @@ private suspend fun RoutingContext.updateFileContents() {
     if (wopiOverride != "PUT") {
         call.respondProblem(
             HttpStatusCode.NotImplemented,
-            badRequest("Operation not supported.", call.request.path()),
+            notImplemented("Operation not supported.", call.request.path()),
         )
         return
     }

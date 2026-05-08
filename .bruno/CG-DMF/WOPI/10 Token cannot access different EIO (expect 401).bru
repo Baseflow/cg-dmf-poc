@@ -4,11 +4,8 @@ meta {
   seq: 10
 }
 
-// Use the token issued for wopiEioId but request a different (hardcoded) UUID.
-// The SLAT encodes the file_id it was issued for; the plugin cross-checks it
-// against the URL path param, so using it on a different file_id must yield 401.
 get {
-  url: {{baseUrl}}/wopi/api/v1/files/00000000-dead-beef-0000-000000000001
+  url: {{baseUrl}}/wopi/api/v1/files/00000000-dead-beef-0000-000000000001?access_token={{wopiAccessToken}}
   body: none
   auth: none
 }
@@ -34,4 +31,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-
