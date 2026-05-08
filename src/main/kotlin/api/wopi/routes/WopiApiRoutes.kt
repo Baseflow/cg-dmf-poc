@@ -328,7 +328,7 @@ private suspend fun RoutingContext.getFileContents() {
         }
 
         // Use internal storage path for lookup, but public filename for the response header
-        val objectKey = eio.bestandsLocatie ?: eio.bestandsRepository
+        val objectKey = eio.bestandsLocatie
         if (objectKey.isBlank()) {
             call.respondProblem(
                 HttpStatusCode.NotFound,
