@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25549613262",
+    "runNumber": "531",
+    "branch": "task/CGDMF-96-lock",
+    "date": "2026-05-08T10:10:09Z",
+    "path": "integration/25549613262/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25549474125",
     "runNumber": "530",
     "branch": "CGDMF-91-WOPI-authentication",
