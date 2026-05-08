@@ -5,7 +5,6 @@ package com.baseflow.api.wopi.routes
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
@@ -258,10 +257,8 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
-    var uuid: UUID
-
-    try {
-        uuid = UUID.fromString(fileId)
+    val uuid = try {
+        UUID.fromString(fileId)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
@@ -270,10 +267,8 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
-    var currentFile: EnkelvoudigInformatieObjectResponse? = null
-
-    try {
-        currentFile = service.getById(uuid)
+    val currentFile = try {
+        service.getById(uuid)
     } catch (_: NotFoundException) {
         call.respondProblem(
             HttpStatusCode.NotFound,
@@ -318,7 +313,6 @@ private suspend fun RoutingContext.updateFileContents() {
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to response.beginRegistratie))
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid input", call.request.path()))
-        return
     }
 }
 
