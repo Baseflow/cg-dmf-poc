@@ -11,10 +11,11 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * Issues and validates self-contained, HMAC-SHA256 signed WOPI Short-Lived Access Tokens (SLATs).
  *
- * Token format (Base64URL-encoded): `<fileId>.<expiresAt>.<signature>`
+ * Token format (on the wire): `<base64url(payload)>.<base64url(signature)>`
+ * - `payload`   — `"<fileId>.<expiresAt>"`
  * - `fileId`    — UUID of the EnkelvoudigInformatieObject
  * - `expiresAt` — Unix epoch seconds (long) when the token expires
- * - `signature` — HMAC-SHA256 of `"<fileId>.<expiresAt>"` using [secret]
+ * - `signature` — HMAC-SHA256 of `payload` using [secret]
  *
  * No database storage is required; the token is fully self-contained and
  * verified by re-computing the HMAC on each request.
