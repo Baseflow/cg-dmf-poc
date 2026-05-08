@@ -5,7 +5,6 @@ package com.baseflow.api.wopi.routes
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
@@ -13,6 +12,7 @@ import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.models.wopi.WopiLockResult
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -55,6 +55,31 @@ fun Route.wopiApiRoutes() {
                     response(401) { description = "Invalid access token." }
                     response(404) { description = "Resource not found or user unauthorized." }
                     response(500) { description = "Server error." }
+                }
+            }
+
+            post { lockFile() }.describe {
+                operationId = "lockFile"
+                tag("wopi")
+                summary = "Locks a file"
+                description =
+                    "The WOPI-client locks a file."
+                parameters {
+                    path("file_id") {
+                        description = "The UUID of the file to lock."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Successfully locked the file."
+                    }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Lock mismatch or locked by another interface." }
+                    response(500) { description = "Internal server error." }
                 }
             }
 
@@ -128,10 +153,8 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
-    var uuid: UUID
-
-    try {
-        uuid = UUID.fromString(fileId)
+    val uuid = try {
+        UUID.fromString(fileId)
     } catch (e: IllegalArgumentException) {
         call.respondProblem(
             HttpStatusCode.BadRequest,
@@ -140,10 +163,8 @@ private suspend fun RoutingContext.updateFileContents() {
         return
     }
 
-    var currentFile: EnkelvoudigInformatieObjectResponse? = null
-
-    try {
-        currentFile = service.getById(uuid)
+    val currentFile = try {
+        service.getById(uuid)
     } catch (_: NotFoundException) {
         call.respondProblem(
             HttpStatusCode.NotFound,
@@ -188,6 +209,77 @@ private suspend fun RoutingContext.updateFileContents() {
         call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to response.beginRegistratie))
     } catch (e: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest(e.message ?: "Invalid input", call.request.path()))
+        return
+    }
+}
+
+private suspend fun RoutingContext.lockFile() {
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "LOCK") {
+        call.respondProblem(
+            HttpStatusCode.NotImplemented,
+            badRequest("X-WOPI-Override header must be LOCK", call.request.path()),
+        )
+        return
+    }
+
+    val lock = call.request.headers["X-WOPI-Lock"]
+    if (lock == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Lock header is required but missing", call.request.path()),
+        )
+        return
+    }
+
+    val fileId = call.parameters["file_id"]
+    if (fileId == null) {
+        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
+        return
+    }
+
+    val uuid = try {
+        UUID.fromString(fileId)
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
+        )
+        return
+    }
+
+    try {
+        when (val response = service.wopiLock(uuid, lock)) {
+            null -> {
+                call.respondProblem(
+                    HttpStatusCode.NotFound,
+                    notFound("File not found", call.request.path()),
+                )
+                return
+            }
+
+            is WopiLockResult.Success -> {
+                call.respond(HttpStatusCode.OK)
+            }
+
+            is WopiLockResult.AlreadyLocked -> {
+                // TODO(elitsa): RefreshLock
+                call.respond(HttpStatusCode.OK)
+            }
+
+            is WopiLockResult.LockMismatch -> {
+                call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("Lock mismatch: file is locked with a different token"),
+                )
+            }
+        }
+    } catch (e: IllegalArgumentException) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(e.message ?: "Unsuccessful locking of the file", call.request.path()),
+        )
     }
 }
 
@@ -234,7 +326,7 @@ private suspend fun RoutingContext.getFileContents() {
         // Check if the file size exceeds the maximum expected size
         val fileSize = eio.bestandsomvang ?: 0L
         if (fileSize > maxExpectedSize) {
-            call.respond(HttpStatusCode.PreconditionFailed)
+            call.respond(HttpStatusCode.PreconditionFailed, badRequest("File is too large.", call.request.path()))
             return
         }
 
@@ -304,8 +396,8 @@ private suspend fun RoutingContext.getFileMetadata() {
                 userCanWrite = true,
                 supportsAutosave = false,
                 userFriendlyName = "Unknown user",
-                supportsLocks = false,
-                supportsGetLock = false,
+                supportsLocks = true,
+                supportsGetLock = true,
                 supportsUpdate = true,
                 lastModifiedTime = result.beginRegistratie,
                 version = result.versie.toString(),
