@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25732538369",
+    "runNumber": "558",
+    "branch": "CGDMF-73-authorization",
+    "date": "2026-05-12T11:56:15Z",
+    "path": "integration/25732538369/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25731947532",
     "runNumber": "557",
     "branch": "CGDMF-101-Implement-RenameFile",
