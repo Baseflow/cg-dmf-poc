@@ -1,0 +1,34 @@
+meta {
+  name: 06 Get metadata - invalid token (expect 401)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  access_token: this.is.not.a.valid.token
+}
+
+assert {
+  res.status: eq 401
+}
+
+script:post-response {
+  test("Response body explains invalid token", function() {
+    const body = res.body;
+    const text = typeof body === "string" ? body : JSON.stringify(body);
+    expect(text.toLowerCase()).to.satisfy(
+      (t) => t.includes("invalid") || t.includes("expired") || t.includes("unauthorized")
+    );
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
