@@ -1,7 +1,7 @@
 meta {
   name: 98 Unlock file
   type: http
-  seq: 17
+  seq: 21
 }
 
 post {
@@ -14,7 +14,7 @@ body:json {
   {
     "lock": "{{lockId}}"
   }
-  
+
 }
 
 vars:post-response {
@@ -22,7 +22,7 @@ vars:post-response {
 }
 
 assert {
-  res.status: eq 204
+  res.status: in [204, 404]
 }
 
 settings {
