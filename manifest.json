@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25747759891",
+    "runNumber": "575",
+    "branch": "dependabot/gradle/com.auth0-jwks-rsa-0.24.0",
+    "date": "2026-05-12T16:32:37Z",
+    "path": "integration/25747759891/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25743350783",
     "runNumber": "569",
     "branch": "CGDMF-100-DeleteFile",
