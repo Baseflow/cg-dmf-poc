@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25742311571",
+    "runNumber": "566",
+    "branch": "CGDMF-100-DeleteFile",
+    "date": "2026-05-12T14:56:20Z",
+    "path": "integration/25742311571/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25742258407",
     "runNumber": "565",
     "branch": "CGDMF-101-Implement-RenameFile",
