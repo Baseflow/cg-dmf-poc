@@ -11,6 +11,7 @@ import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.notImplemented
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.wopi.WopiFileIdPlugin
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
@@ -37,7 +38,6 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import io.ktor.utils.io.toByteArray
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.UUID
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.wopiApiRoutes() {
@@ -49,6 +49,8 @@ fun Route.wopiApiRoutes() {
     )
 
     route(WOPI_API_BASE_PATH) {
+        install(WopiFileIdPlugin)
+
         // ── Token issuance ─────────────────────────────────────────────────────
         authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
             post("/token/{file_id}") {
@@ -80,6 +82,7 @@ fun Route.wopiApiRoutes() {
 
         // ── Protected file endpoints ───────────────────────────────────────────
         route("/files/{file_id}") {
+            install(WopiFileIdPlugin)
             install(WopiSlatAuthPlugin) {
                 this.slatService = slatService
             }
@@ -207,21 +210,7 @@ fun Route.wopiApiRoutes() {
 }
 
 private suspend fun RoutingContext.issueToken(slatService: WopiSlatService) {
-    val fileId = call.parameters["file_id"]
-    if (fileId == null) {
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest("file_id parameter is required", call.request.path()),
-        )
-        return
-    }
-
-    val uuid = try {
-        UUID.fromString(fileId)
-    } catch (_: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
-        return
-    }
+    val uuid = call.attributes[WopiValidatedFileIdKey]
 
     val exists = transaction { EIORecordEntity.findById(uuid) != null }
     if (!exists) {
@@ -246,33 +235,22 @@ private suspend fun RoutingContext.unlockFile() {
         return
     }
 
-    val fileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
-        ?: run {
-            call.respondProblem(HttpStatusCode.Unauthorized, badRequest("Missing validated file id", call.request.path()))
-            return
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+    when (val result = service.wopiUnlock(fileId, lock)) {
+        null -> call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+        is WopiUnlockResult.Success -> call.respond(HttpStatusCode.OK)
+        is WopiUnlockResult.NotLocked -> {
+            call.response.header("X-WOPI-Lock", "")
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File is not locked", call.request.path()))
         }
 
-    try {
-        when (val result = service.wopiUnlock(fileId, lock)) {
-            null -> call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
-            is WopiUnlockResult.Success -> call.respond(HttpStatusCode.OK)
-            is WopiUnlockResult.NotLocked -> {
-                call.response.header("X-WOPI-Lock", "")
-                call.respondProblem(HttpStatusCode.Conflict, conflict("File is not locked", call.request.path()))
-            }
-            is WopiUnlockResult.LockMismatch -> {
-                call.response.header("X-WOPI-Lock", result.currentFileLock.lock)
-                call.respondProblem(
-                    HttpStatusCode.Conflict,
-                    conflict("Lock mismatch: file is locked with a different token", call.request.path()),
-                )
-            }
+        is WopiUnlockResult.LockMismatch -> {
+            call.response.header("X-WOPI-Lock", result.currentFileLock.lock)
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("Lock mismatch: file is locked with a different token", call.request.path()),
+            )
         }
-    } catch (e: IllegalArgumentException) {
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
-        )
     }
 }
 
@@ -286,36 +264,26 @@ private suspend fun RoutingContext.lockFile() {
         return
     }
 
-    val fileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
-        ?: run {
-            call.respondProblem(HttpStatusCode.Unauthorized, badRequest("Missing validated file id", call.request.path()))
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+    when (val response = service.wopiLock(fileId, lock)) {
+        null -> {
+            call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
             return
         }
 
-    try {
-        when (val response = service.wopiLock(fileId, lock)) {
-            null -> {
-                call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
-                return
-            }
-            is WopiLockResult.Success -> call.respond(HttpStatusCode.OK)
-            is WopiLockResult.AlreadyLocked -> {
-                // TODO(elitsa): RefreshLock
-                call.respond(HttpStatusCode.OK)
-            }
-            is WopiLockResult.LockMismatch -> {
-                call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
-                call.respondProblem(
-                    HttpStatusCode.Conflict,
-                    conflict("Lock mismatch: file is locked with a different token"),
-                )
-            }
+        is WopiLockResult.Success -> call.respond(HttpStatusCode.OK)
+        is WopiLockResult.AlreadyLocked -> {
+            // TODO(elitsa): RefreshLock
+            call.respond(HttpStatusCode.OK)
         }
-    } catch (e: IllegalArgumentException) {
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest(e.message ?: "Invalid UUID format", call.request.path()),
-        )
+
+        is WopiLockResult.LockMismatch -> {
+            call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("Lock mismatch: file is locked with a different token"),
+            )
+        }
     }
 }
 
@@ -331,15 +299,7 @@ private suspend fun RoutingContext.updateFileContents() {
 
     val lockValue = call.request.headers["X-WOPI-Lock"]
 
-    val validatedFileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
-        ?: run {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("Missing validated file id", call.request.path()),
-            )
-            return
-        }
-
+    val validatedFileId = call.attributes[WopiValidatedFileIdKey]
     var currentFile: EnkelvoudigInformatieObjectResponse?
 
     try {
@@ -381,15 +341,7 @@ private suspend fun RoutingContext.updateFileContents() {
 }
 
 private suspend fun RoutingContext.getFileContents() {
-    val fileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
-        ?: run {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("Missing validated file id", call.request.path()),
-            )
-            return
-        }
-
+    val fileId = call.attributes[WopiValidatedFileIdKey]
     val maxExpectedSize: Int = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
         try {
             it.toInt()
@@ -451,14 +403,7 @@ private suspend fun RoutingContext.getFileContents() {
 }
 
 private suspend fun RoutingContext.getFileMetadata() {
-    val fileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
-        ?: run {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("Missing validated file id", call.request.path()),
-            )
-            return
-        }
+    val fileId = call.attributes[WopiValidatedFileIdKey]
 
     val result = service.getById(fileId, emptyList())
 

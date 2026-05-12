@@ -53,25 +53,8 @@ val WopiSlatAuthPlugin = createRouteScopedPlugin(
 
         // Verify the token was issued for the file_id in the URL path.
         // This prevents using a valid token for one file to access a different file.
-        val rawPathFileId = call.parameters["file_id"]
-        val pathFileId = if (rawPathFileId == null) {
-            null
-        } else {
-            try {
-                UUID.fromString(rawPathFileId)
-            } catch (_: IllegalArgumentException) {
-                call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    ProblemDetailsResponse(
-                        title = "Bad Request",
-                        status = HttpStatusCode.BadRequest.value,
-                        detail = "Invalid file_id path parameter. Expected a UUID.",
-                        instance = call.request.path(),
-                    ),
-                )
-                return@onCall
-            }
-        }
+        // WopiFileIdPlugin (installed on the same route) has already parsed and stored the UUID.
+        val pathFileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
         if (pathFileId != null && pathFileId != fileId) {
             call.respondProblem(
                 HttpStatusCode.Unauthorized,
