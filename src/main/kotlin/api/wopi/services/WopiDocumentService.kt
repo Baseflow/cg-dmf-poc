@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi.wopi
 
+import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockPayload
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
@@ -127,6 +128,23 @@ class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectSer
     /** Streams the file bytes identified by [bestandsnaam] (storage object key) to [output]. */
     fun streamByBestandsnaam(bestandsnaam: String, output: OutputStream, repoName: String? = null) {
         storageService.downloadFileTo(bestandsnaam, output, repoName?.takeUnless { it.isBlank() }).join()
+    }
+
+    /**
+     * Deletes a file per WOPI DeleteFile spec.
+     * If the file is locked, returns [WopiDeleteResult.Locked] — the caller must respond 409
+     * with the current lock token without deleting the file.
+     */
+    fun wopiDeleteFile(id: UUID): WopiDeleteResult {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction WopiDeleteResult.NotFound
+            val currentLock = record.lockToken
+            if (!currentLock.isNullOrEmpty()) {
+                return@transaction WopiDeleteResult.Locked(currentLock)
+            }
+            record.delete()
+            WopiDeleteResult.Success
+        }
     }
 }
 

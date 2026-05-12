@@ -49,3 +49,15 @@ sealed class WopiRenameResult {
     /** The supplied lock does not match the current lock on the file. */
     data class LockMismatch(val currentLock: String) : WopiRenameResult()
 }
+
+sealed class WopiDeleteResult {
+    /** File was deleted successfully. */
+    data object Success : WopiDeleteResult()
+
+    /** No document with the given id exists. */
+    data object NotFound : WopiDeleteResult()
+
+    /** The file is currently locked; deletion is not allowed. */
+    data class Locked(val currentLock: String) : WopiDeleteResult()
+}
+
