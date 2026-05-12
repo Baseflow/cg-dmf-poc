@@ -446,6 +446,16 @@ private suspend fun RoutingContext.renameFile() {
         )
         return
     }
+
+    if (requestedName.length >= 255) {
+        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name is too long.")
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("Requested file name is too long.", call.request.path()),
+        )
+        return
+    }
+
     if (requestedName.contains('/') || requestedName.contains('\\') || requestedName.startsWith('.')) {
         call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
         call.respondProblem(

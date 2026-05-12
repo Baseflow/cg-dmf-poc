@@ -1,0 +1,306 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+package com.baseflow.api.wopi.wopi
+
+import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.wopi.models.WopiLockResult
+import com.baseflow.api.wopi.models.WopiPutFileResult
+import com.baseflow.api.wopi.models.WopiRenameResult
+import com.baseflow.api.wopi.models.WopiUnlockResult
+import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
+import com.baseflow.services.BestandsDeelService
+import com.baseflow.services.BlobStorageRegistrar
+import com.baseflow.services.CatalogusService
+import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.StorageService
+import com.baseflow.testutils.TestDataFactory
+import com.baseflow.testutils.TestDataFactory.generateTestDocument
+import com.baseflow.tooling.AllTables
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.ByteArrayOutputStream
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+
+class WopiDocumentServiceTest {
+
+    private lateinit var service: WopiDocumentService
+    private lateinit var eioService: EnkelvoudigInformatieObjectService
+    private lateinit var mockStorageService: StorageService
+    private lateinit var mockAuditTrailService: AuditTrailService
+
+    @BeforeTest
+    fun setup() {
+        BlobStorageRegistrar.resetForTesting()
+        Database.connect(
+            "jdbc:h2:mem:test_wopi;DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver",
+            user = "root",
+            password = "",
+        )
+        transaction { AllTables.createMissing() }
+
+        mockStorageService = mockk<StorageService>()
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every {
+            mockStorageService.downloadFileTo(
+                any(),
+                any(),
+                anyNullable(),
+            )
+        } returns CompletableFuture.completedFuture(null)
+
+        mockAuditTrailService = mockk<AuditTrailService>()
+        every { mockAuditTrailService.removeAuditTrailsForResource(any()) } returns Unit
+
+        eioService = EnkelvoudigInformatieObjectService(
+            storageService = mockStorageService,
+            applicationConfig = ApplicationConfig,
+            catalogusService = CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            auditTrailService = mockAuditTrailService,
+            auditContext = AuditContext(),
+            bestandsDeelService = BestandsDeelService(),
+        )
+        service = WopiDocumentService(eioService, mockStorageService)
+    }
+
+    @AfterTest
+    fun teardown() {
+        BlobStorageRegistrar.resetForTesting()
+        transaction { SchemaUtils.drop(*AllTables.tables.reversedArray()) }
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
+    private fun createEio(withContent: Boolean = true): UUID = runBlocking {
+        val req = generateTestDocument(withContent = withContent)
+        UUID.fromString(eioService.create(req).id)
+    }
+
+    // ── wopiLock ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiLock - returns null for unknown id`() {
+        val result = service.wopiLock(UUID.randomUUID(), "lock-1")
+        assertNull(result)
+    }
+
+    @Test
+    fun `wopiLock - succeeds on unlocked file`() {
+        val id = createEio()
+        val result = service.wopiLock(id, "lock-abc")
+        assertIs<WopiLockResult.Success>(result)
+    }
+
+    @Test
+    fun `wopiLock - returns AlreadyLocked when same lock is used again`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiLock(id, "lock-abc")
+        assertIs<WopiLockResult.AlreadyLocked>(result)
+    }
+
+    @Test
+    fun `wopiLock - returns LockMismatch when different lock is supplied`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiLock(id, "lock-xyz")
+        assertIs<WopiLockResult.LockMismatch>(result)
+        assertEquals("lock-abc", result.currentFileLock.lock)
+    }
+
+    // ── wopiUnlock ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiUnlock - returns null for unknown id`() {
+        val result = service.wopiUnlock(UUID.randomUUID(), "lock-1")
+        assertNull(result)
+    }
+
+    @Test
+    fun `wopiUnlock - returns NotLocked when file is not locked`() {
+        val id = createEio()
+        val result = service.wopiUnlock(id, "any-lock")
+        assertIs<WopiUnlockResult.NotLocked>(result)
+    }
+
+    @Test
+    fun `wopiUnlock - returns LockMismatch when wrong lock is supplied`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiUnlock(id, "lock-wrong")
+        assertIs<WopiUnlockResult.LockMismatch>(result)
+        assertEquals("lock-abc", result.currentFileLock.lock)
+    }
+
+    @Test
+    fun `wopiUnlock - succeeds with matching lock`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiUnlock(id, "lock-abc")
+        assertIs<WopiUnlockResult.Success>(result)
+    }
+
+    @Test
+    fun `wopiUnlock - file can be locked again after successful unlock`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        service.wopiUnlock(id, "lock-abc")
+        val result = service.wopiLock(id, "lock-new")
+        assertIs<WopiLockResult.Success>(result)
+    }
+
+    // ── wopiPutFile ───────────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiPutFile - returns NotFound for unknown id`(): Unit = runBlocking {
+        val result = service.wopiPutFile(UUID.randomUUID(), byteArrayOf(1, 2), null)
+        assertIs<WopiPutFileResult.NotFound>(result)
+    }
+
+    @Test
+    fun `wopiPutFile - returns LockMismatch when file has content and no lock supplied`() = runBlocking {
+        val id = createEio(withContent = true)
+        val result = service.wopiPutFile(id, byteArrayOf(1, 2), lockValue = null)
+        assertIs<WopiPutFileResult.LockMismatch>(result)
+        assertEquals("", result.currentLock)
+    }
+
+    @Test
+    fun `wopiPutFile - returns LockMismatch when wrong lock is supplied`() = runBlocking {
+        val id = createEio(withContent = true)
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiPutFile(id, byteArrayOf(1, 2), lockValue = "lock-wrong")
+        assertIs<WopiPutFileResult.LockMismatch>(result)
+        assertEquals("lock-abc", result.currentLock)
+    }
+
+    @Test
+    fun `wopiPutFile - succeeds with matching lock`() = runBlocking {
+        val id = createEio(withContent = true)
+        service.wopiLock(id, "lock-abc")
+        val bytes = TestDataFactory.PDF_CONTENT.let {
+            java.util.Base64.getDecoder().decode(it)
+        }
+        val result = service.wopiPutFile(id, bytes, lockValue = "lock-abc")
+        assertIs<WopiPutFileResult.Success>(result)
+        assertEquals(bytes.size.toLong(), result.response.bestandsomvang)
+    }
+
+    @Test
+    fun `wopiPutFile - increments version on success`() = runBlocking {
+        val id = createEio(withContent = true)
+        val before = eioService.getById(id)
+        assertNotNull(before)
+        service.wopiLock(id, "lock-abc")
+        val bytes = java.util.Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+        val result = service.wopiPutFile(id, bytes, lockValue = "lock-abc")
+        assertIs<WopiPutFileResult.Success>(result)
+        assertEquals(before.versie + 1, result.response.versie)
+    }
+
+    // ── wopiRenameFile ────────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiRenameFile - returns NotFound for unknown id`() {
+        val result = service.wopiRenameFile(UUID.randomUUID(), "new.docx", null)
+        assertIs<WopiRenameResult.NotFound>(result)
+    }
+
+    @Test
+    fun `wopiRenameFile - succeeds on unlocked file without lock`() {
+        val id = createEio()
+        val result = service.wopiRenameFile(id, "renamed.docx", lockValue = null)
+        assertIs<WopiRenameResult.Success>(result)
+    }
+
+    @Test
+    fun `wopiRenameFile - returns LockMismatch when file is locked and no lock supplied`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiRenameFile(id, "renamed.docx", lockValue = null)
+        assertIs<WopiRenameResult.LockMismatch>(result)
+        assertEquals("lock-abc", result.currentLock)
+    }
+
+    @Test
+    fun `wopiRenameFile - returns LockMismatch when wrong lock supplied`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiRenameFile(id, "renamed.docx", lockValue = "lock-wrong")
+        assertIs<WopiRenameResult.LockMismatch>(result)
+        assertEquals("lock-abc", result.currentLock)
+    }
+
+    @Test
+    fun `wopiRenameFile - succeeds with matching lock`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiRenameFile(id, "renamed.docx", lockValue = "lock-abc")
+        assertIs<WopiRenameResult.Success>(result)
+    }
+
+    @Test
+    fun `wopiRenameFile - persists new filename`() = runBlocking {
+        val id = createEio()
+        service.wopiRenameFile(id, "new-name.docx", lockValue = null)
+        val eio = eioService.getById(id)
+        assertEquals("new-name.docx", eio?.bestandsnaam)
+    }
+
+    // ── wopiGetFileVersion ────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiGetFileVersion - returns null for unknown id`() {
+        val result = service.wopiGetFileVersion(UUID.randomUUID())
+        assertNull(result)
+    }
+
+    @Test
+    fun `wopiGetFileVersion - returns correct version details`() = runBlocking {
+        val req = generateTestDocument(bestandsnaam = "test.pdf", withContent = true)
+        val created = eioService.create(req)
+        val id = UUID.fromString(created.id)
+
+        val result = service.wopiGetFileVersion(id)
+        assertNotNull(result)
+        assertEquals("test.pdf", result.bestandsnaam)
+        assertEquals(1, result.versie)
+        assertEquals(id, result.recordId)
+    }
+
+    @Test
+    fun `wopiGetFileVersion - returns latest version after update`() = runBlocking {
+        val id = createEio(withContent = true)
+        service.wopiLock(id, "lock-abc")
+        val bytes = java.util.Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT_ALT)
+        service.wopiPutFile(id, bytes, lockValue = "lock-abc")
+
+        val result = service.wopiGetFileVersion(id)
+        assertNotNull(result)
+        assertEquals(2, result.versie)
+    }
+
+    // ── streamByBestandsnaam ──────────────────────────────────────────────────
+
+    @Test
+    fun `streamByBestandsnaam - delegates to storage service`() {
+        val output = ByteArrayOutputStream()
+        service.streamByBestandsnaam("some/path/file.pdf", output, repoName = null)
+        // mockStorageService.downloadFileTo verified as called — io.mockk will fail if not invoked
+        io.mockk.verify { mockStorageService.downloadFileTo("some/path/file.pdf", output, null) }
+    }
+}
