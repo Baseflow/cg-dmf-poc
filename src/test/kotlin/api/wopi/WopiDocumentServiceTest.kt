@@ -3,6 +3,7 @@
 package com.baseflow.api.wopi.wopi
 
 import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
@@ -302,5 +303,54 @@ class WopiDocumentServiceTest {
         service.streamByBestandsnaam("some/path/file.pdf", output, repoName = null)
         // mockStorageService.downloadFileTo verified as called — io.mockk will fail if not invoked
         io.mockk.verify { mockStorageService.downloadFileTo("some/path/file.pdf", output, null) }
+    }
+
+    // ── wopiDeleteFile ────────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiDeleteFile - returns NotFound for unknown id`() {
+        val result = service.wopiDeleteFile(UUID.randomUUID())
+        assertIs<WopiDeleteResult.NotFound>(result)
+    }
+
+    @Test
+    fun `wopiDeleteFile - returns Locked when file is locked`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        val result = service.wopiDeleteFile(id)
+        assertIs<WopiDeleteResult.Locked>(result)
+        assertEquals("lock-abc", result.currentLock)
+    }
+
+    @Test
+    fun `wopiDeleteFile - does not delete file when locked`(): Unit = runBlocking {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        service.wopiDeleteFile(id)
+        // File should still exist
+        assertNotNull(eioService.getById(id))
+    }
+
+    @Test
+    fun `wopiDeleteFile - succeeds on unlocked file`() {
+        val id = createEio()
+        val result = service.wopiDeleteFile(id)
+        assertIs<WopiDeleteResult.Success>(result)
+    }
+
+    @Test
+    fun `wopiDeleteFile - file no longer exists after successful delete`() = runBlocking {
+        val id = createEio()
+        service.wopiDeleteFile(id)
+        assertNull(eioService.getById(id))
+    }
+
+    @Test
+    fun `wopiDeleteFile - succeeds after unlocking a previously locked file`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        service.wopiUnlock(id, "lock-abc")
+        val result = service.wopiDeleteFile(id)
+        assertIs<WopiDeleteResult.Success>(result)
     }
 }

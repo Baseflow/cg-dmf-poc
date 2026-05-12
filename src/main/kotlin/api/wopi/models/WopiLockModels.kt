@@ -60,4 +60,3 @@ sealed class WopiDeleteResult {
     /** The file is currently locked; deletion is not allowed. */
     data class Locked(val currentLock: String) : WopiDeleteResult()
 }
-

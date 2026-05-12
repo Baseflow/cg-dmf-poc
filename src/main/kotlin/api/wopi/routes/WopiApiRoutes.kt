@@ -503,4 +503,3 @@ private suspend fun RoutingContext.deleteFile() {
         is WopiDeleteResult.Success -> call.respond(HttpStatusCode.OK)
     }
 }
-
