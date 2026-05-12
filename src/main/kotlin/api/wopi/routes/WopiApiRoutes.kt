@@ -119,6 +119,7 @@ fun Route.wopiApiRoutes() {
                 when (call.request.headers["X-WOPI-Override"]) {
                     "LOCK" -> lockFile()
                     "UNLOCK" -> unlockFile()
+                    "RENAME_FILE" -> renameFile()
                     else -> call.respondProblem(
                         HttpStatusCode.NotImplemented,
                         badRequest("Unsupported X-WOPI-Override value", call.request.path()),
@@ -126,9 +127,11 @@ fun Route.wopiApiRoutes() {
                 }
             }.describe {
                 tag("wopi")
-                summary = "Locks/unlocks a file"
+                summary = "Issues a WOPI operation"
                 description =
-                    "The WOPI-client locks or unlocks a file, based on the `X-WOPI-Override` header. Supported values are LOCK and UNLOCK."
+                    "The WOPI-client issues a certain WOPI operation, based on the `X-WOPI-Override` header. " +
+                    "Supported values are: LOCK, UNLOCK, RENAME_FILE. " +
+                    "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the file to lock/unlock."
@@ -136,46 +139,13 @@ fun Route.wopiApiRoutes() {
                     }
                 }
                 responses {
-                    response(200) { description = "Successfully locked/unlocked the file." }
+                    response(200) { description = "WOPI operation successful." }
                     response(400) { description = "Bad request." }
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
                     response(404) { description = "Not found." }
                     response(409) { description = "Lock mismatch or locked by another interface." }
                     response(500) { description = "Internal server error." }
-                }
-            }
-
-            post {
-                renameFile()
-            }.describe {
-                operationId = "renameFile"
-                tag("wopi")
-                summary = "Rename a file."
-                description =
-                    "Renames the file. Requires `X-WOPI-Override: RENAME_FILE` and `X-WOPI-RequestedName` headers, " +
-                    "and a valid `access_token` query parameter. " +
-                    "If the file is locked, `X-WOPI-Lock` must match the current lock token."
-                parameters {
-                    path("file_id") {
-                        description = "The UUID of the file to rename."
-                        required = true
-                    }
-                    query("access_token") {
-                        description = "Short-lived access token obtained from POST /token/{file_id}."
-                        required = true
-                    }
-                }
-                responses {
-                    response(200) {
-                        description = "File renamed successfully."
-                        ContentType.Application.Json { schema = jsonSchema<RenameFileResponse>() }
-                    }
-                    response(400) { description = "Missing or invalid X-WOPI-RequestedName." }
-                    response(401) { description = "Invalid access token." }
-                    response(409) { description = "Lock mismatch." }
-                    response(500) { description = "Server error." }
-                    response(501) { description = "Operation not supported (wrong X-WOPI-Override value)." }
                 }
             }
 

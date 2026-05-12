@@ -1,7 +1,7 @@
 meta {
-  name: 13 Rename file (valid token, unlocked)
+  name: 17 Rename file - wrong X-WOPI-Override (expect 501)
   type: http
-  seq: 13
+  seq: 16
 }
 
 post {
@@ -15,13 +15,12 @@ params:query {
 }
 
 headers {
-  X-WOPI-Override: RENAME_FILE
-  X-WOPI-RequestedName: renamed-document.docx
+  X-WOPI-Override: UNKNOWN_OP
+  X-WOPI-RequestedName: new-name.docx
 }
 
 assert {
-  res.status: eq 200
-  res.body.Name: eq renamed-document.docx
+  res.status: eq 501
 }
 
 settings {
