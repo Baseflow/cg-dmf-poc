@@ -10,9 +10,6 @@ import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.RequestScope
 import com.baseflow.entities.*
 import com.baseflow.services.models.*
-import com.baseflow.services.models.wopi.WopiLockPayload
-import com.baseflow.services.models.wopi.WopiLockResult
-import com.baseflow.services.models.wopi.WopiUnlockResult
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
@@ -816,46 +813,6 @@ class EnkelvoudigInformatieObjectService(
             val token = UUID.randomUUID().toString()
             record.lockToken = token
             LockResult.Success(LockPayload(lock = token))
-        }
-    }
-
-    fun wopiLock(id: UUID, wopiClientLock: String): WopiLockResult? {
-        return transaction {
-            val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val storedLock = record.lockToken
-            if (!storedLock.isNullOrEmpty()) {
-                if (storedLock == wopiClientLock) {
-                    return@transaction WopiLockResult.AlreadyLocked
-                } else {
-                    return@transaction WopiLockResult.LockMismatch(currentFileLock = WopiLockPayload(lock = storedLock))
-                }
-            }
-            record.lockToken = wopiClientLock
-            WopiLockResult.Success
-        }
-    }
-
-    fun wopiUnlock(id: UUID, wopiClientLock: String): WopiUnlockResult? {
-        return transaction {
-            val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val storedLock = record.lockToken ?: return@transaction WopiUnlockResult.NotLocked
-            if (storedLock != wopiClientLock) {
-                return@transaction WopiUnlockResult.LockMismatch(WopiLockPayload(lock = storedLock))
-            }
-            record.lockToken = null
-            WopiUnlockResult.Success
-        }
-    }
-
-    fun renameFile(id: UUID, newFileName: String): Boolean {
-        return transaction {
-            val record = EIORecordEntity.findById(id) ?: return@transaction false
-            val latestVersion = record.latestVersion() ?: return@transaction false
-            // Only update the display filename in the DB. The blob object key is not moved —
-            // WOPI RenameFile only changes the name shown to the user, not the storage location.
-            latestVersion.bestandsnaam = newFileName
-
-            true
         }
     }
 
