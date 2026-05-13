@@ -495,7 +495,7 @@ private suspend fun RoutingContext.deleteFile() {
 
     when (val result = wopiService.wopiDeleteFile(fileId)) {
         is WopiDeleteResult.NotFound ->
-            call.respondProblem(HttpStatusCode.NotFound, notFound("EnkelvoudigInformatieObject not found", call.request.path()))
+            call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
         is WopiDeleteResult.Locked -> {
             call.response.headers.append("X-WOPI-Lock", result.currentLock)
             call.respondProblem(HttpStatusCode.Conflict, conflict("File is locked and cannot be deleted.", call.request.path()))
