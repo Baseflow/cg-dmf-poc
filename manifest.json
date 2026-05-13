@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25803865313",
+    "runNumber": "585",
+    "branch": "CGDMF-115-remove-oio-by-eio",
+    "date": "2026-05-13T14:04:58Z",
+    "path": "integration/25803865313/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25803874348",
     "runNumber": "68",
