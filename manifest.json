@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25799305313",
+    "runNumber": "579",
+    "branch": "dependabot/gradle/kotlin-e6a71b48a5",
+    "date": "2026-05-13T12:39:02Z",
+    "path": "integration/25799305313/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25774366049",
     "runNumber": "577",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/next-16.2.6",
