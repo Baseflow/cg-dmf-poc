@@ -27,4 +27,8 @@ data class CheckFileInfoResponse(
     val lastModifiedTime: String,
     @SerialName("Version")
     val version: String,
+    @SerialName("SupportsRename")
+    val supportsRename: Boolean = true,
+    @SerialName("UserCanRename")
+    val userCanRename: Boolean = true,
 )

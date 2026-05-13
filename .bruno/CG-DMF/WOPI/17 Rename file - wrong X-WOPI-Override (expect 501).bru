@@ -1,0 +1,29 @@
+meta {
+  name: 17 Rename file - wrong X-WOPI-Override (expect 501)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}?access_token={{wopiAccessToken}}
+  body: none
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: UNKNOWN_OP
+  X-WOPI-RequestedName: new-name.docx
+}
+
+assert {
+  res.status: eq 501
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
