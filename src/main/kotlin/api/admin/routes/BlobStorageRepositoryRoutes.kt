@@ -6,9 +6,6 @@ import com.baseflow.api.models.BlobStorageRepositoryResponse
 import com.baseflow.api.models.CreateBlobStorageRepositoryRequest
 import com.baseflow.api.models.SetDefaultRepositoryRequest
 import com.baseflow.api.models.UpdateBlobStorageRepositoryRequest
-import com.baseflow.api.models.badRequest
-import com.baseflow.api.models.conflict
-import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.config.BlobStorageRepoConfig
 import com.baseflow.config.BlobStorageType
@@ -72,7 +69,7 @@ fun Route.blobStorageRepositoryRoutes() {
             val provider = BlobStorageRegistrar.defaultProvider()
                 ?: return@get call.respondProblem(
                     HttpStatusCode.NotFound,
-                    notFound("No default blob storage repository configured.", call.request.path()),
+                    "No default blob storage repository configured.",
                 )
 
             val repo = transaction {
@@ -81,7 +78,7 @@ fun Route.blobStorageRepositoryRoutes() {
                     ?.toResponse()
             } ?: return@get call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Default repository '${provider.name}' not found in database.", call.request.path()),
+                "Default repository '${provider.name}' not found in database.",
             )
 
             call.respond(repo)
@@ -102,23 +99,17 @@ fun Route.blobStorageRepositoryRoutes() {
             val body = runCatching { call.receive<SetDefaultRepositoryRequest>() }.getOrNull()
                 ?: return@put call.respondProblem(
                     HttpStatusCode.BadRequest,
-                    badRequest("Request body must be JSON with a 'name' field.", call.request.path()),
+                    "Request body must be JSON with a 'name' field.",
                 )
 
             if (body.name.isBlank()) {
-                return@put call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("'name' must not be blank.", call.request.path()),
-                )
+                return@put call.respondProblem(HttpStatusCode.BadRequest, "'name' must not be blank.")
             }
 
             val result = runCatching { BlobStorageRegistrar.setDefaultProvider(body.name) }
             if (result.isFailure) {
                 val msg = result.exceptionOrNull()?.message ?: "Unknown error"
-                return@put call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest(msg, call.request.path()),
-                )
+                return@put call.respondProblem(HttpStatusCode.BadRequest, msg)
             }
 
             val updated = transaction {
@@ -127,7 +118,7 @@ fun Route.blobStorageRepositoryRoutes() {
                     ?.toResponse()
             } ?: return@put call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Blob storage repository with name '${body.name}' not found.", call.request.path()),
+                "Blob storage repository with name '${body.name}' not found.",
             )
             call.respond(HttpStatusCode.OK, updated)
         }
@@ -146,16 +137,13 @@ fun Route.blobStorageRepositoryRoutes() {
         get("/{id}") {
             val id = call.parameters["id"]
                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                ?: return@get call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("Invalid UUID.", call.request.path()),
-                )
+                ?: return@get call.respondProblem(HttpStatusCode.BadRequest, "Invalid UUID.")
 
             val repo = transaction {
                 BlobStorageRepositoryEntity.findById(id)?.toResponse()
             } ?: return@get call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Blob storage repository with id '$id' not found.", call.request.path()),
+                "Blob storage repository with id '$id' not found.",
             )
 
             call.respond(repo)
@@ -173,28 +161,21 @@ fun Route.blobStorageRepositoryRoutes() {
         // POST /admin/storage-repositories
         post {
             val body = runCatching { call.receive<CreateBlobStorageRepositoryRequest>() }.getOrNull()
-                ?: return@post call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("Request body must be valid JSON.", call.request.path()),
-                )
+                ?: return@post call.respondProblem(HttpStatusCode.BadRequest, "Request body must be valid JSON.")
 
             if (body.name.isBlank()) {
-                return@post call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("'name' must not be blank.", call.request.path()),
-                )
+                return@post call.respondProblem(HttpStatusCode.BadRequest, "'name' must not be blank.")
             }
 
             val storageType = runCatching { BlobStorageType.fromLabel(body.storageType) }.getOrElse {
                 return@post call.respondProblem(
                     HttpStatusCode.BadRequest,
-                    badRequest("Unknown storageType '${body.storageType}'.", call.request.path()),
+                    "Unknown storageType '${body.storageType}'.",
                 )
             }
 
             val created = runCatching {
                 transaction {
-                    // If this one should be default, clear existing defaults first
                     if (body.isDefault) {
                         BlobStorageRepositoryEntity.all().filter { it.isDefault }.forEach { it.isDefault = false }
                     }
@@ -219,10 +200,7 @@ fun Route.blobStorageRepositoryRoutes() {
                 if (ex.isUniqueNameViolation()) {
                     return@post call.respondProblem(
                         HttpStatusCode.Conflict,
-                        conflict(
-                            "A blob storage repository with name '${body.name}' already exists.",
-                            call.request.path(),
-                        ),
+                        "A blob storage repository with name '${body.name}' already exists.",
                     )
                 }
                 throw ex
@@ -261,23 +239,14 @@ fun Route.blobStorageRepositoryRoutes() {
         patch("/{id}") {
             val id = call.parameters["id"]
                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                ?: return@patch call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("Invalid UUID.", call.request.path()),
-                )
+                ?: return@patch call.respondProblem(HttpStatusCode.BadRequest, "Invalid UUID.")
 
             val body = runCatching { call.receive<UpdateBlobStorageRepositoryRequest>() }.getOrNull()
-                ?: return@patch call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("Request body must be valid JSON.", call.request.path()),
-                )
+                ?: return@patch call.respondProblem(HttpStatusCode.BadRequest, "Request body must be valid JSON.")
 
             val storageType = body.storageType?.let {
                 runCatching { BlobStorageType.fromLabel(it) }.getOrElse {
-                    return@patch call.respondProblem(
-                        HttpStatusCode.BadRequest,
-                        badRequest("Unknown storageType '$it'.", call.request.path()),
-                    )
+                    return@patch call.respondProblem(HttpStatusCode.BadRequest, "Unknown storageType '$it'.")
                 }
             }
 
@@ -314,16 +283,13 @@ fun Route.blobStorageRepositoryRoutes() {
                 if (ex.isUniqueNameViolation()) {
                     return@patch call.respondProblem(
                         HttpStatusCode.Conflict,
-                        conflict(
-                            "A blob storage repository with name '${body.name}' already exists.",
-                            call.request.path(),
-                        ),
+                        "A blob storage repository with name '${body.name}' already exists.",
                     )
                 }
                 throw ex
             } ?: return@patch call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Blob storage repository with id '$id' not found.", call.request.path()),
+                "Blob storage repository with id '$id' not found.",
             )
 
             val (oldName, entity) = updated
@@ -360,10 +326,7 @@ fun Route.blobStorageRepositoryRoutes() {
         delete("/{id}") {
             val id = call.parameters["id"]
                 ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                ?: return@delete call.respondProblem(
-                    HttpStatusCode.BadRequest,
-                    badRequest("Invalid UUID.", call.request.path()),
-                )
+                ?: return@delete call.respondProblem(HttpStatusCode.BadRequest, "Invalid UUID.")
 
             val name = transaction {
                 val entity = BlobStorageRepositoryEntity.findById(id) ?: return@transaction null
@@ -372,7 +335,7 @@ fun Route.blobStorageRepositoryRoutes() {
                 repoName
             } ?: return@delete call.respondProblem(
                 HttpStatusCode.NotFound,
-                notFound("Blob storage repository with id '$id' not found.", call.request.path()),
+                "Blob storage repository with id '$id' not found.",
             )
 
             BlobStorageRegistrar.unregisterProvider(name)

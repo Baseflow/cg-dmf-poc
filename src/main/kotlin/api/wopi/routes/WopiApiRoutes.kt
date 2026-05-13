@@ -15,6 +15,7 @@ import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.api.wopi.models.RenameFileResponse
+import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
@@ -120,6 +121,7 @@ fun Route.wopiApiRoutes() {
                     "LOCK" -> lockFile()
                     "UNLOCK" -> unlockFile()
                     "RENAME_FILE" -> renameFile()
+                    "DELETE" -> deleteFile()
                     else -> call.respondProblem(
                         HttpStatusCode.NotImplemented,
                         badRequest("Unsupported X-WOPI-Override value", call.request.path()),
@@ -130,7 +132,7 @@ fun Route.wopiApiRoutes() {
                 summary = "Issues a WOPI operation"
                 description =
                     "The WOPI-client issues a certain WOPI operation, based on the `X-WOPI-Override` header. " +
-                    "Supported values are: LOCK, UNLOCK, RENAME_FILE. " +
+                    "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE. " +
                     "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
                 parameters {
                     path("file_id") {
@@ -485,5 +487,21 @@ private suspend fun RoutingContext.renameFile() {
 
         is WopiRenameResult.Success ->
             call.respond(HttpStatusCode.OK, RenameFileResponse(name = requestedName))
+    }
+}
+
+private suspend fun RoutingContext.deleteFile() {
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+
+    when (val result = wopiService.wopiDeleteFile(fileId)) {
+        is WopiDeleteResult.NotFound ->
+            call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+        is WopiDeleteResult.Locked -> {
+            call.response.headers.append("X-WOPI-Lock", result.currentLock)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File is locked and cannot be deleted.", call.request.path()))
+        }
+        is WopiDeleteResult.HasReferences ->
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File cannot be deleted because it has references.", call.request.path()))
+        is WopiDeleteResult.Success -> call.respond(HttpStatusCode.OK)
     }
 }

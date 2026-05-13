@@ -1,20 +1,21 @@
 meta {
-  name: 99 Cleanup - Delete EIO
+  name: 21 DeleteFile - verify EIO is gone (expect 404)
   type: http
-  seq: 22
+  seq: 20
 }
 
-delete {
+get {
   url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiEioId}}
   body: none
   auth: inherit
 }
 
 assert {
-  res.status: in [204, 404]
+  res.status: eq 404
 }
 
 settings {
   encodeUrl: true
   timeout: 0
 }
+

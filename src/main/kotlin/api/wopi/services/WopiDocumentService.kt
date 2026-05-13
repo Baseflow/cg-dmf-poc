@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi.wopi
-
+import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockPayload
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
@@ -9,9 +9,13 @@ import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiUnlockResult
 import com.baseflow.config.RequestScope
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.OIORecords
 import com.baseflow.entities.latestVersion
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.StorageService
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
@@ -127,6 +131,50 @@ class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectSer
     /** Streams the file bytes identified by [bestandsnaam] (storage object key) to [output]. */
     fun streamByBestandsnaam(bestandsnaam: String, output: OutputStream, repoName: String? = null) {
         storageService.downloadFileTo(bestandsnaam, output, repoName?.takeUnless { it.isBlank() }).join()
+    }
+
+    /**
+     * Deletes a file per WOPI DeleteFile spec.
+     * - If the file is locked, returns [WopiDeleteResult.Locked] without touching the file.
+     * - If the EIO has attached ObjectInformatieObject relations, returns [WopiDeleteResult.HasReferences].
+     * - On success, deletes all associated blobs from storage and returns [WopiDeleteResult.Success].
+     */
+    fun wopiDeleteFile(id: UUID): WopiDeleteResult {
+        val fileLocationsByRepo = mutableMapOf<String, MutableSet<String>>()
+        val result = transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction WopiDeleteResult.NotFound
+
+            val currentLock = record.lockToken
+            if (!currentLock.isNullOrEmpty()) {
+                return@transaction WopiDeleteResult.Locked(currentLock)
+            }
+
+            val hasReferences = !OIORecords
+                .selectAll()
+                .andWhere { OIORecords.informatieobject eq id }
+                .limit(1)
+                .empty()
+            if (hasReferences) {
+                return@transaction WopiDeleteResult.HasReferences
+            }
+
+            record.versions.forEach { version ->
+                if (version.bestandsLocatie.isNotBlank()) {
+                    fileLocationsByRepo
+                        .getOrPut(version.bestandsRepository) { mutableSetOf() }
+                        .add(version.bestandsLocatie)
+                }
+            }
+
+            record.delete()
+            WopiDeleteResult.Success
+        }
+        if (result == WopiDeleteResult.Success) {
+            fileLocationsByRepo.forEach { (repo, keys) ->
+                storageService.deleteFiles(keys.toList(), repoName = repo.takeUnless { it.isBlank() })
+            }
+        }
+        return result
     }
 }
 
