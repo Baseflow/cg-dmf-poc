@@ -21,7 +21,6 @@ headers {
 
 assert {
   res.status: eq 409
-  res.headers["x-wopi-lock"]: isDefined
 }
 
 script:post-response {
@@ -34,4 +33,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-

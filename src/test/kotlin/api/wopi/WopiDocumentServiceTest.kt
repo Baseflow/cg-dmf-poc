@@ -10,6 +10,8 @@ import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiUnlockResult
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.OIORecordEntity
 import com.baseflow.services.AuditTrailService
 import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.BlobStorageRegistrar
@@ -21,7 +23,10 @@ import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.tooling.AllTables
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -35,6 +40,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.Clock
 
 class WopiDocumentServiceTest {
 
@@ -63,6 +69,8 @@ class WopiDocumentServiceTest {
                 anyNullable(),
             )
         } returns CompletableFuture.completedFuture(null)
+        every { mockStorageService.deleteFiles((any())) } returns Unit
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
 
         mockAuditTrailService = mockk<AuditTrailService>()
         every { mockAuditTrailService.removeAuditTrailsForResource(any()) } returns Unit
@@ -89,6 +97,19 @@ class WopiDocumentServiceTest {
     private fun createEio(withContent: Boolean = true): UUID = runBlocking {
         val req = generateTestDocument(withContent = withContent)
         UUID.fromString(eioService.create(req).id)
+    }
+
+    /** Directly inserts an OIORecordEntity linked to the given EIO so we can test reference checks. */
+    private fun attachOioToEio(eioId: UUID) = transaction {
+        val record = EIORecordEntity.findById(eioId)!!
+        val version = record.versions.maxByOrNull { it.versie }!!
+        OIORecordEntity.new {
+            informatieobject = record
+            informatieobjectVersie = version
+            subjectObject = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
+            subjectType = "zaak"
+            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        }
     }
 
     // ── wopiLock ──────────────────────────────────────────────────────────────
@@ -302,7 +323,7 @@ class WopiDocumentServiceTest {
         val output = ByteArrayOutputStream()
         service.streamByBestandsnaam("some/path/file.pdf", output, repoName = null)
         // mockStorageService.downloadFileTo verified as called — io.mockk will fail if not invoked
-        io.mockk.verify { mockStorageService.downloadFileTo("some/path/file.pdf", output, null) }
+        verify { mockStorageService.downloadFileTo("some/path/file.pdf", output, null) }
     }
 
     // ── wopiDeleteFile ────────────────────────────────────────────────────────
@@ -311,6 +332,12 @@ class WopiDocumentServiceTest {
     fun `wopiDeleteFile - returns NotFound for unknown id`() {
         val result = service.wopiDeleteFile(UUID.randomUUID())
         assertIs<WopiDeleteResult.NotFound>(result)
+    }
+
+    @Test
+    fun `wopiDeleteFile - does not call deleteFiles when not found`() {
+        service.wopiDeleteFile(UUID.randomUUID())
+        verify(exactly = 0) { mockStorageService.deleteFiles(any(), anyNullable()) }
     }
 
     @Test
@@ -327,12 +354,43 @@ class WopiDocumentServiceTest {
         val id = createEio()
         service.wopiLock(id, "lock-abc")
         service.wopiDeleteFile(id)
-        // File should still exist
         assertNotNull(eioService.getById(id))
     }
 
     @Test
-    fun `wopiDeleteFile - succeeds on unlocked file`() {
+    fun `wopiDeleteFile - does not call deleteFiles when locked`() {
+        val id = createEio()
+        service.wopiLock(id, "lock-abc")
+        service.wopiDeleteFile(id)
+        verify(exactly = 0) { mockStorageService.deleteFiles(any(), anyNullable()) }
+    }
+
+    @Test
+    fun `wopiDeleteFile - returns HasReferences when EIO has attached OIO relations`() {
+        val id = createEio()
+        attachOioToEio(id)
+        val result = service.wopiDeleteFile(id)
+        assertIs<WopiDeleteResult.HasReferences>(result)
+    }
+
+    @Test
+    fun `wopiDeleteFile - does not delete file when OIO references exist`(): Unit = runBlocking {
+        val id = createEio()
+        attachOioToEio(id)
+        service.wopiDeleteFile(id)
+        assertNotNull(eioService.getById(id))
+    }
+
+    @Test
+    fun `wopiDeleteFile - does not call deleteFiles when OIO references exist`() {
+        val id = createEio()
+        attachOioToEio(id)
+        service.wopiDeleteFile(id)
+        verify(exactly = 0) { mockStorageService.deleteFiles(any(), anyNullable()) }
+    }
+
+    @Test
+    fun `wopiDeleteFile - succeeds on unlocked file without references`() {
         val id = createEio()
         val result = service.wopiDeleteFile(id)
         assertIs<WopiDeleteResult.Success>(result)
@@ -343,6 +401,39 @@ class WopiDocumentServiceTest {
         val id = createEio()
         service.wopiDeleteFile(id)
         assertNull(eioService.getById(id))
+    }
+
+    @Test
+    fun `wopiDeleteFile - calls deleteFiles with blob key on success`() = runBlocking {
+        val created = eioService.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        service.wopiDeleteFile(id)
+
+        verify { mockStorageService.deleteFiles(match { it.contains("$id/1/test.pdf") }, null) }
+    }
+
+    @Test
+    fun `wopiDeleteFile - does not call deleteFiles for EIO without blob content`() {
+        val id = createEio(withContent = false)
+        service.wopiDeleteFile(id)
+        verify(exactly = 0) { mockStorageService.deleteFiles(any(), anyNullable()) }
+    }
+
+    @Test
+    fun `wopiDeleteFile - calls deleteFiles for each distinct bestandsRepository`() = runBlocking {
+        val created = eioService.create(generateTestDocument(withContent = true))
+        val id = UUID.fromString(created.id)
+
+        // Manually set the version to use a named repo so we can assert on the repo name
+        transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!.bestandsRepository = "repo-a"
+        }
+
+        service.wopiDeleteFile(id)
+
+        verify { mockStorageService.deleteFiles(any(), "repo-a") }
+        verify(exactly = 1) { mockStorageService.deleteFiles(any(), anyNullable()) }
     }
 
     @Test

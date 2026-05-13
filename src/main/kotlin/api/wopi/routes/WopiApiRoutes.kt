@@ -500,6 +500,8 @@ private suspend fun RoutingContext.deleteFile() {
             call.response.headers.append("X-WOPI-Lock", result.currentLock)
             call.respondProblem(HttpStatusCode.Conflict, conflict("File is locked and cannot be deleted.", call.request.path()))
         }
+        is WopiDeleteResult.HasReferences ->
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File cannot be deleted because it has references.", call.request.path()))
         is WopiDeleteResult.Success -> call.respond(HttpStatusCode.OK)
     }
 }

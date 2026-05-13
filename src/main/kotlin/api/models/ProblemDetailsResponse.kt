@@ -7,6 +7,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.openapi.JsonSchema
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -62,6 +63,40 @@ private val ProblemContentType = ContentType.parse("application/problem+json; ch
 suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, problem: ProblemDetailsResponse) {
     val body = problemJson.encodeToString(ProblemDetailsResponse.serializer(), problem)
     respond(status, TextContent(body, ProblemContentType))
+}
+
+/**
+ * Convenience overload: builds the [ProblemDetailsResponse] from the status code and message,
+ * deriving the `instance` from the request path automatically.
+ *
+ * The `title` and `detail` fields are set based on [status]:
+ * - 400 Bad Request
+ * - 401 Unauthorized
+ * - 404 Not Found
+ * - 409 Conflict
+ * - 412 Precondition Failed
+ * - 501 Not Implemented
+ * - any other code falls back to the status code's description as title
+ */
+suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, message: String) {
+    val title = when (status) {
+        HttpStatusCode.BadRequest -> "Bad Request"
+        HttpStatusCode.Unauthorized -> "Unauthorized"
+        HttpStatusCode.NotFound -> "Not Found"
+        HttpStatusCode.Conflict -> "Conflict"
+        HttpStatusCode.PreconditionFailed -> "Precondition Failed"
+        HttpStatusCode.NotImplemented -> "Not Implemented"
+        else -> status.description
+    }
+    respondProblem(
+        status,
+        ProblemDetailsResponse(
+            title = title,
+            status = status.value,
+            detail = message,
+            instance = request.path(),
+        ),
+    )
 }
 
 // Convenience factories
