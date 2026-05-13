@@ -57,6 +57,9 @@ sealed class WopiDeleteResult {
     /** No document with the given id exists. */
     data object NotFound : WopiDeleteResult()
 
+    /** The file has related resources and cannot be deleted. */
+    data object HasReferences : WopiDeleteResult()
+
     /** The file is currently locked; deletion is not allowed. */
     data class Locked(val currentLock: String) : WopiDeleteResult()
 }
