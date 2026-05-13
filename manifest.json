@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25807151146",
+    "runNumber": "586",
+    "branch": "CGDMF-101-Implement-RenameFile",
+    "date": "2026-05-13T15:02:11Z",
+    "path": "integration/25807151146/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25807161231",
     "runNumber": "69",
