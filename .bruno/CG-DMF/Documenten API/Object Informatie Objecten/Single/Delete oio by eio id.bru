@@ -1,0 +1,24 @@
+meta {
+  name: Delete oio by eio id
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten?informatieobject={{createdId}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  informatieobject: {{createdId}}
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

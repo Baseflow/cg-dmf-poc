@@ -54,7 +54,8 @@ open class ObjectInformatieObjectService(
             val query = OIORecords.selectAll()
 
             filter.informatieobject?.let { filterUrl ->
-                val filterUuid = ResourceUuidParser.parseUuid(filterUrl, ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value)
+                val filterUuid =
+                    ResourceUuidParser.parseUuid(filterUrl, ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value)
                 if (filterUuid != null) {
                     query.andWhere { OIORecords.informatieobject eq filterUuid }
                 } else {
@@ -102,7 +103,10 @@ open class ObjectInformatieObjectService(
     fun create(request: CreateOIORequest): CreateOIOResult {
         return transaction {
             // Extract UUID from informatieobject URL and fetch EIO record
-            val eioUuid = ResourceUuidParser.parseUuid(request.informatieobject, ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value)
+            val eioUuid = ResourceUuidParser.parseUuid(
+                request.informatieobject,
+                ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
+            )
             if (eioUuid == null) {
                 logger.warn("Could not extract UUID from informatieobject URL: ${request.informatieobject}")
                 return@transaction CreateOIOResult.Conflict("Invalid informatieobject URL")
@@ -157,6 +161,29 @@ open class ObjectInformatieObjectService(
             auditContext.captureNew(response, versionEntity)
             CreateOIOResult.Success(response)
         }
+    }
+
+    /**
+     * Delete all ObjectInformatieObject relations for a given EIOVersion record_id
+     */
+    fun deleteByEioVersionId(versionId: UUID): DeleteOIOResult = transaction {
+        val entities = OIORecordEntity.find {
+            OIORecords.informatieobject eq versionId
+        }.toList()
+
+        if (entities.isEmpty()) {
+            logger.warn("No OIO relations found for record_id=$versionId")
+            return@transaction DeleteOIOResult.NotFound
+        }
+
+        entities.forEach { entity ->
+            auditContext.captureOld(entity.toResponse(), entity.informatieobjectVersie)
+            auditTrailService.removeAuditTrailsForResource(entity.id.value)
+            entity.delete()
+            logger.info("Deleted OIO relation with id=${entity.id.value} for record_id=$versionId")
+        }
+
+        DeleteOIOResult.Success
     }
 
     /**
