@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25803426601",
+    "runNumber": "584",
+    "branch": "CGDMF-100-DeleteFile",
+    "date": "2026-05-13T13:57:35Z",
+    "path": "integration/25803426601/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25801168255",
     "runNumber": "582",
     "branch": "dependabot/gradle/org.flywaydb-flyway-core-12.6.0",
