@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25801168255",
+    "runNumber": "582",
+    "branch": "dependabot/gradle/org.flywaydb-flyway-core-12.6.0",
+    "date": "2026-05-13T13:15:22Z",
+    "path": "integration/25801168255/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25799784027",
     "runNumber": "580",
     "branch": "dependabot/gradle/com.fasterxml.jackson.dataformat-jackson-dataformat-yaml-2.21.3",
