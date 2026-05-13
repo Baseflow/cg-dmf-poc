@@ -1,0 +1,24 @@
+meta {
+  name: 11 Obtain file lock
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiEioId}}/lock
+  body: none
+  auth: inherit
+}
+
+vars:post-response {
+  lockId: res.body.lock
+}
+
+assert {
+  res.status: eq 200
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

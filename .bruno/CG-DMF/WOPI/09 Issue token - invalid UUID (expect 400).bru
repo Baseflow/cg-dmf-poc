@@ -1,0 +1,21 @@
+meta {
+  name: 09 Issue token - invalid UUID (expect 400)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/token/not-a-valid-uuid
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 400
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

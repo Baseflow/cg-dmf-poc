@@ -1,11 +1,11 @@
 meta {
-  name: Delete eio
+  name: 99 Cleanup - Delete EIO
   type: http
-  seq: 10
+  seq: 15
 }
 
 delete {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{bestandsDelenEioID}}
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiEioId}}
   body: none
   auth: inherit
 }

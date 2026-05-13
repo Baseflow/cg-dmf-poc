@@ -1,0 +1,66 @@
+name: 'Build docker container image backend'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+      - develop-admin-portal # temporary
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+      - '.github/workflows/BUILD_AND_DEPLOY_BACKEND.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+      - '.github/workflows/BUILD_AND_DEPLOY_BACKEND.yml'
+
+jobs:
+  test:
+    uses: ./.github/workflows/TEST.yml
+    secrets: inherit
+
+  docker-build:
+    name: Build docker image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        name: Checkout
+
+      - name: Get project version from build.gradle.kts
+        id: get_version
+        run: |
+          version=$(grep '^version' build.gradle.kts | head -n 1 | cut -d '"' -f2)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - uses: ./.github/actions/docker
+        name: Build and push to Azure Container Registry
+        id: acr
+        with:
+          username: ${{ secrets.CG_ACR_USERNAME }}
+          password: ${{ secrets.CG_ACR_PASSWORD }}
+          registry: 'commongroundacr.azurecr.io'
+          push: ${{ github.event_name != 'pull_request' }}
+          vulnerability_scan: false
+          version: ${{ steps.get_version.outputs.version }}
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Push to Docker Hub
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          SOURCE_TAG="${{ steps.acr.outputs.tag }}"
+          DEST_TAG="baseflow/cg-dmf-poc:${SOURCE_TAG##*:}"
+          docker tag ${SOURCE_TAG} ${DEST_TAG}
+          docker push baseflow/cg-dmf-poc --all-tags

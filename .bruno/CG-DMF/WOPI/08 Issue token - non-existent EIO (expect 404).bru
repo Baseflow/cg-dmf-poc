@@ -1,0 +1,21 @@
+meta {
+  name: 08 Issue token - non-existent EIO (expect 404)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/token/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 404
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

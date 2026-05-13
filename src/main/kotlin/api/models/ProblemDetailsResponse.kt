@@ -85,3 +85,10 @@ fun conflict(detail: String, instance: String? = null) = ProblemDetailsResponse(
     detail = detail,
     instance = instance,
 )
+
+fun notImplemented(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Not Implemented",
+    status = HttpStatusCode.NotImplemented.value,
+    detail = detail,
+    instance = instance,
+)
