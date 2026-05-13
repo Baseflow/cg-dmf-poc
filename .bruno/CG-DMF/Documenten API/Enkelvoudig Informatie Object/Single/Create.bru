@@ -19,7 +19,7 @@ body:json {
     "bestandsnaam": "{{file_name}}",
     "auteur": "DJ",
     "creatiedatum": "2025-12-10",
-    "formaat": "application/pdf",
+    "formaat": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "inhoud": "{{file_base64}}",
     "bestandsomvang": "{{file_size}}",
     "integriteit": {
@@ -55,7 +55,7 @@ script:pre-request {
   const path = require("path");
   const CryptoJS = require("crypto-js");
 
-  const fileName = "Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf";
+  const fileName = "WORD_Wonders_of_Nature_Pexels_2_pages.docx";
   const filePath = path.resolve(bru.cwd(), "../data", fileName);
 
   let fileBuffer;

@@ -1,0 +1,36 @@
+meta {
+  name: 03 Get file metadata (valid token)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}?access_token={{wopiAccessToken}}
+  body: none
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.BaseFileName: isDefined
+  res.body.Size: isDefined
+}
+
+script:post-response {
+  test("BaseFileName is a non-empty string", function() {
+    expect(res.body.BaseFileName).to.be.a("string").and.not.empty;
+  });
+  
+  test("Size is a non-negative number", function() {
+    expect(Number(res.body.Size)).to.be.at.least(0);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

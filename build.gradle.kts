@@ -59,13 +59,13 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.11")
 
     // Database migrations
-    implementation("org.flywaydb:flyway-core:12.4.0")
-    implementation("org.flywaydb:flyway-database-postgresql:12.4.0")
+    implementation("org.flywaydb:flyway-core:12.6.1")
+    implementation("org.flywaydb:flyway-database-postgresql:12.6.1")
 
     // Kotlin coroutines and datetime
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // Logging
@@ -73,19 +73,19 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
-    implementation("com.auth0:jwks-rsa:0.23.1")
+    implementation("com.auth0:jwks-rsa:0.24.0")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.43.2")
-    implementation("software.amazon.awssdk:netty-nio-client:2.43.2")
+    implementation("software.amazon.awssdk:s3:2.44.4")
+    implementation("software.amazon.awssdk:netty-nio-client:2.44.4")
 
     // Azure Blob Storage
-    implementation("com.azure:azure-storage-blob:12.33.3")
+    implementation("com.azure:azure-storage-blob:12.33.4")
     implementation("com.azure:azure-storage-blob-batch:12.29.3")
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.3")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
     implementation("io.insert-koin:koin-core:4.2.1")
@@ -101,7 +101,7 @@ dependencies {
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
         // dependency of flyway-core and ktor-server-auth-jwt
-        implementation("tools.jackson.core:jackson-core:3.1.2") {
+        implementation("tools.jackson.core:jackson-core:3.1.3") {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt

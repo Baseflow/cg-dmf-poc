@@ -1,0 +1,31 @@
+meta {
+  name: 14 Unlock file
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiEioId}}/unlock
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "lock": "{{lockId}}"
+  }
+  
+}
+
+vars:post-response {
+  lockId: res.body.lock
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
