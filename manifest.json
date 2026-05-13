@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25815096979",
+    "runNumber": "588",
+    "branch": "CGDMF-143-rework",
+    "date": "2026-05-13T17:28:35Z",
+    "path": "integration/25815096979/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25807733790",
     "runNumber": "70",
