@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922686257",
+    "runNumber": "604",
+    "branch": "dependabot/gradle/com.azure-azure-storage-blob-batch-12.30.0",
+    "date": "2026-05-15T14:22:21Z",
+    "path": "integration/25922686257/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25922665567",
     "runNumber": "603",
     "branch": "dependabot/gradle/com.auth0-jwks-rsa-0.24.1",
