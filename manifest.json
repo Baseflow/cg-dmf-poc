@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922665567",
+    "runNumber": "603",
+    "branch": "dependabot/gradle/com.auth0-jwks-rsa-0.24.1",
+    "date": "2026-05-15T14:21:58Z",
+    "path": "integration/25922665567/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25922649752",
     "runNumber": "602",
     "branch": "dependabot/gradle/ktor-db24cd9d28",
