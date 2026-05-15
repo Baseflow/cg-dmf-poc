@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922644524",
+    "runNumber": "600",
+    "branch": "dependabot/gradle/exposed-da6ffdb6e6",
+    "date": "2026-05-15T14:21:01Z",
+    "path": "integration/25922644524/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25910630146",
     "runNumber": "598",
     "branch": "CGDMF-95-PutRelativeFile",
