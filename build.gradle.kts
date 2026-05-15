@@ -73,7 +73,7 @@ dependencies {
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
-    implementation("com.auth0:jwks-rsa:0.24.0")
+    implementation("com.auth0:jwks-rsa:0.24.1")
 
     // AWS S3 storage
     implementation("software.amazon.awssdk:s3:2.44.4")
