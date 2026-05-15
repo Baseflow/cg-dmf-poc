@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922763253",
+    "runNumber": "609",
+    "branch": "dependabot/gradle/com.diffplug.spotless-8.5.0",
+    "date": "2026-05-15T14:24:11Z",
+    "path": "integration/25922763253/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25922745776",
     "runNumber": "606",
     "branch": "dependabot/gradle/com.azure-azure-storage-blob-12.34.0",
