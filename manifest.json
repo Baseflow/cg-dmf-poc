@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922641034",
+    "runNumber": "599",
+    "branch": "dependabot/docker/gradle-9.5.1-jdk21",
+    "date": "2026-05-15T14:21:18Z",
+    "path": "integration/25922641034/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25922644524",
     "runNumber": "600",
     "branch": "dependabot/gradle/exposed-da6ffdb6e6",
