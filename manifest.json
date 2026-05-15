@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922722044",
+    "runNumber": "605",
+    "branch": "dependabot/gradle/gradle-wrapper-9.5.1",
+    "date": "2026-05-15T14:22:47Z",
+    "path": "integration/25922722044/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25922686257",
     "runNumber": "604",
     "branch": "dependabot/gradle/com.azure-azure-storage-blob-batch-12.30.0",
