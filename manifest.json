@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "25922649752",
+    "runNumber": "602",
+    "branch": "dependabot/gradle/ktor-db24cd9d28",
+    "date": "2026-05-15T14:21:36Z",
+    "path": "integration/25922649752/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "25922641034",
     "runNumber": "599",
     "branch": "dependabot/docker/gradle-9.5.1-jdk21",
