@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "25910630146",
+    "runNumber": "598",
+    "branch": "CGDMF-95-PutRelativeFile",
+    "date": "2026-05-15T09:34:55Z",
+    "path": "integration/25910630146/index.html"
+  },
+  {
     "category": "k6",
     "runId": "25893109188",
     "runNumber": "72",
