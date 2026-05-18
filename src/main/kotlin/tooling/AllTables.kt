@@ -2,11 +2,6 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.tooling
 
-import com.baseflow.entities.settings.ApplicationSettingsTable
-import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
-import com.baseflow.entities.settings.DmfSettingsTable
-import com.baseflow.entities.settings.OidcProviderSettingsTable
-import com.baseflow.entities.settings.ZgwApiSettingsTable
 import com.baseflow.entities.AuditTrails
 import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.BlobStorageRepositories
@@ -15,6 +10,11 @@ import com.baseflow.entities.EIOVersionTrefwoorden
 import com.baseflow.entities.EIOVersions
 import com.baseflow.entities.OIORecords
 import com.baseflow.entities.Trefwoorden
+import com.baseflow.entities.settings.ApplicationSettingsTable
+import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
+import com.baseflow.entities.settings.DmfSettingsTable
+import com.baseflow.entities.settings.OidcProviderSettingsTable
+import com.baseflow.entities.settings.ZgwApiSettingsTable
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -35,7 +35,7 @@ object AllTables {
         OidcProviderSettingsTable,
         ApplicationSettingsTable,
         ZgwApiSettingsTable,
-        DmfSettingsTable
+        DmfSettingsTable,
     )
 
     fun createMissing() {

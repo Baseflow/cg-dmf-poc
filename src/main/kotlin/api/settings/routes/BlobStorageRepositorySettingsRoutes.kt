@@ -2,13 +2,13 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.settings.routes
 
-import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
-import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
-import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
+import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
+import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
 import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
 import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
@@ -49,15 +49,24 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     HttpStatusCode.BadRequest,
                     badRequest("Request body must be valid JSON.", call.request.path()),
                 )
-            if (body.name.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
-            )
-            if (body.storageType.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'storageType' must not be blank.", call.request.path()),
-            )
-            if (body.accessKey.isBlank()) return@post call.respondProblem(
-                HttpStatusCode.BadRequest, badRequest("'accessKey' must not be blank.", call.request.path()),
-            )
+            if (body.name.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'name' must not be blank.", call.request.path()),
+                )
+            }
+            if (body.storageType.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'storageType' must not be blank.", call.request.path()),
+                )
+            }
+            if (body.accessKey.isBlank()) {
+                return@post call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'accessKey' must not be blank.", call.request.path()),
+                )
+            }
 
             val created = transaction {
                 val exists = BlobStorageRepositorySettingEntity.find {
@@ -65,16 +74,16 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 }.firstOrNull()
                 if (exists != null) return@transaction null
                 BlobStorageRepositorySettingEntity.new {
-                    repoName           = body.name
-                    storageType        = body.storageType
-                    url                = body.url
-                    bucket             = body.bucket ?: ""
-                    isDefault          = body.isDefault
-                    enabled            = body.enabled
+                    repoName = body.name
+                    storageType = body.storageType
+                    url = body.url
+                    bucket = body.bucket ?: ""
+                    isDefault = body.isDefault
+                    enabled = body.enabled
                     accessKeyEncrypted = SecretCrypto.encrypt(body.accessKey)
                     secretKeyEncrypted = body.secretKey?.takeIf { it.isNotBlank() }?.let { SecretCrypto.encrypt(it) }
                     storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
-                    updatedAt          = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }
             } ?: return@post call.respondProblem(
                 HttpStatusCode.Conflict,
@@ -89,19 +98,26 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@put call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
                 val body = runCatching { call.receive<UpdateBlobStorageRepositorySettingsRequest>() }.getOrNull()
                     ?: return@put call.respondProblem(
                         HttpStatusCode.BadRequest,
                         badRequest("Request body must be valid JSON.", call.request.path()),
                     )
-                if (body.name.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'name' must not be blank.", call.request.path()),
-                )
-                if (body.storageType.isBlank()) return@put call.respondProblem(
-                    HttpStatusCode.BadRequest, badRequest("'storageType' must not be blank.", call.request.path()),
-                )
+                if (body.name.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'name' must not be blank.", call.request.path()),
+                    )
+                }
+                if (body.storageType.isBlank()) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'storageType' must not be blank.", call.request.path()),
+                    )
+                }
 
                 val updated = transaction {
                     val existing = BlobStorageRepositorySettingEntity.findById(id)
@@ -111,12 +127,12 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                             BlobStorageRepositorySettingsTable.repoName eq body.name
                         }.firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
-                    existing.repoName          = body.name
-                    existing.storageType       = body.storageType
-                    existing.url               = body.url
-                    existing.bucket            = body.bucket ?: ""
-                    existing.isDefault         = body.isDefault
-                    existing.enabled           = body.enabled
+                    existing.repoName = body.name
+                    existing.storageType = body.storageType
+                    existing.url = body.url
+                    existing.bucket = body.bucket ?: ""
+                    existing.isDefault = body.isDefault
+                    existing.enabled = body.enabled
                     if (!body.accessKey.isNullOrBlank()) {
                         existing.accessKeyEncrypted = SecretCrypto.encrypt(body.accessKey)
                     }
@@ -124,15 +140,17 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         existing.secretKeyEncrypted = SecretCrypto.encrypt(body.secretKey)
                     }
                     existing.storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
-                    existing.updatedAt          = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     existing
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
-                        HttpStatusCode.NotFound, notFound("Repository not found.", call.request.path()),
+                        HttpStatusCode.NotFound,
+                        notFound("Repository not found.", call.request.path()),
                     )
                     "conflict" -> return@put call.respondProblem(
-                        HttpStatusCode.Conflict, conflict("A repository with this name already exists.", call.request.path()),
+                        HttpStatusCode.Conflict,
+                        conflict("A repository with this name already exists.", call.request.path()),
                     )
                     else -> call.respond(HttpStatusCode.OK, (updated as BlobStorageRepositorySettingEntity).toResponse())
                 }
@@ -142,7 +160,8 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 val id = call.parameters["id"]
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@delete call.respondProblem(
-                        HttpStatusCode.BadRequest, badRequest("Invalid UUID.", call.request.path()),
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
                     )
 
                 val deleted = transaction {
@@ -151,9 +170,12 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     true
                 }
 
-                if (!deleted) return@delete call.respondProblem(
-                    HttpStatusCode.NotFound, notFound("Repository not found.", call.request.path()),
-                )
+                if (!deleted) {
+                    return@delete call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("Repository not found.", call.request.path()),
+                    )
+                }
 
                 call.respond(HttpStatusCode.NoContent)
             }
@@ -162,15 +184,15 @@ fun Route.blobStorageRepositorySettingsRoutes() {
 }
 
 private fun BlobStorageRepositorySettingEntity.toResponse() = BlobStorageRepositorySettingsResponse(
-    id                 = id.value.toString(),
-    name               = repoName,
-    storageType        = storageType,
-    url                = url,
-    bucket             = bucket,
-    isDefault          = isDefault,
-    enabled            = enabled,
-    accessKey          = accessKeyEncrypted?.let { SecretCrypto.decrypt(it) },
-    secretKey          = secretKeyEncrypted?.let { SecretCrypto.decrypt(it) },
+    id = id.value.toString(),
+    name = repoName,
+    storageType = storageType,
+    url = url,
+    bucket = bucket,
+    isDefault = isDefault,
+    enabled = enabled,
+    accessKey = accessKeyEncrypted?.let { SecretCrypto.decrypt(it) },
+    secretKey = secretKeyEncrypted?.let { SecretCrypto.decrypt(it) },
     storageAccountName = storageAccountName,
-    updatedAt          = updatedAt.toString(),
+    updatedAt = updatedAt.toString(),
 )
