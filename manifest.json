@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26023261011",
+    "runNumber": "621",
+    "branch": "dependabot/gradle/ktor-db24cd9d28",
+    "date": "2026-05-18T08:56:27Z",
+    "path": "integration/26023261011/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26023200046",
     "runNumber": "76",
