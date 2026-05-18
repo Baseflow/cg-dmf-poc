@@ -532,7 +532,7 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
-        assertEquals("informatieobject query parameter is required", body.detail)
+        assertEquals("Either 'informatieobject' or 'object' query parameter is required", body.detail)
     }
 
     @Test
@@ -626,5 +626,95 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
         }
         val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(listResponse.bodyAsText())
         assertEquals(1, items.size)
+    }
+
+    // ── DELETE / by object (subject_object) ───────────────────────────────────
+
+    @Test
+    fun `deleteBySubjectObject - no OIO relations for subject returns 404`() = testApplication {
+        application { setup() }
+
+        val response = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("object", "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `deleteBySubjectObject - deletes all OIO relations for the given subject object`() = testApplication {
+        application { setup() }
+        val eioId1 = createTestEIO()
+        val eioId2 = createTestEIO()
+        val subjectUrl = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
+
+        // Two OIOs sharing the same subject object (different EIOs to satisfy unique constraint)
+        createOio(eioId1, subjectUrl)
+        createOio(eioId2, subjectUrl)
+
+        val deleteResponse = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("object", subjectUrl)
+        }
+
+        assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
+    }
+
+    @Test
+    fun `deleteBySubjectObject - relations no longer listed after deletion`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+        val subjectUrl = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
+
+        createOio(eioId, subjectUrl)
+
+        client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("object", subjectUrl)
+        }
+
+        val listResponse = client.get("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("object", subjectUrl)
+        }
+        val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(listResponse.bodyAsText())
+        assertTrue(items.isEmpty())
+    }
+
+    @Test
+    fun `deleteBySubjectObject - only deletes relations for the specified subject, not others`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+        val subjectUrl1 = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
+        val subjectUrl2 = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
+
+        createOio(eioId, subjectUrl1)
+        // Need a second EIO to avoid unique constraint (one EIO + one subjectObject must be unique)
+        val eioId2 = createTestEIO()
+        createOio(eioId2, subjectUrl2)
+
+        client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("object", subjectUrl1)
+        }
+
+        val listResponse = client.get("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("object", subjectUrl2)
+        }
+        val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(listResponse.bodyAsText())
+        assertEquals(1, items.size)
+    }
+
+    @Test
+    fun `deleteByFilter - informatieobject takes precedence when both params supplied`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+        val subjectUrl = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
+
+        createOio(eioId, subjectUrl)
+
+        // Supply both parameters — should use informatieobject, not object
+        val response = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "http://localhost/$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId")
+            parameter("object", subjectUrl)
+        }
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
     }
 }

@@ -1,17 +1,17 @@
 meta {
-  name: Delete oio by eio id
+  name: Delete oio #2 by object url
   type: http
-  seq: 4
+  seq: 7
 }
 
 delete {
-  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten?informatieobject={{eioUrl}}
+  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten?object={{objectUrl}}
   body: none
   auth: inherit
 }
 
 params:query {
-  informatieobject: {{eioUrl}}
+  object: {{objectUrl}}
 }
 
 assert {

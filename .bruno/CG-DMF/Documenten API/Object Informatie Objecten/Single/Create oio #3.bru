@@ -1,7 +1,7 @@
 meta {
-  name: Create oio #2
+  name: Create oio #3
   type: http
-  seq: 6
+  seq: 9
 }
 
 post {
@@ -24,7 +24,6 @@ vars:pre-request {
 
 vars:post-response {
   createdOio: res.body.id
-  objectUrl: res.body.object
 }
 
 assert {

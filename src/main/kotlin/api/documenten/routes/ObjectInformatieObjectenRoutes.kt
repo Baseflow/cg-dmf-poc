@@ -170,24 +170,30 @@ open class ObjectInformatieObjectenRoutes(
              *
              * @tag ObjectInformatieObjecten
              */
-            delete { deleteByEioUrl() }
+            delete { deleteByFilter() }
                 .describe {
                     operationId = "${tag}_delete_by_informatieobject"
                     tag(tag)
-                    summary = "Verwijder ${resourceSegment.title} relaties op basis van informatieobject."
+                    summary = "Verwijder ${resourceSegment.title} relaties op basis van informatieobject of object."
                     description =
-                        "**EXPERIMENTEEL** Verwijdert alle relaties die gekoppeld zijn aan de opgegeven EIO (informatieobject)."
+                        "**EXPERIMENTEEL** Verwijdert alle relaties die gekoppeld zijn aan de opgegeven EIO " +
+                        "(`informatieobject`) of het opgegeven subject-object (`object`). " +
+                        "Precies één van beide parameters is verplicht."
                     parameters {
                         query("informatieobject") {
                             description =
                                 "URL van de EIO (informatieobject) waarvoor alle relaties verwijderd worden."
                         }
+                        query("object") {
+                            description =
+                                "URL van het subject-object waarvoor alle relaties verwijderd worden."
+                        }
                     }
                     responses {
                         response(204) { description = "No content." }
-                        response(400) { description = "Bad request: ontbrekende of ongeldige informatieobject." }
+                        response(400) { description = "Bad request: ontbrekende of ongeldige parameter." }
                         response(404) {
-                            description = "Not found: geen relaties gevonden voor het opgegeven informatieobject."
+                            description = "Not found: geen relaties gevonden voor de opgegeven parameter."
                         }
                     }
                 }
@@ -407,36 +413,48 @@ open class ObjectInformatieObjectenRoutes(
         }
     }
 
-    private suspend fun RoutingContext.deleteByEioUrl() {
+    private suspend fun RoutingContext.deleteByFilter() {
         val informatieObjectUrl = call.request.queryParameters["informatieobject"]
-        if (informatieObjectUrl == null) {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("informatieobject query parameter is required", call.request.path()),
-            )
-            return
-        }
+        val subjectObjectUrl = call.request.queryParameters["object"]
 
-        val informatieObjectId = ResourceUuidParser.parseUuid(
-            informatieObjectUrl,
-            ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
-        )
-        if (informatieObjectId == null) {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest(
-                    "informatieobject must be a valid URL ending in .../enkelvoudiginformatieobjecten/{uuid}",
-                    call.request.path(),
-                ),
-            )
-            return
-        }
+        when {
+            informatieObjectUrl != null -> {
+                val id = ResourceUuidParser.parseUuid(
+                    informatieObjectUrl,
+                    ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
+                )
+                if (id == null) {
+                    call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest(
+                            "informatieobject must be a valid URL ending in .../enkelvoudiginformatieobjecten/{uuid}",
+                            call.request.path(),
+                        ),
+                    )
+                    return
+                }
+                when (service.deleteByEioVersionId(id)) {
+                    is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is DeleteOIOResult.NotFound -> call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("No OIO relations found for informatieobject $informatieObjectUrl", call.request.path()),
+                    )
+                }
+            }
 
-        when (service.deleteByEioVersionId(informatieObjectId)) {
-            is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
-            is DeleteOIOResult.NotFound -> call.respondProblem(
-                HttpStatusCode.NotFound,
-                notFound("No OIO relations found for informatieobject $informatieObjectUrl", call.request.path()),
+            subjectObjectUrl != null -> {
+                when (service.deleteBySubjectObject(subjectObjectUrl)) {
+                    is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is DeleteOIOResult.NotFound -> call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("No OIO relations found for object $subjectObjectUrl", call.request.path()),
+                    )
+                }
+            }
+
+            else -> call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("Either 'informatieobject' or 'object' query parameter is required", call.request.path()),
             )
         }
     }

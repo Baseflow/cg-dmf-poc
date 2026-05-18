@@ -41,6 +41,7 @@ vars:pre-request {
 
 vars:post-response {
   createdId: res.body.id
+  eioUrl: res.body.url
 }
 
 assert {
@@ -51,49 +52,49 @@ script:pre-request {
   const fs = require("fs");
   const path = require("path");
   const CryptoJS = require("crypto-js");
-
+  
   const fileName = bru.getRequestVar('file_name');
   console.log(fileName)
   const filePath = path.resolve(bru.cwd(), "../data", fileName);
-
+  
   let fileBuffer;
-
+  
   try {
     fileBuffer = fs.readFileSync(filePath);
   } catch (err) {
     console.error("Failed to read file:", filePath, err.message);
-
+  
     bru.setEnvVar("file_error", `Failed to read file: ${err.message}`);
-
+  
     // Optional: abort request if the file is required
     if (typeof onFail === "function") {
       onFail("Pre-request failed: cannot read file: " + filePath);
     }
   }
-
+  
   // Only proceed if file read succeeded
   if (fileBuffer) {
     // -----------------------------------------------------------------
     // Base64
     // -----------------------------------------------------------------
     const base64Content = fileBuffer.toString("base64");
-
+  
     // -----------------------------------------------------------------
     // SHA-256 using crypto-js
     // -----------------------------------------------------------------
     const wordArray = CryptoJS.lib.WordArray.create(fileBuffer);
     const sha256 = CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
-
+  
     // -----------------------------------------------------------------
     // File size
     // -----------------------------------------------------------------
     const fileSize = fileBuffer.length;
-
+  
     // -----------------------------------------------------------------
     // Local timestamp (ISO without trailing 'Z')
     // -----------------------------------------------------------------
     const today = new Date().toISOString().split('T')[0];
-
+  
     // -----------------------------------------------------------------
     // Store env vars
     // -----------------------------------------------------------------
@@ -103,7 +104,7 @@ script:pre-request {
     bru.setVar("file_name", fileName);
     bru.setVar("local_date", today);
   }
-
+  
 }
 
 settings {
