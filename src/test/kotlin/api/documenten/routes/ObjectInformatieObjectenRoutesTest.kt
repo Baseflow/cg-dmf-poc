@@ -504,4 +504,127 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
+
+    // ── DELETE / (deleteByEioUrl) ──────────────────────────────────────────────
+
+    private suspend fun ApplicationTestBuilder.createOio(
+        eioId: String,
+        subjectObject: String = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}",
+    ): ObjectInformatieObjectResponse {
+        val request = CreateOIORequest(
+            informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
+            subjectObject = subjectObject,
+            subjectType = SubjectType("zaak"),
+        )
+        val response = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        return Json.decodeFromString(response.bodyAsText())
+    }
+
+    @Test
+    fun `deleteByEioUrl - missing informatieobject param returns 400`() = testApplication {
+        application { setup() }
+
+        val response = client.delete("$API_BASE/$RESOURCE_SEGMENT")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
+        assertEquals("informatieobject query parameter is required", body.detail)
+    }
+
+    @Test
+    fun `deleteByEioUrl - plain UUID instead of URL returns 400`() = testApplication {
+        application { setup() }
+
+        val response = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", UUID.randomUUID().toString())
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
+        assertEquals("informatieobject must be a valid URL ending in .../enkelvoudiginformatieobjecten/{uuid}", body.detail)
+    }
+
+    @Test
+    fun `deleteByEioUrl - URL with wrong resource segment returns 400`() = testApplication {
+        application { setup() }
+
+        val response = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "http://localhost/documenten/api/v1/zaken/${UUID.randomUUID()}")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
+        assertEquals("informatieobject must be a valid URL ending in .../enkelvoudiginformatieobjecten/{uuid}", body.detail)
+    }
+
+    @Test
+    fun `deleteByEioUrl - valid URL with no OIO relations returns 404`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+
+        val response = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "http://localhost/$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `deleteByEioUrl - deletes all OIO relations for the given EIO`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+
+        // Create two OIO relations for the same EIO
+        createOio(eioId, "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}")
+        createOio(eioId, "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}")
+
+        val deleteResponse = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "http://localhost/$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId")
+        }
+
+        assertEquals(HttpStatusCode.NoContent, deleteResponse.status)
+    }
+
+    @Test
+    fun `deleteByEioUrl - relations no longer listed after deletion`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+
+        createOio(eioId)
+
+        client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "http://localhost/$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId")
+        }
+
+        val listResponse = client.get("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId")
+        }
+        assertEquals(HttpStatusCode.OK, listResponse.status)
+        val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(listResponse.bodyAsText())
+        assertTrue(items.isEmpty())
+    }
+
+    @Test
+    fun `deleteByEioUrl - only deletes relations for the specified EIO, not others`() = testApplication {
+        application { setup() }
+        val eioId1 = createTestEIO()
+        val eioId2 = createTestEIO()
+
+        createOio(eioId1)
+        createOio(eioId2)
+
+        client.delete("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "http://localhost/$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId1")
+        }
+
+        val listResponse = client.get("$API_BASE/$RESOURCE_SEGMENT") {
+            parameter("informatieobject", "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId2")
+        }
+        val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(listResponse.bodyAsText())
+        assertEquals(1, items.size)
+    }
 }
