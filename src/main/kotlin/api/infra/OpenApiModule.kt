@@ -20,11 +20,9 @@ import io.ktor.openapi.Server
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.http.content.staticResources
-import io.ktor.server.plugins.openapi.openAPI
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
-import io.ktor.server.routing.openapi.OpenApiDocSource
 import io.ktor.server.routing.openapi.findSecuritySchemes
 import io.ktor.server.routing.openapi.hide
 import io.ktor.server.routing.openapi.plus
@@ -92,24 +90,6 @@ fun Application.openApiModule() {
 
             // Swagger UI — static assets served from classpath (copied from swagger-ui-dist by Gradle)
             staticResources("/swaggerui", "static/swagger-ui")
-
-            // Ktor built-in OpenAPI UI — one instance per registered spec, generated directly from
-            // routing annotations and filtered by each spec's basePath.
-            // Output is redirected to a system temp dir so it works in both local and containerised
-            // environments (a relative "build/tmp" path does not exist in Docker/Kubernetes).
-            openApiSpecifications.forEach { spec ->
-                // Each spec gets its own sub-route so the OpenAPI plugin is installed on a
-                // separate pipeline and does not conflict with other specs or static-content routes.
-                route("/${spec.name.lowercase()}") {
-                    openAPI("ktor-openapi") {
-                        outputPath = System.getProperty("java.io.tmpdir") + "/swagger-codegen-${spec.name.lowercase()}"
-                        info = spec.apiInfo
-                        source = OpenApiDocSource.Routing {
-                            routingRoot.descendants().filter { it.toString().contains(spec.basePath) }
-                        }
-                    }
-                }
-            }
         }.hide()
     }
 }
