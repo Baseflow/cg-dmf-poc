@@ -44,8 +44,12 @@ class DmfSettingsRoutesTest : SettingsTestBase("dmf_settings") {
 
         val response = client.put("/settings/dmf-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateDmfSettingsRequest.serializer(),
-                UpdateDmfSettingsRequest(triggerSize = 1_000_000L, chunkSize = 500_000L, validationEnabled = false)))
+            setBody(
+                Json.encodeToString(
+                    UpdateDmfSettingsRequest.serializer(),
+                    UpdateDmfSettingsRequest(triggerSize = 1_000_000L, chunkSize = 500_000L, validationEnabled = false),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -61,8 +65,12 @@ class DmfSettingsRoutesTest : SettingsTestBase("dmf_settings") {
 
         client.put("/settings/dmf-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateDmfSettingsRequest.serializer(),
-                UpdateDmfSettingsRequest(triggerSize = 2_000_000L, chunkSize = 1_000_000L, validationEnabled = false)))
+            setBody(
+                Json.encodeToString(
+                    UpdateDmfSettingsRequest.serializer(),
+                    UpdateDmfSettingsRequest(triggerSize = 2_000_000L, chunkSize = 1_000_000L, validationEnabled = false),
+                ),
+            )
         }
 
         val getResponse = client.get("/settings/dmf-settings")
@@ -79,8 +87,12 @@ class DmfSettingsRoutesTest : SettingsTestBase("dmf_settings") {
 
         val response = client.put("/settings/dmf-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateDmfSettingsRequest.serializer(),
-                UpdateDmfSettingsRequest(triggerSize = 0L, chunkSize = 500_000L, validationEnabled = true)))
+            setBody(
+                Json.encodeToString(
+                    UpdateDmfSettingsRequest.serializer(),
+                    UpdateDmfSettingsRequest(triggerSize = 0L, chunkSize = 500_000L, validationEnabled = true),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -92,8 +104,12 @@ class DmfSettingsRoutesTest : SettingsTestBase("dmf_settings") {
 
         val response = client.put("/settings/dmf-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateDmfSettingsRequest.serializer(),
-                UpdateDmfSettingsRequest(triggerSize = 1_000_000L, chunkSize = 0L, validationEnabled = true)))
+            setBody(
+                Json.encodeToString(
+                    UpdateDmfSettingsRequest.serializer(),
+                    UpdateDmfSettingsRequest(triggerSize = 1_000_000L, chunkSize = 0L, validationEnabled = true),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)

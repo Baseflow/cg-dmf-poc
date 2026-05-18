@@ -45,10 +45,10 @@ open class SettingsTestBase(dbNamePrefix: String) {
         transaction {
             if (DmfSettingEntity.findById(DmfSettingEntity.SINGLETON_ID) == null) {
                 DmfSettingEntity.new(DmfSettingEntity.SINGLETON_ID) {
-                    triggerSizeBytes  = 4_294_967_296L
-                    chunkSizeBytes    = 3_221_225_472L
+                    triggerSizeBytes = 4_294_967_296L
+                    chunkSizeBytes = 3_221_225_472L
                     validationEnabled = true
-                    updatedAt         = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }
             }
         }

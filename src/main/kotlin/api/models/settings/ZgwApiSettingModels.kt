@@ -16,17 +16,7 @@ data class ZgwApiSettingsResponse(
 )
 
 @Serializable
-data class CreateZgwApiSettingsRequest(
-    val name: String,
-    val baseUrl: String,
-    val clientId: String,
-    val clientSecret: String? = null,
-)
+data class CreateZgwApiSettingsRequest(val name: String, val baseUrl: String, val clientId: String, val clientSecret: String? = null)
 
 @Serializable
-data class UpdateZgwApiSettingsRequest(
-    val name: String,
-    val baseUrl: String,
-    val clientId: String,
-    val clientSecret: String? = null,
-)
+data class UpdateZgwApiSettingsRequest(val name: String, val baseUrl: String, val clientId: String, val clientSecret: String? = null)

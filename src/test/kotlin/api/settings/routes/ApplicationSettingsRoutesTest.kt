@@ -30,11 +30,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
     private val json = apiJsonConfig()
 
-    private fun insertApp(
-        name: String,
-        clientId: String = "client-id",
-        clientSecret: String? = null,
-    ): UUID = transaction {
+    private fun insertApp(name: String, clientId: String = "client-id", clientSecret: String? = null): UUID = transaction {
         ApplicationSettingEntity.new {
             this.name = name
             this.clientId = clientId
@@ -104,8 +100,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.post("/settings/application-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateApplicationSettingsRequest.serializer(),
-                CreateApplicationSettingsRequest(name = "new-app", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "new-app", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
@@ -121,8 +121,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.post("/settings/application-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateApplicationSettingsRequest.serializer(),
-                CreateApplicationSettingsRequest(name = "", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -134,8 +138,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.post("/settings/application-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateApplicationSettingsRequest.serializer(),
-                CreateApplicationSettingsRequest(name = "my-app", clientId = "")))
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "my-app", clientId = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -160,8 +168,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.post("/settings/application-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateApplicationSettingsRequest.serializer(),
-                CreateApplicationSettingsRequest(name = "duplicate-app", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "duplicate-app", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -178,8 +190,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "updated-name", clientId = "updated-client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "updated-name", clientId = "updated-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -194,8 +210,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/not-a-uuid") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "name", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "name", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -208,8 +228,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -222,8 +246,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "app", clientId = "")))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "app", clientId = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -235,8 +263,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/${UUID.randomUUID()}") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "name", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "name", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
@@ -250,8 +282,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/$idB") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "app-a", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "app-a", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -264,8 +300,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateApplicationSettingsRequest.serializer(),
-                UpdateApplicationSettingsRequest(name = "app", clientId = "client", clientSecret = null)))
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "app", clientId = "client", clientSecret = null),
+                ),
+            )
         }
         assertEquals(HttpStatusCode.OK, response.status)
 
@@ -336,8 +376,12 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         val response = client.post("/settings/application-settings/$id/rotate-secret") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(RotateSecretRequest.serializer(),
-                RotateSecretRequest(newSecret = "my-custom-secret")))
+            setBody(
+                Json.encodeToString(
+                    RotateSecretRequest.serializer(),
+                    RotateSecretRequest(newSecret = "my-custom-secret"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)

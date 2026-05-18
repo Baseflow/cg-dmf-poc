@@ -36,16 +36,16 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         enabled: Boolean = true,
     ): UUID = transaction {
         BlobStorageRepositorySettingEntity.new {
-            repoName           = name
-            this.storageType   = storageType
-            this.url           = url
-            this.bucket        = bucket
-            this.isDefault     = isDefault
-            this.enabled       = enabled
+            repoName = name
+            this.storageType = storageType
+            this.url = url
+            this.bucket = bucket
+            this.isDefault = isDefault
+            this.enabled = enabled
             accessKeyEncrypted = SecretCrypto.encrypt(accessKey)
             secretKeyEncrypted = secretKey?.let { SecretCrypto.encrypt(it) }
             storageAccountName = null
-            updatedAt          = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }.id.value
     }
 
@@ -85,8 +85,10 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         val response = client.get("/settings/storage-repositories")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("my-access-key",
-            Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(response.bodyAsText()).first().accessKey)
+        assertEquals(
+            "my-access-key",
+            Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(response.bodyAsText()).first().accessKey,
+        )
     }
 
     @Test
@@ -97,8 +99,10 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         val response = client.get("/settings/storage-repositories")
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("my-secret-key",
-            Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(response.bodyAsText()).first().secretKey)
+        assertEquals(
+            "my-secret-key",
+            Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(response.bodyAsText()).first().secretKey,
+        )
     }
 
     // -----------------------------------------------------------------------
@@ -111,8 +115,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.post("/settings/storage-repositories") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateBlobStorageRepositorySettingsRequest.serializer(),
-                CreateBlobStorageRepositorySettingsRequest(name = "new-repo", storageType = "S3", accessKey = "my-key")))
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(name = "new-repo", storageType = "S3", accessKey = "my-key"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
@@ -128,8 +136,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.post("/settings/storage-repositories") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateBlobStorageRepositorySettingsRequest.serializer(),
-                CreateBlobStorageRepositorySettingsRequest(name = "", storageType = "S3", accessKey = "key")))
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(name = "", storageType = "S3", accessKey = "key"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -141,8 +153,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.post("/settings/storage-repositories") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateBlobStorageRepositorySettingsRequest.serializer(),
-                CreateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "", accessKey = "key")))
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "", accessKey = "key"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -154,8 +170,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.post("/settings/storage-repositories") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateBlobStorageRepositorySettingsRequest.serializer(),
-                CreateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3", accessKey = "")))
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3", accessKey = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -180,8 +200,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.post("/settings/storage-repositories") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateBlobStorageRepositorySettingsRequest.serializer(),
-                CreateBlobStorageRepositorySettingsRequest(name = "duplicate-repo", storageType = "S3", accessKey = "key")))
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(name = "duplicate-repo", storageType = "S3", accessKey = "key"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -198,8 +222,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "updated-repo", storageType = "AzureBlob")))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "updated-repo", storageType = "AzureBlob"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -215,15 +243,19 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(
-                    name = "updated-repo",
-                    storageType = "AzureBlob",
-                    url = "http://new-url",
-                    bucket = "new-bucket",
-                    isDefault = true,
-                    enabled = false,
-                )))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(
+                        name = "updated-repo",
+                        storageType = "AzureBlob",
+                        url = "http://new-url",
+                        bucket = "new-bucket",
+                        isDefault = true,
+                        enabled = false,
+                    ),
+                ),
+            )
         }
 
         val getResponse = client.get("/settings/storage-repositories")
@@ -245,8 +277,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/not-a-uuid") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3")))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -259,8 +295,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "", storageType = "S3")))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "", storageType = "S3"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -273,8 +313,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "")))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -286,8 +330,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/${UUID.randomUUID()}") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3")))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
@@ -301,8 +349,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/$idB") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "repo-a", storageType = "S3")))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "repo-a", storageType = "S3"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -315,8 +367,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3", accessKey = null)))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3", accessKey = null),
+                ),
+            )
         }
         assertEquals(HttpStatusCode.OK, response.status)
 
@@ -334,8 +390,12 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         val response = client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3", secretKey = null)))
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "repo", storageType = "S3", secretKey = null),
+                ),
+            )
         }
         assertEquals(HttpStatusCode.OK, response.status)
 

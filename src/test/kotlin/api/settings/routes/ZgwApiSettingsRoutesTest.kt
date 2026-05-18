@@ -103,8 +103,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.post("/settings/zgw-api-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateZgwApiSettingsRequest.serializer(),
-                CreateZgwApiSettingsRequest(name = "new-profile", baseUrl = "https://api.example.com", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateZgwApiSettingsRequest.serializer(),
+                    CreateZgwApiSettingsRequest(name = "new-profile", baseUrl = "https://api.example.com", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
@@ -120,8 +124,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.post("/settings/zgw-api-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateZgwApiSettingsRequest.serializer(),
-                CreateZgwApiSettingsRequest(name = "", baseUrl = "https://api.example.com", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateZgwApiSettingsRequest.serializer(),
+                    CreateZgwApiSettingsRequest(name = "", baseUrl = "https://api.example.com", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -133,8 +141,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.post("/settings/zgw-api-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateZgwApiSettingsRequest.serializer(),
-                CreateZgwApiSettingsRequest(name = "profile", baseUrl = "", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateZgwApiSettingsRequest.serializer(),
+                    CreateZgwApiSettingsRequest(name = "profile", baseUrl = "", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -146,8 +158,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.post("/settings/zgw-api-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateZgwApiSettingsRequest.serializer(),
-                CreateZgwApiSettingsRequest(name = "profile", baseUrl = "https://api.example.com", clientId = "")))
+            setBody(
+                Json.encodeToString(
+                    CreateZgwApiSettingsRequest.serializer(),
+                    CreateZgwApiSettingsRequest(name = "profile", baseUrl = "https://api.example.com", clientId = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -172,8 +188,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.post("/settings/zgw-api-settings") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateZgwApiSettingsRequest.serializer(),
-                CreateZgwApiSettingsRequest(name = "duplicate-profile", baseUrl = "https://api.example.com", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateZgwApiSettingsRequest.serializer(),
+                    CreateZgwApiSettingsRequest(name = "duplicate-profile", baseUrl = "https://api.example.com", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -190,8 +210,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "updated-profile", baseUrl = "https://new-api.example.com", clientId = "new-client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "updated-profile", baseUrl = "https://new-api.example.com", clientId = "new-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -206,8 +230,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/not-a-uuid") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "name", baseUrl = "https://api.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "name", baseUrl = "https://api.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -220,8 +248,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "", baseUrl = "https://api.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "", baseUrl = "https://api.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -234,8 +266,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "profile", baseUrl = "", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "profile", baseUrl = "", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -248,8 +284,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "profile", baseUrl = "https://api.example.com", clientId = "")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "profile", baseUrl = "https://api.example.com", clientId = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -261,8 +301,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/${UUID.randomUUID()}") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "name", baseUrl = "https://api.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "name", baseUrl = "https://api.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
@@ -276,8 +320,12 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/$idB") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "profile-a", baseUrl = "https://api.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(name = "profile-a", baseUrl = "https://api.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -290,8 +338,17 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         val response = client.put("/settings/zgw-api-settings/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateZgwApiSettingsRequest.serializer(),
-                UpdateZgwApiSettingsRequest(name = "profile", baseUrl = "https://api.example.com", clientId = "client", clientSecret = null)))
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(
+                        name = "profile",
+                        baseUrl = "https://api.example.com",
+                        clientId = "client",
+                        clientSecret = null,
+                    ),
+                ),
+            )
         }
         assertEquals(HttpStatusCode.OK, response.status)
 

@@ -5,15 +5,7 @@ package com.baseflow.api.models.settings
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class DmfSettingsResponse(
-    val triggerSize: Long,
-    val chunkSize: Long,
-    val validationEnabled: Boolean,
-)
+data class DmfSettingsResponse(val triggerSize: Long, val chunkSize: Long, val validationEnabled: Boolean)
 
 @Serializable
-data class UpdateDmfSettingsRequest(
-    val triggerSize: Long,
-    val chunkSize: Long,
-    val validationEnabled: Boolean,
-)
+data class UpdateDmfSettingsRequest(val triggerSize: Long, val chunkSize: Long, val validationEnabled: Boolean)

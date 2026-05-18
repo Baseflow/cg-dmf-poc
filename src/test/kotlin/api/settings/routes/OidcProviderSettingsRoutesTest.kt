@@ -103,8 +103,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.post("/settings/oidc-providers") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOidcProviderSettingsRequest.serializer(),
-                CreateOidcProviderSettingsRequest(name = "new-provider", issuer = "https://issuer.example.com", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateOidcProviderSettingsRequest.serializer(),
+                    CreateOidcProviderSettingsRequest(name = "new-provider", issuer = "https://issuer.example.com", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
@@ -120,8 +124,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.post("/settings/oidc-providers") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOidcProviderSettingsRequest.serializer(),
-                CreateOidcProviderSettingsRequest(name = "", issuer = "https://issuer.example.com", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateOidcProviderSettingsRequest.serializer(),
+                    CreateOidcProviderSettingsRequest(name = "", issuer = "https://issuer.example.com", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -133,8 +141,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.post("/settings/oidc-providers") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOidcProviderSettingsRequest.serializer(),
-                CreateOidcProviderSettingsRequest(name = "provider", issuer = "", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateOidcProviderSettingsRequest.serializer(),
+                    CreateOidcProviderSettingsRequest(name = "provider", issuer = "", clientId = "my-client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -146,8 +158,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.post("/settings/oidc-providers") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOidcProviderSettingsRequest.serializer(),
-                CreateOidcProviderSettingsRequest(name = "provider", issuer = "https://issuer.example.com", clientId = "")))
+            setBody(
+                Json.encodeToString(
+                    CreateOidcProviderSettingsRequest.serializer(),
+                    CreateOidcProviderSettingsRequest(name = "provider", issuer = "https://issuer.example.com", clientId = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -172,8 +188,16 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.post("/settings/oidc-providers") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(CreateOidcProviderSettingsRequest.serializer(),
-                CreateOidcProviderSettingsRequest(name = "duplicate-provider", issuer = "https://issuer.example.com", clientId = "my-client")))
+            setBody(
+                Json.encodeToString(
+                    CreateOidcProviderSettingsRequest.serializer(),
+                    CreateOidcProviderSettingsRequest(
+                        name = "duplicate-provider",
+                        issuer = "https://issuer.example.com",
+                        clientId = "my-client",
+                    ),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -190,8 +214,16 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "updated-provider", issuer = "https://new-issuer.example.com", clientId = "new-client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(
+                        name = "updated-provider",
+                        issuer = "https://new-issuer.example.com",
+                        clientId = "new-client",
+                    ),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
@@ -206,8 +238,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/not-a-uuid") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "name", issuer = "https://issuer.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(name = "name", issuer = "https://issuer.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -220,8 +256,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "", issuer = "https://issuer.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(name = "", issuer = "https://issuer.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -234,8 +274,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "provider", issuer = "", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(name = "provider", issuer = "", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -248,8 +292,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "provider", issuer = "https://issuer.example.com", clientId = "")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(name = "provider", issuer = "https://issuer.example.com", clientId = ""),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -261,8 +309,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/${UUID.randomUUID()}") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "name", issuer = "https://issuer.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(name = "name", issuer = "https://issuer.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
@@ -276,8 +328,12 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/$idB") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "provider-a", issuer = "https://issuer.example.com", clientId = "client")))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(name = "provider-a", issuer = "https://issuer.example.com", clientId = "client"),
+                ),
+            )
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -290,8 +346,17 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         val response = client.put("/settings/oidc-providers/$id") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(UpdateOidcProviderSettingsRequest.serializer(),
-                UpdateOidcProviderSettingsRequest(name = "provider", issuer = "https://issuer.example.com", clientId = "client", clientSecret = null)))
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(
+                        name = "provider",
+                        issuer = "https://issuer.example.com",
+                        clientId = "client",
+                        clientSecret = null,
+                    ),
+                ),
+            )
         }
         assertEquals(HttpStatusCode.OK, response.status)
 
