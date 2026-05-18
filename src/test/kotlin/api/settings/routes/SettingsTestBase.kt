@@ -13,7 +13,6 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.*
 import io.mockk.mockk
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -23,6 +22,7 @@ import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
 import java.util.UUID
 import kotlin.test.BeforeTest
+import kotlin.time.Clock
 
 open class SettingsTestBase(dbNamePrefix: String) {
     private val dbName = "${dbNamePrefix}_${UUID.randomUUID()}"
