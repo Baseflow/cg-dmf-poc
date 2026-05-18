@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26025077376",
+    "runNumber": "626",
+    "branch": "CGDMF-143-rework",
+    "date": "2026-05-18T09:34:50Z",
+    "path": "integration/26025077376/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26024014894",
     "runNumber": "625",
     "branch": "feature/redirect_to_home_page_after_logout",
