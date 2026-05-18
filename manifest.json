@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26020335697",
+    "runNumber": "616",
+    "branch": "dependabot/gradle/com.azure-azure-storage-blob-batch-12.30.0",
+    "date": "2026-05-18T07:51:04Z",
+    "path": "integration/26020335697/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26020334395",
     "runNumber": "615",
     "branch": "dependabot/gradle/aws-sdk-aaa8d866e9",
