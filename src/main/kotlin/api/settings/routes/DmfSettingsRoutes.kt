@@ -2,11 +2,11 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.settings.routes
 
-import com.baseflow.api.models.settings.DmfSettingsResponse
 import com.baseflow.api.models.ProblemDetailsResponse
-import com.baseflow.api.models.settings.UpdateDmfSettingsRequest
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.models.settings.DmfSettingsResponse
+import com.baseflow.api.models.settings.UpdateDmfSettingsRequest
 import com.baseflow.entities.settings.DmfSettingEntity
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -52,14 +52,18 @@ fun Route.dmfSettingsRoutes() {
                         call.request.path(),
                     ),
                 )
-            if (body.triggerSize < 1) return@put call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("'triggerSize' must be at least 1.", call.request.path()),
-            )
-            if (body.chunkSize < 1) return@put call.respondProblem(
-                HttpStatusCode.BadRequest,
-                badRequest("'chunkSize' must be at least 1.", call.request.path()),
-            )
+            if (body.triggerSize < 1) {
+                return@put call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'triggerSize' must be at least 1.", call.request.path()),
+                )
+            }
+            if (body.chunkSize < 1) {
+                return@put call.respondProblem(
+                    HttpStatusCode.BadRequest,
+                    badRequest("'chunkSize' must be at least 1.", call.request.path()),
+                )
+            }
 
             val updated = transaction {
                 val settings = DmfSettingEntity.findById(DmfSettingEntity.SINGLETON_ID)
