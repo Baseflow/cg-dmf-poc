@@ -156,17 +156,20 @@ open class ObjectInformatieObjectenRoutes(
                 }
 
             /**
-             * Verwijder alle OBJECT-INFORMATIEOBJECT relaties voor een EIO (informatieobject).
+             * Verwijder OBJECT-INFORMATIEOBJECT relaties op basis van een filter.
              *
-             * Verwijdert alle relaties die verwijzen naar de opgegeven EIO via de `informatieobject` query parameter.
+             * Verwijdert alle relaties die voldoen aan het opgegeven filter. Precies één van de
+             * volgende query parameters is verplicht:
              *
              * Query parameters:
-             *   - `informatieobject`: URL van de EIO waarvoor relaties verwijderd moeten worden.
+             *   - `informatieobject`: URL van de EIO waarvoor alle relaties verwijderd worden.
+             *     Moet een geldige URL zijn van de vorm `.../enkelvoudiginformatieobjecten/{uuid}`.
+             *   - `object`: URL van het subject-object waarvoor alle relaties verwijderd worden.
              *
              * Responses:
              *   - 204 No content.
-             *   - 400 Bad request.
-             *   - 404 Not found.
+             *   - 400 Bad request: ontbrekende of ongeldige parameter.
+             *   - 404 Not found: geen relaties gevonden voor het opgegeven filter.
              *
              * @tag ObjectInformatieObjecten
              */
@@ -178,7 +181,7 @@ open class ObjectInformatieObjectenRoutes(
                     description =
                         "**EXPERIMENTEEL** Verwijdert alle relaties die gekoppeld zijn aan de opgegeven EIO " +
                         "(`informatieobject`) of het opgegeven subject-object (`object`). " +
-                        "Precies één van beide parameters is verplicht."
+                        "Precies één van beide parameters is verplicht; het opgeven van beide geeft een 400."
                     parameters {
                         query("informatieobject") {
                             description =
@@ -417,6 +420,17 @@ open class ObjectInformatieObjectenRoutes(
         val informatieObjectUrl = call.request.queryParameters["informatieobject"]
         val subjectObjectUrl = call.request.queryParameters["object"]
 
+        if (informatieObjectUrl != null && subjectObjectUrl != null) {
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest(
+                    "Provide either 'informatieobject' or 'object', not both.",
+                    call.request.path(),
+                ),
+            )
+            return
+        }
+
         when {
             informatieObjectUrl != null -> {
                 val id = ResourceUuidParser.parseUuid(
@@ -433,11 +447,14 @@ open class ObjectInformatieObjectenRoutes(
                     )
                     return
                 }
-                when (service.deleteByEioVersionId(id)) {
+                when (service.deleteByEioId(id)) {
                     is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
                     is DeleteOIOResult.NotFound -> call.respondProblem(
                         HttpStatusCode.NotFound,
-                        notFound("No OIO relations found for informatieobject $informatieObjectUrl", call.request.path()),
+                        notFound(
+                            "No OIO relations found for informatieobject $informatieObjectUrl",
+                            call.request.path(),
+                        ),
                     )
                 }
             }

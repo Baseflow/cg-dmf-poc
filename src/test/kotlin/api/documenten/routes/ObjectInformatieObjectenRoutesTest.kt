@@ -702,19 +702,20 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
     }
 
     @Test
-    fun `deleteByFilter - informatieobject takes precedence when both params supplied`() = testApplication {
+    fun `deleteByFilter - both params supplied returns 400`() = testApplication {
         application { setup() }
         val eioId = createTestEIO()
         val subjectUrl = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
 
         createOio(eioId, subjectUrl)
 
-        // Supply both parameters — should use informatieobject, not object
         val response = client.delete("$API_BASE/$RESOURCE_SEGMENT") {
             parameter("informatieobject", "http://localhost/$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId")
             parameter("object", subjectUrl)
         }
 
-        assertEquals(HttpStatusCode.NoContent, response.status)
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val body = Json.decodeFromString<ProblemDetailsResponse>(response.bodyAsText())
+        assertEquals("Provide either 'informatieobject' or 'object', not both.", body.detail)
     }
 }

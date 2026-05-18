@@ -166,7 +166,7 @@ open class ObjectInformatieObjectService(
     /**
      * Delete all ObjectInformatieObject relations for a given EIOVersion record_id
      */
-    fun deleteByEioVersionId(versionId: UUID): DeleteOIOResult = transaction {
+    fun deleteByEioId(versionId: UUID): DeleteOIOResult = transaction {
         val entities = OIORecordEntity.find {
             OIORecords.informatieobject eq versionId
         }.toList()

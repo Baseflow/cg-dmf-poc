@@ -18,10 +18,6 @@ body:json {
   }
 }
 
-vars:pre-request {
-  zaak_id: 87654321-4321-4321-4321-210987654321
-}
-
 vars:post-response {
   createdOio: res.body.id
 }
@@ -39,9 +35,9 @@ script:pre-request {
       return v.toString(16);
     });
   };
-  
+
   bru.setVar("zaak_id", generateUUID());
-  
+
 }
 
 settings {
