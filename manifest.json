@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26024014894",
+    "runNumber": "625",
+    "branch": "feature/redirect_to_home_page_after_logout",
+    "date": "2026-05-18T09:12:45Z",
+    "path": "integration/26024014894/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26023645841",
     "runNumber": "624",
     "branch": "backend-tests",
