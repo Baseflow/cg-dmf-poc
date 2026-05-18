@@ -1,0 +1,21 @@
+meta {
+  name: 21 DeleteFile - verify EIO is gone (expect 404)
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiEioId}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 404
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

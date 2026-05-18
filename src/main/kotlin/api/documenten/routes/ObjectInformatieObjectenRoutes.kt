@@ -84,7 +84,9 @@ open class ObjectInformatieObjectenRoutes(
                     summary = "Alle ${resourceSegment.title} relaties opvragen."
                     description = "Geeft een lijst van OBJECTINFORMATIEOBJECT relaties, gefilterd via query-parameters."
                     parameters {
-                        query("informatieobject") { description = "Filter op URL-referentie naar het INFORMATIEOBJECT." }
+                        query("informatieobject") {
+                            description = "Filter op URL-referentie naar het INFORMATIEOBJECT."
+                        }
                         query("object") { description = "Filter op URL-referentie naar het gerelateerde OBJECT." }
                         query("expand") { description = "Velden om te expanderen." }
                         query("page") { description = "**EXPERIMENTEEL** Paginanummer." }
@@ -149,6 +151,40 @@ open class ObjectInformatieObjectenRoutes(
                         response(400) { description = "Bad request." }
                         response(401) { description = "Unauthorized." }
                         response(403) { description = "Forbidden." }
+                    }
+                }
+
+            /**
+             * Verwijder alle OBJECT-INFORMATIEOBJECT relaties voor een specifieke versie (record_id).
+             *
+             * Verwijdert alle relaties die verwijzen naar de opgegeven EIOVersion via de `record_id` query parameter.
+             *
+             * Query parameters:
+             *   - `record_id`: UUID van de EIOVersion waarvoor relaties verwijderd moeten worden.
+             *
+             * Responses:
+             *   - 204 No content.
+             *   - 400 Bad request.
+             *   - 404 Not found.
+             *
+             * @tag ObjectInformatieObjecten
+             */
+            delete { deleteByRecordId() }
+                .describe {
+                    operationId = "${tag}_delete_by_record_id"
+                    tag(tag)
+                    summary = "Verwijder ${resourceSegment.title} relaties op basis van record_id."
+                    description = "Verwijdert alle relaties die gekoppeld zijn aan de opgegeven EIOVersion (record_id)."
+                    parameters {
+                        query("record_id") {
+                            description =
+                                "UUID van de EIOVersion (informatieobject versie) waarvoor alle relaties verwijderd worden."
+                        }
+                    }
+                    responses {
+                        response(204) { description = "No content." }
+                        response(400) { description = "Bad request: ontbrekende of ongeldige record_id." }
+                        response(404) { description = "Not found: geen relaties gevonden voor de opgegeven record_id." }
                     }
                 }
 
@@ -364,6 +400,33 @@ open class ObjectInformatieObjectenRoutes(
             }
         } catch (_: IllegalArgumentException) {
             call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+        }
+    }
+
+    private suspend fun RoutingContext.deleteByRecordId() {
+        val informatieObjectStr = call.request.queryParameters["informatieobject"]
+        if (informatieObjectStr == null) {
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("informatieobject query parameter is required", call.request.path()),
+            )
+            return
+        }
+
+        try {
+            val informatieObject = UUID.fromString(informatieObjectStr)
+            when (service.deleteByEioVersionId(informatieObject)) {
+                is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
+                is DeleteOIOResult.NotFound -> call.respondProblem(
+                    HttpStatusCode.NotFound,
+                    notFound("No OIO relations found for informatieobject $informatieObjectStr", call.request.path()),
+                )
+            }
+        } catch (_: IllegalArgumentException) {
+            call.respondProblem(
+                HttpStatusCode.BadRequest,
+                badRequest("Invalid UUID format for informatieobject", call.request.path()),
+            )
         }
     }
 

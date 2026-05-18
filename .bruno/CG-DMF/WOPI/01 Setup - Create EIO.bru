@@ -1,0 +1,47 @@
+meta {
+  name: 01 Setup - Create EIO
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "bronorganisatie": "623058911",
+    "identificatie": "wopi-slat-test-{{$timestamp}}",
+    "titel": "WOPI SLAT test document",
+    "taal": "dut",
+    "bestandsnaam": "wopi-test.pdf",
+    "auteur": "WOPI Test",
+    "creatiedatum": "2026-05-07",
+    "formaat": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "inhoud": "SGVsbG8gV09QSSBTTEFUIHRlc3QhCg==",
+    "bestandsomvang": 26,
+    "beschrijving": "Test document for WOPI SLAT end-to-end tests",
+    "informatieobjecttype": "{{catalogusBaseUrl}}/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d",
+    "status": "vastgesteld"
+  }
+}
+
+vars:post-response {
+  wopiEioId: res.body.id
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  bru.setVar("wopiEioId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

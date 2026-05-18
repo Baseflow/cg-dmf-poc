@@ -6,185 +6,502 @@ import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.badRequest
+import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
+import com.baseflow.api.models.notImplemented
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.wopi.WopiFileIdPlugin
+import com.baseflow.api.wopi.WopiSlatAuthPlugin
+import com.baseflow.api.wopi.WopiValidatedFileIdKey
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
-import com.baseflow.entities.EIORecordEntity
+import com.baseflow.api.wopi.models.RenameFileResponse
+import com.baseflow.api.wopi.models.WopiDeleteResult
+import com.baseflow.api.wopi.models.WopiLockResult
+import com.baseflow.api.wopi.models.WopiPutFileResult
+import com.baseflow.api.wopi.models.WopiRenameResult
+import com.baseflow.api.wopi.models.WopiTokenResponse
+import com.baseflow.api.wopi.models.WopiUnlockResult
+import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.config.WopiConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.WopiSlatService
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
+import io.ktor.server.auth.AuthenticationStrategy
+import io.ktor.server.auth.authenticate
 import io.ktor.server.request.path
+import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import java.util.UUID
+import io.ktor.utils.io.toByteArray
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.wopiApiRoutes() {
     install(AuditTrailPlugin)
 
+    val slatService = WopiSlatService(
+        secret = WopiConfig.slatSecret,
+        ttlSeconds = WopiConfig.slatTtlSeconds,
+    )
+
     route(WOPI_API_BASE_PATH) {
-        get("/files/{file_id}") {
-            getFileMetadata()
-        }.describe {
-            operationId = "getFileMetadata"
-            tag("wopi")
-            summary = "Get a file metadata."
-            description =
-                "Gets the metadata of a file."
-            parameters {
-                path("file_id") {
-                    description = "The UUID of the file to retrieve metadata for."
-                    required = true
+        install(WopiFileIdPlugin)
+
+        // ── Token issuance ─────────────────────────────────────────────────────
+        authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
+            post("/token/{file_id}") {
+                issueToken(slatService)
+            }.describe {
+                operationId = "issueWopiToken"
+                tag("wopi")
+                summary = "Issue a WOPI access token."
+                description =
+                    "Issues a short-lived access token (SLAT) for the given EnkelvoudigInformatieObject. " +
+                    "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
+                parameters {
+                    path("file_id") {
+                        description = "The UUID of the EnkelvoudigInformatieObject to issue a token for."
+                        required = true
+                    }
                 }
-            }
-            responses {
-                response(200) {
-                    description = "The metadata of a file"
-                    ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
+                responses {
+                    response(200) {
+                        description = "A short-lived access token."
+                        ContentType.Application.Json { schema = jsonSchema<WopiTokenResponse>() }
+                    }
+                    response(400) { description = "Bad request." }
+                    response(404) { description = "Document not found." }
+                    response(500) { description = "Internal server error." }
                 }
-                response(400) { description = "Bad request." }
-                response(401) { description = "Unauthorized." }
-                response(403) { description = "Forbidden." }
-                response(404) { description = "Not found." }
-                response(500) { description = "Internal server error." }
             }
         }
 
-        get("/files/{file_id}/contents") {
-            getFileContents()
-        }.describe {
-            operationId = "getFileContents"
-            tag("wopi")
-            summary = "Get file contents."
-            description =
-                "Gets the contents of a file."
-            parameters {
-                path("file_id") {
-                    description = "The UUID of the file to retrieve the contents for."
-                    required = true
+        // ── Protected file endpoints ───────────────────────────────────────────
+        route("/files/{file_id}") {
+            install(WopiFileIdPlugin)
+            install(WopiSlatAuthPlugin) {
+                this.slatService = slatService
+            }
+
+            get {
+                getFileMetadata()
+            }.describe {
+                operationId = "getFileMetadata"
+                tag("wopi")
+                summary = "Get a file metadata."
+                description = "Gets the metadata of a file. Requires a valid `access_token` query parameter."
+                parameters {
+                    path("file_id") {
+                        description = "The UUID of the file to retrieve metadata for."
+                        required = true
+                    }
+                    query("access_token") {
+                        description = "Short-lived access token obtained from POST /token/{file_id}."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Success."
+                        ContentType.Application.Json { schema = jsonSchema<CheckFileInfoResponse>() }
+                    }
+                    response(401) { description = "Invalid access token." }
+                    response(404) { description = "Resource not found or user unauthorized." }
+                    response(500) { description = "Server error." }
                 }
             }
-            responses {
-                response(200) {
-                    description = "The binary data contents of a file"
+
+            post {
+                when (call.request.headers["X-WOPI-Override"]) {
+                    "LOCK" -> lockFile()
+                    "UNLOCK" -> unlockFile()
+                    "RENAME_FILE" -> renameFile()
+                    "DELETE" -> deleteFile()
+                    else -> call.respondProblem(
+                        HttpStatusCode.NotImplemented,
+                        badRequest("Unsupported X-WOPI-Override value", call.request.path()),
+                    )
                 }
-                response(400) { description = "Bad request." }
-                response(401) { description = "Unauthorized." }
-                response(403) { description = "Forbidden." }
-                response(404) { description = "Not found." }
-                response(500) { description = "Internal server error." }
+            }.describe {
+                tag("wopi")
+                summary = "Issues a WOPI operation"
+                description =
+                    "The WOPI-client issues a certain WOPI operation, based on the `X-WOPI-Override` header. " +
+                    "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE. " +
+                    "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
+                parameters {
+                    path("file_id") {
+                        description = "The UUID of the file to lock/unlock."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) { description = "WOPI operation successful." }
+                    response(400) { description = "Bad request." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Lock mismatch or locked by another interface." }
+                    response(500) { description = "Internal server error." }
+                }
             }
+
+            route("/contents") {
+                get {
+                    getFileContents()
+                }.describe {
+                    operationId = "getFileContents"
+                    tag("wopi")
+                    summary = "Get file contents."
+                    description = "Gets the contents of a file. Requires a valid `access_token` query parameter."
+                    parameters {
+                        path("file_id") {
+                            description = "The UUID of the file to retrieve the contents for."
+                            required = true
+                        }
+                        query("access_token") {
+                            description = "Short-lived access token obtained from POST /token/{file_id}."
+                            required = true
+                        }
+                    }
+                    responses {
+                        response(200) { description = "Success." }
+                        response(401) { description = "Invalid access token." }
+                        response(404) { description = "Resource not found or user unauthorized." }
+                        response(412) { description = "File is larger than X-WOPI-MaxExpectedSize." }
+                        response(500) { description = "Server error." }
+                    }
+                }
+
+                post {
+                    updateFileContents()
+                }.describe {
+                    operationId = "updateFileContents"
+                    tag("wopi")
+                    summary = "Update (Save) file contents."
+                    description =
+                        "Saves the contents of a file to the host. Requires a valid `access_token` query parameter."
+                    parameters {
+                        path("file_id") {
+                            description = "The UUID of the file to save the contents for."
+                            required = true
+                        }
+                        query("access_token") {
+                            description = "Short-lived access token obtained from POST /token/{file_id}."
+                            required = true
+                        }
+                    }
+                    responses {
+                        response(200) { description = "Success" }
+                        response(401) { description = "Invalid access token." }
+                        response(404) { description = "Resource not found or user unauthorized." }
+                        response(409) {
+                            description =
+                                "Lock mismatch or locked by another interface. You must include an X-WOPI-Lock response header containing the value of the current lock on the file when using this response code."
+                        }
+                        response(413) { description = "File is too large. The maximum file size is host-specific." }
+                        response(500) { description = "Server error." }
+                        response(501) { description = "Operation not supported." }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private suspend fun RoutingContext.issueToken(slatService: WopiSlatService) {
+    val uuid = call.attributes[WopiValidatedFileIdKey]
+
+    if (!service.exists(uuid)) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+        )
+        return
+    }
+
+    val (token, expiresAt) = slatService.issue(uuid)
+    call.respond(HttpStatusCode.OK, WopiTokenResponse(accessToken = token, expiresAt = expiresAt))
+}
+
+private suspend fun RoutingContext.unlockFile() {
+    val lock = call.request.headers["X-WOPI-Lock"]
+    if (lock == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Lock header is required but missing", call.request.path()),
+        )
+        return
+    }
+
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+    when (val result = wopiService.wopiUnlock(fileId, lock)) {
+        null -> call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+        is WopiUnlockResult.Success -> call.respond(HttpStatusCode.OK)
+        is WopiUnlockResult.NotLocked -> {
+            call.response.header("X-WOPI-Lock", "")
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File is not locked", call.request.path()))
+        }
+
+        is WopiUnlockResult.LockMismatch -> {
+            call.response.header("X-WOPI-Lock", result.currentFileLock.lock)
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("Lock mismatch: file is locked with a different token", call.request.path()),
+            )
+        }
+    }
+}
+
+private suspend fun RoutingContext.lockFile() {
+    val lock = call.request.headers["X-WOPI-Lock"]
+    if (lock == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Lock header is required but missing", call.request.path()),
+        )
+        return
+    }
+
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+    when (val response = wopiService.wopiLock(fileId, lock)) {
+        null -> {
+            call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+            return
+        }
+
+        is WopiLockResult.Success -> call.respond(HttpStatusCode.OK)
+        is WopiLockResult.AlreadyLocked -> {
+            // TODO(elitsa): RefreshLock
+            call.respond(HttpStatusCode.OK)
+        }
+
+        is WopiLockResult.LockMismatch -> {
+            call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("Lock mismatch: file is locked with a different token"),
+            )
+        }
+    }
+}
+
+private suspend fun RoutingContext.updateFileContents() {
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "PUT") {
+        call.respondProblem(
+            HttpStatusCode.NotImplemented,
+            notImplemented("Operation not supported.", call.request.path()),
+        )
+        return
+    }
+
+    val lockValue = call.request.headers["X-WOPI-Lock"]
+    val validatedFileId = call.attributes[WopiValidatedFileIdKey]
+    val bytes = call.receiveChannel().toByteArray()
+
+    when (val result = wopiService.wopiPutFile(id = validatedFileId, bytes = bytes, lockValue = lockValue)) {
+        is WopiPutFileResult.NotFound ->
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
+
+        is WopiPutFileResult.LockRequired -> {
+            call.response.headers.append("X-WOPI-Lock", "")
+            call.respondProblem(HttpStatusCode.Conflict, conflict("Lock mismatch."))
+        }
+
+        is WopiPutFileResult.LockMismatch -> {
+            call.response.headers.append("X-WOPI-Lock", result.currentLock)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("Lock mismatch."))
+        }
+
+        is WopiPutFileResult.Success -> {
+            call.response.headers.append("X-WOPI-Lock", lockValue ?: "")
+            call.response.headers.append("X-WOPI-ItemVersion", result.response.versie.toString())
+            call.respond(HttpStatusCode.OK, mapOf("LastModifiedTime" to result.response.beginRegistratie))
         }
     }
 }
 
 private suspend fun RoutingContext.getFileContents() {
-    val fileId = call.parameters["file_id"]
-    if (fileId == null) {
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+
+    val maxExpectedSize: Int = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
+        try {
+            it.toInt()
+        } catch (_: NumberFormatException) {
+            call.respondProblem(
+                HttpStatusCode.PreconditionFailed,
+                badRequest("File is larger than X-WOPI-MaxExpectedSize.", call.request.path()),
+            )
+            return
+        }
+    } ?: Int.MAX_VALUE
+
+    val fileVersion = wopiService.wopiGetFileVersion(fileId)
+    if (fileVersion == null) {
         call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest("file_id parameter is required", call.request.path()),
+            HttpStatusCode.NotFound,
+            notFound("EnkelvoudigInformatieObject not found", call.request.path()),
         )
         return
     }
 
-    try {
-        val uuid = UUID.fromString(fileId)
+    if (fileVersion.bestandsomvang > maxExpectedSize) {
+        call.respond(HttpStatusCode.PreconditionFailed)
+        return
+    }
 
-        val eio = transaction {
-            val record =
-                EIORecordEntity.findById(uuid) ?: return@transaction null
-            val eio = record.versions.maxByOrNull { it.versie }
-            return@transaction eio
-        }
-
-        if (eio == null) {
-            call.respondProblem(
-                HttpStatusCode.NotFound,
-                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
-            )
-            return
-        }
-
-        // Use internal storage path for lookup, but public filename for the response header
-        val objectKey = eio.bestandsLocatie
-        if (objectKey.isBlank()) {
-            call.respondProblem(
-                HttpStatusCode.NotFound,
-                notFound("Document content not available for download", call.request.path()),
-            )
-            return
-        }
-
-        // Derive filename and content type when possible;
-        val fileName = eio.bestandsnaam.ifBlank { null } ?: eio.titel.ifBlank { null } ?: "document-${eio.id}"
-        val contentType = try {
-            // eio.formaat is expected to be a MIME type; if not, fallback below
-            eio.formaat?.let { ContentType.parse(it) }
-        } catch (_: Exception) {
-            ContentType.Application.OctetStream
-        } ?: ContentType.Application.OctetStream
-
-        // Set headers before starting the stream
-        call.response.headers.append(
-            HttpHeaders.ContentDisposition,
-            ContentDisposition.Attachment
-                .withParameter(ContentDisposition.Parameters.FileNameAsterisk, fileName, true)
-                .toString(),
+    if (fileVersion.bestandsLocatie.isBlank()) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("Document content not available for download", call.request.path()),
         )
-        call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
-        // TODO: support Range requests, ETag, Last-Modified when metadata is available
+        return
+    }
 
-        // Stream the object from storage directly to the HTTP response
-        call.respondOutputStream {
-            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this, repoName = eio.bestandsRepository)
-        }
-    } catch (_: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    val fileName = fileVersion.bestandsnaam.ifBlank { null } ?: fileVersion.titel.ifBlank { null }
+        ?: "document-${fileVersion.recordId}"
+    val contentType = try {
+        fileVersion.formaat?.let { ContentType.parse(it) }
+    } catch (_: Exception) {
+        ContentType.Application.OctetStream
+    } ?: ContentType.Application.OctetStream
+
+    call.response.headers.append(
+        HttpHeaders.ContentDisposition,
+        ContentDisposition.Attachment
+            .withParameter(ContentDisposition.Parameters.FileNameAsterisk, fileName, true)
+            .toString(),
+    )
+    call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
+
+    call.respondOutputStream {
+        wopiService.streamByBestandsnaam(
+            bestandsnaam = fileVersion.bestandsLocatie,
+            output = this,
+            repoName = fileVersion.bestandsRepository,
+        )
     }
 }
 
 private suspend fun RoutingContext.getFileMetadata() {
-    val fileId = call.parameters["file_id"]
-    if (fileId == null) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
-        return
-    }
+    val fileId = call.attributes[WopiValidatedFileIdKey]
 
-    try {
-        val uuid = UUID.fromString(fileId)
-        val result = service.getById(uuid, emptyList())
+    val result = service.getById(fileId, emptyList())
 
-        if (result == null) {
-            call.respondProblem(
-                HttpStatusCode.NotFound,
-                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
-            )
-        } else if (result.bestandsomvang == null) {
-            call.respondProblem(
-                HttpStatusCode.NotFound,
-                notFound("Document content not available", call.request.path()),
-            )
-        } else {
-            val checkFileInfoResponse = CheckFileInfoResponse(
-                baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
-                size = result.bestandsomvang,
-            )
-            call.respond(
-                HttpStatusCode.OK,
-                checkFileInfoResponse,
-            )
-        }
-    } catch (_: IllegalArgumentException) {
-        call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
+    if (result == null) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+        )
+    } else if (result.bestandsomvang == null) {
+        call.respondProblem(
+            HttpStatusCode.NotFound,
+            notFound("Document content not available", call.request.path()),
+        )
+    } else {
+        val checkFileInfoResponse = CheckFileInfoResponse(
+            baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
+            size = result.bestandsomvang,
+            userCanWrite = true,
+            supportsAutosave = false,
+            userFriendlyName = "Unknown user",
+            supportsLocks = true,
+            supportsGetLock = true,
+            supportsUpdate = true,
+            lastModifiedTime = result.beginRegistratie,
+            version = result.versie.toString(),
+        )
+        call.respond(HttpStatusCode.OK, checkFileInfoResponse)
     }
 }
 
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
     get() = call.attributes[RequestScopeKey].get()
+
+private val RoutingContext.wopiService: WopiDocumentService
+    get() = call.attributes[RequestScopeKey].get()
+
+private suspend fun RoutingContext.renameFile() {
+    val wopiOverride = call.request.headers["X-WOPI-Override"]
+    if (wopiOverride != "RENAME_FILE") {
+        call.respondProblem(
+            HttpStatusCode.NotImplemented,
+            notImplemented("Operation not supported. Expected X-WOPI-Override: RENAME_FILE", call.request.path()),
+        )
+        return
+    }
+
+    val requestedName = call.request.headers["X-WOPI-RequestedName"]?.trim()
+    if (requestedName.isNullOrBlank()) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-RequestedName header is required and must not be blank.", call.request.path()),
+        )
+        return
+    }
+
+    if (requestedName.length >= 255) {
+        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name is too long.")
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("Requested file name is too long.", call.request.path()),
+        )
+        return
+    }
+
+    if (requestedName.contains('/') || requestedName.contains('\\') || requestedName.startsWith('.')) {
+        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("Requested file name contains invalid characters.", call.request.path()),
+        )
+        return
+    }
+
+    val validatedFileId = call.attributes[WopiValidatedFileIdKey]
+    val lockValue = call.request.headers["X-WOPI-Lock"]
+
+    when (
+        val result =
+            wopiService.wopiRenameFile(id = validatedFileId, newFileName = requestedName, lockValue = lockValue)
+    ) {
+        is WopiRenameResult.NotFound ->
+            call.respondProblem(
+                HttpStatusCode.NotFound,
+                notFound("EnkelvoudigInformatieObject not found", call.request.path()),
+            )
+
+        is WopiRenameResult.LockMismatch -> {
+            call.response.headers.append("X-WOPI-Lock", result.currentLock)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("Lock mismatch."))
+        }
+
+        is WopiRenameResult.Success ->
+            call.respond(HttpStatusCode.OK, RenameFileResponse(name = requestedName))
+    }
+}
+
+private suspend fun RoutingContext.deleteFile() {
+    val fileId = call.attributes[WopiValidatedFileIdKey]
+
+    when (val result = wopiService.wopiDeleteFile(fileId)) {
+        is WopiDeleteResult.NotFound ->
+            call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+        is WopiDeleteResult.Locked -> {
+            call.response.headers.append("X-WOPI-Lock", result.currentLock)
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File is locked and cannot be deleted.", call.request.path()))
+        }
+        is WopiDeleteResult.HasReferences ->
+            call.respondProblem(HttpStatusCode.Conflict, conflict("File cannot be deleted because it has references.", call.request.path()))
+        is WopiDeleteResult.Success -> call.respond(HttpStatusCode.OK)
+    }
+}

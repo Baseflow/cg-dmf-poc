@@ -1,0 +1,40 @@
+meta {
+  name: 12 Update file contents (valid token)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}/contents?access_token={{wopiAccessToken}}
+  body: text
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: PUT
+  Content-Type: application/octet-stream
+  X-WOPI-Lock: {{lockId}}
+}
+
+body:text {
+  Updated content from WOPI SLAT test
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  test("Response contains LastModifiedTime", function() {
+    expect(res.body).to.have.property("LastModifiedTime");
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

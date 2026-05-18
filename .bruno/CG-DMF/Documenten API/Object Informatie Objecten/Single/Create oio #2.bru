@@ -1,0 +1,50 @@
+meta {
+  name: Create oio #2
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/objectinformatieobjecten
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "informatieobject": "{{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}",
+    "object": "{{zakenBaseUrl}}/zaken/{{zaak_id}}",
+    "objectType": "zaak"
+  }
+}
+
+vars:pre-request {
+  zaak_id: 87654321-4321-4321-4321-210987654321
+}
+
+vars:post-response {
+  createdOio: res.body.id
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:pre-request {
+  // Generate a random UUID for zaak_id to avoid duplicate conflicts
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+  
+  bru.setVar("zaak_id", generateUUID());
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
