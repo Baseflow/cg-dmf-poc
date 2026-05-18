@@ -81,12 +81,12 @@ fun Route.oidcProviderSettingsRoutes() {
                         ?.takeIf { it.isNotBlank() }
                         ?.let { SecretCrypto.encrypt(it) }
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                }
+                }.toResponse()
             } ?: return@post call.respondProblem(
                 HttpStatusCode.Conflict,
                 conflict("A provider with this name already exists.", call.request.path()),
             )
-            call.respond(HttpStatusCode.Created, created.toResponse())
+            call.respond(HttpStatusCode.Created, created)
         }
 
         route("/{id}") {
