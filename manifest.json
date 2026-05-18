@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26020242021",
+    "runNumber": "612",
+    "branch": "dependabot/gradle/com.google.devtools.ksp-2.3.8",
+    "date": "2026-05-18T07:48:39Z",
+    "path": "integration/26020242021/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26019859054",
     "runNumber": "611",
     "branch": "CGDMF-95-PutRelativeFile",
