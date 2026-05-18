@@ -41,7 +41,7 @@ fun Application.settingsModule(useAuthentication: Boolean = true) {
         if (useAuthentication) {
             // TODO: do we really want auth-zgw enabled on settings routes ?
             // For now enable for integration tests, but we should find another way.
-            authenticate("auth-jwt", "auth-zgw", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
+            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 settingsRoutes()
             }
         } else {
