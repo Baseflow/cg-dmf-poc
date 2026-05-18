@@ -228,6 +228,7 @@ tasks.test {
     // in BlobStorageRepositories can initialise when encrypted columns are used.
     environment("ENCRYPTION_SECRET_KEY", System.getenv("ENCRYPTION_SECRET_KEY") ?: "test-secret-key-for-unit-tests")
     environment("ENCRYPTION_SALT", System.getenv("ENCRYPTION_SALT") ?: "deadbeefcafe0123456789abcdef0123")
+    environment("CLIENT_SECRET_ENCRYPTION_KEY", System.getenv("CLIENT_SECRET_ENCRYPTION_KEY") ?: "test-client-secret-key-for-unit-tests")
 }
 
 tasks.jar {
