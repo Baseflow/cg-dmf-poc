@@ -9,6 +9,7 @@ CREATE TABLE application_settings
     name                     VARCHAR(100)  NOT NULL,
     client_id                TEXT          NOT NULL,
     client_secret_encrypted  TEXT,                        -- NULL = no client secret configured
+    created_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_application_settings PRIMARY KEY (id),
     CONSTRAINT uq_application_settings_name UNIQUE (name)

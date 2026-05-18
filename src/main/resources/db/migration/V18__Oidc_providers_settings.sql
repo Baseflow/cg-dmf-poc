@@ -10,6 +10,7 @@ CREATE TABLE oidc_provider_settings
     issuer                   TEXT          NOT NULL,
     client_id                TEXT          NOT NULL,
     client_secret_encrypted  TEXT,                        -- NULL = no client secret configured
+    created_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_oidc_provider_settings PRIMARY KEY (id),
     CONSTRAINT uq_oidc_provider_settings_name UNIQUE (name)

@@ -15,6 +15,7 @@ object ZgwApiSettingsTable : UUIDTable("zgw_api_settings") {
     val baseUrl = text("base_url")
     val clientId = text("client_id")
     val clientSecretEncrypted = text("client_secret_encrypted").nullable()
+    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 }
 
@@ -25,5 +26,6 @@ class ZgwApiSettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var baseUrl by ZgwApiSettingsTable.baseUrl
     var clientId by ZgwApiSettingsTable.clientId
     var clientSecretEncrypted by ZgwApiSettingsTable.clientSecretEncrypted
+    var createdAt by ZgwApiSettingsTable.createdAt
     var updatedAt by ZgwApiSettingsTable.updatedAt
 }

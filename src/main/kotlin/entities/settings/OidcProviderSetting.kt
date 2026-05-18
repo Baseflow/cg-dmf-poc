@@ -15,6 +15,7 @@ object OidcProviderSettingsTable : UUIDTable("oidc_provider_settings") {
     val issuer = text("issuer")
     val clientId = text("client_id")
     val clientSecretEncrypted = text("client_secret_encrypted").nullable()
+    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 }
 
@@ -25,5 +26,6 @@ class OidcProviderSettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var issuer by OidcProviderSettingsTable.issuer
     var clientId by OidcProviderSettingsTable.clientId
     var clientSecretEncrypted by OidcProviderSettingsTable.clientSecretEncrypted
+    var createdAt by OidcProviderSettingsTable.createdAt
     var updatedAt by OidcProviderSettingsTable.updatedAt
 }
