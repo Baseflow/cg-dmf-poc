@@ -24,15 +24,15 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
 
 /**
- * Setting routes for managing ZGW API connection profiles.
+ * Setting routes for managing ZGW API settings.
  *
  * Mounted at `/settings/zgw-api-settings`.
  *
  * Endpoints:
- * - `GET    /`      — list all profiles
- * - `POST   /`      — create a profile
- * - `PUT    /{id}`  — update a profile
- * - `DELETE /{id}`  — delete a profile
+ * - `GET    /`      — list all settings
+ * - `POST   /`      — create a setting
+ * - `PUT    /{id}`  — update a setting
+ * - `DELETE /{id}`  — delete a setting
  */
 fun Route.zgwApiSettingsRoutes() {
     route("/zgw-api-settings") {
@@ -84,7 +84,7 @@ fun Route.zgwApiSettingsRoutes() {
                 }
             } ?: return@post call.respondProblem(
                 HttpStatusCode.Conflict,
-                conflict("A profile with this name already exists.", call.request.path()),
+                conflict("A ZGW API setting with this name already exists.", call.request.path()),
             )
             call.respond(HttpStatusCode.Created, created.toResponse())
         }
@@ -139,11 +139,11 @@ fun Route.zgwApiSettingsRoutes() {
                 when (updated) {
                     null -> return@put call.respondProblem(
                         HttpStatusCode.NotFound,
-                        notFound("ZGW API profile not found.", call.request.path()),
+                        notFound("ZGW API setting not found.", call.request.path()),
                     )
                     "conflict" -> return@put call.respondProblem(
                         HttpStatusCode.Conflict,
-                        conflict("A profile with this name already exists.", call.request.path()),
+                        conflict("A ZGW API setting with this name already exists.", call.request.path()),
                     )
                     else -> call.respond(HttpStatusCode.OK, (updated as ZgwApiSettingEntity).toResponse())
                 }
@@ -166,7 +166,7 @@ fun Route.zgwApiSettingsRoutes() {
                 if (!deleted) {
                     return@delete call.respondProblem(
                         HttpStatusCode.NotFound,
-                        notFound("ZGW API profile not found.", call.request.path()),
+                        notFound("ZGW API setting not found.", call.request.path()),
                     )
                 }
 
