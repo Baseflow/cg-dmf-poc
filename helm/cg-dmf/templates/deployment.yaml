@@ -77,8 +77,7 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            # /tmp must be writable for the Ktor OpenAPI plugin to generate its swagger-codegen
-            # output at startup. Required when readOnlyRootFilesystem: true.
+            # /tmp must be writable for runtime temporary files when readOnlyRootFilesystem is enabled.
             - name: tmp
               mountPath: /tmp
             {{- if .Values.extraVolumeMounts }}

@@ -1,7 +1,7 @@
 meta {
-  name: Create oio #2
+  name: Create oio #3
   type: http
-  seq: 6
+  seq: 9
 }
 
 post {
@@ -18,13 +18,8 @@ body:json {
   }
 }
 
-vars:pre-request {
-  zaak_id: 87654321-4321-4321-4321-210987654321
-}
-
 vars:post-response {
   createdOio: res.body.id
-  objectUrl: res.body.object
 }
 
 assert {
@@ -40,9 +35,9 @@ script:pre-request {
       return v.toString(16);
     });
   };
-  
+
   bru.setVar("zaak_id", generateUUID());
-  
+
 }
 
 settings {
