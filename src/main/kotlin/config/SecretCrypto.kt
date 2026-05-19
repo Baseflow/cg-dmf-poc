@@ -13,14 +13,14 @@ import javax.crypto.spec.SecretKeySpec
  * AES-256-GCM encryption for the OIDC client secret stored at rest.
  *
  * Storage format: Base64( IV[12 bytes] || ciphertext+tag )
- * Key: SHA-256 of CLIENT_SECRET_ENCRYPTION_KEY env var → 32 bytes → AES-256 key
+ * Key: SHA-256 of ENCRYPTION_SECRET_KEY env var → 32 bytes → AES-256 key
  *
- * Requires CLIENT_SECRET_ENCRYPTION_KEY to be set — fails fast at startup if missing,
+ * Requires ENCRYPTION_SECRET_KEY to be set — fails fast at startup if missing,
  * preventing silent use of a weak fallback key in production.
  */
 internal object SecretCrypto {
     private val secretKey: SecretKeySpec by lazy {
-        val raw = Config.envOrThrow("CLIENT_SECRET_ENCRYPTION_KEY")
+        val raw = Config.envOrThrow("ENCRYPTION_SECRET_KEY")
         val keyBytes = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
         SecretKeySpec(keyBytes, "AES")
     }
