@@ -26,6 +26,10 @@ inputs:
     description: 'Branch or ref name (typically github.ref_name)'
     required: false
     default: ''
+  assets-dir:
+    description: 'Optional directory to copy as additional assets into the run folder'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -45,19 +49,25 @@ runs:
         RUN_ID: ${{ inputs.run-id }}
         RUN_NUMBER: ${{ inputs.run-number }}
         BRANCH: ${{ inputs.branch }}
+        ASSETS_DIR: ${{ inputs.assets-dir }}
       run: |
         TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
         FOLDER="${CATEGORY}/${RUN_ID}"
+        TARGET_HTML="gh-pages/${FOLDER}/index.html"
 
         if [ ! -f "${REPORT_FILE}" ]; then
           echo "::warning::Report file '${REPORT_FILE}' not found — skipping Pages deployment"
           exit 0
         fi
 
-        mkdir -p "gh-pages/${FOLDER}"
-        cp "${REPORT_FILE}" "gh-pages/${FOLDER}/index.html"
+        mkdir -p "$(dirname "${TARGET_HTML}")"
+        if [ -n "${ASSETS_DIR}" ] && [ -d "${ASSETS_DIR}" ]; then
+          cp -R "${ASSETS_DIR}/." "gh-pages/${FOLDER}/"
+        fi
+        cp "${REPORT_FILE}" "${TARGET_HTML}"
 
         cd gh-pages
+
 
         # Initialise manifest.json if missing
         if [ ! -f manifest.json ]; then
