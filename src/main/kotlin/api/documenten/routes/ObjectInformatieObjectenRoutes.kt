@@ -4,6 +4,7 @@ package com.baseflow.api.documenten.routes
 
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
+import com.baseflow.api.ResourceUuidParser
 import com.baseflow.api.middleware.ApiVersionHeader
 import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
@@ -155,36 +156,48 @@ open class ObjectInformatieObjectenRoutes(
                 }
 
             /**
-             * Verwijder alle OBJECT-INFORMATIEOBJECT relaties voor een specifieke versie (record_id).
+             * Verwijder OBJECT-INFORMATIEOBJECT relaties op basis van een filter.
              *
-             * Verwijdert alle relaties die verwijzen naar de opgegeven EIOVersion via de `record_id` query parameter.
+             * Verwijdert alle relaties die voldoen aan het opgegeven filter. Precies één van de
+             * volgende query parameters is verplicht:
              *
              * Query parameters:
-             *   - `record_id`: UUID van de EIOVersion waarvoor relaties verwijderd moeten worden.
+             *   - `informatieobject`: URL van de EIO waarvoor alle relaties verwijderd worden.
+             *     Moet een geldige URL zijn van de vorm `.../enkelvoudiginformatieobjecten/{uuid}`.
+             *   - `object`: URL van het subject-object waarvoor alle relaties verwijderd worden.
              *
              * Responses:
              *   - 204 No content.
-             *   - 400 Bad request.
-             *   - 404 Not found.
+             *   - 400 Bad request: ontbrekende of ongeldige parameter.
+             *   - 404 Not found: geen relaties gevonden voor het opgegeven filter.
              *
              * @tag ObjectInformatieObjecten
              */
-            delete { deleteByRecordId() }
+            delete { deleteByFilter() }
                 .describe {
-                    operationId = "${tag}_delete_by_record_id"
+                    operationId = "${tag}_delete_by_informatieobject"
                     tag(tag)
-                    summary = "Verwijder ${resourceSegment.title} relaties op basis van record_id."
-                    description = "Verwijdert alle relaties die gekoppeld zijn aan de opgegeven EIOVersion (record_id)."
+                    summary = "Verwijder ${resourceSegment.title} relaties op basis van informatieobject of object."
+                    description =
+                        "**EXPERIMENTEEL** Verwijdert alle relaties die gekoppeld zijn aan de opgegeven EIO " +
+                        "(`informatieobject`) of het opgegeven subject-object (`object`). " +
+                        "Precies één van beide parameters is verplicht; het opgeven van beide geeft een 400."
                     parameters {
-                        query("record_id") {
+                        query("informatieobject") {
                             description =
-                                "UUID van de EIOVersion (informatieobject versie) waarvoor alle relaties verwijderd worden."
+                                "URL van de EIO (informatieobject) waarvoor alle relaties verwijderd worden."
+                        }
+                        query("object") {
+                            description =
+                                "URL van het subject-object waarvoor alle relaties verwijderd worden."
                         }
                     }
                     responses {
                         response(204) { description = "No content." }
-                        response(400) { description = "Bad request: ontbrekende of ongeldige record_id." }
-                        response(404) { description = "Not found: geen relaties gevonden voor de opgegeven record_id." }
+                        response(400) { description = "Bad request: ontbrekende of ongeldige parameter." }
+                        response(404) {
+                            description = "Not found: geen relaties gevonden voor de opgegeven parameter."
+                        }
                     }
                 }
 
@@ -403,29 +416,62 @@ open class ObjectInformatieObjectenRoutes(
         }
     }
 
-    private suspend fun RoutingContext.deleteByRecordId() {
-        val informatieObjectStr = call.request.queryParameters["informatieobject"]
-        if (informatieObjectStr == null) {
+    private suspend fun RoutingContext.deleteByFilter() {
+        val informatieObjectUrl = call.request.queryParameters["informatieobject"]
+        val subjectObjectUrl = call.request.queryParameters["object"]
+
+        if (informatieObjectUrl != null && subjectObjectUrl != null) {
             call.respondProblem(
                 HttpStatusCode.BadRequest,
-                badRequest("informatieobject query parameter is required", call.request.path()),
+                badRequest(
+                    "Provide either 'informatieobject' or 'object', not both.",
+                    call.request.path(),
+                ),
             )
             return
         }
 
-        try {
-            val informatieObject = UUID.fromString(informatieObjectStr)
-            when (service.deleteByEioVersionId(informatieObject)) {
-                is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
-                is DeleteOIOResult.NotFound -> call.respondProblem(
-                    HttpStatusCode.NotFound,
-                    notFound("No OIO relations found for informatieobject $informatieObjectStr", call.request.path()),
+        when {
+            informatieObjectUrl != null -> {
+                val id = ResourceUuidParser.parseUuid(
+                    informatieObjectUrl,
+                    ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN.value,
                 )
+                if (id == null) {
+                    call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest(
+                            "informatieobject must be a valid URL ending in .../enkelvoudiginformatieobjecten/{uuid}",
+                            call.request.path(),
+                        ),
+                    )
+                    return
+                }
+                when (service.deleteByEioId(id)) {
+                    is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is DeleteOIOResult.NotFound -> call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound(
+                            "No OIO relations found for informatieobject $informatieObjectUrl",
+                            call.request.path(),
+                        ),
+                    )
+                }
             }
-        } catch (_: IllegalArgumentException) {
-            call.respondProblem(
+
+            subjectObjectUrl != null -> {
+                when (service.deleteBySubjectObject(subjectObjectUrl)) {
+                    is DeleteOIOResult.Success -> call.respond(HttpStatusCode.NoContent)
+                    is DeleteOIOResult.NotFound -> call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("No OIO relations found for object $subjectObjectUrl", call.request.path()),
+                    )
+                }
+            }
+
+            else -> call.respondProblem(
                 HttpStatusCode.BadRequest,
-                badRequest("Invalid UUID format for informatieobject", call.request.path()),
+                badRequest("Either 'informatieobject' or 'object' query parameter is required", call.request.path()),
             )
         }
     }

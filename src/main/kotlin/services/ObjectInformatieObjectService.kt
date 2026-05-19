@@ -164,15 +164,15 @@ open class ObjectInformatieObjectService(
     }
 
     /**
-     * Delete all ObjectInformatieObject relations for a given EIOVersion record_id
+     * Delete all ObjectInformatieObject relations for a given EIO id
      */
-    fun deleteByEioVersionId(versionId: UUID): DeleteOIOResult = transaction {
+    fun deleteByEioId(eioId: UUID): DeleteOIOResult = transaction {
         val entities = OIORecordEntity.find {
-            OIORecords.informatieobject eq versionId
+            OIORecords.informatieobject eq eioId
         }.toList()
 
         if (entities.isEmpty()) {
-            logger.warn("No OIO relations found for record_id=$versionId")
+            logger.warn("No OIO relations found for record_id=$eioId")
             return@transaction DeleteOIOResult.NotFound
         }
 
@@ -180,7 +180,30 @@ open class ObjectInformatieObjectService(
             auditContext.captureOld(entity.toResponse(), entity.informatieobjectVersie)
             auditTrailService.removeAuditTrailsForResource(entity.id.value)
             entity.delete()
-            logger.info("Deleted OIO relation with id=${entity.id.value} for record_id=$versionId")
+            logger.info("Deleted OIO relation with id=${entity.id.value} for record_id=$eioId")
+        }
+
+        DeleteOIOResult.Success
+    }
+
+    /**
+     * Delete all ObjectInformatieObject relations for a given subject object URL.
+     */
+    fun deleteBySubjectObject(subjectObject: String): DeleteOIOResult = transaction {
+        val entities = OIORecordEntity.find {
+            OIORecords.subjectObject eq subjectObject
+        }.toList()
+
+        if (entities.isEmpty()) {
+            logger.warn("No OIO relations found for subjectObject=$subjectObject")
+            return@transaction DeleteOIOResult.NotFound
+        }
+
+        entities.forEach { entity ->
+            auditContext.captureOld(entity.toResponse(), entity.informatieobjectVersie)
+            auditTrailService.removeAuditTrailsForResource(entity.id.value)
+            entity.delete()
+            logger.info("Deleted OIO relation with id=${entity.id.value} for subjectObject=$subjectObject")
         }
 
         DeleteOIOResult.Success
