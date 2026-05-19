@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26091601304",
+    "runNumber": "634",
+    "branch": "CGDMF-143-rework",
+    "date": "2026-05-19T10:38:01Z",
+    "path": "integration/26091601304/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26084583073",
     "runNumber": "633",
     "branch": "develop-admin-portal",
