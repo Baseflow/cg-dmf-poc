@@ -67,6 +67,13 @@
         btn.dataset.cat = cat;
         tabsEl.appendChild(btn);
       });
+
+      const trendsLink = document.createElement('a');
+      trendsLink.className = 'tab';
+      trendsLink.textContent = '\ud83d\udcc8 Trends';
+      trendsLink.href = 'k6/trends/index.html';
+      tabsEl.appendChild(trendsLink);
+
       showCategory(orderedCats[0]);
     }
     function showCategory(cat) {

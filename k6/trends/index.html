@@ -1,0 +1,421 @@
+<!-- SPDX-License-Identifier: EUPL-1.2 -->
+<!-- Copyright (C) 2026 Gemeente Utrecht -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DMF PoC — k6 Performance Trends</title>
+  <style>
+    :root { --accent: #0969da; --border: #d0d7de; --bg-header: #f6f8fa; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #1f2328;
+    }
+    h1 { margin: 0 0 0.25rem; }
+    h2 { margin: 1.5rem 0 0.5rem; font-size: 1.25rem; }
+    .subtitle, .sub { color: #656d76; margin-top: 0; margin-bottom: 0.75rem; }
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .tab {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border: 1px solid transparent;
+      border-bottom: none;
+      margin-bottom: -1px;
+      border-radius: 6px 6px 0 0;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .tab:hover { background: var(--bg-header); text-decoration: none; }
+    .tab.active {
+      border-color: var(--border);
+      background: #fff;
+      font-weight: 600;
+      color: #1f2328;
+    }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .panel { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem 1rem; }
+    .panel h3 { margin: 0 0 0.625rem; font-size: 14px; color: #1f2328; }
+    .endpoint-grid { display: grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap: 12px; }
+    @media (max-width: 1024px) { .endpoint-grid { grid-template-columns: 1fr; } }
+    canvas { width: 100%; height: 280px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+    .small canvas { height: 180px; }
+    .legend { display: flex; gap: 16px; margin: 8px 0 0; font-size: 13px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 10px; margin-right: 6px; }
+    .c1 { background: #2563eb; }
+    .c2 { background: #dc2626; }
+    .c3 { background: #059669; }
+    .note { margin-top: 8px; color: #656d76; font-size: 13px; }
+    .tooltip {
+      position: fixed;
+      display: none;
+      pointer-events: none;
+      z-index: 9999;
+      background: rgba(17, 24, 39, 0.96);
+      color: #fff;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      max-width: 320px;
+      white-space: nowrap;
+    }
+    .error { color: #b91c1c; font-weight: 600; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>DMF PoC — k6 Performance Trends</h1>
+  <p class="subtitle">Historical performance trends published from CI</p>
+  <div class="tabs">
+    <a class="tab" href="../../index.html">⚡ k6 Performance</a>
+    <span class="tab active">📈 Trends</span>
+  </div>
+  <div id="summary" class="sub">Loading last 20 runs from published artifacts...</div>
+  <div id="error" class="error" style="display:none;"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>Overall latency (http_req_duration)</h3>
+      <canvas id="overallChart" width="1400" height="320"></canvas>
+      <div class="legend">
+        <span><span class="dot c1"></span>p(50)</span>
+        <span><span class="dot c3"></span>p(90)</span>
+        <span><span class="dot c2"></span>p(95)</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Reliability</h3>
+      <canvas id="reliabilityChart" width="1400" height="280"></canvas>
+      <div class="legend">
+        <span><span class="dot c2"></span>Error rate</span>
+        <span><span class="dot c3"></span>Success rate</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Throughput</h3>
+      <canvas id="throughputChart" width="1400" height="260"></canvas>
+      <div class="legend">
+        <span><span class="dot c1"></span>Requests/sec</span>
+      </div>
+    </div>
+  </div>
+
+  <h2>Endpoint latency</h2>
+  <div class="endpoint-grid">
+    <div class="panel small"><h3>GET EIO</h3><canvas id="ep_eio_get" width="680" height="220"></canvas></div>
+    <div class="panel small"><h3>LIST EIO</h3><canvas id="ep_eio_list" width="680" height="220"></canvas></div>
+    <div class="panel small"><h3>CREATE EIO</h3><canvas id="ep_eio_create" width="680" height="220"></canvas></div>
+    <div class="panel small"><h3>PATCH EIO</h3><canvas id="ep_eio_patch" width="680" height="220"></canvas></div>
+    <div class="panel small"><h3>LIST OIO</h3><canvas id="ep_oio_list" width="680" height="220"></canvas></div>
+    <div class="panel small"><h3>CREATE OIO</h3><canvas id="ep_oio_create" width="680" height="220"></canvas></div>
+  </div>
+  <div class="note">Data source: latest 20 <code>k6</code> entries from <code>manifest.json</code>, reading each run's <code>perf-summary.json</code>.</div>
+  <div id="tooltip" class="tooltip"></div>
+
+  <script>
+    const endpointSpecs = [
+      { key: 'eio_get', label: 'GET EIO' },
+      { key: 'eio_list', label: 'LIST EIO' },
+      { key: 'eio_create', label: 'CREATE EIO' },
+      { key: 'eio_patch', label: 'PATCH EIO' },
+      { key: 'oio_list', label: 'LIST OIO' },
+      { key: 'oio_create', label: 'CREATE OIO' },
+    ];
+
+    const tooltip = document.getElementById('tooltip');
+
+    function fmtValue(v, mode) {
+      if (!Number.isFinite(v)) return 'n/a';
+      if (mode === 'percent') return v.toFixed(2) + '%';
+      if (mode === 'rate') return v.toFixed(2) + '/s';
+      return Math.round(v) + ' ms';
+    }
+
+    function showTooltip(clientX, clientY, point, series, idx, mode) {
+      const lines = [];
+      for (const s of series) {
+        const v = s.values[idx];
+        if (Number.isFinite(v)) lines.push('<div>' + s.label + ': ' + fmtValue(v, mode) + '</div>');
+      }
+
+      const ts = point.timestamp ? point.timestamp.replace('T', ' ').replace('Z', ' UTC') : point.label;
+      const runIdText = point.runId ? String(point.runId) : 'n/a';
+      tooltip.innerHTML =
+        '<div><strong>Run #' + point.runNumber + '</strong></div>' +
+        '<div>Date: ' + ts + '</div>' +
+        '<div>Run ID: ' + runIdText + '</div>' +
+        (point.branch ? '<div>Branch: ' + point.branch + '</div>' : '') +
+        lines.join('');
+
+      tooltip.style.display = 'block';
+      const x = Math.min(window.innerWidth - tooltip.offsetWidth - 12, clientX + 12);
+      const y = Math.min(window.innerHeight - tooltip.offsetHeight - 12, clientY + 12);
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    function drawChart(points, canvasId, series, opts = {}) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || points.length === 0) return;
+
+      // Render in CSS pixels and scale backing store for HiDPI/Retina screens.
+      const rect = canvas.getBoundingClientRect();
+      const cssWidth = Math.max(1, rect.width || canvas.width || 1);
+      const cssHeight = Math.max(1, rect.height || canvas.height || 1);
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = Math.round(cssWidth * dpr);
+      canvas.height = Math.round(cssHeight * dpr);
+
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const pad = { l: 52, r: 12, t: 14, b: 34 };
+      const w = cssWidth - pad.l - pad.r;
+      const h = cssHeight - pad.t - pad.b;
+
+      const allValues = series.flatMap((s) => s.values).filter((v) => Number.isFinite(v));
+      const yMin = opts.yMin != null ? opts.yMin : Math.min(...allValues, 0);
+      const yMaxRaw = opts.yMax != null ? opts.yMax : Math.max(...allValues, 1);
+      const yMax = yMaxRaw === yMin ? yMin + 1 : yMaxRaw;
+
+      const x = (i) => pad.l + (i * w) / Math.max(points.length - 1, 1);
+      const y = (v) => pad.t + h - ((v - yMin) / (yMax - yMin || 1)) * h;
+
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+        ctx.strokeStyle = '#d8dee4';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 5; i++) {
+        const yy = pad.t + (i * h) / 5;
+        ctx.beginPath();
+        ctx.moveTo(pad.l, yy);
+          ctx.lineTo(cssWidth - pad.r, yy);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#666';
+      ctx.font = '500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 5; i++) {
+        const v = yMax - (i * (yMax - yMin)) / 5;
+        const yy = pad.t + (i * h) / 5;
+        ctx.fillText((opts.yFmt ? opts.yFmt(v) : String(Math.round(v))), pad.l - 6, yy + 4);
+      }
+
+      for (const s of series) {
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        s.values.forEach((v, i) => {
+          if (!Number.isFinite(v)) return;
+          const xx = x(i);
+          const yy = y(v);
+          const prevVal = s.values[i - 1];
+          if (i === 0 || !Number.isFinite(prevVal)) ctx.moveTo(xx, yy);
+          else ctx.lineTo(xx, yy);
+        });
+        ctx.stroke();
+      }
+
+
+      ctx.fillStyle = '#666';
+      ctx.font = '500 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      const labelStep = Math.max(1, Math.floor(points.length / 6));
+      points.forEach((p, i) => {
+        if (i % labelStep === 0 || i === points.length - 1) {
+          ctx.fillText(p.label, x(i), cssHeight - 10);
+        }
+      });
+
+      const xPoints = points.map((_, i) => x(i));
+
+      function drawHoverDots(idx) {
+        for (const s of series) {
+          const v = s.values[idx];
+          if (!Number.isFinite(v)) continue;
+          ctx.beginPath();
+          ctx.arc(x(idx), y(v), 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x(idx), y(v), 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      let lastHoverIdx = -1;
+
+      canvas.onmousemove = (ev) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = ev.clientX - rect.left;
+        if (mx < pad.l || mx > cssWidth - pad.r) {
+          hideTooltip();
+          return;
+        }
+
+        let bestIdx = 0;
+        let bestDist = Number.POSITIVE_INFINITY;
+        for (let i = 0; i < xPoints.length; i++) {
+          const dist = Math.abs(xPoints[i] - mx);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = i;
+          }
+        }
+
+        showTooltip(ev.clientX, ev.clientY, points[bestIdx], series, bestIdx, opts.hoverFmt || 'ms');
+
+        if (bestIdx !== lastHoverIdx) {
+          // Redraw chart cleanly then overlay hover dots
+          drawChart(points, canvasId, series, opts);
+          drawHoverDots(bestIdx);
+          lastHoverIdx = bestIdx;
+        }
+      };
+      canvas.onmouseleave = () => {
+        hideTooltip();
+        if (lastHoverIdx !== -1) {
+          lastHoverIdx = -1;
+          drawChart(points, canvasId, series, opts);
+        }
+      };
+    }
+
+    function summaryToPoint(entry, summary) {
+      const metrics = summary.metrics || {};
+      const duration = metrics.http_req_duration || {};
+      const endpoint = {};
+      for (const spec of endpointSpecs) {
+        const m = metrics[`http_req_duration{name:${spec.key}}`] || {};
+        endpoint[spec.key] = {
+          p50: m['p(50)'] ?? m.med ?? null,
+          p90: m['p(90)'] ?? null,
+          p95: m['p(95)'] ?? null,
+        };
+      }
+
+      return {
+        label: String(entry.date || '').slice(5, 10),
+        timestamp: entry.date || '',
+        runId: entry.runId,
+        runNumber: Number.parseInt(entry.runNumber, 10),
+        branch: entry.branch,
+        p50: duration['p(50)'] ?? duration.med ?? null,
+        p90: duration['p(90)'] ?? null,
+        p95: duration['p(95)'] ?? null,
+        reqRate: metrics.http_reqs?.rate ?? null,
+        errorRate: metrics.http_req_failed?.value ?? null,
+        successRate: metrics.perf_success_rate?.value ?? null,
+        endpoint,
+      };
+    }
+
+    function sortChronological(points) {
+      return points.slice().sort((a, b) => {
+        const aTs = Date.parse(a.timestamp || '');
+        const bTs = Date.parse(b.timestamp || '');
+        if (Number.isFinite(aTs) && Number.isFinite(bTs)) return aTs - bTs;
+        return a.runNumber - b.runNumber;
+      });
+    }
+
+    function baseDir(path) {
+      const slash = path.lastIndexOf('/');
+      return slash >= 0 ? path.slice(0, slash) : path;
+    }
+
+    async function loadPointsFromManifest() {
+      const manifestResp = await fetch('../../manifest.json', { cache: 'no-store' });
+      if (!manifestResp.ok) throw new Error(`Failed to load manifest.json (${manifestResp.status})`);
+
+      const manifest = await manifestResp.json();
+      const k6Entries = manifest.filter((e) => e.category === 'k6').slice(0, 20);
+      if (k6Entries.length === 0) throw new Error('No k6 entries found in manifest.');
+
+      const results = [];
+      for (const entry of k6Entries) {
+        const runFolder = baseDir(entry.path);
+        const summaryUrl = `../../${runFolder}/perf-summary.json`;
+        try {
+          const r = await fetch(summaryUrl, { cache: 'no-store' });
+          if (!r.ok) continue;
+          const summary = await r.json();
+          results.push(summaryToPoint(entry, summary));
+        } catch (_err) {
+          // Skip missing/bad runs so dashboard still works.
+        }
+      }
+
+      const points = sortChronological(results).filter((p) => p.p50 != null && p.p95 != null);
+      if (points.length === 0) throw new Error('No usable perf-summary.json data found for recent k6 runs.');
+      return points;
+    }
+
+    async function main() {
+      try {
+        const points = await loadPointsFromManifest();
+        const summary = document.getElementById('summary');
+        summary.textContent = `${points.length} runs loaded • ${points[0].timestamp.slice(0, 10)} → ${points[points.length - 1].timestamp.slice(0, 10)} • newest on right`;
+
+        drawChart(points, 'overallChart', [
+          { label: 'p(50)', color: '#2563eb', values: points.map((p) => p.p50) },
+          { label: 'p(90)', color: '#059669', values: points.map((p) => p.p90) },
+          { label: 'p(95)', color: '#dc2626', values: points.map((p) => p.p95) },
+        ], { yMin: 0, yFmt: (v) => Math.round(v) + ' ms', hoverFmt: 'ms' });
+
+        drawChart(points, 'reliabilityChart', [
+          { label: 'Error rate', color: '#dc2626', values: points.map((p) => (p.errorRate ?? 0) * 100) },
+          { label: 'Success rate', color: '#059669', values: points.map((p) => (p.successRate ?? 0) * 100) },
+        ], { yMin: 0, yMax: 100, yFmt: (v) => v.toFixed(1) + '%', hoverFmt: 'percent' });
+
+        drawChart(points, 'throughputChart', [
+          { label: 'Requests/sec', color: '#2563eb', values: points.map((p) => p.reqRate) },
+        ], { yMin: 0, yFmt: (v) => v.toFixed(1) + '/s', hoverFmt: 'rate' });
+
+        for (const spec of endpointSpecs) {
+          drawChart(points, 'ep_' + spec.key, [
+            { label: 'p(50)', color: '#2563eb', values: points.map((p) => p.endpoint[spec.key]?.p50) },
+            { label: 'p(90)', color: '#059669', values: points.map((p) => p.endpoint[spec.key]?.p90) },
+            { label: 'p(95)', color: '#dc2626', values: points.map((p) => p.endpoint[spec.key]?.p95) },
+          ], { yMin: 0, yFmt: (v) => Math.round(v) + ' ms', hoverFmt: 'ms' });
+        }
+      } catch (err) {
+        const error = document.getElementById('error');
+        error.style.display = 'block';
+        error.textContent = err.message;
+        document.getElementById('summary').textContent = 'Failed to load trend data.';
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
+
+
+
+
