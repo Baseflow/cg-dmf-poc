@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26106695762",
+    "runNumber": "638",
+    "branch": "k6/perf-trend",
+    "date": "2026-05-19T15:23:27Z",
+    "path": "integration/26106695762/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26096748956",
     "runNumber": "637",
     "branch": "develop-admin-portal",
