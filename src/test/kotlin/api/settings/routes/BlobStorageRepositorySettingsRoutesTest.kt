@@ -5,7 +5,6 @@ package com.baseflow.api.settings.routes
 import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
 import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
 import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -42,8 +41,8 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
             this.bucket = bucket
             this.isDefault = isDefault
             this.enabled = enabled
-            accessKeyEncrypted = SecretCrypto.encrypt(accessKey)
-            secretKeyEncrypted = secretKey?.let { SecretCrypto.encrypt(it) }
+            this.accessKey = accessKey
+            this.secretKey = secretKey
             storageAccountName = null
             updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }.id.value
@@ -378,8 +377,8 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         transaction {
             val entity = BlobStorageRepositorySettingEntity.findById(id)!!
-            assertNotNull(entity.accessKeyEncrypted)
-            assertEquals("original-key", SecretCrypto.decrypt(entity.accessKeyEncrypted!!))
+            assertNotNull(entity.accessKey)
+            assertEquals("original-key", entity.accessKey)
         }
     }
 
@@ -401,8 +400,8 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         transaction {
             val entity = BlobStorageRepositorySettingEntity.findById(id)!!
-            assertNotNull(entity.secretKeyEncrypted)
-            assertEquals("original-secret", SecretCrypto.decrypt(entity.secretKeyEncrypted!!))
+            assertNotNull(entity.secretKey)
+            assertEquals("original-secret", entity.secretKey)
         }
     }
 

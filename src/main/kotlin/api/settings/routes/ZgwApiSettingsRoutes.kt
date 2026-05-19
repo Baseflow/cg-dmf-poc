@@ -9,7 +9,6 @@ import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.settings.CreateZgwApiSettingsRequest
 import com.baseflow.api.models.settings.UpdateZgwApiSettingsRequest
 import com.baseflow.api.models.settings.ZgwApiSettingsResponse
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.ZgwApiSettingEntity
 import com.baseflow.entities.settings.ZgwApiSettingsTable
 import io.ktor.http.*
@@ -77,9 +76,8 @@ fun Route.zgwApiSettingsRoutes() {
                     name = body.name
                     baseUrl = body.baseUrl
                     clientId = body.clientId
-                    clientSecretEncrypted = body.clientSecret
+                    clientSecret = body.clientSecret
                         ?.takeIf { it.isNotBlank() }
-                        ?.let { SecretCrypto.encrypt(it) }
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             } ?: return@post call.respondProblem(
@@ -131,7 +129,7 @@ fun Route.zgwApiSettingsRoutes() {
                     existing.baseUrl = body.baseUrl
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
-                        existing.clientSecretEncrypted = SecretCrypto.encrypt(body.clientSecret)
+                        existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     existing
@@ -181,7 +179,7 @@ private fun ZgwApiSettingEntity.toResponse() = ZgwApiSettingsResponse(
     name = name,
     baseUrl = baseUrl,
     clientId = clientId,
-    hasSecret = clientSecretEncrypted != null,
-    clientSecret = clientSecretEncrypted?.let { SecretCrypto.decrypt(it) },
+    hasSecret = clientSecret != null,
+    clientSecret = clientSecret,
     updatedAt = updatedAt.toString(),
 )

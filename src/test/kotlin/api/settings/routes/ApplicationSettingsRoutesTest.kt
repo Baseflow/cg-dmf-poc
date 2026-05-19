@@ -8,7 +8,6 @@ import com.baseflow.api.models.settings.CreateApplicationSettingsRequest
 import com.baseflow.api.models.settings.RotateSecretRequest
 import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.ApplicationSettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -34,7 +33,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
         ApplicationSettingEntity.new {
             this.name = name
             this.clientId = clientId
-            this.clientSecretEncrypted = clientSecret?.let { SecretCrypto.encrypt(it) }
+            this.clientSecret = clientSecret
             this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }.id.value
     }
@@ -311,8 +310,8 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         transaction {
             val entity = ApplicationSettingEntity.findById(id)!!
-            assertNotNull(entity.clientSecretEncrypted)
-            assertEquals("original-secret", SecretCrypto.decrypt(entity.clientSecretEncrypted!!))
+            assertNotNull(entity.clientSecret)
+            assertEquals("original-secret", entity.clientSecret)
         }
     }
 

@@ -6,7 +6,6 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.models.settings.CreateZgwApiSettingsRequest
 import com.baseflow.api.models.settings.UpdateZgwApiSettingsRequest
 import com.baseflow.api.models.settings.ZgwApiSettingsResponse
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.ZgwApiSettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -38,7 +37,7 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
             this.name = name
             this.baseUrl = baseUrl
             this.clientId = clientId
-            this.clientSecretEncrypted = clientSecret?.let { SecretCrypto.encrypt(it) }
+            this.clientSecret = clientSecret
             this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }.id.value
     }
@@ -354,8 +353,8 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         transaction {
             val entity = ZgwApiSettingEntity.findById(id)!!
-            assertNotNull(entity.clientSecretEncrypted)
-            assertEquals("original-secret", SecretCrypto.decrypt(entity.clientSecretEncrypted!!))
+            assertNotNull(entity.clientSecret)
+            assertEquals("original-secret", entity.clientSecret)
         }
     }
 

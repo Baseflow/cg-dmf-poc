@@ -11,7 +11,6 @@ import com.baseflow.api.models.settings.CreateApplicationSettingsRequest
 import com.baseflow.api.models.settings.RotateSecretRequest
 import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.ApplicationSettingEntity
 import com.baseflow.entities.settings.ApplicationSettingsTable
 import io.ktor.http.*
@@ -74,9 +73,8 @@ fun Route.applicationSettingsRoutes() {
                 ApplicationSettingEntity.new {
                     name = body.name
                     clientId = body.clientId
-                    clientSecretEncrypted = body.clientSecret
+                    clientSecret = body.clientSecret
                         ?.takeIf { it.isNotBlank() }
-                        ?.let { SecretCrypto.encrypt(it) }
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }.toResponse()
             } ?: return@post call.respondProblem(
@@ -121,7 +119,7 @@ fun Route.applicationSettingsRoutes() {
                     existing.name = body.name
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
-                        existing.clientSecretEncrypted = SecretCrypto.encrypt(body.clientSecret)
+                        existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     existing
@@ -176,7 +174,7 @@ fun Route.applicationSettingsRoutes() {
 
                 val found = transaction {
                     val existing = ApplicationSettingEntity.findById(id) ?: return@transaction false
-                    existing.clientSecretEncrypted = SecretCrypto.encrypt(plaintext)
+                    existing.clientSecret = plaintext
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     true
                 }
@@ -206,7 +204,7 @@ private fun ApplicationSettingEntity.toResponse() = ApplicationSettingsResponse(
     id = id.value.toString(),
     name = name,
     clientId = clientId,
-    hasSecret = clientSecretEncrypted != null,
-    clientSecret = clientSecretEncrypted?.let { SecretCrypto.decrypt(it) },
+    hasSecret = clientSecret != null,
+    clientSecret = clientSecret,
     updatedAt = updatedAt.toString(),
 )

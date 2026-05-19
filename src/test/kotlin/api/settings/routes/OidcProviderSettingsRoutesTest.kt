@@ -6,7 +6,6 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.models.settings.CreateOidcProviderSettingsRequest
 import com.baseflow.api.models.settings.OidcProviderSettingsResponse
 import com.baseflow.api.models.settings.UpdateOidcProviderSettingsRequest
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.OidcProviderSettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -38,7 +37,7 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
             this.name = name
             this.issuer = issuer
             this.clientId = clientId
-            this.clientSecretEncrypted = clientSecret?.let { SecretCrypto.encrypt(it) }
+            this.clientSecret = clientSecret
             this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }.id.value
     }
@@ -362,8 +361,8 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
 
         transaction {
             val entity = OidcProviderSettingEntity.findById(id)!!
-            assertNotNull(entity.clientSecretEncrypted)
-            assertEquals("original-secret", SecretCrypto.decrypt(entity.clientSecretEncrypted!!))
+            assertNotNull(entity.clientSecret)
+            assertEquals("original-secret", entity.clientSecret)
         }
     }
 

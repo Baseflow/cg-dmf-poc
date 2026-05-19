@@ -9,7 +9,6 @@ import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
 import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
 import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
-import com.baseflow.config.SecretCrypto
 import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
 import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
 import io.ktor.http.*
@@ -80,8 +79,8 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     bucket = body.bucket ?: ""
                     isDefault = body.isDefault
                     enabled = body.enabled
-                    accessKeyEncrypted = SecretCrypto.encrypt(body.accessKey)
-                    secretKeyEncrypted = body.secretKey?.takeIf { it.isNotBlank() }?.let { SecretCrypto.encrypt(it) }
+                    accessKey = body.accessKey
+                    secretKey = body.secretKey?.takeIf { it.isNotBlank() }
                     storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }
@@ -134,10 +133,10 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     existing.isDefault = body.isDefault
                     existing.enabled = body.enabled
                     if (!body.accessKey.isNullOrBlank()) {
-                        existing.accessKeyEncrypted = SecretCrypto.encrypt(body.accessKey)
+                        existing.accessKey = body.accessKey
                     }
                     if (!body.secretKey.isNullOrBlank()) {
-                        existing.secretKeyEncrypted = SecretCrypto.encrypt(body.secretKey)
+                        existing.secretKey = body.secretKey
                     }
                     existing.storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
@@ -191,8 +190,8 @@ private fun BlobStorageRepositorySettingEntity.toResponse() = BlobStorageReposit
     bucket = bucket,
     isDefault = isDefault,
     enabled = enabled,
-    accessKey = accessKeyEncrypted?.let { SecretCrypto.decrypt(it) },
-    secretKey = secretKeyEncrypted?.let { SecretCrypto.decrypt(it) },
+    accessKey = accessKey,
+    secretKey = secretKey,
     storageAccountName = storageAccountName,
     updatedAt = updatedAt.toString(),
 )
