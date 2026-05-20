@@ -198,3 +198,4 @@ jobs:
           run-id: ${{ github.run_id }}
           run-number: ${{ github.run_number }}
           branch: ${{ github.head_ref || github.ref_name }}
+          summary-file: k6-results/perf-summary.json

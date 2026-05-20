@@ -26,6 +26,10 @@ inputs:
     description: 'Branch or ref name (typically github.ref_name)'
     required: false
     default: ''
+  summary-file:
+    description: 'Optional path to a JSON summary file to copy alongside the report (e.g. "perf-summary.json")'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -45,19 +49,25 @@ runs:
         RUN_ID: ${{ inputs.run-id }}
         RUN_NUMBER: ${{ inputs.run-number }}
         BRANCH: ${{ inputs.branch }}
+        SUMMARY_FILE: ${{ inputs.summary-file }}
       run: |
         TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
         FOLDER="${CATEGORY}/${RUN_ID}"
+        TARGET_HTML="gh-pages/${FOLDER}/index.html"
 
         if [ ! -f "${REPORT_FILE}" ]; then
           echo "::warning::Report file '${REPORT_FILE}' not found — skipping Pages deployment"
           exit 0
         fi
 
-        mkdir -p "gh-pages/${FOLDER}"
-        cp "${REPORT_FILE}" "gh-pages/${FOLDER}/index.html"
+        mkdir -p "$(dirname "${TARGET_HTML}")"
+        cp "${REPORT_FILE}" "${TARGET_HTML}"
+        if [ -n "${SUMMARY_FILE}" ]; then
+          cp "${SUMMARY_FILE}" "gh-pages/${FOLDER}/"
+        fi
 
         cd gh-pages
+
 
         # Initialise manifest.json if missing
         if [ ! -f manifest.json ]; then
