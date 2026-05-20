@@ -10,12 +10,14 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.plugin.scope
 import java.util.*
+
+private val RoutingContext.service: AuditTrailService
+    get() = call.scope.get<AuditTrailService>()
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.auditTrailRoutes() {
-    val service by inject<AuditTrailService>()
 
     route("/{uuid}/audittrail/{auditTrailUuid}") {
         /**

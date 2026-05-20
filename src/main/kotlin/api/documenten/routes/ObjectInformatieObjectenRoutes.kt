@@ -20,6 +20,7 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.parametersOf
+import org.koin.ktor.plugin.scope
 import java.util.*
 
 /**
@@ -504,7 +505,7 @@ open class ObjectInformatieObjectenRoutes(
 
     private val RoutingContext.service: ObjectInformatieObjectService
         // construct service by injecting resourceSegment
-        get() = GlobalContext.get().get<ObjectInformatieObjectService> {
+        get() = call.scope.get<ObjectInformatieObjectService> {
             parametersOf(resourceSegment)
         }
 }

@@ -26,6 +26,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.context.GlobalContext
+import org.koin.ktor.plugin.scope
 import java.util.*
 
 /**
@@ -634,7 +635,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
  * Extension property to get the request-scoped EnkelvoudigInformatieObjectService.
  */
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
-    get() = GlobalContext.get().get<EnkelvoudigInformatieObjectService>()
+    get() = call.scope.get<EnkelvoudigInformatieObjectService>()
 
 private suspend fun RoutingContext.list() {
     val (page, pageSize, filter) = getFilters()

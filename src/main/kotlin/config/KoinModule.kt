@@ -14,6 +14,7 @@ import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.StorageService
 import com.baseflow.services.WopiSlatService
 import org.koin.dsl.module
+import org.koin.module.requestScope
 
 /**
  * Koin dependency injection module
@@ -24,14 +25,17 @@ val koinModule = module {
     single { ApplicationConfig }
     single { OpenZaakConfig.fromEnv() }
     single { StorageService(S3ClientFactory()) }
-    factory { AuditContext() }
-    factory { AuditTrailService(get()) }
-    factory { BestandsDeelService(BestandsDeelConfig.Default) }
-    factory { CatalogusService(get()) }
-    factory { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
-    factory { HealthCheckService() }
-    factory { NotificationService(get()) }
-    factory { ObjectInformatieObjectService(get(), get(), get()) }
-    factory { WopiDocumentService(get(), get()) }
-    factory { WopiSlatService(get(), get()) }
+
+    requestScope {
+        scoped { AuditContext() }
+        scoped { AuditTrailService(get()) }
+        scoped { BestandsDeelService(BestandsDeelConfig.Default) }
+        scoped { CatalogusService(get()) }
+        scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
+        scoped { HealthCheckService() }
+        scoped { NotificationService(get()) }
+        scoped { ObjectInformatieObjectService(get(), get(), get()) }
+        scoped { WopiDocumentService(get(), get()) }
+        scoped { WopiSlatService(get(), get()) }
+    }
 }
