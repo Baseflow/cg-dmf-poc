@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26159987971",
+    "runNumber": "644",
+    "branch": "k6/perf-trend",
+    "date": "2026-05-20T11:42:58Z",
+    "path": "integration/26159987971/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26155957387",
     "runNumber": "643",
     "branch": "issue/CGDMF-150",
