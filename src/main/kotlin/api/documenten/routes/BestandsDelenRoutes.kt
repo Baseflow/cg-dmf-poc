@@ -15,7 +15,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
 import kotlinx.io.readByteArray
-import org.koin.ktor.ext.inject
+import org.koin.ktor.plugin.scope
 import java.util.*
 
 /**
@@ -57,8 +57,8 @@ fun Route.bestandsDelenRoutes() {
      * @tag BestandsDelen
      */
     put("/{uuid}") {
-        val service: BestandsDeelService by inject<BestandsDeelService>()
-        val storageService: StorageService by inject<StorageService>()
+        val service: BestandsDeelService = call.scope.get<BestandsDeelService>()
+        val storageService: StorageService = call.scope.get<StorageService>()
 
         val uuid =
             call.parameters["uuid"]
