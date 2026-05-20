@@ -5,8 +5,7 @@ plugins {
     application
     kotlin("plugin.serialization") version "2.3.21"
     id("com.github.ben-manes.versions") version "0.54.0"
-    // KSP plugin for annotation processing (required by koin-annotations)
-    id("com.google.devtools.ksp") version "2.3.8"
+
     // Code formatting with Spotless and ktlint
     id("com.diffplug.spotless") version "8.5.0"
 }
@@ -19,10 +18,6 @@ repositories {
     google()
 }
 
-ksp {
-    arg("KOIN_DEFAULT_MODULE", "true")
-}
-
 dependencies {
     // Test dependencies
     testImplementation(kotlin("test"))
@@ -31,6 +26,8 @@ dependencies {
     testImplementation("io.ktor:ktor-client-mock:3.5.0")
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.5.0")
     testImplementation("io.ktor:ktor-client-content-negotiation:3.5.0")
+    testImplementation("io.insert-koin:koin-test")
+    testImplementation("io.insert-koin:koin-test-junit5")
 
     // Ktor server and client
     implementation("io.ktor:ktor-server-core-jvm:3.5.0")
@@ -88,11 +85,11 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.3")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
-    implementation("io.insert-koin:koin-core:4.2.1")
-    implementation("io.insert-koin:koin-ktor:4.2.1")
-    implementation("io.insert-koin:koin-logger-slf4j:4.2.1")
-    implementation("io.insert-koin:koin-annotations:2.3.2-Beta1")
-    ksp("io.insert-koin:koin-ksp-compiler:2.3.2-Beta1")
+    implementation(platform("io.insert-koin:koin-bom:4.2.1"))
+    implementation("io.insert-koin:koin-core")
+    implementation("io.insert-koin:koin-ktor")
+    implementation("io.insert-koin:koin-logger-slf4j")
+    implementation("io.insert-koin:koin-annotations")
 
     // Open-API specification generation + routing annotations
     implementation("io.ktor:ktor-server-routing-openapi:3.5.0")

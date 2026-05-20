@@ -7,7 +7,6 @@ import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiUnlockResult
-import com.baseflow.config.RequestScope
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.OIORecords
 import com.baseflow.entities.latestVersion
@@ -17,8 +16,6 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import java.io.OutputStream
 import java.util.UUID
 
@@ -29,8 +26,6 @@ import java.util.UUID
  * as defined by the WOPI protocol. Delegates general EIO reads and writes to
  * [EnkelvoudigInformatieObjectService].
  */
-@Scope(RequestScope::class)
-@Scoped
 class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
 
     /**

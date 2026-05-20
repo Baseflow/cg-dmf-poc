@@ -9,7 +9,6 @@ import com.baseflow.api.models.CreateOIORequest
 import com.baseflow.api.models.ObjectInformatieObjectResponse
 import com.baseflow.api.models.ResourceSegments
 import com.baseflow.api.models.SubjectType
-import com.baseflow.config.RequestScope
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.entities.EIOVersions
@@ -27,8 +26,6 @@ import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.core.annotation.InjectedParam
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
@@ -37,8 +34,6 @@ import kotlin.time.ExperimentalTime
 /**
  * Service for ObjectInformatieObject operations
  */
-@Scope(RequestScope::class)
-@Scoped
 open class ObjectInformatieObjectService(
     @InjectedParam private val resourceSegment: ResourceSegments,
     private val auditTrailService: AuditTrailService,

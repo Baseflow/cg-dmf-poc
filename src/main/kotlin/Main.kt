@@ -13,8 +13,8 @@ import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.S3Config
-import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
+import com.baseflow.config.dmfKoinModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
 import com.zaxxer.hikari.HikariConfig
@@ -29,7 +29,6 @@ import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationState
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
 
 fun main() {
@@ -87,8 +86,7 @@ fun main() {
 fun Application.module() {
     // Install Koin for dependency injection
     install(Koin) {
-        modules(appModule)
-        modules(defaultModule)
+        modules(dmfKoinModule)
     }
 
     // JSON serialization — available to all modules,

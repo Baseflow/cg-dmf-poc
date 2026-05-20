@@ -13,7 +13,6 @@ import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
@@ -29,7 +28,6 @@ data class InformatieObjectType(val url: String, val omschrijving: String, val v
  *
  * TODO: We should split this into a service per API type (Catalogus, Zaken, etc.) if more functionality is added.
  */
-@Singleton
 open class CatalogusService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
     private val logger = LoggerFactory.getLogger(CatalogusService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
