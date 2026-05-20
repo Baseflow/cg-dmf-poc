@@ -27,8 +27,9 @@ inputs:
     required: false
     default: ''
   summary-file:
-    description: 'Path to a JSON summary file to copy alongside the report (e.g. "perf-summary.json")'
-    required: true
+    description: 'Optional path to a JSON summary file to copy alongside the report (e.g. "perf-summary.json")'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -61,7 +62,9 @@ runs:
 
         mkdir -p "$(dirname "${TARGET_HTML}")"
         cp "${REPORT_FILE}" "${TARGET_HTML}"
-        cp "${SUMMARY_FILE}" "gh-pages/${FOLDER}/"
+        if [ -n "${SUMMARY_FILE}" ]; then
+          cp "${SUMMARY_FILE}" "gh-pages/${FOLDER}/"
+        fi
 
         cd gh-pages
 
