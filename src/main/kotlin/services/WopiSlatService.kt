@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
-import org.koin.core.annotation.InjectedParam
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
@@ -22,9 +21,9 @@ import javax.crypto.spec.SecretKeySpec
  * verified by re-computing the HMAC on each request.
  */
 class WopiSlatService(
-    @InjectedParam private val secret: String,
+    private val secret: String,
     /** Token lifetime in seconds. Defaults to 1 hour. */
-    @InjectedParam private val ttlSeconds: Long = 3600L,
+    private val ttlSeconds: Long = 3600L,
 ) {
 
     private val algorithm = "HmacSHA256"

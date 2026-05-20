@@ -71,13 +71,14 @@ open class TestBase(dbNamePrefix: String) {
             modules(
                 module {
                     single<StorageService> { mockStorageService }
+                    single<ObjectInformatieObjectService> { mockk(relaxed = true) }
+                    single<WopiSlatService> { mockk(relaxed = true) }
+
                     factory { AuditContext() }
                     factory { AuditTrailService(get()) }
                     factory { BestandsDeelService(BestandsDeelConfig.Default) }
                     factory { CatalogusService(OpenZaakConfig.fromEnv()) }
                     factory { EnkelvoudigInformatieObjectService(get(), ApplicationConfig, get(), get(), get(), get()) }
-                    factory { ObjectInformatieObjectService(get(), get(), get()) }
-                    factory { WopiSlatService(get(), get()) }
                 },
             )
         }

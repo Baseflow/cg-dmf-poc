@@ -20,22 +20,23 @@ import org.koin.module.requestScope
  * Koin dependency injection module
  * Defines all services and their dependencies
  */
-val koinModule = module {
+val dmfKoinModule = module {
     // Configuration objects (singletons)
     single { ApplicationConfig }
+    single { CatalogusService(get()) }
+    single { HealthCheckService() }
     single { OpenZaakConfig.fromEnv() }
-    single { StorageService(S3ClientFactory()) }
+    single { S3ClientFactory() }
+    single { StorageService(get()) }
 
     requestScope {
         scoped { AuditContext() }
         scoped { AuditTrailService(get()) }
         scoped { BestandsDeelService(BestandsDeelConfig.Default) }
-        scoped { CatalogusService(get()) }
         scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
-        scoped { HealthCheckService() }
         scoped { NotificationService(get()) }
-        scoped { ObjectInformatieObjectService(get(), get(), get()) }
+        scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }
         scoped { WopiDocumentService(get(), get()) }
-        scoped { WopiSlatService(get(), get()) }
+        scoped { params -> WopiSlatService(params.get(), params.get()) }
     }
 }
