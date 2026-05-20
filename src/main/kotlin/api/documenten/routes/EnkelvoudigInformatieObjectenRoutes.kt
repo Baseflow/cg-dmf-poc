@@ -5,7 +5,6 @@ package com.baseflow.api.documenten.routes
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.latestVersion
@@ -26,6 +25,7 @@ import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.core.context.GlobalContext
 import java.util.*
 
 /**
@@ -634,7 +634,7 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
  * Extension property to get the request-scoped EnkelvoudigInformatieObjectService.
  */
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
-    get() = call.attributes[RequestScopeKey].get()
+    get() = GlobalContext.get().get<EnkelvoudigInformatieObjectService>()
 
 private suspend fun RoutingContext.list() {
     val (page, pageSize, filter) = getFilters()

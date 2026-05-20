@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.config
 
+import org.koin.core.annotation.Singleton
+
 class OpenZaakConfig(
     val endpoint: String = envOrSystem("OPENZAAK_ENDPOINT", "https://openzaak.dev.baseflow.com"),
     val clientId: String = envOrSystem("OPENZAAK_CLIENT_ID", "cg-dmf"),
@@ -22,6 +24,7 @@ class OpenZaakConfig(
     }
 
     companion object {
+        @Singleton
         fun fromEnv(): OpenZaakConfig = OpenZaakConfig()
     }
 }

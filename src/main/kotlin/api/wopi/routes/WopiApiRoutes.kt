@@ -4,7 +4,6 @@ package com.baseflow.api.wopi.routes
 
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.middleware.*
-import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
@@ -35,19 +34,31 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.RoutingContext
+import io.ktor.server.routing.get
 import io.ktor.server.routing.openapi.describe
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import io.ktor.utils.io.toByteArray
+import org.koin.core.context.GlobalContext
+import org.koin.core.parameter.parametersOf
+
+/**
+ * Extension property to get the WopiSlatService from the DI container.
+ */
+private val RoutingContext.slatService: WopiSlatService
+    get() = GlobalContext.get().get<WopiSlatService> {
+        parametersOf(
+            WopiConfig.slatSecret,
+            WopiConfig.slatTtlSeconds,
+        )
+    }
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.wopiApiRoutes() {
     install(AuditTrailPlugin)
-
-    val slatService = WopiSlatService(
-        secret = WopiConfig.slatSecret,
-        ttlSeconds = WopiConfig.slatTtlSeconds,
-    )
 
     route(WOPI_API_BASE_PATH) {
         install(WopiFileIdPlugin)
@@ -84,9 +95,7 @@ fun Route.wopiApiRoutes() {
         // ── Protected file endpoints ───────────────────────────────────────────
         route("/files/{file_id}") {
             install(WopiFileIdPlugin)
-            install(WopiSlatAuthPlugin) {
-                this.slatService = slatService
-            }
+            install(WopiSlatAuthPlugin)
 
             get {
                 getFileMetadata()
@@ -425,10 +434,10 @@ private suspend fun RoutingContext.getFileMetadata() {
 }
 
 private val RoutingContext.service: EnkelvoudigInformatieObjectService
-    get() = call.attributes[RequestScopeKey].get()
+    get() = GlobalContext.get().get<EnkelvoudigInformatieObjectService>()
 
 private val RoutingContext.wopiService: WopiDocumentService
-    get() = call.attributes[RequestScopeKey].get()
+    get() = GlobalContext.get().get<WopiDocumentService>()
 
 private suspend fun RoutingContext.renameFile() {
     val wopiOverride = call.request.headers["X-WOPI-Override"]

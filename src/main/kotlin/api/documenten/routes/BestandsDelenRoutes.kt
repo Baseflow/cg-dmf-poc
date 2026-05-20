@@ -2,7 +2,6 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.api.documenten.routes
 
-import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.BestandsDeelResponse
 import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.StorageService
@@ -16,6 +15,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
 import kotlinx.io.readByteArray
+import org.koin.ktor.ext.inject
 import java.util.*
 
 /**
@@ -57,6 +57,9 @@ fun Route.bestandsDelenRoutes() {
      * @tag BestandsDelen
      */
     put("/{uuid}") {
+        val service: BestandsDeelService by inject<BestandsDeelService>()
+        val storageService: StorageService by inject<StorageService>()
+
         val uuid =
             call.parameters["uuid"]
                 ?: return@put call.respond(HttpStatusCode.BadRequest, mapOf("detail" to "uuid is required"))
@@ -83,7 +86,7 @@ fun Route.bestandsDelenRoutes() {
                     inhoudBytes =
                         part.provider().readRemaining().readByteArray()
             }
-            part.dispose()
+            part.release()
         }
 
         if (lockToken.isNullOrBlank()) {
@@ -92,15 +95,6 @@ fun Route.bestandsDelenRoutes() {
                 mapOf("detail" to "lock is required"),
             )
         }
-
-        val scope = call.attributes.getOrNull(RequestScopeKey)
-            ?: return@put call.respond(
-                HttpStatusCode.InternalServerError,
-                mapOf("detail" to "Service not available"),
-            )
-
-        val service: BestandsDeelService = scope.get()
-        val storageService: StorageService = scope.get()
 
         when (val result = service.uploadFilePart(id, requireNotNull(lockToken), inhoudBytes, storageService)) {
             is UploadFilePartResult.NotFound ->

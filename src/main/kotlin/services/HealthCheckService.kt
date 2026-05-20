@@ -8,7 +8,6 @@ import com.baseflow.config.S3ClientFactory
 import com.baseflow.config.S3Config
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.util.UUID
@@ -23,7 +22,6 @@ data class StorageStatus(val status: String, val read: DependencyStatus, val wri
 @Serializable
 data class HealthValidateResponse(val status: String, val database: DependencyStatus, val storage: StorageStatus)
 
-@Singleton
 open class HealthCheckService {
 
     private val logger = LoggerFactory.getLogger(HealthCheckService::class.java)

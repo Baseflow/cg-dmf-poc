@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.documenten.routes
 
-import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.AuditTrailResponse
 import com.baseflow.services.AuditTrailService
 import io.ktor.http.*
@@ -11,13 +10,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
+import org.koin.ktor.ext.inject
 import java.util.*
-
-private val RoutingContext.service: AuditTrailService
-    get() = call.attributes[RequestScopeKey].get()
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.auditTrailRoutes() {
+    val service by inject<AuditTrailService>()
+
     route("/{uuid}/audittrail/{auditTrailUuid}") {
         /**
          * Een specifieke audit trail regel opvragen.

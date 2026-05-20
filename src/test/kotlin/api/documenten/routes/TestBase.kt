@@ -5,8 +5,17 @@ package com.baseflow.api.documenten.routes
 import com.baseflow.api.admin.adminModule
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
-import com.baseflow.config.appModule
+import com.baseflow.api.middleware.AuditContext
+import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.BestandsDeelConfig
+import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
+import com.baseflow.services.BestandsDeelService
+import com.baseflow.services.CatalogusService
+import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.StorageService
+import com.baseflow.services.WopiSlatService
 import com.baseflow.tooling.AllTables
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
@@ -17,7 +26,6 @@ import io.mockk.mockk
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.dsl.module
-import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -58,13 +66,18 @@ open class TestBase(dbNamePrefix: String) {
 
         install(Koin) {
             allowOverride(true)
-            modules(appModule)
-            modules(defaultModule)
             // Override the real StorageService (which requires S3) with a no-op mock
             // so route tests never attempt to connect to S3.
             modules(
                 module {
                     single<StorageService> { mockStorageService }
+                    factory { AuditContext() }
+                    factory { AuditTrailService(get()) }
+                    factory { BestandsDeelService(BestandsDeelConfig.Default) }
+                    factory { CatalogusService(OpenZaakConfig.fromEnv()) }
+                    factory { EnkelvoudigInformatieObjectService(get(), ApplicationConfig, get(), get(), get(), get()) }
+                    factory { ObjectInformatieObjectService(get(), get(), get()) }
+                    factory { WopiSlatService(get(), get()) }
                 },
             )
         }

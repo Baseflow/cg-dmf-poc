@@ -13,24 +13,27 @@ import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.S3Config
-import com.baseflow.config.appModule
 import com.baseflow.config.authenticationModule
+import com.baseflow.config.koinModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.response.respondText
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationState
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
+import org.koin.ktor.plugin.koinModule
 
 fun main() {
     ApplicationConfig.printConfig()
@@ -87,8 +90,7 @@ fun main() {
 fun Application.module() {
     // Install Koin for dependency injection
     install(Koin) {
-        modules(appModule)
-        modules(defaultModule)
+        modules(koinModule)
     }
 
     // JSON serialization — available to all modules,

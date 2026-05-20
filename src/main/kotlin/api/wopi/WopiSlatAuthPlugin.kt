@@ -4,10 +4,13 @@ package com.baseflow.api.wopi
 
 import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.respondProblem
+import com.baseflow.config.WopiConfig
 import com.baseflow.services.WopiSlatService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.request.path
+import org.koin.core.context.GlobalContext
+import org.koin.core.parameter.parametersOf
 import java.util.UUID
 
 /**
@@ -18,9 +21,13 @@ import java.util.UUID
  */
 val WopiSlatAuthPlugin = createRouteScopedPlugin(
     name = "WopiSlatAuth",
-    createConfiguration = ::WopiSlatAuthConfig,
 ) {
-    val slatService = pluginConfig.slatService
+    val slatService: WopiSlatService = GlobalContext.get().get<WopiSlatService> {
+        parametersOf(
+            WopiConfig.slatSecret,
+            WopiConfig.slatTtlSeconds,
+        )
+    }
 
     onCall { call ->
         val token = call.request.queryParameters["access_token"]
@@ -71,10 +78,6 @@ val WopiSlatAuthPlugin = createRouteScopedPlugin(
         // Store the validated UUID so route handlers can use it without re-parsing path params
         call.attributes.put(WopiValidatedFileIdKey, fileId)
     }
-}
-
-class WopiSlatAuthConfig {
-    lateinit var slatService: WopiSlatService
 }
 
 /** Attribute key to retrieve the validated WOPI file UUID inside a route handler. */

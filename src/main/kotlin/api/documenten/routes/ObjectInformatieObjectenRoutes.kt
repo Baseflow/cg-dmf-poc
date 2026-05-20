@@ -6,7 +6,6 @@ import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.ResourceUuidParser
 import com.baseflow.api.middleware.ApiVersionHeader
-import com.baseflow.api.middleware.RequestScopeKey
 import com.baseflow.api.models.*
 import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.models.CreateOIOResult
@@ -19,6 +18,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
+import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.parametersOf
 import java.util.*
 
@@ -504,9 +504,9 @@ open class ObjectInformatieObjectenRoutes(
 
     private val RoutingContext.service: ObjectInformatieObjectService
         // construct service by injecting resourceSegment
-        get() = call.attributes[RequestScopeKey].inject<ObjectInformatieObjectService> {
+        get() = GlobalContext.get().get<ObjectInformatieObjectService> {
             parametersOf(resourceSegment)
-        }.value
+        }
 }
 
 fun Route.objectInformatieObjectenRoutes() {

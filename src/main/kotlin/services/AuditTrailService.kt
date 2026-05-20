@@ -6,7 +6,6 @@ import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.AuditTrailResponse
 import com.baseflow.api.models.getResourceSegment
-import com.baseflow.config.RequestScope
 import com.baseflow.entities.AuditTrailEntity
 import com.baseflow.entities.AuditTrails
 import com.baseflow.entities.Wijzigingen
@@ -23,8 +22,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Clock
@@ -88,8 +85,6 @@ data class ApplicationInfo @JsonCreator constructor(
 )
 
 @OptIn(ExperimentalTime::class)
-@Scope(RequestScope::class)
-@Scoped
 open class AuditTrailService(private val context: AuditContext) {
     private val logger = LoggerFactory.getLogger(AuditTrailService::class.java)
 
