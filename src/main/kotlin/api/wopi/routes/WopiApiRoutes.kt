@@ -42,19 +42,31 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import io.ktor.utils.io.toByteArray
-import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.parametersOf
+import org.koin.ktor.plugin.scope
 
 /**
  * Extension property to get the WopiSlatService from the DI container.
  */
 private val RoutingContext.slatService: WopiSlatService
-    get() = GlobalContext.get().get<WopiSlatService> {
+    get() = call.scope.get<WopiSlatService> {
         parametersOf(
             WopiConfig.slatSecret,
             WopiConfig.slatTtlSeconds,
         )
     }
+
+/**
+ * Extension property to get the EnkelvoudigInformatieObjectService from the DI container.
+ */
+private val RoutingContext.service: EnkelvoudigInformatieObjectService
+    get() = call.scope.get<EnkelvoudigInformatieObjectService>()
+
+/**
+ * Extension property to get the WopiDocumentService from the DI container.
+ */
+private val RoutingContext.wopiService: WopiDocumentService
+    get() = call.scope.get<WopiDocumentService>()
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.wopiApiRoutes() {
@@ -432,12 +444,6 @@ private suspend fun RoutingContext.getFileMetadata() {
         call.respond(HttpStatusCode.OK, checkFileInfoResponse)
     }
 }
-
-private val RoutingContext.service: EnkelvoudigInformatieObjectService
-    get() = GlobalContext.get().get<EnkelvoudigInformatieObjectService>()
-
-private val RoutingContext.wopiService: WopiDocumentService
-    get() = GlobalContext.get().get<WopiDocumentService>()
 
 private suspend fun RoutingContext.renameFile() {
     val wopiOverride = call.request.headers["X-WOPI-Override"]
