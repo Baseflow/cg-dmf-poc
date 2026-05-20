@@ -25,7 +25,6 @@ import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.context.GlobalContext
 import org.koin.ktor.plugin.scope
 import java.util.*
 

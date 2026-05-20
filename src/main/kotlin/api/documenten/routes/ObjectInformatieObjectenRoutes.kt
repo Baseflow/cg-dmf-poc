@@ -18,7 +18,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
-import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
 import java.util.*

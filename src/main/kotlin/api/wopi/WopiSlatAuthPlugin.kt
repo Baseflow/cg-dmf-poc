@@ -10,7 +10,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.request.path
-import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
 import java.util.UUID
@@ -77,13 +76,11 @@ val WopiSlatAuthPlugin = createRouteScopedPlugin(
     }
 }
 
-private fun getWopiSlatService(call: ApplicationCall): WopiSlatService {
-    return call.scope.get<WopiSlatService> {
-        parametersOf(
-            WopiConfig.slatSecret,
-            WopiConfig.slatTtlSeconds,
-        )
-    }
+private fun getWopiSlatService(call: ApplicationCall): WopiSlatService = call.scope.get<WopiSlatService> {
+    parametersOf(
+        WopiConfig.slatSecret,
+        WopiConfig.slatTtlSeconds,
+    )
 }
 
 /** Attribute key to retrieve the validated WOPI file UUID inside a route handler. */

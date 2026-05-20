@@ -5,7 +5,6 @@ package com.baseflow.api.middleware
 import com.baseflow.services.AuditTrailService
 import io.ktor.server.application.*
 import io.ktor.util.*
-import org.koin.core.context.GlobalContext
 import org.koin.ktor.plugin.scope
 
 val AuditContextKey = AttributeKey<AuditContext>("AuditContext")
