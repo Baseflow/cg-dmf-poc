@@ -26,10 +26,9 @@ inputs:
     description: 'Branch or ref name (typically github.ref_name)'
     required: false
     default: ''
-  assets-dir:
-    description: 'Optional directory to copy as additional assets into the run folder'
-    required: false
-    default: ''
+  summary-file:
+    description: 'Path to a JSON summary file to copy alongside the report (e.g. "perf-summary.json")'
+    required: true
 
 runs:
   using: composite
@@ -49,7 +48,7 @@ runs:
         RUN_ID: ${{ inputs.run-id }}
         RUN_NUMBER: ${{ inputs.run-number }}
         BRANCH: ${{ inputs.branch }}
-        ASSETS_DIR: ${{ inputs.assets-dir }}
+        SUMMARY_FILE: ${{ inputs.summary-file }}
       run: |
         TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
         FOLDER="${CATEGORY}/${RUN_ID}"
@@ -61,10 +60,8 @@ runs:
         fi
 
         mkdir -p "$(dirname "${TARGET_HTML}")"
-        if [ -n "${ASSETS_DIR}" ] && [ -d "${ASSETS_DIR}" ]; then
-          cp -R "${ASSETS_DIR}/." "gh-pages/${FOLDER}/"
-        fi
         cp "${REPORT_FILE}" "${TARGET_HTML}"
+        cp "${SUMMARY_FILE}" "gh-pages/${FOLDER}/"
 
         cd gh-pages
 
