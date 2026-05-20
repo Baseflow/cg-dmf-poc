@@ -8,6 +8,7 @@ import com.baseflow.services.AuditTrailService
 import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.CatalogusService
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.HealthCheckService
 import com.baseflow.services.NotificationService
 import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.StorageService
@@ -28,6 +29,7 @@ val koinModule = module {
     factory { BestandsDeelService(BestandsDeelConfig.Default) }
     factory { CatalogusService(get()) }
     factory { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
+    factory { HealthCheckService() }
     factory { NotificationService(get()) }
     factory { ObjectInformatieObjectService(get(), get(), get()) }
     factory { WopiDocumentService(get(), get()) }
