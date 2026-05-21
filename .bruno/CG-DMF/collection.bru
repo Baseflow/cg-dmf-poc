@@ -59,6 +59,7 @@ script:pre-request {
     client_id: clientId,
     user_id: "bruno-gzac@example.com",
     user_representation: "Bruno Client",
+    roles: ["dmf-admin"]
   };
 
   const token = jwt.sign(payload, clientSecret, { algorithm: "HS256" });
