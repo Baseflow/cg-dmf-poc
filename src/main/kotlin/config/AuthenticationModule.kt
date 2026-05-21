@@ -25,26 +25,43 @@ import java.util.concurrent.TimeUnit
 fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
+    val jwtSecret = AuthenticationConfig.jwtSecret
+    val audience = AuthenticationConfig.audience
     val zgwAllowedClientIds = AuthenticationConfig.zgwAllowedClientIds
     val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
     val zgwRequireSignature = AuthenticationConfig.zgwRequireSignature
-
-    // Configure JWK provider to fetch signing keys from Keycloak which are served at issuer's certs endpoint
-    val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
-        .cached(10, 24, TimeUnit.HOURS)
-        .rateLimited(10, 1, TimeUnit.MINUTES)
-        .build()
 
     install(Authentication) {
         jwt("auth-jwt") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
-                logger.info("Raw Authorization header: {}", header)
                 header?.let { parseAuthorizationHeader(it) }
             }
 
-            verifier(jwkProvider, issuer) {
-                acceptLeeway(3)
+            if (jwtSecret != null) {
+                // HS256 verification using a shared secret (e.g. local dev or symmetric key setup).
+                logger.info("[JWT] Using HS256 secret verification for auth-jwt")
+                verifier(
+                    JWT.require(Algorithm.HMAC256(jwtSecret))
+                        .withIssuer(issuer)
+                        .withAudience(audience)
+                        .acceptLeeway(3)
+                        .build(),
+                )
+            } else {
+                // Configure JWK provider to fetch signing keys from Keycloak.
+                // Only used when OIDC_JWT_SECRET is not set.
+                val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
+                    .cached(10, 24, TimeUnit.HOURS)
+                    .rateLimited(10, 1, TimeUnit.MINUTES)
+                    .build()
+
+                // RS256 verification via Keycloak's JWK endpoint (production default).
+                logger.info("[JWT] Using JWK/RS256 verification for auth-jwt (issuer={})", issuer)
+                verifier(jwkProvider, issuer) {
+                    withAudience(audience)
+                    acceptLeeway(3)
+                }
             }
 
             validate { credential ->
@@ -55,10 +72,10 @@ fun Application.authenticationModule() {
                     token.issuer,
                     token.claims.keys,
                 )
-                if (credential.payload.getClaim("username").asString() != "" ||
-                    credential.payload.getClaim("user_id").asString() != ""
+                if (!token.getClaim("username").asString().isNullOrBlank() ||
+                    !token.getClaim("user_id").asString().isNullOrBlank()
                 ) {
-                    JWTPrincipal(credential.payload)
+                    JWTPrincipal(token)
                 } else {
                     null
                 }
@@ -87,17 +104,30 @@ fun Application.authenticationModule() {
                     override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT {
                         val decoded = JWT.decode(token)
                         val clientId = decoded.getClaim("client_id").asString()
+
+                        // Reject tokens that are not ZGW-style (no client_id claim).
+                        // This prevents Keycloak tokens with a bad signature from falling
+                        // through FirstSuccessful and being accepted by this provider.
+                        if (clientId.isNullOrBlank()) {
+                            throw JWTVerificationException("Not a ZGW token: missing or blank client_id claim")
+                        }
+
                         val secret = zgwClientSecrets[clientId]
+                        // If no secrets are configured at all, there is nothing to verify against —
+                        // reject regardless of zgwRequireSignature to avoid accepting forged tokens.
+                        val noSecretsConfigured = zgwClientSecrets.isEmpty()
                         return when {
                             secret != null ->
                                 JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
-                            zgwRequireSignature -> {
+
+                            noSecretsConfigured || zgwRequireSignature -> {
                                 logger.warn(
-                                    "[ZGW] No secret configured for client_id '{}' and ZGW_REQUIRE_SIGNATURE=true — rejecting",
+                                    "[ZGW] No secret configured for client_id '{}' — rejecting (configure ZGW_CLIENT_SECRETS to allow ZGW tokens)",
                                     clientId,
                                 )
                                 throw JWTVerificationException("No secret configured for client_id '$clientId'")
                             }
+
                             else -> {
                                 logger.warn(
                                     "[ZGW] No secret configured for client_id '{}' — skipping signature verification (set ZGW_CLIENT_SECRETS to fix)",
