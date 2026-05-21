@@ -113,32 +113,19 @@ fun Application.authenticationModule() {
                         }
 
                         val secret = zgwClientSecrets[clientId]
-                        // If no secrets are configured at all, there is nothing to verify against —
-                        // reject regardless of zgwRequireSignature to avoid accepting forged tokens.
-                        val noSecretsConfigured = zgwClientSecrets.isEmpty()
-                        return when {
-                            secret != null ->
-                                JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
-
-                            noSecretsConfigured || zgwRequireSignature -> {
-                                logger.warn(
-                                    "[ZGW] No secret configured for client_id '{}' — rejecting (configure ZGW_CLIENT_SECRETS to allow ZGW tokens)",
-                                    clientId,
-                                )
-                                throw JWTVerificationException("No secret configured for client_id '$clientId'")
-                            }
-
-                            else -> {
-                                logger.warn(
-                                    "[ZGW] No secret configured for client_id '{}' — skipping signature verification (set ZGW_CLIENT_SECRETS to fix)",
-                                    clientId,
-                                )
-                                decoded
-                            }
+                        return if (secret != null) {
+                            JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
+                        } else {
+                            logger.warn(
+                                "[ZGW] No secret configured for client_id '{}' — rejecting token because signature verification cannot be performed",
+                                clientId,
+                            )
+                            throw JWTVerificationException("No secret configured for client_id '$clientId'")
                         }
                     }
 
-                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT = jwt
+                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT =
+                        throw JWTVerificationException("Decoded JWT verification without raw token is not supported")
                 },
             )
 
