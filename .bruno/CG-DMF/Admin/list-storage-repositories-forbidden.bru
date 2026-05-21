@@ -1,0 +1,46 @@
+meta {
+  name: List repositories - forbidden without dmf-admin role
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/admin/storage-repositories
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const jwt = require("jsonwebtoken");
+
+  const clientId = bru.getEnvVar("jwt.clientId");
+  const clientSecret = bru.getEnvVar("jwt.clientSecret");
+
+  // Generate a token without the dmf-admin role to verify the endpoint rejects it
+  if (clientId && clientSecret) {
+    const payload = {
+      iss: clientId,
+      iat: Math.floor(Date.now() / 1000),
+      client_id: clientId,
+      aud: "account",
+      user_id: "bruno-gzac@example.com",
+      user_representation: "Bruno Client",
+      roles: []
+    };
+
+    const token = jwt.sign(payload, clientSecret, { algorithm: "HS256" });
+    req.setHeader("Authorization", `Bearer ${token}`);
+  }
+}
+
+tests {
+  test("status is 403 when dmf-admin role is missing", function() {
+    expect(res.status).to.equal(403);
+  });
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
