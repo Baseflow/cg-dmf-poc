@@ -410,4 +410,31 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
+
+    @Test
+    fun `PUT can recover an application with a new secret`() = testApplication {
+        application { setup() }
+        val id = insertApp("corrupted-app", clientSecret = "some-secret")
+
+        val response = client.put("/settings/application-settings/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(
+                        name = "recovered-app",
+                        clientId = "client",
+                        clientSecret = "new-working-secret",
+                    ),
+                ),
+            )
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        transaction {
+            val entity = ApplicationSettingEntity.findById(id)!!
+            assertEquals("new-working-secret", entity.clientSecret)
+            assertEquals("recovered-app", entity.name)
+        }
+    }
 }

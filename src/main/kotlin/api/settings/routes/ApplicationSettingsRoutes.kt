@@ -21,6 +21,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import java.util.UUID
 import kotlin.time.Clock
@@ -200,11 +201,25 @@ private fun generateSecret(): String {
     return bytes.joinToString("") { "%02x".format(it) }
 }
 
-private fun ApplicationSettingEntity.toResponse() = ApplicationSettingsResponse(
-    id = id.value.toString(),
-    name = name,
-    clientId = clientId,
-    hasSecret = clientSecret != null,
-    clientSecret = clientSecret,
-    updatedAt = updatedAt.toString(),
-)
+private val logger = LoggerFactory.getLogger("com.baseflow.api.settings.routes.ApplicationSettingsRoutes")
+
+private fun ApplicationSettingEntity.toResponse(): ApplicationSettingsResponse {
+    val decryptedSecret = try {
+        clientSecret
+    } catch (e: Exception) {
+        logger.error(
+            "CRITICAL: Failed to decrypt clientSecret for application '$name' (${id.value}). The encryption key or salt might have changed. " +
+                "The secret must be re-entered to restore functionality.",
+        )
+        null
+    }
+
+    return ApplicationSettingsResponse(
+        id = id.value.toString(),
+        name = name,
+        clientId = clientId,
+        hasSecret = decryptedSecret != null,
+        clientSecret = decryptedSecret,
+        updatedAt = updatedAt.toString(),
+    )
+}

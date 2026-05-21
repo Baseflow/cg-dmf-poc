@@ -390,4 +390,32 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
+
+    @Test
+    fun `PUT can recover a profile with a new secret`() = testApplication {
+        application { setup() }
+        val id = insertProfile("corrupted-profile", clientSecret = "some-secret")
+
+        val response = client.put("/settings/zgw-api-settings/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateZgwApiSettingsRequest.serializer(),
+                    UpdateZgwApiSettingsRequest(
+                        name = "recovered-profile",
+                        baseUrl = "https://new.example.com",
+                        clientId = "client",
+                        clientSecret = "new-working-secret",
+                    ),
+                ),
+            )
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        transaction {
+            val entity = ZgwApiSettingEntity.findById(id)!!
+            assertEquals("new-working-secret", entity.clientSecret)
+            assertEquals("recovered-profile", entity.name)
+        }
+    }
 }

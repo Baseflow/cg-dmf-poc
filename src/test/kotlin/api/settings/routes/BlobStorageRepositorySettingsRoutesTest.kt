@@ -437,4 +437,33 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
+
+    @Test
+    fun `PUT can recover a repository with a new secret`() = testApplication {
+        application { setup() }
+        val id = insertRepo("corrupted-repo", accessKey = "some-key", secretKey = "some-secret")
+
+        val response = client.put("/settings/storage-repositories/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(
+                        name = "recovered-repo",
+                        storageType = "S3",
+                        accessKey = "new-working-key",
+                        secretKey = "new-working-secret",
+                    ),
+                ),
+            )
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        transaction {
+            val entity = BlobStorageRepositorySettingEntity.findById(id)!!
+            assertEquals("new-working-key", entity.accessKey)
+            assertEquals("new-working-secret", entity.secretKey)
+            assertEquals("recovered-repo", entity.repoName)
+        }
+    }
 }

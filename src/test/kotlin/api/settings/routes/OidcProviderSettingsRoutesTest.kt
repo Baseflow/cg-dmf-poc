@@ -71,6 +71,34 @@ class OidcProviderSettingsRoutesTest : SettingsTestBase("oidc_provider_settings"
     }
 
     @Test
+    fun `PUT can recover a provider with a new secret`() = testApplication {
+        application { setup() }
+        val id = insertProvider("corrupted-provider", clientSecret = "some-secret")
+
+        val response = client.put("/settings/oidc-providers/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateOidcProviderSettingsRequest.serializer(),
+                    UpdateOidcProviderSettingsRequest(
+                        name = "recovered-provider",
+                        issuer = "https://issuer.example.com",
+                        clientId = "client",
+                        clientSecret = "new-working-secret",
+                    ),
+                ),
+            )
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        transaction {
+            val entity = OidcProviderSettingEntity.findById(id)!!
+            assertEquals("new-working-secret", entity.clientSecret)
+            assertEquals("recovered-provider", entity.name)
+        }
+    }
+
+    @Test
     fun `GET hasSecret is false when no secret stored`() = testApplication {
         application { setup() }
         insertProvider("provider")

@@ -19,6 +19,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -174,12 +175,26 @@ fun Route.oidcProviderSettingsRoutes() {
     }
 }
 
-private fun OidcProviderSettingEntity.toResponse() = OidcProviderSettingsResponse(
-    id = id.value.toString(),
-    name = name,
-    issuer = issuer,
-    clientId = clientId,
-    hasSecret = clientSecret != null,
-    clientSecret = clientSecret,
-    updatedAt = updatedAt.toString(),
-)
+private val logger = LoggerFactory.getLogger("com.baseflow.api.settings.routes.OidcProvidersSettingsRoutes")
+
+private fun OidcProviderSettingEntity.toResponse(): OidcProviderSettingsResponse {
+    val decryptedSecret = try {
+        clientSecret
+    } catch (e: Exception) {
+        logger.error(
+            "CRITICAL: Failed to decrypt clientSecret for OIDC provider '$name' (${id.value}). The encryption key or salt might have changed. " +
+                "The secret must be re-entered to restore functionality.",
+        )
+        null
+    }
+
+    return OidcProviderSettingsResponse(
+        id = id.value.toString(),
+        name = name,
+        issuer = issuer,
+        clientId = clientId,
+        hasSecret = decryptedSecret != null,
+        clientSecret = decryptedSecret,
+        updatedAt = updatedAt.toString(),
+    )
+}

@@ -19,6 +19,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -182,16 +183,40 @@ fun Route.blobStorageRepositorySettingsRoutes() {
     }
 }
 
-private fun BlobStorageRepositorySettingEntity.toResponse() = BlobStorageRepositorySettingsResponse(
-    id = id.value.toString(),
-    name = repoName,
-    storageType = storageType,
-    url = url,
-    bucket = bucket,
-    isDefault = isDefault,
-    enabled = enabled,
-    accessKey = accessKey,
-    secretKey = secretKey,
-    storageAccountName = storageAccountName,
-    updatedAt = updatedAt.toString(),
-)
+private val logger = LoggerFactory.getLogger("com.baseflow.api.settings.routes.BlobStorageRepositorySettingsRoutes")
+
+private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageRepositorySettingsResponse {
+    val decryptedAccessKey = try {
+        accessKey
+    } catch (e: Exception) {
+        logger.error(
+            "CRITICAL: Failed to decrypt accessKey for repository '$repoName' (${id.value}). The encryption key or salt might have changed. " +
+                "The key must be re-entered to restore functionality.",
+        )
+        null
+    }
+
+    val decryptedSecretKey = try {
+        secretKey
+    } catch (e: Exception) {
+        logger.error(
+            "CRITICAL: Failed to decrypt secretKey for repository '$repoName' (${id.value}). The encryption key or salt might have changed. " +
+                "The secret must be re-entered to restore functionality.",
+        )
+        null
+    }
+
+    return BlobStorageRepositorySettingsResponse(
+        id = id.value.toString(),
+        name = repoName,
+        storageType = storageType,
+        url = url,
+        bucket = bucket,
+        isDefault = isDefault,
+        enabled = enabled,
+        accessKey = decryptedAccessKey,
+        secretKey = decryptedSecretKey,
+        storageAccountName = storageAccountName,
+        updatedAt = updatedAt.toString(),
+    )
+}
