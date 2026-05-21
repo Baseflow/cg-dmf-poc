@@ -526,6 +526,17 @@ private suspend fun RoutingContext.putRelativeFile() {
         return
     }
 
+    if (relativeTarget != null && suggestedTarget != null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(
+                "Exactly one of X-WOPI-RelativeTarget or X-WOPI-SuggestedTarget must be provided.",
+                call.request.path(),
+            ),
+        )
+        return
+    }
+
     // SuggestedTarget never overwrites — the host picks a conflict-free name.
     val targetFileName = relativeTarget ?: suggestedTarget!!
     val effectiveOverwrite = if (suggestedTarget != null) false else overwrite
