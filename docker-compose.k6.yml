@@ -11,10 +11,14 @@ name: dmf-k6
 
 services:
   app:
+    container_name: dmf-k6-app
     environment:
       ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:-changeme-use-a-strong-key-in-production}
       ENCRYPTION_SALT: ${ENCRYPTION_SALT:-deadbeefcafe0123456789abcdef0123}
       DB_POOL_SIZE: 25
+
+  minio:
+    container_name: dmf-k6-minio
 
   keycloak:
     profiles:
@@ -37,6 +41,7 @@ services:
       - disabled
 
   postgres:
+    container_name: dmf-k6-postgres
     volumes:
       - /dev/null:/docker-entrypoint-initdb.d/create-databases.sql:ro
 

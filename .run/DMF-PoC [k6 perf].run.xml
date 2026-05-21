@@ -1,0 +1,25 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="DMF-PoC [k6 perf]" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="docker compose -f docker-compose.yml -f docker-compose.k6.yml down &amp;&amp; docker compose -f docker-compose.yml -f docker-compose.k6.yml up --build --abort-on-container-exit --exit-code-from k6" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="/bin/sh" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs>
+      <env name="JWT_CLIENT_SECRET" value="your-secret" />
+      <env name="EIO_TARGET" value="100" />
+      <env name="OIO_TARGET" value="200" />
+      <env name="MAX_VERSIONS" value="5" />
+      <env name="RAMP_DURATION" value="10s" />
+      <env name="STEADY_DURATION" value="30s" />
+      <env name="MAX_VUS" value="10" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>
