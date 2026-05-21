@@ -74,40 +74,19 @@ fun Application.authenticationModule() {
         jwt("auth-zgw") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
-                logger.info("[ZGW] Raw Authorization header: {}", header)
-                // <!-- FIXME unsafe -->
-                // Bypass: accept the literal token value "bypass" without any JWT validation.
-                if (header?.trim() == "Bearer bypass") {
-                    logger.warn(
-                        "[ZGW] UNSAFE BYPASS AUTH: request authenticated via hardcoded bypass token. " +
-                            "This must not be used in production.",
-                    )
-                    // Return a minimal syntactically-valid bearer header so the JWT machinery
-                    // hands control to our validate block, where we detect and accept it.
-                    return@authHeader parseAuthorizationHeader(
-                        "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJieXBhc3MiOnRydWV9.",
-                    )
-                }
                 header?.let { parseAuthorizationHeader(it) }
             }
 
             verifier(
                 object : JWTVerifier {
                     override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT = JWT.decode(token)
-                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT = jwt
+                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT =
+                        jwt
                 },
             )
 
             validate { credential ->
                 val token = credential.payload
-                // <!-- FIXME unsafe --> Accept the hardcoded bypass token.
-                if (token.getClaim("bypass").asBoolean() == true) {
-                    logger.warn(
-                        "[ZGW] UNSAFE BYPASS AUTH: bypass principal granted. " +
-                            "This must not be used in production.",
-                    )
-                    return@validate JWTPrincipal(token)
-                }
                 val clientId = token.getClaim("client_id").asString()
                 logger.info(
                     "[ZGW] JWT token received - issuer: {}, client_id: {}, claims: {}",
