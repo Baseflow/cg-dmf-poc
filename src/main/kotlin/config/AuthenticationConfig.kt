@@ -43,7 +43,7 @@ internal object AuthenticationConfig : Config() {
      * are rejected outright.  Set to false (the default) to preserve legacy behaviour
      * where missing secrets cause a warning but the token is still accepted.
      */
-    val zgwRequireSignature: Boolean = envOrSystem("ZGW_REQUIRE_SIGNATURE", "false") == "true"
+    val zgwRequireSignature: Boolean = envOrSystem("ZGW_REQUIRE_SIGNATURE", "false").toBoolean()
 
     /**
      * The role name (from `realm_access.roles` in Keycloak JWTs, or `roles` in ZGW JWTs)

@@ -4,6 +4,8 @@ package com.baseflow.config
 
 import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.JWTVerifier
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.parseAuthorizationHeader
@@ -24,6 +26,8 @@ fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
     val zgwAllowedClientIds = AuthenticationConfig.zgwAllowedClientIds
+    val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
+    val zgwRequireSignature = AuthenticationConfig.zgwRequireSignature
 
     // Configure JWK provider to fetch signing keys from Keycloak which are served at issuer's certs endpoint
     val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
@@ -69,8 +73,9 @@ fun Application.authenticationModule() {
         }
 
         // ZGW-style JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
-        // These tokens are HS256-signed but we don't have access to the shared secret,
-        // so we skip signature verification and only validate the client_id claim.
+        // Tokens are HS256-signed with a per-client secret.  Configure secrets via
+        // ZGW_CLIENT_SECRETS=client_id:secret,...  (see AuthenticationConfig).
+        // Set ZGW_REQUIRE_SIGNATURE=true to reject tokens with no configured secret.
         jwt("auth-zgw") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
@@ -79,7 +84,30 @@ fun Application.authenticationModule() {
 
             verifier(
                 object : JWTVerifier {
-                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT = JWT.decode(token)
+                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT {
+                        val decoded = JWT.decode(token)
+                        val clientId = decoded.getClaim("client_id").asString()
+                        val secret = zgwClientSecrets[clientId]
+                        return when {
+                            secret != null ->
+                                JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
+                            zgwRequireSignature -> {
+                                logger.warn(
+                                    "[ZGW] No secret configured for client_id '{}' and ZGW_REQUIRE_SIGNATURE=true — rejecting",
+                                    clientId,
+                                )
+                                throw JWTVerificationException("No secret configured for client_id '$clientId'")
+                            }
+                            else -> {
+                                logger.warn(
+                                    "[ZGW] No secret configured for client_id '{}' — skipping signature verification (set ZGW_CLIENT_SECRETS to fix)",
+                                    clientId,
+                                )
+                                decoded
+                            }
+                        }
+                    }
+
                     override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT = jwt
                 },
             )
@@ -136,11 +164,6 @@ fun Application.authenticationModule() {
             ),
         ),
     )
-    // <!-- FIXME unsafe -->
-    // The bypass token is accepted by this same provider: type the literal value `bypass`
-    // in the Swagger UI bearer box — it will be sent as `Authorization: Bearer bypass` and
-    // the auth-zgw handler will accept it without any JWT validation.
-    // FOR DEVELOPMENT / TESTING ONLY — never use this in production.
     registerSecurityScheme(
         providerName = "auth-zgw",
         securityScheme = HttpSecurityScheme(
@@ -148,9 +171,7 @@ fun Application.authenticationModule() {
             bearerFormat = "JWT",
             description = "ZGW-stijl HS256 JWT (GZAC/OpenZaak/Valtimo). " +
                 "Plak een token gegenereerd via de ZGW token-tool. " +
-                "Het token wordt niet op handtekening gecontroleerd; alleen client_id wordt gevalideerd.\n\n" +
-                "⚠️ UNSAFE BYPASS: typ de letterlijke waarde `bypass` om alle JWT-validatie over te slaan. " +
-                "Uitsluitend bedoeld voor lokale ontwikkeling en testen. NOOIT gebruiken in productie.",
+                "Het token wordt geverifieerd met de HS256-handtekening indien een secret geconfigureerd is voor de client_id.",
         ),
     )
 }
