@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi.wopi
+
 import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockPayload
 import com.baseflow.api.wopi.models.WopiLockResult
@@ -32,7 +33,10 @@ import kotlin.time.Clock
  * as defined by the WOPI protocol. Delegates general EIO reads and writes to
  * [EnkelvoudigInformatieObjectService].
  */
-class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
+class WopiDocumentService(
+    private val eioService: EnkelvoudigInformatieObjectService,
+    private val storageService: StorageService
+) {
 
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
@@ -184,9 +188,9 @@ class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectSer
 
         // Check for a name collision.
         val existingId: UUID? = transaction {
-            EIORecordEntity.all().firstOrNull { record ->
-                record.versions.any { it.bestandsnaam == targetFileName }
-            }?.id?.value
+            EIOVersionEntity.find {
+                com.baseflow.entities.EIOVersions.bestandsnaam eq targetFileName
+            }.limit(1).firstOrNull()?.id?.value
         }
 
         if (existingId != null) {
