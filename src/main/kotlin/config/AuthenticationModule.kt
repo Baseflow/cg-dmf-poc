@@ -65,7 +65,7 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
-                if (!token.getClaim("username").asString().isNullOrBlank() ||
+                if (!token.getClaim("preferred_username").asString().isNullOrBlank() ||
                     !token.getClaim("user_id").asString().isNullOrBlank()
                 ) {
                     JWTPrincipal(token)
