@@ -66,12 +66,13 @@ sealed class WopiDeleteResult {
 
 sealed class WopiPutRelativeFileResult {
     /**
-     * New file created successfully.
-     * [newFileId] is the UUID of the newly created EIO.
+     * Relative file operation completed successfully.
+     * [fileId] is the UUID of the target EIO, whether it was newly created or an existing file
+     * that was overwritten.
      * [resolvedName] is the actual file name used (may differ from the requested name if an
      * exact-overwrite was not requested and a collision was resolved).
      */
-    data class Success(val newFileId: java.util.UUID, val resolvedName: String) : WopiPutRelativeFileResult()
+    data class Success(val fileId: java.util.UUID, val resolvedName: String) : WopiPutRelativeFileResult()
 
     /** The source document with the given id does not exist. */
     data object SourceNotFound : WopiPutRelativeFileResult()
