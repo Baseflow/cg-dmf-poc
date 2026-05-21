@@ -110,18 +110,21 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
             if (part.lock != lockToken) return@transaction UploadFilePartResult.InvalidLock
 
             if (inputStream != null && inputStream.available() > 0) {
+                // Pre-validate size using available() — reliable for ByteArrayInputStream
+                // and HTTP streams where the Ktor engine sets the limit to Content-Length.
+                val reported = inputStream.available().toLong()
+                if (reported != part.omvang) {
+                    return@transaction UploadFilePartResult.OmvangMismatch(expected = part.omvang, actual = reported)
+                }
+
                 val version = part.versionId
                 val storageKey = bestandsDeelStorageKey(
                     recordId = version.recordId.id.value,
                     versie = version.versie,
                     bestandsDeelId = id,
                 )
-                storageService.uploadFile(
-                    storageKey,
-                    inputStream,
-                    part.omvang,
-                    version.bestandsRepository.takeUnless { it.isBlank() },
-                )
+                val repoName = version.bestandsRepository.takeUnless { it.isBlank() }
+                storageService.uploadFile(storageKey, inputStream, part.omvang, repoName)
             }
 
             part.voltooid = true

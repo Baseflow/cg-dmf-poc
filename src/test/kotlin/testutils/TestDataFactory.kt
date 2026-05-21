@@ -50,7 +50,7 @@ object TestDataFactory {
         link = "https://example.com/test.pdf",
         integriteit = Integriteit(
             algoritme = IntegriteitAlgoritme.SHA_256,
-            waarde = "2098ff9ca10feb574bb50660880c209412ddb067551a4c50a12800730b46f5ea", // "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            waarde = "2098ff9ca10feb574bb50660880c209412ddb067551a4c50a12800730b46f5ea",
             datum = LocalDate(2025, 1, 1),
         ),
         trefwoorden = listOf("test", "example"),

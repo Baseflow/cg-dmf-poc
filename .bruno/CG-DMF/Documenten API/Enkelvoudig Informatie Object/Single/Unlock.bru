@@ -1,7 +1,7 @@
 meta {
   name: Unlock
   type: http
-  seq: 8
+  seq: 9
 }
 
 post {
@@ -19,7 +19,6 @@ body:json {
 assert {
   res.status: eq 204
 }
-
 
 settings {
   encodeUrl: true

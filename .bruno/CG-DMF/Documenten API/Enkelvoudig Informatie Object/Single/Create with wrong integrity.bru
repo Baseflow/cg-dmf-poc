@@ -1,91 +1,98 @@
 meta {
-  name: Put
+  name: Create with wrong integrity
   type: http
-  seq: 5
+  seq: 2
 }
 
-put {
-  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{createdId}}
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten
   body: json
   auth: inherit
 }
 
 body:json {
   {
-    "bronorganisatie": "012345678",
-    "titel": "mijn titel updated",
+    "bronorganisatie": "623058911",
+    "identificatie": "stringd",
+    "titel": "mijn titel",
     "taal": "dut",
     "bestandsnaam": "{{file_name}}",
-    "auteur": "Thomas Luijken",
-    "creatiedatum": "2026-01-23",
-    "formaat": "application/pfd",
+    "auteur": "DJ",
+    "creatiedatum": "2025-12-10",
+    "formaat": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "inhoud": "{{file_base64}}",
     "bestandsomvang": "{{file_size}}",
     "integriteit": {
       "algoritme": "sha_256",
-      "waarde": "{{file_sha256}}",
+      "waarde": "wrong integrity",
       "datum": "{{local_date}}"
     },
     "beschrijving": "Test document uploaded by Bruno",
-    "informatieobjecttype": "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d"
+    "informatieobjecttype": "{{catalogusBaseUrl}}/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d",
+    "status": "vastgesteld",
+    "trefwoorden": ["test", "test1", "test2"]
   }
 }
 
 vars:pre-request {
-  file_base64:
-  file_sha256:
-  file_size:
-  file_name:
-  local_date:
+  file_base64: VGVzdGZpbGUgd2l0aCBqdXN0IHNvbWUgc2ltcGxlIGRhdGEKV2UgYmUgdGVzdGluZwo=
+  file_sha256: 29331452e10453e92b66362e359a0a8d5dbee081ab366541e3f870a3fe3f8ecd
+  file_size: 
+  file_name: dj_test1
+  local_date: 2025-12-16
+}
+
+assert {
+  res.status: eq 400
+  res.body.detail: contains Integrity check failed
 }
 
 script:pre-request {
   const fs = require("fs");
   const path = require("path");
   const CryptoJS = require("crypto-js");
-
-  const fileName = "Choorstraat 2-20 - Kelders - Choorstraat met riolering (003).pdf";
+  
+  const fileName = "WORD_Wonders_of_Nature_Pexels_2_pages.docx";
   const filePath = path.resolve(bru.cwd(), "../data", fileName);
-
+  
   let fileBuffer;
-
+  
   try {
     fileBuffer = fs.readFileSync(filePath);
   } catch (err) {
     console.error("Failed to read file:", filePath, err.message);
-
+  
     bru.setEnvVar("file_error", `Failed to read file: ${err.message}`);
-
+  
     // Optional: abort request if the file is required
     if (typeof onFail === "function") {
       onFail("Pre-request failed: cannot read file: " + filePath);
     }
   }
-
+  
   // Only proceed if file read succeeded
   if (fileBuffer) {
     // -----------------------------------------------------------------
     // Base64
     // -----------------------------------------------------------------
     const base64Content = fileBuffer.toString("base64");
-
+  
     // -----------------------------------------------------------------
     // SHA-256 using crypto-js
     // -----------------------------------------------------------------
     const wordArray = CryptoJS.lib.WordArray.create(fileBuffer);
     const sha256 = CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
-
+  
     // -----------------------------------------------------------------
     // File size
     // -----------------------------------------------------------------
     const fileSize = fileBuffer.length;
-
+  
     // -----------------------------------------------------------------
     // Local timestamp (ISO without trailing 'Z')
     // -----------------------------------------------------------------
     const today = new Date().toISOString().split('T')[0];
-    console.log(today);
-
+  
     // -----------------------------------------------------------------
     // Store env vars
     // -----------------------------------------------------------------
@@ -95,14 +102,10 @@ script:pre-request {
     bru.setVar("file_name", fileName);
     bru.setVar("local_date", today);
   }
-
+  
 }
 
 settings {
   encodeUrl: true
   timeout: 0
-}
-
-assert {
-  res.status: eq 200
 }

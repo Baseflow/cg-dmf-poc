@@ -30,7 +30,6 @@ body:json {
       "waarde": "{{file_sha256}}",
       "datum": "{{local_date}}"
     }
-    
   }
 }
 
@@ -48,6 +47,8 @@ vars:post-response {
 assert {
   res.status: eq 201
   res.body.id: isDefined
+  res.body.integriteit.waarde: eq 38c96bad6e7b91af76696925ded263bbaec8916d2b2d661051c6f00c3326d721
+  res.body.integriteit.algoritme: eq sha_256
 }
 
 script:pre-request {

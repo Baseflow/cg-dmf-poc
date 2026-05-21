@@ -1,7 +1,7 @@
 meta {
   name: 19 PutRelativeFile - SuggestedTarget name collision resolves automatically
   type: http
-  seq: 19
+  seq: 20
 }
 
 post {
@@ -44,7 +44,7 @@ script:post-response {
   test("Just create another copy, there shouldn't be a collision", function() {
     expect(res.body.Name).to.equal("wopi-copy.docx");
   });
-
+  
   // Clean up this second copy
   const url = res.body.Url;
   const uuid = url.split("/").pop();
