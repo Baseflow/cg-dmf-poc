@@ -46,12 +46,12 @@ export const navigation: {
         },
         {
           name: "OpenAPI JSON",
-          url: `${process.env.BACKEND_URL}/docs/openapi/documenten.json`,
+          url: "/api/docs/openapi/documenten.json",
           icon: <Braces />,
         },
         {
           name: "OpenAPI YAML",
-          url: `${process.env.BACKEND_URL}/docs/openapi/documenten.yaml`,
+          url: "/api/docs/openapi/documenten.yaml",
           icon: <Braces />,
         },
       ],
