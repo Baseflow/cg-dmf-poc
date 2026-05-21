@@ -1,0 +1,48 @@
+meta {
+  name: 18 PutRelativeFile - SuggestedTarget (new file)
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}?access_token={{wopiAccessToken}}
+  body: text
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: PUT_RELATIVE
+  X-WOPI-SuggestedTarget: wopi-copy.docx
+  Content-Type: application/octet-stream
+}
+
+body:text {
+  Hello WOPI PutRelativeFile
+}
+
+vars:post-response {
+  wopiRelativeFileId: res.body.Url
+}
+
+assert {
+  res.status: eq 200
+  res.body.Name: eq wopi-copy.docx
+  res.body.Url: isDefined
+}
+
+script:post-response {
+  // Extract UUID from the returned Url: .../files/<uuid>
+  const url = res.body.Url;
+  const uuid = url.split("/").pop();
+  bru.setVar("wopiRelativeFileId", uuid);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

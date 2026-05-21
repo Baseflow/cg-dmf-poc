@@ -13,10 +13,12 @@ import com.baseflow.api.wopi.WopiFileIdPlugin
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
+import com.baseflow.api.wopi.models.PutRelativeFileResponse
 import com.baseflow.api.wopi.models.RenameFileResponse
 import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
+import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiTokenResponse
 import com.baseflow.api.wopi.models.WopiUnlockResult
@@ -85,7 +87,7 @@ fun Route.wopiApiRoutes() {
                 summary = "Issue a WOPI access token."
                 description =
                     "Issues a short-lived access token (SLAT) for the given EnkelvoudigInformatieObject. " +
-                    "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
+                        "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the EnkelvoudigInformatieObject to issue a token for."
@@ -143,6 +145,7 @@ fun Route.wopiApiRoutes() {
                     "UNLOCK" -> unlockFile()
                     "RENAME_FILE" -> renameFile()
                     "DELETE" -> deleteFile()
+                    "PUT_RELATIVE" -> putRelativeFile()
                     else -> call.respondProblem(
                         HttpStatusCode.NotImplemented,
                         badRequest("Unsupported X-WOPI-Override value", call.request.path()),
@@ -153,8 +156,8 @@ fun Route.wopiApiRoutes() {
                 summary = "Issues a WOPI operation"
                 description =
                     "The WOPI-client issues a certain WOPI operation, based on the `X-WOPI-Override` header. " +
-                    "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE. " +
-                    "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
+                        "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE, PUT_RELATIVE. " +
+                        "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the file to lock/unlock."
@@ -389,7 +392,7 @@ private suspend fun RoutingContext.getFileContents() {
     }
 
     val fileName = fileVersion.bestandsnaam.ifBlank { null } ?: fileVersion.titel.ifBlank { null }
-        ?: "document-${fileVersion.recordId}"
+    ?: "document-${fileVersion.recordId}"
     val contentType = try {
         fileVersion.formaat?.let { ContentType.parse(it) }
     } catch (_: Exception) {
@@ -505,18 +508,99 @@ private suspend fun RoutingContext.renameFile() {
     }
 }
 
+private suspend fun RoutingContext.putRelativeFile() {
+    val relativeTarget = call.request.headers["X-WOPI-RelativeTarget"]?.trim()
+    val suggestedTarget = call.request.headers["X-WOPI-SuggestedTarget"]?.trim()
+    val overwrite = call.request.headers["X-WOPI-Overwrite-Relative-Target"]
+        ?.lowercase()?.trim() == "true"
+
+    // Exactly one of RelativeTarget or SuggestedTarget must be provided.
+    if (relativeTarget == null && suggestedTarget == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest(
+                "Either X-WOPI-RelativeTarget or X-WOPI-SuggestedTarget header is required.",
+                call.request.path(),
+            ),
+        )
+        return
+    }
+
+    // SuggestedTarget never overwrites — the host picks a conflict-free name.
+    val targetFileName = relativeTarget ?: suggestedTarget!!
+    val effectiveOverwrite = if (suggestedTarget != null) false else overwrite
+
+    if (targetFileName.contains('/') || targetFileName.contains('\\') || targetFileName.startsWith('.')) {
+        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("Requested file name contains invalid characters.", call.request.path()),
+        )
+        return
+    }
+
+    val sourceFileId = call.attributes[WopiValidatedFileIdKey]
+    val bytes = call.receiveChannel().toByteArray()
+
+    when (
+        val result = wopiService.wopiPutRelativeFile(
+            sourceId = sourceFileId,
+            targetFileName = targetFileName,
+            bytes = bytes,
+            overwrite = effectiveOverwrite,
+        )
+    ) {
+        is WopiPutRelativeFileResult.SourceNotFound ->
+            call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
+
+        is WopiPutRelativeFileResult.NameConflict -> {
+            call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("A file named '$targetFileName' already exists.", call.request.path()),
+            )
+        }
+
+        is WopiPutRelativeFileResult.TargetLocked -> {
+            call.response.headers.append("X-WOPI-Lock", result.currentLock)
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("Target file is locked.", call.request.path()),
+            )
+        }
+
+        is WopiPutRelativeFileResult.Success -> {
+            val fileUrl = call.request.local.let { "http://${it.serverHost}:${it.serverPort}" } +
+                "/wopi/api/v1/files/${result.newFileId}"
+            call.respond(
+                HttpStatusCode.OK,
+                PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
+            )
+        }
+    }
+}
+
 private suspend fun RoutingContext.deleteFile() {
     val fileId = call.attributes[WopiValidatedFileIdKey]
 
     when (val result = wopiService.wopiDeleteFile(fileId)) {
         is WopiDeleteResult.NotFound ->
             call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+
         is WopiDeleteResult.Locked -> {
             call.response.headers.append("X-WOPI-Lock", result.currentLock)
-            call.respondProblem(HttpStatusCode.Conflict, conflict("File is locked and cannot be deleted.", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("File is locked and cannot be deleted.", call.request.path())
+            )
         }
+
         is WopiDeleteResult.HasReferences ->
-            call.respondProblem(HttpStatusCode.Conflict, conflict("File cannot be deleted because it has references.", call.request.path()))
+            call.respondProblem(
+                HttpStatusCode.Conflict,
+                conflict("File cannot be deleted because it has references.", call.request.path())
+            )
+
         is WopiDeleteResult.Success -> call.respond(HttpStatusCode.OK)
     }
 }

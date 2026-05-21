@@ -5,19 +5,25 @@ import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockPayload
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
+import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiUnlockResult
 import com.baseflow.entities.EIORecordEntity
+import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.entities.OIORecords
 import com.baseflow.entities.latestVersion
 import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.IntegrityCalculationService
 import com.baseflow.services.StorageService
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.OutputStream
 import java.util.UUID
+import kotlin.time.Clock
 
 /**
  * Service for WOPI-specific document operations.
@@ -126,6 +132,123 @@ class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectSer
     /** Streams the file bytes identified by [bestandsnaam] (storage object key) to [output]. */
     fun streamByBestandsnaam(bestandsnaam: String, output: OutputStream, repoName: String? = null) {
         storageService.downloadFileTo(bestandsnaam, output, repoName?.takeUnless { it.isBlank() }).join()
+    }
+
+    /**
+     * Creates a new EIO as a copy of [sourceId] with the provided [bytes] and [targetFileName]
+     * (WOPI PutRelativeFile).
+     *
+     * - If [overwrite] is true and a file with [targetFileName] already exists: overwrite it if
+     *   it is unlocked, otherwise return [WopiPutRelativeFileResult.TargetLocked].
+     * - If [overwrite] is false and a file with [targetFileName] already exists: return
+     *   [WopiPutRelativeFileResult.NameConflict] with a deduplicated suggested name.
+     * - Otherwise: create a new EIO record cloned from the source metadata and return
+     *   [WopiPutRelativeFileResult.Success].
+     */
+    suspend fun wopiPutRelativeFile(
+        sourceId: UUID,
+        targetFileName: String,
+        bytes: ByteArray,
+        overwrite: Boolean,
+    ): WopiPutRelativeFileResult {
+        // Resolve source metadata inside a transaction, then do I/O outside.
+        data class SourceMeta(
+            val bronOrganisatie: String,
+            val informatieobjectType: String,
+            val taal: String,
+            val auteur: String,
+            val creatieDatum: kotlinx.datetime.LocalDate,
+            val vertrouwlijkheid: String,
+            val status: String,
+            val beschrijving: String,
+            val indicatieGebruiksrecht: Boolean,
+            val bestandsRepository: String,
+        )
+
+        val sourceMeta = transaction {
+            val record = EIORecordEntity.findById(sourceId) ?: return@transaction null
+            val v = record.latestVersion() ?: return@transaction null
+            SourceMeta(
+                bronOrganisatie = v.bronOrganisatie,
+                informatieobjectType = v.informatieobject_type,
+                taal = v.taal,
+                auteur = v.auteur,
+                creatieDatum = v.creatieDatum,
+                vertrouwlijkheid = v.vertrouwlijkheidsAanduiding,
+                status = v.status,
+                beschrijving = v.beschrijving,
+                indicatieGebruiksrecht = v.indicatieGebruiksrecht,
+                bestandsRepository = v.bestandsRepository,
+            )
+        } ?: return WopiPutRelativeFileResult.SourceNotFound
+
+        // Check for a name collision.
+        val existingId: UUID? = transaction {
+            EIORecordEntity.all().firstOrNull { record ->
+                record.versions.any { it.bestandsnaam == targetFileName }
+            }?.id?.value
+        }
+
+        if (existingId != null) {
+            if (!overwrite) {
+                // Suggest a deduplicated name: insert a counter before the extension.
+                val (base, ext) = targetFileName.let {
+                    val dot = it.lastIndexOf('.')
+                    if (dot > 0) it.substring(0, dot) to it.substring(dot) else it to ""
+                }
+                val suggested = "$base (2)$ext"
+                return WopiPutRelativeFileResult.NameConflict(suggested)
+            }
+            // Overwrite: reject if the target is locked.
+            val targetLock = transaction {
+                EIORecordEntity.findById(existingId)?.lockToken
+            }
+            if (!targetLock.isNullOrEmpty()) {
+                return WopiPutRelativeFileResult.TargetLocked(targetLock)
+            }
+            // Overwrite by updating the existing file's bytes.
+            eioService.updateWithBytes(existingId, bytes) ?: return WopiPutRelativeFileResult.SourceNotFound
+            return WopiPutRelativeFileResult.Success(existingId, targetFileName)
+        }
+
+        // No collision — create a new EIO record.
+        val fileType = StorageService.detectFileFormat(bytes)
+        val integrityResult = IntegrityCalculationService.calculateIntegrity(bytes, null)
+        val newId = transaction {
+            val newRecord = EIORecordEntity.new {}
+            val bestandsLocatie = "${newRecord.id.value}/1/$targetFileName"
+            EIOVersionEntity.new {
+                recordId = newRecord
+                versie = 1
+                bronOrganisatie = sourceMeta.bronOrganisatie
+                informatieobject_type = sourceMeta.informatieobjectType
+                taal = sourceMeta.taal
+                bestandsnaam = targetFileName
+                titel = targetFileName
+                auteur = sourceMeta.auteur
+                creatieDatum = sourceMeta.creatieDatum
+                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                formaat = fileType
+                bestandsomvang = bytes.size.toLong()
+                this.bestandsLocatie = bestandsLocatie
+                bestandsRepository = sourceMeta.bestandsRepository
+                vertrouwlijkheidsAanduiding = sourceMeta.vertrouwlijkheid
+                status = sourceMeta.status
+                beschrijving = sourceMeta.beschrijving
+                indicatieGebruiksrecht = sourceMeta.indicatieGebruiksrecht
+                integriteitAlgoritme = integrityResult.algorithm
+                integriteitWaarde = integrityResult.hash
+                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            }
+            newRecord.id.value
+        }
+
+        // Upload outside the transaction.
+        val bestandsLocatie = "$newId/1/$targetFileName"
+        val repoName = sourceMeta.bestandsRepository.takeUnless { it.isBlank() }
+        storageService.uploadFile(bestandsLocatie, bytes, repoName)
+
+        return WopiPutRelativeFileResult.Success(newId, targetFileName)
     }
 
     /**
