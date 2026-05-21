@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26222039183",
+    "runNumber": "656",
+    "branch": "switch_encryption_algo",
+    "date": "2026-05-21T11:09:28Z",
+    "path": "integration/26222039183/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26221394792",
     "runNumber": "654",
     "branch": "switch_encryption_algo",
