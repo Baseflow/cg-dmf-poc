@@ -4,22 +4,16 @@ package com.baseflow.api.settings.routes
 
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.settings.settingsModule
-import com.baseflow.config.appModule
 import com.baseflow.entities.settings.DmfSettingEntity
-import com.baseflow.services.StorageService
 import com.baseflow.tooling.AllTables
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.*
-import io.mockk.mockk
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.dsl.module
-import org.koin.ksp.generated.defaultModule
-import org.koin.ktor.plugin.Koin
 import java.util.UUID
 import kotlin.test.BeforeTest
 import kotlin.time.Clock
@@ -56,12 +50,6 @@ open class SettingsTestBase(dbNamePrefix: String) {
 
     fun Application.setup() {
         connectDb()
-        install(Koin) {
-            allowOverride(true)
-            modules(appModule)
-            modules(defaultModule)
-            modules(module { single<StorageService> { mockk(relaxed = true) } })
-        }
         install(ContentNegotiation) {
             json(apiJsonConfig())
         }
