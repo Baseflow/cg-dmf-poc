@@ -1,8 +1,9 @@
 import { ApiReferenceClient } from "./api-reference-client"
 
 export async function ApiReference() {
-  const SPEC_URL = process.env.DOCUMENTEN_API_OPENAPI_SPEC_URL
-  if (!SPEC_URL) throw new Error("Documenten API OpenAPI spec URL is not defined")
+  const baseUrl = process.env.BACKEND_URL
+  if (!baseUrl) throw new Error("BACKEND_URL is not defined")
+  const SPEC_URL = `${baseUrl}/docs/openapi/documenten.json`
 
   const res = await fetch(SPEC_URL, { cache: "no-store" })
   if (!res.ok) {

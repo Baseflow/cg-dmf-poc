@@ -40,13 +40,18 @@ export const navigation: {
           icon: <BookOpen />,
         },
         {
-          name: "OpenAPI UI (Ktor)",
-          url: "/documenten-api/openapi-ui-ktor",
+          name: "OpenAPI (Swagger UI)",
+          url: "/documenten-api/openapi-ui-swagger",
           icon: <FileCode />,
         },
         {
           name: "OpenAPI JSON",
-          url: "https://cg-dmf.dev.baseflow.com/docs/openapi/documenten.json",
+          url: `${process.env.BACKEND_URL}/docs/openapi/documenten.json`,
+          icon: <Braces />,
+        },
+        {
+          name: "OpenAPI YAML",
+          url: `${process.env.BACKEND_URL}/docs/openapi/documenten.yaml`,
           icon: <Braces />,
         },
       ],
