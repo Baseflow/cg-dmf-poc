@@ -88,7 +88,7 @@ fun Route.wopiApiRoutes() {
                 summary = "Issue a WOPI access token."
                 description =
                     "Issues a short-lived access token (SLAT) for the given EnkelvoudigInformatieObject. " +
-                        "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
+                    "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the EnkelvoudigInformatieObject to issue a token for."
@@ -157,8 +157,8 @@ fun Route.wopiApiRoutes() {
                 summary = "Issues a WOPI operation"
                 description =
                     "The WOPI-client issues a certain WOPI operation, based on the `X-WOPI-Override` header. " +
-                        "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE, PUT_RELATIVE. " +
-                        "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
+                    "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE, PUT_RELATIVE. " +
+                    "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the file to lock/unlock."
@@ -393,7 +393,7 @@ private suspend fun RoutingContext.getFileContents() {
     }
 
     val fileName = fileVersion.bestandsnaam.ifBlank { null } ?: fileVersion.titel.ifBlank { null }
-    ?: "document-${fileVersion.recordId}"
+        ?: "document-${fileVersion.recordId}"
     val contentType = try {
         fileVersion.formaat?.let { ContentType.parse(it) }
     } catch (_: Exception) {
@@ -521,6 +521,7 @@ private suspend fun RoutingContext.renameFile() {
 private suspend fun RoutingContext.putRelativeFile() {
     val relativeTarget = call.request.headers["X-WOPI-RelativeTarget"]?.trim()
     val suggestedTarget = call.request.headers["X-WOPI-SuggestedTarget"]?.trim()
+    val contentLength = call.request.headers["X-WOPI-Size"]?.toLong()
 
     // Exactly one of RelativeTarget or SuggestedTarget must be provided.
     if (relativeTarget == null && suggestedTarget == null) {
@@ -545,6 +546,14 @@ private suspend fun RoutingContext.putRelativeFile() {
         return
     }
 
+    if (contentLength == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Size header is required and must be a valid integer.", call.request.path()),
+        )
+        return
+    }
+
     // SuggestedTarget never overwrites — the host picks a conflict-free name.
     val targetFileName = relativeTarget ?: suggestedTarget!!
 
@@ -558,6 +567,7 @@ private suspend fun RoutingContext.putRelativeFile() {
             sourceId = sourceFileId,
             targetFileName = targetFileName,
             inputStream = inputStream,
+            contentLength = contentLength,
         )
     ) {
         is WopiPutRelativeFileResult.SourceNotFound ->

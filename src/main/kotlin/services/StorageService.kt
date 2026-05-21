@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.io.SequenceInputStream
 import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipInputStream
 
@@ -73,9 +72,8 @@ open class StorageService(
      * Upload from a stream of known [contentLength] bytes. Avoids materialising the full content
      * in memory – use this for large files (e.g. merged bestandsdelen).
      */
-    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null) {
+    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null) =
         resolveProvider(repoName).uploadFile(objectName, stream, contentLength)
-    }
 
     /**
      * Stream a file from the default (or named) repository.
@@ -223,20 +221,20 @@ open class StorageService(
             else -> null
         }
 
+        private const val FORMAT_DETECTION_BUFFER_SIZE = 65536
+
         /**
-         * Detects the MIME type by reading a header buffer from [stream], then returns the
-         * detected type alongside a reconstituted [InputStream] that replays those buffered
-         * bytes followed by the remainder of [stream].
-         *
-         * The returned stream must be used exactly once and then closed by the caller.
-         * Up to 65536 bytes are buffered for detection; for OOXML formats the full buffer
-         * is needed to inspect the ZIP central directory.
+         * Detects the file format by reading the first bytes of the stream.
+         * Returns a pair of the detected format (or null) and the stream to continue reading from.
+         * The returned stream is guaranteed to include all original bytes (mark/reset is used internally).
+         * Callers MUST use the returned [InputStream] for subsequent reads.
          */
         internal fun detectFileFormat(stream: InputStream): Pair<String?, InputStream> {
-            val header = stream.readNBytes(65536)
-            val detected = detectFileFormat(header)
-            val reconstituted: InputStream = SequenceInputStream(ByteArrayInputStream(header), stream)
-            return detected to reconstituted
+            val buffered = if (stream.markSupported()) stream else java.io.BufferedInputStream(stream, FORMAT_DETECTION_BUFFER_SIZE + 1)
+            buffered.mark(FORMAT_DETECTION_BUFFER_SIZE)
+            val header = buffered.readNBytes(FORMAT_DETECTION_BUFFER_SIZE)
+            buffered.reset()
+            return detectFileFormat(header) to buffered
         }
 
         /*

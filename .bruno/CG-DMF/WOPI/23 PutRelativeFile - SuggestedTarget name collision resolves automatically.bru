@@ -18,15 +18,22 @@ headers {
   X-WOPI-Override: PUT_RELATIVE
   X-WOPI-SuggestedTarget: wopi-copy.docx
   Content-Type: application/octet-stream
+  X-WOPI-Size: {{file_size}}
 }
 
 body:text {
-  Hello again - second copy
+  {{file_content}}
 }
 
 assert {
   res.status: eq 200
   res.body.Name: isDefined
+}
+
+script:pre-request {
+  const content = "Hello again - second copy"
+  bru.setVar("file_content", content)
+  bru.setVar("file_size", content.length)
 }
 
 script:post-response {
@@ -37,7 +44,7 @@ script:post-response {
   test("Just create another copy, there shouldn't be a collision", function() {
     expect(res.body.Name).to.equal("wopi-copy.docx");
   });
-  
+
   // Clean up this second copy
   const url = res.body.Url;
   const uuid = url.split("/").pop();

@@ -18,10 +18,15 @@ headers {
   X-WOPI-Override: PUT_RELATIVE
   X-WOPI-SuggestedTarget: wopi-copy.docx
   Content-Type: application/octet-stream
+  X-WOPI-Size: {{file_size}}
 }
 
 body:text {
-  Hello WOPI PutRelativeFile
+  {{file_content}}
+}
+
+vars:pre-request {
+  file_content: 
 }
 
 vars:post-response {
@@ -34,11 +39,18 @@ assert {
   res.body.Url: isDefined
 }
 
+script:pre-request {
+  const content = "Hello WOPI PutRelativeFile"
+  bru.setVar("file_content", content)
+  bru.setVar("file_size", content.length)
+}
+
 script:post-response {
   // Extract UUID from the returned Url: .../files/<uuid>
   const url = res.body.Url;
   const uuid = url.split("/").pop();
   bru.setVar("wopiRelativeFileId", uuid);
+  
 }
 
 settings {
