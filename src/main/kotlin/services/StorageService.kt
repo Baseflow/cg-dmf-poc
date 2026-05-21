@@ -4,7 +4,6 @@ package com.baseflow.services
 
 import com.baseflow.config.S3ClientFactory
 import com.baseflow.config.S3Config
-import org.koin.core.annotation.Singleton
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -20,7 +19,6 @@ import java.util.zip.ZipInputStream
  * provider is used.  A legacy fallback using the old `S3_*` env vars is kept so the
  * application still works when no `BLOB_STORAGE_*` env vars are defined.
  */
-@Singleton
 open class StorageService(
     @Suppress("unused") s3ClientFactory: S3ClientFactory, // kept for Koin graph compatibility
 ) {

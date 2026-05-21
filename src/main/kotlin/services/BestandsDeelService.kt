@@ -5,15 +5,12 @@ package com.baseflow.services
 import com.baseflow.api.ApiUrlBuilder
 import com.baseflow.api.models.BestandsDeelResponse
 import com.baseflow.config.BestandsDeelConfig
-import com.baseflow.config.RequestScope
 import com.baseflow.entities.BestandsDeelEntity
 import com.baseflow.entities.BestandsDelen
 import com.baseflow.entities.EIOVersionEntity
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import java.util.UUID
 
 /** S3 object key for a bestandsdeel chunk. */
@@ -29,8 +26,6 @@ internal fun bestandsDeelStorageKey(recordId: UUID, versie: Int, bestandsDeelId:
  *
  * The upload of each individual part is handled by the `PUT /bestandsdelen/{uuid}` endpoint.
  */
-@Scope(RequestScope::class)
-@Scoped
 class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelConfig.Default) {
 
     /**

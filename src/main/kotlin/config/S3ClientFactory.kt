@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.config
 
-import org.koin.core.annotation.Singleton
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.checksums.RequestChecksumCalculation
@@ -28,7 +27,6 @@ import java.time.Duration
  * - `S3_DISABLE_CHUNKED_ENCODING` — when `true`, disables chunked encoding on the S3
  *   configuration (useful when the endpoint or proxy does not support it).
  */
-@Singleton
 class S3ClientFactory {
 
     companion object {

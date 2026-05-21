@@ -5,6 +5,7 @@ package com.baseflow.api.middleware
 import com.baseflow.config.NotificationConfig
 import com.baseflow.services.NotificationService
 import io.ktor.server.application.*
+import org.koin.ktor.plugin.scope
 import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("NotificationPlugin")
@@ -44,17 +45,15 @@ val NotificationPlugin = createRouteScopedPlugin("NotificationPlugin") {
     }
 
     onCallRespond { call, _ ->
-        val context = call.attributes.getOrNull(AuditContextKey) ?: return@onCallRespond
+        val context = call.scope.get<AuditContext>()
 
         // Only send notifications if there were actual changes
         if (!context.hasChanges()) {
             return@onCallRespond
         }
 
-        val requestScope = call.attributes.getOrNull(RequestScopeKey) ?: return@onCallRespond
-
         try {
-            val notificationService: NotificationService = requestScope.get()
+            val notificationService: NotificationService = call.scope.get<NotificationService>()
             notificationService.send(call)
         } catch (e: Exception) {
             // Don't fail the request if notification fails

@@ -11,7 +11,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.openapi.hide
 import io.ktor.utils.io.ExperimentalKtorApi
-import org.koin.ktor.ext.inject
+import org.koin.ktor.plugin.scope
 
 /**
  * Health Check Endpoints Module
@@ -71,7 +71,7 @@ fun Application.healthModule() {
 
             // Validate probe - checks connectivity to external dependencies (database & S3 storage)
             get("/validate") {
-                val healthCheckService by inject<HealthCheckService>()
+                val healthCheckService: HealthCheckService = call.scope.get<HealthCheckService>()
 
                 val database = healthCheckService.checkDatabase()
                 val storage = healthCheckService.checkStorage()

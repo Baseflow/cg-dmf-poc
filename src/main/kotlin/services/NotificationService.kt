@@ -7,7 +7,6 @@ import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.getResourceSegment
 import com.baseflow.config.JwtTokenProvider
 import com.baseflow.config.NotificationConfig
-import com.baseflow.config.RequestScope
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -21,8 +20,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.koin.core.annotation.Scope
-import org.koin.core.annotation.Scoped
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -91,8 +88,6 @@ data class NotificationMessage(
  * to avoid blocking the response to the client.
  */
 @OptIn(ExperimentalTime::class)
-@Scope(RequestScope::class)
-@Scoped
 class NotificationService(private val context: AuditContext) {
     private val logger = LoggerFactory.getLogger(NotificationService::class.java)
 
