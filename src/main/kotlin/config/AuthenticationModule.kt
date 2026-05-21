@@ -29,7 +29,6 @@ fun Application.authenticationModule() {
     val audience = AuthenticationConfig.audience
     val zgwAllowedClientIds = AuthenticationConfig.zgwAllowedClientIds
     val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
-    val zgwRequireSignature = AuthenticationConfig.zgwRequireSignature
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -66,12 +65,6 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
-                logger.info(
-                    "JWT token received - subject: {}, issuer: {}, claims: {}",
-                    token.subject,
-                    token.issuer,
-                    token.claims.keys,
-                )
                 if (!token.getClaim("username").asString().isNullOrBlank() ||
                     !token.getClaim("user_id").asString().isNullOrBlank()
                 ) {
@@ -132,12 +125,6 @@ fun Application.authenticationModule() {
             validate { credential ->
                 val token = credential.payload
                 val clientId = token.getClaim("client_id").asString()
-                logger.info(
-                    "[ZGW] JWT token received - issuer: {}, client_id: {}, claims: {}",
-                    token.issuer,
-                    clientId,
-                    token.claims.keys,
-                )
                 if (clientId in zgwAllowedClientIds) {
                     JWTPrincipal(credential.payload)
                 } else {

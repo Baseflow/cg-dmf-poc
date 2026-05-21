@@ -5,7 +5,7 @@
 # Spins up only postgres, minio, app and k6.
 #
 # Usage:
-#   JWT_CLIENT_SECRET=your-secret docker compose -f docker-compose.yml -f docker-compose.k6.yml up --exit-code-from k6
+#   docker compose -f docker-compose.yml -f docker-compose.k6.yml up --exit-code-from k6
 
 name: dmf-k6
 
@@ -15,6 +15,7 @@ services:
     environment:
       ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:-changeme-use-a-strong-key-in-production}
       ENCRYPTION_SALT: ${ENCRYPTION_SALT:-deadbeefcafe0123456789abcdef0123}
+      OIDC_ISSUER: gzac
       OIDC_JWT_SECRET: ${JWT_CLIENT_SECRET:-your-secret}
       DB_POOL_SIZE: 25
 

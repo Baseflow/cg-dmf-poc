@@ -7,6 +7,8 @@
 import { hmac } from 'k6/crypto';
 import encoding from 'k6/encoding';
 
+const JWT_CLIENT_ID = __ENV.JWT_CLIENT_ID || 'gzac';
+
 /**
  * Build a minimal ZGW JWT (HS256) and return the full "Bearer <token>" header value.
  *
@@ -16,15 +18,19 @@ import encoding from 'k6/encoding';
  */
 export function zgwBearer(clientId, clientSecret) {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64url(
-    JSON.stringify({
-      iss: clientId,
-      iat: Math.floor(Date.now() / 1000),
-      client_id: clientId,
-      user_id: 'k6-perf@example.com',
-      user_representation: 'k6 Performance Test',
-    })
-  );
+  const raw = {
+        iss: clientId,
+        iat: Math.floor(Date.now() / 1000),
+        client_id: clientId,
+        user_id: "k6-perf@example.com",
+        user_representation: "k6 Performance Test",
+        roles: ["dmf-admin"],
+    }
+  if (clientId === __ENV.JWT_CLIENT_ID) {
+    raw.aud = 'account'
+    raw.roles = ['realm-admin']
+  }
+  const payload = base64url(JSON.stringify(raw));
 
   const signingInput = `${header}.${payload}`;
   const signature = base64url(

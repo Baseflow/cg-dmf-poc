@@ -3,7 +3,7 @@ name: cg-dmf-poc
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: dmf-postgres
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-postgres
     environment:
       POSTGRES_DB: documenten
       POSTGRES_USER: documenten
@@ -18,7 +18,7 @@ services:
       retries: 5
 
   keycloak:
-    container_name: dmf-keycloak
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-keycloak
     image: keycloak/keycloak:latest
     command:
       - start-dev
@@ -42,7 +42,7 @@ services:
 
   app:
     build: .
-    container_name: dmf-app
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-app
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/documenten
       DB_USER: documenten
@@ -70,7 +70,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: dmf-minio
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-minio
     # restart: always
     environment:
       - S3_ACCESS_KEY=minioadmin
@@ -83,7 +83,7 @@ services:
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
-    container_name: dmf-azurite
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-azurite
     ports:
       - '10000:10000'
       - '10001:10001'
@@ -92,7 +92,7 @@ services:
 
   notificaties-api:
     image: openzaak/open-notificaties:latest
-    container_name: notificaties-api
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-notificaties-api
     environment:
       DB_HOST: postgres
       DB_NAME: notificaties
