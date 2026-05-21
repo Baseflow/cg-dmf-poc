@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.api.wopi.wopi
+package api.wopi
 
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.wopi.models.WopiDeleteResult
 import com.baseflow.api.wopi.models.WopiLockResult
 import com.baseflow.api.wopi.models.WopiPutFileResult
+import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiUnlockResult
+import com.baseflow.api.wopi.wopi.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.OpenZaakConfig
 import com.baseflow.entities.EIORecordEntity
@@ -31,6 +33,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.ByteArrayOutputStream
+import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.test.AfterTest
@@ -215,7 +218,7 @@ class WopiDocumentServiceTest {
         val id = createEio(withContent = true)
         service.wopiLock(id, "lock-abc")
         val bytes = TestDataFactory.PDF_CONTENT.let {
-            java.util.Base64.getDecoder().decode(it)
+            Base64.getDecoder().decode(it)
         }
         val result = service.wopiPutFile(id, bytes, lockValue = "lock-abc")
         assertIs<WopiPutFileResult.Success>(result)
@@ -228,7 +231,7 @@ class WopiDocumentServiceTest {
         val before = eioService.getById(id)
         assertNotNull(before)
         service.wopiLock(id, "lock-abc")
-        val bytes = java.util.Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
         val result = service.wopiPutFile(id, bytes, lockValue = "lock-abc")
         assertIs<WopiPutFileResult.Success>(result)
         assertEquals(before.versie + 1, result.response.versie)
@@ -308,7 +311,7 @@ class WopiDocumentServiceTest {
     fun `wopiGetFileVersion - returns latest version after update`() = runBlocking {
         val id = createEio(withContent = true)
         service.wopiLock(id, "lock-abc")
-        val bytes = java.util.Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT_ALT)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT_ALT)
         service.wopiPutFile(id, bytes, lockValue = "lock-abc")
 
         val result = service.wopiGetFileVersion(id)
@@ -443,5 +446,107 @@ class WopiDocumentServiceTest {
         service.wopiUnlock(id, "lock-abc")
         val result = service.wopiDeleteFile(id)
         assertIs<WopiDeleteResult.Success>(result)
+    }
+
+    // ── wopiPutRelativeFile ───────────────────────────────────────────────────
+
+    @Test
+    fun `wopiPutRelativeFile - returns SourceNotFound for unknown source id`() {
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+        val result = service.wopiPutRelativeFile(UUID.randomUUID(), "copy.pdf", bytes)
+        assertIs<WopiPutRelativeFileResult.SourceNotFound>(result)
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - returns Success with the target file name`() = runBlocking {
+        val sourceId = createEio(withContent = true)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+
+        assertIs<WopiPutRelativeFileResult.Success>(result)
+        assertEquals("copy.pdf", result.resolvedName)
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - creates a new distinct EIO record`() = runBlocking {
+        val sourceId = createEio(withContent = true)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+
+        assertIs<WopiPutRelativeFileResult.Success>(result)
+        assertNotNull(eioService.getById(result.fileId))
+        assert(result.fileId != sourceId) { "New EIO should have a different UUID than the source" }
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - new EIO inherits source metadata`() = runBlocking {
+        val req = generateTestDocument(taal = "nld", auteur = "TestAuteur", withContent = true)
+        val sourceId = UUID.fromString(eioService.create(req).id)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+
+        assertIs<WopiPutRelativeFileResult.Success>(result)
+        val newEio = eioService.getById(result.fileId)
+        assertNotNull(newEio)
+        assertEquals("nld", newEio.taal)
+        assertEquals("TestAuteur", newEio.auteur)
+        assertEquals(req.bronorganisatie, newEio.bronorganisatie)
+        assertEquals(req.informatieobjecttype, newEio.informatieobjecttype)
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - new EIO has version 1`() = runBlocking {
+        val sourceId = createEio(withContent = true)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+
+        assertIs<WopiPutRelativeFileResult.Success>(result)
+        val newEio = eioService.getById(result.fileId)
+        assertNotNull(newEio)
+        assertEquals(1, newEio.versie)
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - new EIO has correct bestandsnaam and bestandsomvang`() = runBlocking {
+        val sourceId = createEio(withContent = true)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        val result = service.wopiPutRelativeFile(sourceId, "renamed.pdf", bytes)
+
+        assertIs<WopiPutRelativeFileResult.Success>(result)
+        val newEio = eioService.getById(result.fileId)
+        assertNotNull(newEio)
+        assertEquals("renamed.pdf", newEio.bestandsnaam)
+        assertEquals(bytes.size.toLong(), newEio.bestandsomvang)
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - uploads bytes to storage service`() = runBlocking {
+        val sourceId = createEio(withContent = true)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        val result = service.wopiPutRelativeFile(sourceId, "upload.pdf", bytes)
+
+        assertIs<WopiPutRelativeFileResult.Success>(result)
+        verify { mockStorageService.uploadFile(match { it.contains("upload.pdf") }, bytes, anyNullable()) }
+    }
+
+    @Test
+    fun `wopiPutRelativeFile - source EIO is not modified`() = runBlocking {
+        val sourceId = createEio(withContent = true)
+        val sourceBefore = eioService.getById(sourceId)
+        assertNotNull(sourceBefore)
+        val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
+
+        service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+
+        val sourceAfter = eioService.getById(sourceId)
+        assertNotNull(sourceAfter)
+        assertEquals(sourceBefore.versie, sourceAfter.versie)
+        assertEquals(sourceBefore.bestandsnaam, sourceAfter.bestandsnaam)
     }
 }

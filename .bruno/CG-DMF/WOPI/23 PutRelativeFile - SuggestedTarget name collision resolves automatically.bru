@@ -1,0 +1,50 @@
+meta {
+  name: 19 PutRelativeFile - SuggestedTarget name collision resolves automatically
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}?access_token={{wopiAccessToken}}
+  body: text
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: PUT_RELATIVE
+  X-WOPI-SuggestedTarget: wopi-copy.docx
+  Content-Type: application/octet-stream
+}
+
+body:text {
+  Hello again - second copy
+}
+
+assert {
+  res.status: eq 200
+  res.body.Name: isDefined
+}
+
+script:post-response {
+  // SuggestedTarget must never return 409 - host resolves the collision
+  test("Status is 200 (not 409)", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("Just create another copy, there shouldn't be a collision", function() {
+    expect(res.body.Name).to.equal("wopi-copy.docx");
+  });
+  
+  // Clean up this second copy
+  const url = res.body.Url;
+  const uuid = url.split("/").pop();
+  bru.setVar("wopiRelativeFileId2", uuid);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

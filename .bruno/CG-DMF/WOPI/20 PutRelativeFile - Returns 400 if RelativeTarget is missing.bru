@@ -1,0 +1,35 @@
+meta {
+  name: 20 PutRelativeFile - Returns 400 if RelativeTarget is missing
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}?access_token={{wopiAccessToken}}
+  body: text
+  auth: none
+}
+
+params:query {
+  access_token: {{wopiAccessToken}}
+}
+
+headers {
+  X-WOPI-Override: PUT_RELATIVE
+  Content-Type: application/octet-stream
+  ~X-WOPI-RelativeTarget: wopi-copy.docx
+  ~X-WOPI-Overwrite-Relative-Target: false
+}
+
+body:text {
+  This should conflict
+}
+
+assert {
+  res.status: eq 400
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
