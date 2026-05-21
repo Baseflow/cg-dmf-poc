@@ -139,19 +139,10 @@ class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectSer
      * Creates a new EIO as a copy of [sourceId] with the provided [bytes] and [targetFileName]
      * (WOPI PutRelativeFile).
      *
-     * - If [overwrite] is true and a file with [targetFileName] already exists: overwrite it if
-     *   it is unlocked, otherwise return [WopiPutRelativeFileResult.TargetLocked].
-     * - If [overwrite] is false and a file with [targetFileName] already exists: return
-     *   [WopiPutRelativeFileResult.NameConflict] with a deduplicated suggested name.
-     * - Otherwise: create a new EIO record cloned from the source metadata and return
+     * - Create a new EIO record cloned from the source metadata and return
      *   [WopiPutRelativeFileResult.Success].
      */
-    suspend fun wopiPutRelativeFile(
-        sourceId: UUID,
-        targetFileName: String,
-        bytes: ByteArray,
-        overwrite: Boolean,
-    ): WopiPutRelativeFileResult {
+    fun wopiPutRelativeFile(sourceId: UUID, targetFileName: String, bytes: ByteArray): WopiPutRelativeFileResult {
         // Resolve source metadata inside a transaction, then do I/O outside.
         data class SourceMeta(
             val bronOrganisatie: String,
@@ -182,35 +173,6 @@ class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectSer
                 bestandsRepository = v.bestandsRepository,
             )
         } ?: return WopiPutRelativeFileResult.SourceNotFound
-
-        // Check for a name collision.
-        val existingId: UUID? = transaction {
-            EIOVersionEntity.find {
-                com.baseflow.entities.EIOVersions.bestandsnaam eq targetFileName
-            }.limit(1).firstOrNull()?.id?.value
-        }
-
-        if (existingId != null) {
-            if (!overwrite) {
-                // Suggest a deduplicated name: insert a counter before the extension.
-                val (base, ext) = targetFileName.let {
-                    val dot = it.lastIndexOf('.')
-                    if (dot > 0) it.substring(0, dot) to it.substring(dot) else it to ""
-                }
-                val suggested = "$base (2)$ext"
-                return WopiPutRelativeFileResult.NameConflict(suggested)
-            }
-            // Overwrite: reject if the target is locked.
-            val targetLock = transaction {
-                EIORecordEntity.findById(existingId)?.lockToken
-            }
-            if (!targetLock.isNullOrEmpty()) {
-                return WopiPutRelativeFileResult.TargetLocked(targetLock)
-            }
-            // Overwrite by updating the existing file's bytes.
-            eioService.updateWithBytes(existingId, bytes) ?: return WopiPutRelativeFileResult.SourceNotFound
-            return WopiPutRelativeFileResult.Success(existingId, targetFileName)
-        }
 
         // No collision — create a new EIO record.
         val fileType = StorageService.detectFileFormat(bytes)

@@ -448,6 +448,22 @@ private suspend fun RoutingContext.getFileMetadata() {
     }
 }
 
+/**
+ * Validates [fileName] against WOPI file naming rules.
+ * Returns `true` (and sends a 400 response) when the name is invalid, so callers can `return` early.
+ */
+private suspend fun RoutingContext.respondIfInvalidFileName(fileName: String): Boolean {
+    if (fileName.contains('/') || fileName.contains('\\') || fileName.startsWith('.')) {
+        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("Requested file name contains invalid characters.", call.request.path()),
+        )
+        return true
+    }
+    return false
+}
+
 private suspend fun RoutingContext.renameFile() {
     val wopiOverride = call.request.headers["X-WOPI-Override"]
     if (wopiOverride != "RENAME_FILE") {
@@ -476,14 +492,7 @@ private suspend fun RoutingContext.renameFile() {
         return
     }
 
-    if (requestedName.contains('/') || requestedName.contains('\\') || requestedName.startsWith('.')) {
-        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest("Requested file name contains invalid characters.", call.request.path()),
-        )
-        return
-    }
+    if (respondIfInvalidFileName(requestedName)) return
 
     val validatedFileId = call.attributes[WopiValidatedFileIdKey]
     val lockValue = call.request.headers["X-WOPI-Lock"]
@@ -511,8 +520,6 @@ private suspend fun RoutingContext.renameFile() {
 private suspend fun RoutingContext.putRelativeFile() {
     val relativeTarget = call.request.headers["X-WOPI-RelativeTarget"]?.trim()
     val suggestedTarget = call.request.headers["X-WOPI-SuggestedTarget"]?.trim()
-    val overwrite = call.request.headers["X-WOPI-Overwrite-Relative-Target"]
-        ?.lowercase()?.trim() == "true"
 
     // Exactly one of RelativeTarget or SuggestedTarget must be provided.
     if (relativeTarget == null && suggestedTarget == null) {
@@ -539,16 +546,8 @@ private suspend fun RoutingContext.putRelativeFile() {
 
     // SuggestedTarget never overwrites — the host picks a conflict-free name.
     val targetFileName = relativeTarget ?: suggestedTarget!!
-    val effectiveOverwrite = if (suggestedTarget != null) false else overwrite
 
-    if (targetFileName.contains('/') || targetFileName.contains('\\') || targetFileName.startsWith('.')) {
-        call.response.headers.append("X-WOPI-InvalidFileNameError", "File name contains invalid characters.")
-        call.respondProblem(
-            HttpStatusCode.BadRequest,
-            badRequest("Requested file name contains invalid characters.", call.request.path()),
-        )
-        return
-    }
+    if (respondIfInvalidFileName(targetFileName)) return
 
     val sourceFileId = call.attributes[WopiValidatedFileIdKey]
     val bytes = call.receiveChannel().toByteArray()
@@ -558,7 +557,6 @@ private suspend fun RoutingContext.putRelativeFile() {
             sourceId = sourceFileId,
             targetFileName = targetFileName,
             bytes = bytes,
-            overwrite = effectiveOverwrite,
         )
     ) {
         is WopiPutRelativeFileResult.SourceNotFound ->
@@ -581,7 +579,7 @@ private suspend fun RoutingContext.putRelativeFile() {
         }
 
         is WopiPutRelativeFileResult.Success -> {
-            val fileUrl = call.request.local.let { "http://${it.serverHost}:${it.serverPort}" } +
+            val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
                 "/wopi/api/v1/files/${result.fileId}"
             call.respond(
                 HttpStatusCode.OK,

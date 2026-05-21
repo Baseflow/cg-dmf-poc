@@ -1,7 +1,7 @@
 meta {
-  name: 19 WOPI Unlock file (before DeleteFile)
+  name: 23 DeleteFile - success
   type: http
-  seq: 21
+  seq: 23
 }
 
 post {
@@ -15,8 +15,7 @@ params:query {
 }
 
 headers {
-  X-WOPI-Override: UNLOCK
-  X-WOPI-Lock: {{lockId}}
+  X-WOPI-Override: DELETE
 }
 
 assert {
@@ -27,4 +26,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-

@@ -1,7 +1,7 @@
 meta {
-  name: 20 DeleteFile - success
+  name: 21 DeleteFile - locked (expect 409)
   type: http
-  seq: 22
+  seq: 21
 }
 
 post {
@@ -16,14 +16,20 @@ params:query {
 
 headers {
   X-WOPI-Override: DELETE
+  X-WOPI-Lock: {{lockId}}
 }
 
 assert {
-  res.status: eq 200
+  res.status: eq 409
+}
+
+script:post-response {
+  test("Response contains X-WOPI-Lock header with current lock value", function() {
+    expect(res.headers["x-wopi-lock"]).to.equal(bru.getVar("lockId"));
+  });
 }
 
 settings {
   encodeUrl: true
   timeout: 0
 }
-

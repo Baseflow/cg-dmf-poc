@@ -1,7 +1,7 @@
 meta {
   name: 19 PutRelativeFile - SuggestedTarget name collision resolves automatically
   type: http
-  seq: 18
+  seq: 19
 }
 
 post {
@@ -34,10 +34,10 @@ script:post-response {
   test("Status is 200 (not 409)", function() {
     expect(res.status).to.equal(200);
   });
-  test("Returned Name differs from original (collision was resolved)", function() {
-    expect(res.body.Name).to.not.equal("wopi-copy.docx");
+  test("Just create another copy, there shouldn't be a collision", function() {
+    expect(res.body.Name).to.equal("wopi-copy.docx");
   });
-
+  
   // Clean up this second copy
   const url = res.body.Url;
   const uuid = url.split("/").pop();
@@ -48,4 +48,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-
