@@ -190,7 +190,8 @@ private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageReposito
         accessKey
     } catch (e: Exception) {
         logger.error(
-            "CRITICAL: Failed to decrypt accessKey for repository '$repoName' (${id.value}). The encryption key or salt might have changed. " +
+            "CRITICAL: Failed to decrypt accessKey for repository '$repoName' (${id.value}). " +
+                "The encryption key or salt might have changed. " +
                 "The key must be re-entered to restore functionality.",
         )
         null
@@ -200,7 +201,8 @@ private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageReposito
         secretKey
     } catch (e: Exception) {
         logger.error(
-            "CRITICAL: Failed to decrypt secretKey for repository '$repoName' (${id.value}). The encryption key or salt might have changed. " +
+            "CRITICAL: Failed to decrypt secretKey for repository '$repoName' (${id.value}). " +
+                "The encryption key or salt might have changed. " +
                 "The secret must be re-entered to restore functionality.",
         )
         null

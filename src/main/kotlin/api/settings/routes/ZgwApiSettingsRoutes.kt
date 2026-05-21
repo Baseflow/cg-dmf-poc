@@ -182,7 +182,8 @@ private fun ZgwApiSettingEntity.toResponse(): ZgwApiSettingsResponse {
         clientSecret
     } catch (e: Exception) {
         logger.error(
-            "CRITICAL: Failed to decrypt clientSecret for ZGW API setting '$name' (${id.value}). The encryption key or salt might have changed. " +
+            "CRITICAL: Failed to decrypt clientSecret for ZGW API setting '$name' (${id.value}). " +
+                "The encryption key or salt might have changed. " +
                 "The secret must be re-entered to restore functionality.",
         )
         null
