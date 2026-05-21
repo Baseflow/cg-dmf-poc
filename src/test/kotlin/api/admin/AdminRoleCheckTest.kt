@@ -1,0 +1,280 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+package com.baseflow.api.admin
+
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import com.baseflow.api.apiJsonConfig
+import com.baseflow.api.documenten.routes.TestBase
+import com.baseflow.config.appModule
+import com.baseflow.services.BlobStorageRegistrar
+import com.baseflow.services.StorageService
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.response.*
+import io.ktor.server.testing.*
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import org.koin.dsl.module
+import org.koin.ksp.generated.defaultModule
+import org.koin.ktor.plugin.Koin
+import java.util.concurrent.CompletableFuture
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+/**
+ * Tests the admin role-check plugin in [AdminRoutes.kt].
+ *
+ * The role-check runs on the [AuthenticationChecked] hook and verifies that the
+ * authenticated principal carries the required role (`dmf-admin` by default).
+ * The role can appear in either:
+ * - `realm_access.roles` (Keycloak JWT shape), or
+ * - a top-level `roles` claim (ZGW JWT shape).
+ */
+class AdminRoleCheckTest : TestBase("admin_role_check") {
+
+    companion object {
+        private const val ADMIN_ROLE = "dmf-admin"
+        private const val OTHER_ROLE = "some-other-role"
+        private const val JWT_SECRET = "test-secret-key-for-testing-only"
+        private const val JWT_ISSUER = "test-issuer"
+    }
+
+    @BeforeTest
+    override fun beforeTest() {
+        super.beforeTest()
+        BlobStorageRegistrar.resetForTesting()
+    }
+
+    @AfterTest
+    fun afterTest() {
+        BlobStorageRegistrar.resetForTesting()
+    }
+
+    /** Builds a JWT with the given roles in `realm_access.roles` (Keycloak shape). */
+    private fun tokenWithKeycloakRoles(vararg roles: String): String = JWT.create()
+        .withIssuer(JWT_ISSUER)
+        .withSubject("testuser")
+        .withClaim("username", "testuser")
+        .withClaim("realm_access", mapOf("roles" to roles.toList()))
+        .sign(Algorithm.HMAC256(JWT_SECRET))
+
+    /** Builds a JWT with the given roles in the top-level `roles` claim (ZGW shape). */
+    private fun tokenWithZgwRoles(vararg roles: String): String = JWT.create()
+        .withIssuer(JWT_ISSUER)
+        .withSubject("testuser")
+        .withClaim("username", "testuser")
+        .withArrayClaim("roles", roles)
+        .sign(Algorithm.HMAC256(JWT_SECRET))
+
+    /** Builds a valid JWT with no role claims at all. */
+    private fun tokenWithNoRoles(): String = JWT.create()
+        .withIssuer(JWT_ISSUER)
+        .withSubject("testuser")
+        .withClaim("username", "testuser")
+        .sign(Algorithm.HMAC256(JWT_SECRET))
+
+    private fun Application.setupWithAuth() {
+        connectDb()
+
+        val mockStorageService = mockk<StorageService>(relaxed = true).also {
+            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+            every { it.downloadFileTo(any(), any(), anyNullable()) } returns CompletableFuture.completedFuture(null)
+        }
+
+        install(Koin) {
+            allowOverride(true)
+            modules(appModule)
+            modules(defaultModule)
+            modules(module { single<StorageService> { mockStorageService } })
+        }
+        install(ContentNegotiation) { json(apiJsonConfig()) }
+
+        install(Authentication) {
+            jwt("auth-jwt") {
+                verifier(JWT.require(Algorithm.HMAC256(JWT_SECRET)).withIssuer(JWT_ISSUER).build())
+                validate { credential ->
+                    if (credential.payload.getClaim("username").asString()?.isNotEmpty() == true) {
+                        JWTPrincipal(credential.payload)
+                    } else {
+                        null
+                    }
+                }
+                challenge { _, _ -> call.respondText("Unauthorized", status = HttpStatusCode.Unauthorized) }
+            }
+            jwt("auth-zgw") {
+                verifier(JWT.require(Algorithm.HMAC256(JWT_SECRET)).withIssuer(JWT_ISSUER).build())
+                validate { credential ->
+                    if (credential.payload.getClaim("username").asString()?.isNotEmpty() == true) {
+                        JWTPrincipal(credential.payload)
+                    } else {
+                        null
+                    }
+                }
+                challenge { _, _ -> call.respondText("Unauthorized", status = HttpStatusCode.Unauthorized) }
+            }
+        }
+
+        adminModule(useAuthentication = true)
+    }
+
+    // ── No / invalid auth ─────────────────────────────────────────────────────
+
+    @Test
+    fun `request without Authorization header returns 401`() = testApplication {
+        application { setupWithAuth() }
+
+        // No principal → role-check skips → auth challenge fires → 401.
+        val response = client.get("/admin/storage-repositories")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun `request with an invalid token returns 401`() = testApplication {
+        application { setupWithAuth() }
+
+        // Invalid token → JWT validator returns null → auth challenge fires → 401.
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer this.is.not.valid")
+        }
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    // ── Missing role ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `valid token with no role claims returns 403`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `valid token with a different realm_access role returns 403`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithKeycloakRoles(OTHER_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `valid token with a different top-level role returns 403`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(OTHER_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `403 response body is a problem detail with status 403`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+        val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals(403, json["status"]?.jsonPrimitive?.content?.toInt())
+    }
+
+    // ── Authorised: Keycloak realm_access.roles ───────────────────────────────
+
+    @Test
+    fun `token with admin role in realm_access returns 200`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithKeycloakRoles(ADMIN_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `token with admin role alongside other roles in realm_access returns 200`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithKeycloakRoles(OTHER_ROLE, ADMIN_ROLE, "yet-another")}")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    // ── Authorised: ZGW top-level roles claim ─────────────────────────────────
+
+    @Test
+    fun `token with admin role in top-level roles claim returns 200`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(ADMIN_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `token with admin role alongside other roles in top-level roles returns 200`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(OTHER_ROLE, ADMIN_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    // ── Role check applies to all sub-routes ─────────────────────────────────
+
+    @Test
+    fun `role check applies to POST sub-route`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.post("/admin/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+
+        // 403 from role check fires before the route handler validates the body
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `role check applies to nested PUT sub-route`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.put("/admin/storage-repositories/default") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+}

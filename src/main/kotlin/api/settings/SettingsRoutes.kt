@@ -77,6 +77,10 @@ fun Route.settingsRoutes(requireRoleCheck: Boolean = true) {
         if (requireRoleCheck) {
             val roleCheckPlugin = createRouteScopedPlugin("SettingsRoleCheck") {
                 on(AuthenticationChecked) { call ->
+                    // If there is no authenticated principal, the auth challenge will
+                    // handle the 401 response — do not override it with a 403 here.
+                    if (call.principal<JWTPrincipal>() == null) return@on
+
                     val roles = call.jwtRoles()
                     if (requiredRole !in roles) {
                         call.respondProblem(

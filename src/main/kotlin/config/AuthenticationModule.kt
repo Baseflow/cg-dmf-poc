@@ -80,8 +80,7 @@ fun Application.authenticationModule() {
             verifier(
                 object : JWTVerifier {
                     override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT = JWT.decode(token)
-                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT =
-                        jwt
+                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT = jwt
                 },
             )
 
