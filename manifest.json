@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26225619654",
+    "runNumber": "658",
+    "branch": "develop-admin-portal",
+    "date": "2026-05-21T12:27:39Z",
+    "path": "integration/26225619654/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26224335502",
     "runNumber": "84",
