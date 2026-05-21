@@ -15,11 +15,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.Query
-import org.jetbrains.exposed.v1.jdbc.andWhere
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.OutputStream
@@ -152,6 +148,13 @@ class EnkelvoudigInformatieObjectService(
             require(bestandsLocatie.isNotBlank()) {
                 "bestandsLocatie must not be blank when inhoud is present"
             }
+            val integriteit = request.integriteit
+            IntegrityCalculationService.calculateIntegrity(content, integriteit?.algoritme.toString())
+                .let { (calculatedHash) ->
+                    require(integriteit?.algoritme == null || calculatedHash == integriteit.waarde) {
+                        "Integrity check failed: calculated hash does not match the provided value."
+                    }
+                }
             storageService.uploadFile(bestandsLocatie, content, repoName)
             return UploadResultaat(
                 bestandsFormaat = fileType,
@@ -746,7 +749,7 @@ class EnkelvoudigInformatieObjectService(
             storageService.uploadFile(newBestandsLocatie, bytes)
 
             val integrityResult =
-                IntegrityCalculationService.calculateIntegrity(bytes, latestVersion?.integriteitAlgoritme)
+                IntegrityCalculationService.calculateIntegrity(bytes, latestVersion?.integriteitAlgoritme.toString())
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber

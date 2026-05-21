@@ -170,12 +170,12 @@ class BestandsDeelServiceTest {
     }
 
     @Test
-    fun `uploadFilePart uploads chunk to storage under correct key`() = runBlocking {
+    fun `uploadFilePart uploads chunk to storage under correct key`(): Unit = runBlocking {
         val request = generateTestDocument().copy(bestandsomvang = 11L)
         val eio = eioService.create(request)
         val part = eio.bestandsdelen.first()
         val uuid = UUID.fromString(part.url.substringAfterLast("/"))
-        val chunkBytes = ByteArray(4) { it.toByte() }
+        val bytes = ByteArray(4) { it.toByte() }
 
         val capturedKeys = mutableListOf<String>()
         val capturedContent = mutableListOf<ByteArray>()
@@ -187,7 +187,7 @@ class BestandsDeelServiceTest {
             )
         } returns Unit
 
-        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, chunkBytes, mockStorageService)
+        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, bytes.inputStream(), mockStorageService)
 
         assertIs<UploadFilePartResult.Success>(result)
         assertEquals(1, capturedKeys.size)
@@ -196,7 +196,7 @@ class BestandsDeelServiceTest {
         assertEquals(4, keyParts.size)
         assertEquals("parts", keyParts[2])
         assertEquals(uuid.toString(), keyParts[3])
-        assertContentEquals(chunkBytes, capturedContent[0])
+        assertContentEquals(bytes, capturedContent[0])
     }
 
     @Test
@@ -245,7 +245,7 @@ class BestandsDeelServiceTest {
         val eio = eioService.create(request)
         val part = eio.bestandsdelen.first()
         val uuid = UUID.fromString(part.url.substringAfterLast("/"))
-        val wrongSizeBytes = ByteArray(3) { it.toByte() } // part.omvang is 4, not 3
+        val wrongSizeBytes = ByteArray(3) { it.toByte() }.inputStream() // part.omvang is 4, not 3
 
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, wrongSizeBytes, mockStorageService)
 
@@ -311,7 +311,8 @@ class BestandsDeelServiceTest {
         val capturedRepos = mutableListOf<String?>()
         every { mockStorageService.uploadFile(any(), any(), captureNullable(capturedRepos)) } returns Unit
 
-        bestandsDeelService.uploadFilePart(uuid, part.lock, ByteArray(4), mockStorageService)
+        val stream = ByteArray(4).inputStream()
+        bestandsDeelService.uploadFilePart(uuid, part.lock, stream, mockStorageService)
 
         assertEquals("archive-repo", capturedRepos.single())
     }
@@ -326,7 +327,8 @@ class BestandsDeelServiceTest {
         val capturedRepos = mutableListOf<String?>()
         every { mockStorageService.uploadFile(any(), any(), captureNullable(capturedRepos)) } returns Unit
 
-        bestandsDeelService.uploadFilePart(uuid, part.lock, ByteArray(4), mockStorageService)
+        val stream = ByteArray(4).inputStream()
+        bestandsDeelService.uploadFilePart(uuid, part.lock, stream, mockStorageService)
 
         assertNull(capturedRepos.single())
     }

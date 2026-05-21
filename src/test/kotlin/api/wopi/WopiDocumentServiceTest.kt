@@ -66,6 +66,14 @@ class WopiDocumentServiceTest {
         mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
         every {
+            mockStorageService.uploadFile(
+                any<String>(),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        } returns Unit
+        every {
             mockStorageService.downloadFileTo(
                 any(),
                 any(),
@@ -453,7 +461,8 @@ class WopiDocumentServiceTest {
     @Test
     fun `wopiPutRelativeFile - returns SourceNotFound for unknown source id`() {
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
-        val result = service.wopiPutRelativeFile(UUID.randomUUID(), "copy.pdf", bytes)
+        val result =
+            service.wopiPutRelativeFile(UUID.randomUUID(), "copy.pdf", bytes.inputStream())
         assertIs<WopiPutRelativeFileResult.SourceNotFound>(result)
     }
 
@@ -462,7 +471,7 @@ class WopiDocumentServiceTest {
         val sourceId = createEio(withContent = true)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes.inputStream())
 
         assertIs<WopiPutRelativeFileResult.Success>(result)
         assertEquals("copy.pdf", result.resolvedName)
@@ -473,7 +482,7 @@ class WopiDocumentServiceTest {
         val sourceId = createEio(withContent = true)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes.inputStream())
 
         assertIs<WopiPutRelativeFileResult.Success>(result)
         assertNotNull(eioService.getById(result.fileId))
@@ -486,7 +495,7 @@ class WopiDocumentServiceTest {
         val sourceId = UUID.fromString(eioService.create(req).id)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes.inputStream())
 
         assertIs<WopiPutRelativeFileResult.Success>(result)
         val newEio = eioService.getById(result.fileId)
@@ -502,7 +511,7 @@ class WopiDocumentServiceTest {
         val sourceId = createEio(withContent = true)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+        val result = service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes.inputStream())
 
         assertIs<WopiPutRelativeFileResult.Success>(result)
         val newEio = eioService.getById(result.fileId)
@@ -515,7 +524,7 @@ class WopiDocumentServiceTest {
         val sourceId = createEio(withContent = true)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        val result = service.wopiPutRelativeFile(sourceId, "renamed.pdf", bytes)
+        val result = service.wopiPutRelativeFile(sourceId, "renamed.pdf", bytes.inputStream())
 
         assertIs<WopiPutRelativeFileResult.Success>(result)
         val newEio = eioService.getById(result.fileId)
@@ -529,10 +538,17 @@ class WopiDocumentServiceTest {
         val sourceId = createEio(withContent = true)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        val result = service.wopiPutRelativeFile(sourceId, "upload.pdf", bytes)
+        val result = service.wopiPutRelativeFile(sourceId, "upload.pdf", bytes.inputStream())
 
         assertIs<WopiPutRelativeFileResult.Success>(result)
-        verify { mockStorageService.uploadFile(match { it.contains("upload.pdf") }, bytes, anyNullable()) }
+        verify {
+            mockStorageService.uploadFile(
+                match { it.contains("upload.pdf") },
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        }
     }
 
     @Test
@@ -542,7 +558,7 @@ class WopiDocumentServiceTest {
         assertNotNull(sourceBefore)
         val bytes = Base64.getDecoder().decode(TestDataFactory.PDF_CONTENT)
 
-        service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes)
+        service.wopiPutRelativeFile(sourceId, "copy.pdf", bytes.inputStream())
 
         val sourceAfter = eioService.getById(sourceId)
         assertNotNull(sourceAfter)

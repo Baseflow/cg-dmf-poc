@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.SequenceInputStream
 import java.util.concurrent.CompletableFuture
 import java.util.zip.ZipInputStream
 
@@ -220,6 +221,22 @@ open class StorageService(
                 "application/vnd.ms-powerpoint"
 
             else -> null
+        }
+
+        /**
+         * Detects the MIME type by reading a header buffer from [stream], then returns the
+         * detected type alongside a reconstituted [InputStream] that replays those buffered
+         * bytes followed by the remainder of [stream].
+         *
+         * The returned stream must be used exactly once and then closed by the caller.
+         * Up to 65536 bytes are buffered for detection; for OOXML formats the full buffer
+         * is needed to inspect the ZIP central directory.
+         */
+        internal fun detectFileFormat(stream: InputStream): Pair<String?, InputStream> {
+            val header = stream.readNBytes(65536)
+            val detected = detectFileFormat(header)
+            val reconstituted: InputStream = SequenceInputStream(ByteArrayInputStream(header), stream)
+            return detected to reconstituted
         }
 
         /*
