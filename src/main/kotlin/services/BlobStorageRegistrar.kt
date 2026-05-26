@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import javax.crypto.BadPaddingException
 
 /**
  * Reads [BlobStorageConfig] on startup and upserts every configured repository
@@ -50,6 +51,39 @@ object BlobStorageRegistrar {
     fun initialise() {
         val envConfigs = BlobStorageConfig.repositories
 
+        try {
+            initialiseInternal(envConfigs)
+        } catch (e: Exception) {
+            if (!isEncryptionBootstrapFailure(e)) throw e
+            providers.clear()
+            defaultProviderName = null
+            logger.error(
+                "Blob storage encryption initialization failed. " +
+                    "Set ENCRYPTION_SECRET_KEY and ENCRYPTION_SALT to the same values used to encrypt existing data, " +
+                    "or reset blob storage repository secrets for local development. " +
+                    "Continuing without blob storage providers; file uploads will not work.",
+                e,
+            )
+        }
+    }
+
+    private fun isEncryptionBootstrapFailure(error: Throwable): Boolean {
+        var current: Throwable? = error
+        while (current != null) {
+            if (current is BadPaddingException) return true
+            if (current is IllegalArgumentException) return true
+            val message = current.message
+            if (message != null &&
+                (message.contains("ENCRYPTION_SECRET_KEY") || message.contains("ENCRYPTION_SALT"))
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
+
+    private fun initialiseInternal(envConfigs: List<BlobStorageRepoConfig>) {
         if (envConfigs.isEmpty()) {
             // No env-based configuration – fall back to repositories stored in the database.
             logger.info("No blob storage repositories configured via env vars – loading from database.")
