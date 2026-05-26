@@ -1,5 +1,13 @@
 [
   {
+    "category": "k6",
+    "runId": "26476231341",
+    "runNumber": "92",
+    "branch": "develop",
+    "date": "2026-05-26T21:34:42Z",
+    "path": "k6/26476231341/index.html"
+  },
+  {
     "category": "integration",
     "runId": "26475966574",
     "runNumber": "696",
