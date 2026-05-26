@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/admin/storage-repositories
+  url: {{baseUrl}}/settings/storage-repositories
   body: json
   auth: inherit
 }
@@ -19,8 +19,6 @@ body:json {
     "secretKey": "minioadmin",
     "bucket": "documenten",
     "region": "eu-west-1",
-    "disableChecksums": false,
-    "disableChunkedEncoding": false,
     "extraProperties": {},
     "isDefault": false
   }
@@ -28,7 +26,7 @@ body:json {
 
 assert {
   res.status: eq 409
-  res.body.detail: eq A blob storage repository with name 'test-repo-bruno' already exists.
+  res.body.detail: eq A repository with this name already exists.
 }
 
 script:post-response {

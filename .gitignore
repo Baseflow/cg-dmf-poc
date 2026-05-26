@@ -79,6 +79,7 @@ devbox.lock
 
 # npm
 package-lock.json
+!/frontend/admin-portal/package-lock.json
 docs/.swagger-codegen-ignore
 docs/index.html
 docs/.swagger-codegen/VERSION

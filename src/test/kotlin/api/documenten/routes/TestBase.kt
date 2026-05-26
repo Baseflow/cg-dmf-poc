@@ -2,10 +2,10 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.documenten.routes
 
-import com.baseflow.api.admin.adminModule
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
 import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopi.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BestandsDeelConfig
@@ -96,6 +96,6 @@ open class TestBase(dbNamePrefix: String) {
             json(apiJsonConfig())
         }
         documentenApiModule(useAuthentication = false)
-        adminModule(useAuthentication = false)
+        settingsModule(useAuthentication = false)
     }
 }

@@ -2,11 +2,11 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow
 
-import com.baseflow.api.admin.adminModule
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.documentenApiModule
 import com.baseflow.api.infra.healthModule
 import com.baseflow.api.infra.openApiModule
+import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopiApiModule
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
@@ -98,7 +98,7 @@ fun Application.module() {
     helloWorldModule() // Keep for basic health check at /
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
-    adminModule() // Admin API at /admin
+    settingsModule() // Settings API at /settings
     wopiApiModule() // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
