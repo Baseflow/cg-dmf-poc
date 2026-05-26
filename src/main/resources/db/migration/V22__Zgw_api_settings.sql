@@ -9,7 +9,7 @@ CREATE TABLE zgw_api_settings
     name                     VARCHAR(100)  NOT NULL,
     base_url                 TEXT          NOT NULL,
     client_id                TEXT          NOT NULL,
-    client_secret_encrypted  TEXT,
+    client_secret_encrypted  VARCHAR(512),
     created_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_zgw_api_settings PRIMARY KEY (id),

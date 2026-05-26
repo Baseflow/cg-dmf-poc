@@ -8,7 +8,7 @@ CREATE TABLE application_settings
     id                       UUID          NOT NULL,
     name                     VARCHAR(100)  NOT NULL,
     client_id                TEXT          NOT NULL,
-    client_secret_encrypted  TEXT,                        -- NULL = no client secret configured
+    client_secret_encrypted  VARCHAR(512),                 -- NULL = no client secret configured
     created_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_application_settings PRIMARY KEY (id),
