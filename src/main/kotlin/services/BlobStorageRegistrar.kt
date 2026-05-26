@@ -5,6 +5,7 @@ package com.baseflow.services
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.BlobStorageRepoConfig
 import com.baseflow.config.BlobStorageType
+import com.baseflow.config.S3Config
 import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
 import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
 import kotlinx.serialization.json.Json
@@ -84,7 +85,18 @@ object BlobStorageRegistrar {
     }
 
     private fun initialiseInternal(envConfigs: List<BlobStorageRepoConfig>) {
-        if (envConfigs.isEmpty()) {
+        val configs = envConfigs.ifEmpty {
+            runCatching { S3Config.toLegacyRepoConfig() }
+                .getOrNull()
+                ?.also {
+                    logger.info(
+                        "No BLOB_STORAGE_* env vars found – importing legacy S3 config as repository '{}'",
+                        it.name,
+                    )
+                }?.let { listOf(it) } ?: emptyList()
+        }
+
+        if (configs.isEmpty()) {
             // No env-based configuration – fall back to repositories stored in the database.
             logger.info("No blob storage repositories configured via env vars – loading from database.")
             val dbConfigs = transaction { loadConfigsFromDatabase() }
@@ -109,7 +121,7 @@ object BlobStorageRegistrar {
         }
 
         transaction {
-            for (cfg in envConfigs) {
+            for (cfg in configs) {
                 upsertRepository(cfg)
             }
 
@@ -123,7 +135,7 @@ object BlobStorageRegistrar {
                 defaultProviderName = markedDefault.repoName
             } else {
                 // Mark the first config as default
-                val firstName = envConfigs.first().name
+                val firstName = configs.first().name
                 defaultProviderName = firstName
                 BlobStorageRepositorySettingEntity
                     .find { BlobStorageRepositorySettingsTable.repoName eq firstName }
@@ -132,7 +144,7 @@ object BlobStorageRegistrar {
             }
         }
 
-        for (cfg in envConfigs) {
+        for (cfg in configs) {
             providers[cfg.name] = createProvider(cfg)
         }
 

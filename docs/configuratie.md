@@ -54,16 +54,43 @@ Sla de gegenereerde waarden op in een geheimenbeheerder (bijv. Kubernetes Secret
 Gebruik nooit dezelfde waarden in meerdere omgevingen. Als `ENCRYPTION_SECRET_KEY` of `ENCRYPTION_SALT` gewijzigd worden,
 kunnen bestaande versleutelde referenties niet meer worden ontsleuteld — sla de sleutels dus veilig op.
 
-## S3-configuratie
+## Blobopslag-configuratie
 
-MinIO of een andere S3 opslag worden gebruikt voor objectopslag. Stel de volgende omgevingsvariabelen in:
+De DMF ondersteunt meerdere blobopslag-backends (S3-compatibel en Azure Blob Storage) via een genummerd patroon van omgevingsvariabelen. Repositories worden bij het opstarten in de database opgeslagen en zijn daarna ook beheerbaar via de beheerinterface.
+
+### BLOB_STORAGE_* (aanbevolen)
+
+Configureer één of meer repositories met een numeriek achtervoegsel (begin bij 1):
+
+| Variabele                           | Standaardwaarde | Beschrijving                                                |
+| ----------------------------------- | --------------- | ----------------------------------------------------------- |
+| `BLOB_STORAGE_TYPE1`                | _(verplicht)_   | `S3` of `AZURE_BLOB_STORAGE`                               |
+| `BLOB_STORAGE_URL1`                 | _(verplicht)_   | Eindpunt-URL van de opslagdienst                           |
+| `BLOB_STORAGE_ACCESS_KEY1`          | _(verplicht)_   | Toegangssleutel / account-naam                             |
+| `BLOB_STORAGE_SECRET_KEY1`          | _(verplicht)_   | Geheime sleutel / account-sleutel                          |
+| `BLOB_STORAGE_BUCKET1`              | `documenten`    | Bucketnaam / containernaam                                 |
+| `BLOB_STORAGE_REGION1`              | _(leeg)_        | Regio (optioneel, afhankelijk van provider)                |
+| `BLOB_STORAGE_NAME1`                | `repo-1`        | Leesbare naam voor de repository                           |
+| `BLOB_STORAGE_DISABLE_CHECKSUMS1`   | `false`         | Schakel checksums uit (bijv. voor MinIO-compatibiliteit)   |
+| `BLOB_STORAGE_DISABLE_CHUNKED_ENCODING1` | `false`   | Schakel chunked encoding uit (bijv. voor bepaalde proxies) |
+
+Voeg een tweede repository toe door de variabelen te herhalen met achtervoegsel `2`, enzovoort.
+
+### Verouderde S3_* variabelen (automatisch geïmporteerd)
+
+Wanneer er **geen** `BLOB_STORAGE_*` variabelen zijn ingesteld maar de verouderde `S3_*` variabelen wel aanwezig zijn, importeert de applicatie deze automatisch als een repository genaamd `legacy-s3` en slaat deze op in de database.
 
 | Variabele        | Standaardwaarde         | Beschrijving                                   |
 | ---------------- | ----------------------- | --------------------------------------------- |
 | `S3_ENDPOINT`    | `http://localhost:9000` | MinIO / S3-compatibele eindpunt-URL           |
 | `S3_ACCESS_KEY`  | `minioadmin`            | Toegangssleutel (gebruikersnaam)              |
-| `S3_SECRET_KEY`  | `minioadmin`            | Geheime sleutel (wachtwoord)                  |
-| `S3_BUCKET`      | `documenten`            | Bucket gebruikt voor documentopslag           |
+| `S3_SECRET_KEY`  | _(verplicht)_           | Geheime sleutel (wachtwoord)                  |
+| `S3_BUCKET`      | `default-bucket`        | Bucket gebruikt voor documentopslag           |
+| `S3_REGION`      | `eu-west-1`             | AWS-regio                                     |
+
+Na de eerste import is de repository zichtbaar in de beheerinterface en kan deze hernoemd of verder geconfigureerd worden. Migreer zo snel mogelijk naar de `BLOB_STORAGE_*` variabelen: verwijder daarna de `S3_*` variabelen zodat de import niet opnieuw wordt uitgevoerd.
+
+> **Let op:** Als er noch `BLOB_STORAGE_*` noch `S3_*` variabelen zijn ingesteld, laadt de applicatie de opgeslagen repositories uit de database. Dit is de aanbevolen situatie na een volledige migratie.
 
 ## Bestandsdelen-configuratie
 

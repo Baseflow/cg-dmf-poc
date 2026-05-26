@@ -3,7 +3,6 @@
 package com.baseflow.services
 
 import com.baseflow.config.S3ClientFactory
-import com.baseflow.config.S3Config
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -15,9 +14,7 @@ import java.util.zip.ZipInputStream
  * StorageService delegates file operations to the [BlobStorageProvider] instances
  * registered by [BlobStorageRegistrar].
  *
- * When a specific repository name is not supplied, the *default* (first configured)
- * provider is used.  A legacy fallback using the old `S3_*` env vars is kept so the
- * application still works when no `BLOB_STORAGE_*` env vars are defined.
+ * When a specific repository name is not supplied, the *default* provider is used.
  */
 open class StorageService(
     @Suppress("unused") s3ClientFactory: S3ClientFactory, // kept for Koin graph compatibility
@@ -25,40 +22,12 @@ open class StorageService(
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
 
-    /**
-     * Lazy legacy provider – only built when [BlobStorageRegistrar] has no
-     * providers and the old `S3_*` env vars are still in use.
-     */
-    private val legacyProvider: BlobStorageProvider? by lazy {
-        try {
-            val cfg = com.baseflow.config.BlobStorageRepoConfig(
-                index = 0,
-                name = "legacy-s3",
-                type = com.baseflow.config.BlobStorageType.S3,
-                url = S3Config.endpoint,
-                accessKey = S3Config.accessKey,
-                secretKey = S3Config.secretKey,
-                bucket = S3Config.bucketName,
-                region = S3Config.region.id(),
-                disableChecksums = S3Config.disableChecksums,
-                disableChunkedEncoding = S3Config.disableChunkedEncoding,
-            )
-            S3BlobStorageProvider(cfg)
-        } catch (e: Exception) {
-            logger.warn("Legacy S3Config could not be initialised – no fallback available: {}", e.message)
-            null
-        }
-    }
-
-    private fun resolveProvider(repoName: String? = null): BlobStorageProvider {
-        val provider = if (repoName != null) {
-            BlobStorageRegistrar.providerByName(repoName)
-                ?: throw IllegalArgumentException("No blob storage repository registered with name '$repoName'")
-        } else {
-            BlobStorageRegistrar.defaultProvider() ?: legacyProvider
-        }
-        return provider
-            ?: throw IllegalStateException("No blob storage provider available. Configure BLOB_STORAGE_* env vars or legacy S3_* env vars.")
+    private fun resolveProvider(repoName: String? = null): BlobStorageProvider = if (repoName != null) {
+        BlobStorageRegistrar.providerByName(repoName)
+            ?: throw IllegalArgumentException("No blob storage repository registered with name '$repoName'")
+    } else {
+        BlobStorageRegistrar.defaultProvider()
+            ?: throw IllegalStateException("No blob storage provider available. Configure BLOB_STORAGE_* env vars.")
     }
 
     /**

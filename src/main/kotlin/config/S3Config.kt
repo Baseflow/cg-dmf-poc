@@ -37,4 +37,20 @@ internal object S3Config : Config() {
     }
 
     fun isComplete(): Boolean = endpoint.isNotEmpty() && accessKey.isNotEmpty() && secretKey.isNotEmpty() && bucketName.isNotEmpty()
+
+    fun toLegacyRepoConfig(): BlobStorageRepoConfig? {
+        if (!isComplete()) return null
+        return BlobStorageRepoConfig(
+            index = 0,
+            name = "legacy-s3",
+            type = BlobStorageType.S3,
+            url = endpoint,
+            accessKey = accessKey,
+            secretKey = secretKey,
+            bucket = bucketName,
+            region = region.id(),
+            disableChecksums = disableChecksums,
+            disableChunkedEncoding = disableChunkedEncoding,
+        )
+    }
 }
