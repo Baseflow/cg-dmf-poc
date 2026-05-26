@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26457628441",
+    "runNumber": "685",
+    "branch": "issue/CGDMF-150",
+    "date": "2026-05-26T15:27:59Z",
+    "path": "integration/26457628441/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26456958910",
     "runNumber": "683",
     "branch": "develop-admin-portal",
