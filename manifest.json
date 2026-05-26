@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26474141243",
+    "runNumber": "695",
+    "branch": "fix/blob-storage-legacy-import",
+    "date": "2026-05-26T20:51:59Z",
+    "path": "integration/26474141243/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26474001535",
     "runNumber": "694",
     "branch": "switch_encryption_algo",
