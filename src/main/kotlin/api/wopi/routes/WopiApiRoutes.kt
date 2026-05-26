@@ -50,9 +50,10 @@ import org.koin.ktor.plugin.scope
  */
 private val RoutingContext.slatService: WopiSlatService
     get() = call.scope.get<WopiSlatService> {
+        val config = call.scope.get<WopiConfig>()
         parametersOf(
-            WopiConfig.slatSecret,
-            WopiConfig.slatTtlSeconds,
+            config.slatSecret,
+            config.slatTtlSeconds,
         )
     }
 
@@ -431,15 +432,15 @@ private suspend fun RoutingContext.getFileMetadata() {
     } else {
         val checkFileInfoResponse = CheckFileInfoResponse(
             baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
+            lastModifiedTime = result.beginRegistratie,
             size = result.bestandsomvang,
+            version = result.versie.toString(),
             userCanWrite = true,
             supportsAutosave = false,
             userFriendlyName = "Unknown user",
             supportsLocks = true,
             supportsGetLock = true,
             supportsUpdate = true,
-            lastModifiedTime = result.beginRegistratie,
-            version = result.versie.toString(),
         )
         call.respond(HttpStatusCode.OK, checkFileInfoResponse)
     }

@@ -4,21 +4,26 @@ package com.baseflow.config
 
 import org.slf4j.LoggerFactory
 
-object WopiConfig : Config() {
+class WopiConfig(
+    /**
+     * Indicates whether WOPI protocol is enabled for this instance of the DMF.
+     */
+    val wopiEnabled: Boolean,
+    /**
+     * The Short-lived Access Token (SLAT) secret.
+     *
+     * The SLAT is used as a salt to encode or decode the token and must be set when WOPI is enabled. Minimum
+     * recommended length: 32 characters.
+     */
+    val slatSecret: String,
+    /**
+     * The SLAT token lifetime in seconds. Defaults to 3600 (1 hour).
+     *
+     * The SLAT token is valid for this amount of time. Requests that use an expired SLAT should be rejected.
+     */
+    val slatTtlSeconds: Long = 3600,
+) : Config() {
     private val logger = LoggerFactory.getLogger(WopiConfig::class.java)
-
-    val wopiEnabled: Boolean = envOrSystem("WOPI_ENABLED", "false").toBoolean()
-
-    /**
-     * Secret used to sign WOPI Short-Lived Access Tokens (SLATs).
-     * Must be set when WOPI is enabled. Minimum recommended length: 32 characters.
-     */
-    val slatSecret: String by lazy { envOrThrow("WOPI_SLAT_SECRET") }
-
-    /**
-     * Lifetime of issued SLATs in seconds. Defaults to 3600 (1 hour).
-     */
-    val slatTtlSeconds: Long = envOrSystem("WOPI_SLAT_TTL_SECONDS", "3600").toLong()
 
     override fun printConfig() {
         logger.info("WOPI_ENABLED={}", wopiEnabled)
@@ -26,4 +31,12 @@ object WopiConfig : Config() {
     }
 
     fun isEnabled(): Boolean = wopiEnabled
+
+    companion object {
+        fun fromEnv(): WopiConfig = WopiConfig(
+            wopiEnabled = envOrSystem("WOPI_ENABLED", "false").toBoolean(),
+            slatSecret = envOrThrow("WOPI_SLAT_SECRET"),
+            slatTtlSeconds = envOrSystem("WOPI_SLAT_TTL_SECONDS", "3600").toLong(),
+        )
+    }
 }

@@ -13,6 +13,7 @@ import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
 import com.baseflow.config.S3Config
+import com.baseflow.config.WopiConfig
 import com.baseflow.config.authenticationModule
 import com.baseflow.config.dmfKoinModule
 import com.baseflow.services.BlobStorageRegistrar
@@ -29,6 +30,7 @@ import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationState
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 
 fun main() {
@@ -94,12 +96,15 @@ fun Application.module() {
         json(apiJsonConfig())
     }
 
+    // Retrieve WOPI configuration from the DI container.
+    val wopiConfig: WopiConfig by inject<WopiConfig>()
+
     authenticationModule()
     helloWorldModule() // Keep for basic health check at /
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
     adminModule() // Admin API at /admin
-    wopiApiModule() // Wopi API at /wopi/api/v1
+    wopiApiModule(wopiConfig) // Wopi API at /wopi/api/v1
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
 

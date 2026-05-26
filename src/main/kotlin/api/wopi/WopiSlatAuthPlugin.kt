@@ -77,9 +77,10 @@ val WopiSlatAuthPlugin = createRouteScopedPlugin(
 }
 
 private fun getWopiSlatService(call: ApplicationCall): WopiSlatService = call.scope.get<WopiSlatService> {
+    val config = call.scope.get<WopiConfig>()
     parametersOf(
-        WopiConfig.slatSecret,
-        WopiConfig.slatTtlSeconds,
+        config.slatSecret,
+        config.slatTtlSeconds,
     )
 }
 

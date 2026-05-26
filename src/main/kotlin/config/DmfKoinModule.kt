@@ -28,6 +28,7 @@ val dmfKoinModule = module {
     single { OpenZaakConfig.fromEnv() }
     single { S3ClientFactory() }
     single { StorageService(get()) }
+    single { WopiConfig.fromEnv() }
 
     requestScope {
         scoped { AuditContext() }

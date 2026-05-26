@@ -26,7 +26,7 @@ import java.util.UUID
  * as defined by the WOPI protocol. Delegates general EIO reads and writes to
  * [EnkelvoudigInformatieObjectService].
  */
-class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
+open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
 
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
