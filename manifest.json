@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26458131816",
+    "runNumber": "687",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/qs-6.15.2",
+    "date": "2026-05-26T15:36:23Z",
+    "path": "integration/26458131816/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26458042701",
     "runNumber": "91",
