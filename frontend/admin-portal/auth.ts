@@ -2,13 +2,23 @@ import NextAuth from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import Keycloak from "next-auth/providers/keycloak"
 
+const keycloakClientId = process.env.KEYCLOAK_CLIENT_ID
+const keycloakClientSecret = process.env.KEYCLOAK_CLIENT_SECRET
+const keycloakUrl = process.env.KEYCLOAK_URL
+const keycloakRealm = process.env.KEYCLOAK_REALM
+
+if (!keycloakClientId) throw new Error("KEYCLOAK_CLIENT_ID is not set")
+if (!keycloakClientSecret) throw new Error("KEYCLOAK_CLIENT_SECRET is not set")
+if (!keycloakUrl) throw new Error("KEYCLOAK_URL is not set")
+if (!keycloakRealm) throw new Error("KEYCLOAK_REALM is not set")
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   providers: [
     Keycloak({
-      clientId: process.env.KEYCLOAK_CLIENT_ID!,
-      clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
-      issuer: `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}`,
+      clientId: keycloakClientId,
+      clientSecret: keycloakClientSecret,
+      issuer: `${keycloakUrl}/realms/${keycloakRealm}`,
     }),
   ],
   callbacks: {
@@ -37,13 +47,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!("token" in message) || !message.token?.refreshToken) return
       const { token } = message
       await fetch(
-        `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/logout`,
+        `${keycloakUrl}/realms/${keycloakRealm}/protocol/openid-connect/logout`,
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
-            client_id: process.env.KEYCLOAK_CLIENT_ID!,
-            client_secret: process.env.KEYCLOAK_CLIENT_SECRET!,
+            client_id: keycloakClientId,
+            client_secret: keycloakClientSecret,
             refresh_token: token.refreshToken!,
           }),
         }
@@ -56,13 +66,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
     const response = await fetch(
-      `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`,
+      `${keycloakUrl}/realms/${keycloakRealm}/protocol/openid-connect/token`,
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          client_id: process.env.KEYCLOAK_CLIENT_ID!,
-          client_secret: process.env.KEYCLOAK_CLIENT_SECRET!,
+          client_id: keycloakClientId,
+          client_secret: keycloakClientSecret,
           grant_type: "refresh_token",
           refresh_token: token.refreshToken!,
         }),

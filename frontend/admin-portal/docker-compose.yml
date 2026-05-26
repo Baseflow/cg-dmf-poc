@@ -4,7 +4,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXTAUTH_URL: https://cg-dmf.dev.baseflow.com/admin-backend
+      NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: local-setup-only-key
       KEYCLOAK_URL: https://auth.gzac.baseflow.com
       KEYCLOAK_REALM: valtimo
