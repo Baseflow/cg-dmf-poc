@@ -2,15 +2,16 @@ import NextAuth from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import Keycloak from "next-auth/providers/keycloak"
 
-const keycloakClientId = process.env.KEYCLOAK_CLIENT_ID
-const keycloakClientSecret = process.env.KEYCLOAK_CLIENT_SECRET
-const keycloakUrl = process.env.KEYCLOAK_URL
-const keycloakRealm = process.env.KEYCLOAK_REALM
+function requireEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) throw new Error(`${name} is not set`)
+  return value
+}
 
-if (!keycloakClientId) throw new Error("KEYCLOAK_CLIENT_ID is not set")
-if (!keycloakClientSecret) throw new Error("KEYCLOAK_CLIENT_SECRET is not set")
-if (!keycloakUrl) throw new Error("KEYCLOAK_URL is not set")
-if (!keycloakRealm) throw new Error("KEYCLOAK_REALM is not set")
+const keycloakClientId = requireEnv("KEYCLOAK_CLIENT_ID")
+const keycloakClientSecret = requireEnv("KEYCLOAK_CLIENT_SECRET")
+const keycloakUrl = requireEnv("KEYCLOAK_URL")
+const keycloakRealm = requireEnv("KEYCLOAK_REALM")
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
