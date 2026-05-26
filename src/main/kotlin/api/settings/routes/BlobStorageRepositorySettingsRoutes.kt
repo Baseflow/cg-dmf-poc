@@ -259,49 +259,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     throw ex
                 }
 
-                when (result) {
-                    null -> return@put call.respondProblem(
-                        HttpStatusCode.NotFound,
-                        notFound("Repository not found.", call.request.path()),
-                    )
-                    "conflict" -> return@put call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict("A repository with this name already exists.", call.request.path()),
-                    )
-                    else -> {
-                        val (oldName, entity) = result as Pair<*, *>
-                        val updatedEntity = entity as BlobStorageRepositorySettingEntity
-                        if (updatedEntity.enabled) {
-                            val extra = decodeExtraProperties(updatedEntity.extraProperties)
-                            val cfg = BlobStorageRepoConfig(
-                                index = -1,
-                                name = updatedEntity.repoName,
-                                type = BlobStorageType.fromLabel(updatedEntity.storageType),
-                                url = updatedEntity.url,
-                                accessKey = updatedEntity.accessKey ?: "",
-                                secretKey = updatedEntity.secretKey ?: "",
-                                bucket = updatedEntity.bucket,
-                                region = updatedEntity.region,
-                                extraProperties = extra,
-                                disableChecksums = extra["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
-                                disableChunkedEncoding = extra["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
-                                isDefault = updatedEntity.isDefault,
-                            )
-                            runCatching {
-                                BlobStorageRegistrar.updateProvider(cfg, oldName = oldName as String)
-                            }.onFailure { ex ->
-                                logger.warn(
-                                    "Repository '{}' updated but could not be re-activated as a provider: {}",
-                                    updatedEntity.repoName,
-                                    ex.message,
-                                )
-                            }
-                        } else {
-                            BlobStorageRegistrar.unregisterProvider(oldName as String)
-                        }
-                        call.respond(HttpStatusCode.OK, updatedEntity.toResponse())
-                    }
-                }
+                call.respondWithUpdateResult(result, call.request.path())
             }
 
             patch {
@@ -374,49 +332,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     throw ex
                 }
 
-                when (result) {
-                    null -> return@patch call.respondProblem(
-                        HttpStatusCode.NotFound,
-                        notFound("Repository not found.", call.request.path()),
-                    )
-                    "conflict" -> return@patch call.respondProblem(
-                        HttpStatusCode.Conflict,
-                        conflict("A repository with this name already exists.", call.request.path()),
-                    )
-                    else -> {
-                        val (oldName, entity) = result as Pair<*, *>
-                        val updatedEntity = entity as BlobStorageRepositorySettingEntity
-                        if (updatedEntity.enabled) {
-                            val extra = decodeExtraProperties(updatedEntity.extraProperties)
-                            val cfg = BlobStorageRepoConfig(
-                                index = -1,
-                                name = updatedEntity.repoName,
-                                type = BlobStorageType.fromLabel(updatedEntity.storageType),
-                                url = updatedEntity.url,
-                                accessKey = updatedEntity.accessKey ?: "",
-                                secretKey = updatedEntity.secretKey ?: "",
-                                bucket = updatedEntity.bucket,
-                                region = updatedEntity.region,
-                                extraProperties = extra,
-                                disableChecksums = extra["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
-                                disableChunkedEncoding = extra["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
-                                isDefault = updatedEntity.isDefault,
-                            )
-                            runCatching {
-                                BlobStorageRegistrar.updateProvider(cfg, oldName = oldName as String)
-                            }.onFailure { ex ->
-                                logger.warn(
-                                    "Repository '{}' patched but could not be re-activated as a provider: {}",
-                                    updatedEntity.repoName,
-                                    ex.message,
-                                )
-                            }
-                        } else {
-                            BlobStorageRegistrar.unregisterProvider(oldName as String)
-                        }
-                        call.respond(HttpStatusCode.OK, updatedEntity.toResponse())
-                    }
-                }
+                call.respondWithUpdateResult(result, call.request.path())
             }
 
             delete {
@@ -446,6 +362,47 @@ fun Route.blobStorageRepositorySettingsRoutes() {
 }
 
 private val logger = LoggerFactory.getLogger("com.baseflow.api.settings.routes.BlobStorageRepositorySettingsRoutes")
+
+private suspend fun io.ktor.server.application.ApplicationCall.respondWithUpdateResult(result: Any?, path: String) {
+    when (result) {
+        null -> respondProblem(HttpStatusCode.NotFound, notFound("Repository not found.", path))
+        "conflict" -> respondProblem(HttpStatusCode.Conflict, conflict("A repository with this name already exists.", path))
+        else -> {
+            val (oldName, updatedEntity) =
+                @Suppress("UNCHECKED_CAST")
+                (result as Pair<String, BlobStorageRepositorySettingEntity>)
+            syncRegistrarForEntity(updatedEntity, oldName)
+            respond(HttpStatusCode.OK, updatedEntity.toResponse())
+        }
+    }
+}
+
+private fun syncRegistrarForEntity(entity: BlobStorageRepositorySettingEntity, oldName: String) {
+    if (entity.enabled) {
+        val extra = decodeExtraProperties(entity.extraProperties)
+        val cfg = BlobStorageRepoConfig(
+            index = -1,
+            name = entity.repoName,
+            type = BlobStorageType.fromLabel(entity.storageType),
+            url = entity.url,
+            accessKey = entity.accessKey ?: "",
+            secretKey = entity.secretKey ?: "",
+            bucket = entity.bucket,
+            region = entity.region,
+            extraProperties = extra,
+            disableChecksums = extra["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
+            disableChunkedEncoding = extra["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
+            isDefault = entity.isDefault,
+        )
+        runCatching {
+            BlobStorageRegistrar.updateProvider(cfg, oldName = oldName)
+        }.onFailure { ex ->
+            logger.warn("Repository '{}' updated but could not be re-activated as a provider: {}", entity.repoName, ex.message)
+        }
+    } else {
+        BlobStorageRegistrar.unregisterProvider(oldName)
+    }
+}
 
 private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageRepositorySettingsResponse {
     val decryptedAccessKey = try {
