@@ -51,6 +51,12 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      flyway:
+        patterns:
+          - "org.flywaydb*"
+        update-types:
+          - "minor"
+          - "patch"
     # Allow specific dependencies to be updated more frequently
     allow:
       - dependency-type: "all"

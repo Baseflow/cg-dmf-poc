@@ -87,3 +87,11 @@ k6 run --out junit=results.xml k6/perf.js
 - OIOs are assigned randomly to existing EIOs; the unique constraint on `(informatieobject, object)`
   is respected by using a unique UUID per OIO as part of the object URL.
 
+## GitHub Pages Trends
+
+The trends page lives at `k6/trends/index.html` on the `gh-pages` branch.
+It dynamically loads the latest 20 `k6` runs via `manifest.json` and fetches each run's
+`perf-summary.json` from its run folder (`k6/<runId>/perf-summary.json`).
+
+Per-run `k6/<runId>/` pages and `perf-summary.json` files are still published by CI.
+The trends page itself is maintained directly on `gh-pages`.

@@ -50,6 +50,8 @@ data class CheckFileInfoResponse(
     val supportsGetLock: Boolean? = null,
     @SerialName("SupportsLocks")
     val supportsLocks: Boolean? = null,
+    @SerialName("SupportsPutRelativeFile")
+    val supportsPutRelativeFile: Boolean? = null,
     @SerialName("SupportsRename")
     val supportsRename: Boolean? = null,
     @SerialName("SupportsUpdate")

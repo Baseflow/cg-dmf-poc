@@ -17,6 +17,7 @@ name: dmf-integration-test
 
 services:
   postgres:
+    container_name: dmf-it-postgres
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: documenten
@@ -29,6 +30,7 @@ services:
       retries: 10
 
   minio:
+    container_name: dmf-it-minio
     image: minio/minio:latest
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -41,6 +43,7 @@ services:
       retries: 10
 
   app:
+    container_name: dmf-it-app
     # Build the full image from source (same as production).
     # Locally this may take a few minutes on first run; subsequent runs use the Docker layer cache.
     build: .
@@ -83,6 +86,7 @@ services:
         condition: service_healthy
 
   bruno:
+    container_name: dmf-it-bruno
     image: node:20-alpine
     working_dir: /collection/CG-DMF
     volumes:

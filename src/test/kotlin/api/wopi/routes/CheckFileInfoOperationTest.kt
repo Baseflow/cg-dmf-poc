@@ -103,15 +103,16 @@ class CheckFileInfoOperationTest {
         assertEquals(capabilities.supportedShareUrlTypes, null)
         assertEquals(capabilities.supportsAutosave, false)
         assertEquals(capabilities.supportsCobalt, null)
-        assertEquals(capabilities.supportsContainers, null)
-        assertEquals(capabilities.supportsDeleteFile, null)
+        assertEquals(capabilities.supportsContainers, false)
+        assertEquals(capabilities.supportsDeleteFile, false)
         assertEquals(capabilities.supportsEcosystem, null)
         assertEquals(capabilities.supportsExtendedLockLength, null)
         assertEquals(capabilities.supportsFolders, null)
         assertEquals(capabilities.supportsGetFileWopiSrc, null)
         assertEquals(capabilities.supportsGetLock, true)
         assertEquals(capabilities.supportsLocks, true)
-        assertEquals(capabilities.supportsRename, null)
+        assertEquals(capabilities.supportsPutRelativeFile, true)
+        assertEquals(capabilities.supportsRename, true)
         assertEquals(capabilities.supportsUpdate, true)
         assertEquals(capabilities.supportsUserInfo, null)
 
@@ -157,7 +158,7 @@ class CheckFileInfoOperationTest {
         assertEquals(userPermissions.userCanAttend, null)
         assertEquals(userPermissions.userCanNotWriteRelative, null)
         assertEquals(userPermissions.userCanPresent, null)
-        assertEquals(userPermissions.userCanRename, null)
+        assertEquals(userPermissions.userCanRename, true)
         assertEquals(userPermissions.userCanWrite, true)
     }
 
