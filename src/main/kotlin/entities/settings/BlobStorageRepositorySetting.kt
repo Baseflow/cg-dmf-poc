@@ -2,11 +2,9 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.entities.settings
 
-import com.baseflow.config.EncryptionConfig
+import com.baseflow.tooling.multiAlgorithmEncryptor
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
-import org.jetbrains.exposed.v1.crypt.Algorithms
-import org.jetbrains.exposed.v1.crypt.Encryptor
 import org.jetbrains.exposed.v1.crypt.encryptedVarchar
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
@@ -14,15 +12,7 @@ import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
 import java.util.UUID
 
-private val blobStorageSettingEncryptor: Encryptor by lazy {
-    Algorithms.AES_256_PBE_CBC(EncryptionConfig.secretKey, EncryptionConfig.salt)
-}
-
-private val lazyEncryptor = Encryptor(
-    encryptFn = { blobStorageSettingEncryptor.encrypt(it) },
-    decryptFn = { blobStorageSettingEncryptor.decrypt(it) },
-    maxColLengthFn = { blobStorageSettingEncryptor.maxColLength(it) },
-)
+private val lazyEncryptor = multiAlgorithmEncryptor()
 
 object BlobStorageRepositorySettingsTable : UUIDTable("blob_storage_repository_settings") {
     val repoName = varchar("name", 100).uniqueIndex()

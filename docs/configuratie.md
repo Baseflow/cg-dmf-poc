@@ -33,12 +33,12 @@ ZGW_ALLOWED_CLIENT_IDS wordt gebruikt door openzaak en/of GZAC om te communicere
 ## Versleuteling (at-rest encryptie van opslaginloggegevens)
 
 Toegangssleutels en geheime sleutels van blobopslag-repositories worden versleuteld opgeslagen in de database
-met AES-256-PBE-CBC. De volgende omgevingsvariabelen zijn verplicht:
+met AES-256-PBE-GCM. De volgende omgevingsvariabelen zijn verplicht:
 
 | Variabele               | Standaardwaarde | Beschrijving                                                                 |
 | ----------------------- | --------------- | ---------------------------------------------------------------------------- |
-| `ENCRYPTION_SECRET_KEY` | _(geen)_        | Wachtwoordzin voor AES-256-PBE-CBC sleutelafleidng (verplicht)              |
-| `ENCRYPTION_SALT`       | _(geen)_        | Hex-salt voor sleutelafleiding; moet een even aantal hexadecimale tekens zijn (verplicht) |
+| `ENCRYPTION_SECRET_KEY` | _(geen)_        | Wachtwoordzin voor AES-256-PBE-GCM sleutelafleiding (verplicht)             |
+| `ENCRYPTION_SALT`       | _(geen)_        | Salt voor sleutelafleiding; hex of platte tekst wordt geaccepteerd. Bij gebruik van hex moet deze uit een even aantal hexadecimale tekens bestaan (verplicht) |
 
 **Waarden genereren:**
 
