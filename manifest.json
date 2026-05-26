@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26440813814",
+    "runNumber": "673",
+    "branch": "dependabot/gradle/org.flywaydb-flyway-core-12.6.2",
+    "date": "2026-05-26T08:23:58Z",
+    "path": "integration/26440813814/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26425178940",
     "runNumber": "90",
