@@ -136,7 +136,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
                         createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                         updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    }
+                    }.toResponse()
                 }
             }.getOrElse { ex ->
                 if (ex.isUniqueNameViolation()) {
@@ -172,7 +172,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 }
             }
 
-            call.respond(HttpStatusCode.Created, created.toResponse())
+            call.respond(HttpStatusCode.Created, created)
         }
 
         route("/{id}") {
@@ -371,8 +371,11 @@ private suspend fun io.ktor.server.application.ApplicationCall.respondWithUpdate
             val (oldName, updatedEntity) =
                 @Suppress("UNCHECKED_CAST")
                 (result as Pair<String, BlobStorageRepositorySettingEntity>)
-            syncRegistrarForEntity(updatedEntity, oldName)
-            respond(HttpStatusCode.OK, updatedEntity.toResponse())
+            val response = transaction {
+                syncRegistrarForEntity(updatedEntity, oldName)
+                updatedEntity.toResponse()
+            }
+            respond(HttpStatusCode.OK, response)
         }
     }
 }

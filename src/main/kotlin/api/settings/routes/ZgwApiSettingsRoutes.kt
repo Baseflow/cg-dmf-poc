@@ -133,7 +133,7 @@ fun Route.zgwApiSettingsRoutes() {
                         existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing
+                    existing.toResponse()
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
@@ -144,7 +144,7 @@ fun Route.zgwApiSettingsRoutes() {
                         HttpStatusCode.Conflict,
                         conflict("A ZGW API setting with this name already exists.", call.request.path()),
                     )
-                    else -> call.respond(HttpStatusCode.OK, (updated as ZgwApiSettingEntity).toResponse())
+                    else -> call.respond(HttpStatusCode.OK, updated as ZgwApiSettingsResponse)
                 }
             }
 

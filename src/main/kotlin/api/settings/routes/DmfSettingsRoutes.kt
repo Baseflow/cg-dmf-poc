@@ -29,8 +29,8 @@ import kotlin.time.Clock
 fun Route.dmfSettingsRoutes() {
     route("/dmf-settings") {
         get {
-            val settings = transaction {
-                DmfSettingEntity.findById(DmfSettingEntity.SINGLETON_ID)
+            val response = transaction {
+                DmfSettingEntity.findById(DmfSettingEntity.SINGLETON_ID)?.toResponse()
             } ?: return@get call.respondProblem(
                 HttpStatusCode.InternalServerError,
                 ProblemDetailsResponse(
@@ -40,7 +40,7 @@ fun Route.dmfSettingsRoutes() {
                     instance = call.request.path(),
                 ),
             )
-            call.respond(settings.toResponse())
+            call.respond(response)
         }
 
         put {
@@ -65,14 +65,14 @@ fun Route.dmfSettingsRoutes() {
                 )
             }
 
-            val updated = transaction {
+            val response = transaction {
                 val settings = DmfSettingEntity.findById(DmfSettingEntity.SINGLETON_ID)
                     ?: return@transaction null
                 settings.triggerSizeBytes = body.triggerSize
                 settings.chunkSizeBytes = body.chunkSize
                 settings.validationEnabled = body.validationEnabled
                 settings.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                settings
+                settings.toResponse()
             } ?: return@put call.respondProblem(
                 HttpStatusCode.InternalServerError,
                 ProblemDetailsResponse(
@@ -83,7 +83,7 @@ fun Route.dmfSettingsRoutes() {
                 ),
             )
 
-            call.respond(HttpStatusCode.OK, updated.toResponse())
+            call.respond(HttpStatusCode.OK, response)
         }
     }
 }

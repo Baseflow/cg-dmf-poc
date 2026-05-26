@@ -123,7 +123,7 @@ fun Route.applicationSettingsRoutes() {
                         existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing
+                    existing.toResponse()
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
@@ -134,7 +134,7 @@ fun Route.applicationSettingsRoutes() {
                         HttpStatusCode.Conflict,
                         conflict("An application with this name already exists.", call.request.path()),
                     )
-                    else -> call.respond(HttpStatusCode.OK, (updated as ApplicationSettingEntity).toResponse())
+                    else -> call.respond(HttpStatusCode.OK, updated as ApplicationSettingsResponse)
                 }
             }
 
