@@ -21,7 +21,10 @@ jobs:
     uses: ./.github/workflows/TEST.yml
     secrets: inherit
 
+  frontend-test:
+    uses: ./.github/workflows/FRONTEND_TEST.yml
+
   integration-test:
-    needs: [lint, helm-lint, test]
+    needs: [lint, helm-lint, test, frontend-test]
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
