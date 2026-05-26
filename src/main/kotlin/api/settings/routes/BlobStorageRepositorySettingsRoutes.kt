@@ -8,6 +8,7 @@ import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
 import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
+import com.baseflow.api.models.settings.PatchBlobStorageRepositorySettingsRequest
 import com.baseflow.api.models.settings.SetDefaultRepositorySettingsRequest
 import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
 import com.baseflow.config.BlobStorageRepoConfig
@@ -291,6 +292,121 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                             }.onFailure { ex ->
                                 logger.warn(
                                     "Repository '{}' updated but could not be re-activated as a provider: {}",
+                                    updatedEntity.repoName,
+                                    ex.message,
+                                )
+                            }
+                        } else {
+                            BlobStorageRegistrar.unregisterProvider(oldName as String)
+                        }
+                        call.respond(HttpStatusCode.OK, updatedEntity.toResponse())
+                    }
+                }
+            }
+
+            patch {
+                val id = call.parameters["id"]
+                    ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                    ?: return@patch call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("Invalid UUID.", call.request.path()),
+                    )
+                val body = runCatching { call.receive<PatchBlobStorageRepositorySettingsRequest>() }.getOrNull()
+                    ?: return@patch call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("Request body must be valid JSON.", call.request.path()),
+                    )
+                if (body.name?.isBlank() == true) {
+                    return@patch call.respondProblem(
+                        HttpStatusCode.BadRequest,
+                        badRequest("'name' must not be blank.", call.request.path()),
+                    )
+                }
+                val storageType = body.storageType?.let {
+                    runCatching { BlobStorageType.fromLabel(it) }.getOrElse {
+                        return@patch call.respondProblem(
+                            HttpStatusCode.BadRequest,
+                            badRequest("Unknown storageType '$it'.", call.request.path()),
+                        )
+                    }
+                }
+
+                val result = runCatching {
+                    transaction {
+                        val existing = BlobStorageRepositorySettingEntity.findById(id)
+                            ?: return@transaction null
+                        val newName = body.name ?: existing.repoName
+                        val nameConflict = newName != existing.repoName &&
+                            BlobStorageRepositorySettingEntity.find {
+                                BlobStorageRepositorySettingsTable.repoName eq newName
+                            }.firstOrNull() != null
+                        if (nameConflict) return@transaction "conflict"
+
+                        val oldName = existing.repoName
+                        body.isDefault?.let { makeDefault ->
+                            if (makeDefault && !existing.isDefault) {
+                                BlobStorageRepositorySettingEntity.all()
+                                    .filter { it.id != existing.id && it.isDefault }
+                                    .forEach { it.isDefault = false }
+                            }
+                            existing.isDefault = makeDefault
+                        }
+                        body.name?.let { existing.repoName = it }
+                        storageType?.let { existing.storageType = it.label }
+                        body.url?.let { existing.url = it }
+                        body.bucket?.let { existing.bucket = it }
+                        body.region?.let { existing.region = it }
+                        body.extraProperties?.let { existing.extraProperties = encodeExtraProperties(it) }
+                        body.enabled?.let { existing.enabled = it }
+                        if (!body.accessKey.isNullOrBlank()) existing.accessKey = body.accessKey
+                        if (!body.secretKey.isNullOrBlank()) existing.secretKey = body.secretKey
+                        body.storageAccountName?.let { existing.storageAccountName = it.takeIf { s -> s.isNotBlank() } }
+                        existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        Pair(oldName, existing)
+                    }
+                }.getOrElse { ex ->
+                    if (ex.isUniqueNameViolation()) {
+                        return@patch call.respondProblem(
+                            HttpStatusCode.Conflict,
+                            conflict("A repository with this name already exists.", call.request.path()),
+                        )
+                    }
+                    throw ex
+                }
+
+                when (result) {
+                    null -> return@patch call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("Repository not found.", call.request.path()),
+                    )
+                    "conflict" -> return@patch call.respondProblem(
+                        HttpStatusCode.Conflict,
+                        conflict("A repository with this name already exists.", call.request.path()),
+                    )
+                    else -> {
+                        val (oldName, entity) = result as Pair<*, *>
+                        val updatedEntity = entity as BlobStorageRepositorySettingEntity
+                        if (updatedEntity.enabled) {
+                            val extra = decodeExtraProperties(updatedEntity.extraProperties)
+                            val cfg = BlobStorageRepoConfig(
+                                index = -1,
+                                name = updatedEntity.repoName,
+                                type = BlobStorageType.fromLabel(updatedEntity.storageType),
+                                url = updatedEntity.url,
+                                accessKey = updatedEntity.accessKey ?: "",
+                                secretKey = updatedEntity.secretKey ?: "",
+                                bucket = updatedEntity.bucket,
+                                region = updatedEntity.region,
+                                extraProperties = extra,
+                                disableChecksums = extra["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
+                                disableChunkedEncoding = extra["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
+                                isDefault = updatedEntity.isDefault,
+                            )
+                            runCatching {
+                                BlobStorageRegistrar.updateProvider(cfg, oldName = oldName as String)
+                            }.onFailure { ex ->
+                                logger.warn(
+                                    "Repository '{}' patched but could not be re-activated as a provider: {}",
                                     updatedEntity.repoName,
                                     ex.message,
                                 )

@@ -170,9 +170,6 @@ object BlobStorageRegistrar {
      * @throws IllegalArgumentException when [name] does not match a registered provider.
      */
     fun setDefaultProvider(name: String) {
-        require(providers.containsKey(name)) {
-            "Cannot set default: no provider registered with name '$name'."
-        }
         transaction {
             BlobStorageRepositorySettingEntity.all()
                 .filter { it.isDefault }

@@ -41,6 +41,21 @@ data class CreateBlobStorageRepositorySettingsRequest(
 )
 
 @Serializable
+data class PatchBlobStorageRepositorySettingsRequest(
+    val name: String? = null,
+    val storageType: String? = null,
+    val url: String? = null,
+    val accessKey: String? = null,
+    val secretKey: String? = null,
+    val storageAccountName: String? = null,
+    val bucket: String? = null,
+    val region: String? = null,
+    val extraProperties: Map<String, String>? = null,
+    val isDefault: Boolean? = null,
+    val enabled: Boolean? = null,
+)
+
+@Serializable
 data class UpdateBlobStorageRepositorySettingsRequest(
     val name: String,
     val storageType: String,
