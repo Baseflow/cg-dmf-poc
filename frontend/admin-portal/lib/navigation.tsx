@@ -57,22 +57,6 @@ export const navigation: {
       ],
     },
     {
-      id: "links",
-      label: "Links",
-      items: [
-        {
-          name: "GitHub Repository",
-          url: "https://github.com/Baseflow/cg-dmf-poc",
-          icon: <GitHubIcon />,
-        },
-        {
-          name: "Docker Image",
-          url: "https://hub.docker.com/r/baseflow/cg-dmf-poc",
-          icon: <DockerIcon />,
-        },
-      ],
-    },
-    {
       id: "instellingen",
       label: "Instellingen",
       requiresAuth: true,
@@ -106,6 +90,22 @@ export const navigation: {
           url: "/instellingen/applicaties",
           icon: <AppWindow />,
           description: "Gekoppelde applicaties",
+        },
+      ],
+    },
+    {
+      id: "links",
+      label: "Links",
+      items: [
+        {
+          name: "GitHub Repository",
+          url: "https://github.com/Baseflow/cg-dmf-poc",
+          icon: <GitHubIcon />,
+        },
+        {
+          name: "Docker Image",
+          url: "https://hub.docker.com/r/baseflow/cg-dmf-poc",
+          icon: <DockerIcon />,
         },
       ],
     },
