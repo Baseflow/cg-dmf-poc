@@ -6,6 +6,7 @@ import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
 import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
 import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
 import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
+import com.baseflow.services.BlobStorageRegistrar
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -15,6 +16,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -23,6 +25,11 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_repo_settings") {
+
+    @AfterTest
+    fun afterTest() {
+        BlobStorageRegistrar.resetForTesting()
+    }
 
     private fun insertRepo(
         name: String,
@@ -44,6 +51,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
             this.accessKey = accessKey
             this.secretKey = secretKey
             storageAccountName = null
+            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
             updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }.id.value
     }
@@ -224,7 +232,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
             setBody(
                 Json.encodeToString(
                     UpdateBlobStorageRepositorySettingsRequest.serializer(),
-                    UpdateBlobStorageRepositorySettingsRequest(name = "updated-repo", storageType = "AzureBlob"),
+                    UpdateBlobStorageRepositorySettingsRequest(name = "updated-repo", storageType = "Azure Blob Storage"),
                 ),
             )
         }
@@ -232,7 +240,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         assertEquals(HttpStatusCode.OK, response.status)
         val body = Json.decodeFromString<BlobStorageRepositorySettingsResponse>(response.bodyAsText())
         assertEquals("updated-repo", body.name)
-        assertEquals("AzureBlob", body.storageType)
+        assertEquals("Azure Blob Storage", body.storageType)
     }
 
     @Test
@@ -247,7 +255,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
                     UpdateBlobStorageRepositorySettingsRequest.serializer(),
                     UpdateBlobStorageRepositorySettingsRequest(
                         name = "updated-repo",
-                        storageType = "AzureBlob",
+                        storageType = "Azure Blob Storage",
                         url = "http://new-url",
                         bucket = "new-bucket",
                         isDefault = true,
@@ -263,7 +271,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         val body = Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(getResponse.bodyAsText())
             .single { it.id == id.toString() }
         assertEquals("updated-repo", body.name)
-        assertEquals("AzureBlob", body.storageType)
+        assertEquals("Azure Blob Storage", body.storageType)
         assertEquals("http://new-url", body.url)
         assertEquals("new-bucket", body.bucket)
         assertTrue(body.isDefault)

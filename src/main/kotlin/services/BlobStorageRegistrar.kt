@@ -5,8 +5,8 @@ package com.baseflow.services
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.BlobStorageRepoConfig
 import com.baseflow.config.BlobStorageType
-import com.baseflow.entities.BlobStorageRepositories
-import com.baseflow.entities.BlobStorageRepositoryEntity
+import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
+import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -17,15 +17,15 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Reads [BlobStorageConfig] on startup, hashes secrets, and
- * upserts every configured repository into [BlobStorageRepositories].
+ * Reads [BlobStorageConfig] on startup and upserts every configured repository
+ * into [BlobStorageRepositorySettingsTable].
  *
  * Also exposes the live [BlobStorageProvider] instances for the rest of the
  * application to use.
  *
  * The **default** repository is the one that [StorageService] uses when no
  * explicit repository name is given.  The default is determined by:
- * 1. The `is_default = true` row in [BlobStorageRepositories] (survives restarts).
+ * 1. The `is_default = true` row in [BlobStorageRepositorySettingsTable] (survives restarts).
  * 2. If none is marked, the first configured repository is used.
  *
  * Call [setDefaultProvider] to change the default at runtime – the change is
@@ -81,8 +81,8 @@ object BlobStorageRegistrar {
 
             // Determine the default: prefer the row already marked is_default=true in the DB,
             // fall back to the first configured repository.
-            val markedDefault = BlobStorageRepositoryEntity
-                .find { BlobStorageRepositories.isDefault eq true }
+            val markedDefault = BlobStorageRepositorySettingEntity
+                .find { BlobStorageRepositorySettingsTable.isDefault eq true }
                 .firstOrNull()
 
             if (markedDefault != null) {
@@ -91,8 +91,8 @@ object BlobStorageRegistrar {
                 // Mark the first config as default
                 val firstName = envConfigs.first().name
                 defaultProviderName = firstName
-                BlobStorageRepositoryEntity
-                    .find { BlobStorageRepositories.repoName eq firstName }
+                BlobStorageRepositorySettingEntity
+                    .find { BlobStorageRepositorySettingsTable.repoName eq firstName }
                     .firstOrNull()
                     ?.let { it.isDefault = true }
             }
@@ -111,20 +111,29 @@ object BlobStorageRegistrar {
     }
 
     /**
-     * Reads all rows from [BlobStorageRepositories] and converts them to [BlobStorageRepoConfig].
+     * Reads all enabled rows from [BlobStorageRepositorySettingsTable] and converts them to [BlobStorageRepoConfig].
      * The [BlobStorageRepoConfig.index] is set to `-1` for rows that are marked as default
      * (used as a sentinel to pick the default provider name), and `0` for others.
      *
      * Must be called inside a [transaction].
      */
     private fun loadConfigsFromDatabase(): List<BlobStorageRepoConfig> {
-        val entities = BlobStorageRepositoryEntity.all().toList()
+        val entities = BlobStorageRepositorySettingEntity
+            .find { BlobStorageRepositorySettingsTable.enabled eq true }
+            .toList()
         if (entities.isEmpty()) return emptyList()
 
         val default = entities.firstOrNull { it.isDefault } ?: entities.first()
         defaultProviderName = default.repoName
 
-        return entities.map { entity ->
+        return entities.mapNotNull { entity ->
+            val accessKey = entity.accessKey ?: run {
+                logger.warn(
+                    "Skipping repository '{}' — accessKey is not set, it cannot be used for storage.",
+                    entity.repoName,
+                )
+                return@mapNotNull null
+            }
             val extraMap = runCatching {
                 Json.parseToJsonElement(entity.extraProperties)
                     .let { it as? JsonObject }
@@ -133,16 +142,16 @@ object BlobStorageRegistrar {
             }.getOrDefault(emptyMap())
 
             BlobStorageRepoConfig(
-                index = 0,
+                index = if (entity.isDefault) -1 else 0,
                 name = entity.repoName,
                 type = BlobStorageType.fromLabel(entity.storageType),
                 url = entity.url,
-                accessKey = entity.accessKey,
-                secretKey = entity.secretKey,
+                accessKey = accessKey,
+                secretKey = entity.secretKey ?: "",
                 bucket = entity.bucket,
                 region = entity.region,
-                disableChecksums = entity.disableChecksums,
-                disableChunkedEncoding = entity.disableChunkedEncoding,
+                disableChecksums = extraMap["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
+                disableChunkedEncoding = extraMap["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
                 extraProperties = extraMap,
             )
         }
@@ -156,7 +165,7 @@ object BlobStorageRegistrar {
 
     /**
      * Designates [name] as the new default provider.
-     * Persists the change to [BlobStorageRepositories] immediately.
+     * Persists the change to [BlobStorageRepositorySettingsTable] immediately.
      *
      * @throws IllegalArgumentException when [name] does not match a registered provider.
      */
@@ -165,14 +174,12 @@ object BlobStorageRegistrar {
             "Cannot set default: no provider registered with name '$name'."
         }
         transaction {
-            // Clear old default(s)
-            BlobStorageRepositoryEntity.all()
+            BlobStorageRepositorySettingEntity.all()
                 .filter { it.isDefault }
                 .forEach { it.isDefault = false }
 
-            // Set new default
-            BlobStorageRepositoryEntity
-                .find { BlobStorageRepositories.repoName eq name }
+            BlobStorageRepositorySettingEntity
+                .find { BlobStorageRepositorySettingsTable.repoName eq name }
                 .firstOrNull()
                 ?.let { it.isDefault = true }
                 ?: error("Repository '$name' not found in database.")
@@ -182,7 +189,7 @@ object BlobStorageRegistrar {
     }
 
     /**
-     * Registers a new provider from a freshly persisted [BlobStorageRepositoryEntity].
+     * Registers a new provider from a freshly persisted [BlobStorageRepositorySettingEntity].
      * The entity must already be saved in the database before calling this.
      */
     fun registerProvider(cfg: BlobStorageRepoConfig) {
@@ -219,8 +226,8 @@ object BlobStorageRegistrar {
             defaultProviderName = providers.keys.firstOrNull()
             if (defaultProviderName != null) {
                 transaction {
-                    BlobStorageRepositoryEntity
-                        .find { BlobStorageRepositories.repoName eq defaultProviderName!! }
+                    BlobStorageRepositorySettingEntity
+                        .find { BlobStorageRepositorySettingsTable.repoName eq defaultProviderName!! }
                         .firstOrNull()
                         ?.let { it.isDefault = true }
                 }
@@ -251,13 +258,18 @@ object BlobStorageRegistrar {
     // ---- internal helpers ---------------------------------------------------
 
     private fun upsertRepository(cfg: BlobStorageRepoConfig) {
-        val existing = BlobStorageRepositoryEntity
-            .find { BlobStorageRepositories.repoName eq cfg.name }
+        val existing = BlobStorageRepositorySettingEntity
+            .find { BlobStorageRepositorySettingsTable.repoName eq cfg.name }
             .firstOrNull()
 
+        val mergedExtra = cfg.extraProperties +
+            mapOf(
+                "DISABLE_CHECKSUMS" to cfg.disableChecksums.toString(),
+                "DISABLE_CHUNKED_ENCODING" to cfg.disableChunkedEncoding.toString(),
+            )
         val extraJson = Json.encodeToString(
             JsonObject.serializer(),
-            JsonObject(cfg.extraProperties.mapValues { JsonPrimitive(it.value) }),
+            JsonObject(mergedExtra.mapValues { JsonPrimitive(it.value) }),
         )
 
         if (existing != null) {
@@ -267,12 +279,10 @@ object BlobStorageRegistrar {
             existing.secretKey = cfg.secretKey
             existing.bucket = cfg.bucket
             existing.region = cfg.region
-            existing.disableChecksums = cfg.disableChecksums
-            existing.disableChunkedEncoding = cfg.disableChunkedEncoding
             existing.extraProperties = extraJson
             logger.info("Updated blob storage repository '{}' in database", cfg.name)
         } else {
-            BlobStorageRepositoryEntity.new {
+            BlobStorageRepositorySettingEntity.new {
                 repoName = cfg.name
                 storageType = cfg.type.label
                 url = cfg.url
@@ -280,9 +290,8 @@ object BlobStorageRegistrar {
                 secretKey = cfg.secretKey
                 bucket = cfg.bucket
                 region = cfg.region
-                disableChecksums = cfg.disableChecksums
-                disableChunkedEncoding = cfg.disableChunkedEncoding
                 extraProperties = extraJson
+                enabled = true
             }
             logger.info("Inserted blob storage repository '{}' into database", cfg.name)
         }

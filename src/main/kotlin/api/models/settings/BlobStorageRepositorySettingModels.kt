@@ -11,11 +11,14 @@ data class BlobStorageRepositorySettingsResponse(
     val storageType: String,
     val url: String,
     val bucket: String,
+    val region: String? = null,
+    val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean,
     val enabled: Boolean,
     val accessKey: String? = null,
     val secretKey: String? = null,
     val storageAccountName: String? = null,
+    val createdAt: String,
     val updatedAt: String,
 )
 
@@ -31,6 +34,8 @@ data class CreateBlobStorageRepositorySettingsRequest(
     val secretKey: String? = null,
     val storageAccountName: String? = null,
     val bucket: String? = null,
+    val region: String? = null,
+    val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean = false,
     val enabled: Boolean = true,
 )
@@ -44,6 +49,8 @@ data class UpdateBlobStorageRepositorySettingsRequest(
     val secretKey: String? = null,
     val storageAccountName: String? = null,
     val bucket: String? = null,
+    val region: String? = null,
+    val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean = false,
     val enabled: Boolean = true,
 )

@@ -31,9 +31,12 @@ object BlobStorageRepositorySettingsTable : UUIDTable("blob_storage_repository_s
     val accessKey = encryptedVarchar("access_key_encrypted", 512, lazyEncryptor).nullable()
     val secretKey = encryptedVarchar("secret_key_encrypted", 512, lazyEncryptor).nullable()
     val bucket = varchar("bucket", 255)
+    val region = varchar("region", 50).nullable()
+    val extraProperties = text("extra_properties").default("{}")
     val isDefault = bool("is_default").default(false)
     val storageAccountName = varchar("storage_account_name", 255).nullable()
     val enabled = bool("enabled").default(true)
+    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 }
 
@@ -46,8 +49,11 @@ class BlobStorageRepositorySettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var accessKey by BlobStorageRepositorySettingsTable.accessKey
     var secretKey by BlobStorageRepositorySettingsTable.secretKey
     var bucket by BlobStorageRepositorySettingsTable.bucket
+    var region by BlobStorageRepositorySettingsTable.region
+    var extraProperties by BlobStorageRepositorySettingsTable.extraProperties
     var isDefault by BlobStorageRepositorySettingsTable.isDefault
     var storageAccountName by BlobStorageRepositorySettingsTable.storageAccountName
     var enabled by BlobStorageRepositorySettingsTable.enabled
+    var createdAt by BlobStorageRepositorySettingsTable.createdAt
     var updatedAt by BlobStorageRepositorySettingsTable.updatedAt
 }
