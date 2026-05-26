@@ -29,7 +29,7 @@ describe("DynamicBreadcrumb", () => {
   it("capitalizes unknown segments", () => {
     setPathname("/instellingen/unknown-route")
     render(<DynamicBreadcrumb />)
-    expect(screen.getByText("Unknown-route")).toBeInTheDocument()
+    expect(screen.getByText("Unknown Route")).toBeInTheDocument()
   })
 
   it("renders intermediate segments as links", () => {

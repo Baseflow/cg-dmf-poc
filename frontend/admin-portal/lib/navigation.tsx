@@ -21,6 +21,7 @@ export type NavItem = {
 export type NavGroup = {
   id: string
   label: string
+  url?: string
   requiresAuth?: boolean
   items: NavItem[]
 }
@@ -59,6 +60,7 @@ export const navigation: {
     {
       id: "instellingen",
       label: "Instellingen",
+      url: "/instellingen",
       requiresAuth: true,
       items: [
         {

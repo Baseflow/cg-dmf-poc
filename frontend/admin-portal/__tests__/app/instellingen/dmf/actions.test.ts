@@ -48,7 +48,7 @@ describe("saveDmfSettings", () => {
       string,
       RequestInit,
     ]
-    expect(url).toMatch(/\/admin\/dmf-settings$/)
+    expect(url).toMatch(/\/settings\/dmf-settings$/)
     expect(options.method).toBe("PUT")
     expect(JSON.parse(options.body as string)).toEqual({
       triggerSize: 1024,

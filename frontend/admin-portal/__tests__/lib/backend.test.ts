@@ -32,14 +32,14 @@ describe("apiFetch", () => {
     expect(headers["Authorization"]).toBe("Bearer test-token")
   })
 
-  it("uses an empty Bearer token when session has no accessToken", async () => {
+  it("omits the Authorization header when session has no accessToken", async () => {
     const { auth } = await import("@/auth")
     vi.mocked(auth as () => Promise<null>).mockResolvedValueOnce(null)
     vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
     await apiFetch("/test")
     const [, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
     const headers = options.headers as Record<string, string>
-    expect(headers["Authorization"]).toBe("Bearer ")
+    expect(headers["Authorization"]).toBeUndefined()
   })
 
   it("does not set Content-Type when no body is provided", async () => {

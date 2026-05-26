@@ -31,7 +31,7 @@ describe("OIDC provider actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createOidcProvider({ name: "Provider", issuer: "https://issuer.example", clientId: "c1" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/oidc-providers$/)
+      expect(url).toMatch(/\/settings\/oidc-providers$/)
       expect(options.method).toBe("POST")
       expect(JSON.parse(options.body as string)).toEqual({
         name: "Provider",
@@ -69,7 +69,7 @@ describe("OIDC provider actions", () => {
         clientId: "c2",
       })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/oidc-providers\/provider-1$/)
+      expect(url).toMatch(/\/settings\/oidc-providers\/provider-1$/)
       expect(options.method).toBe("PUT")
       expect(JSON.parse(options.body as string).name).toBe("Updated")
     })
@@ -87,7 +87,7 @@ describe("OIDC provider actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteOidcProvider("provider-1")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/oidc-providers\/provider-1$/)
+      expect(url).toMatch(/\/settings\/oidc-providers\/provider-1$/)
       expect(options.method).toBe("DELETE")
     })
 

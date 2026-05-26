@@ -40,7 +40,7 @@ describe("repository actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createRepository(baseInput)
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/storage-repositories$/)
+      expect(url).toMatch(/\/settings\/storage-repositories$/)
       expect(options.method).toBe("POST")
       expect(JSON.parse(options.body as string)).toMatchObject(baseInput)
     })
@@ -72,7 +72,7 @@ describe("repository actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await updateRepository("repo-1", { ...baseInput, name: "Updated Repo" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/storage-repositories\/repo-1$/)
+      expect(url).toMatch(/\/settings\/storage-repositories\/repo-1$/)
       expect(options.method).toBe("PUT")
       expect(JSON.parse(options.body as string).name).toBe("Updated Repo")
     })
@@ -88,7 +88,7 @@ describe("repository actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteRepository("repo-1")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/storage-repositories\/repo-1$/)
+      expect(url).toMatch(/\/settings\/storage-repositories\/repo-1$/)
       expect(options.method).toBe("DELETE")
     })
 

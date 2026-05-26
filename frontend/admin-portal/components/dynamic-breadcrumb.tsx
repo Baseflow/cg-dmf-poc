@@ -24,7 +24,11 @@ function buildCrumbs(pathname: string): Crumb[] {
     )
     if (!match) continue
 
-    const crumbs: Crumb[] = [{ type: "label", label: group.label }]
+    const crumbs: Crumb[] = [
+      group.url
+        ? { type: "link", label: group.label, href: group.url }
+        : { type: "label", label: group.label },
+    ]
 
     const isExact = pathname === match.url
     if (isExact) {

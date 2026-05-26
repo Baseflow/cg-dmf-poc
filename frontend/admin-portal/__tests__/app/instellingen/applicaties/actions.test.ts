@@ -32,7 +32,7 @@ describe("application actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createApplication({ name: "App", clientId: "client-1" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/application-settings$/)
+      expect(url).toMatch(/\/settings\/application-settings$/)
       expect(options.method).toBe("POST")
       expect(JSON.parse(options.body as string)).toEqual({ name: "App", clientId: "client-1" })
     })
@@ -62,7 +62,7 @@ describe("application actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await updateApplication("abc-123", { name: "Updated", clientId: "c2" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/application-settings\/abc-123$/)
+      expect(url).toMatch(/\/settings\/application-settings\/abc-123$/)
       expect(options.method).toBe("PUT")
       expect(JSON.parse(options.body as string)).toEqual({ name: "Updated", clientId: "c2" })
     })
@@ -78,7 +78,7 @@ describe("application actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteApplication("abc-123")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/application-settings\/abc-123$/)
+      expect(url).toMatch(/\/settings\/application-settings\/abc-123$/)
       expect(options.method).toBe("DELETE")
     })
 
@@ -118,7 +118,7 @@ describe("application actions", () => {
       )
       const result = await rotateApplicationSecret("abc-123")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/application-settings\/abc-123\/rotate-secret$/)
+      expect(url).toMatch(/\/settings\/application-settings\/abc-123\/rotate-secret$/)
       expect(options.method).toBe("POST")
       expect(result).toBe("new-secret-value")
     })

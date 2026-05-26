@@ -31,7 +31,7 @@ describe("ZGW API setting actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 201 }))
       await createZgwApiSetting({ name: "ZGW", baseUrl: "https://api.example", clientId: "c1" })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/zgw-api-settings$/)
+      expect(url).toMatch(/\/settings\/zgw-api-settings$/)
       expect(options.method).toBe("POST")
       expect(JSON.parse(options.body as string)).toEqual({
         name: "ZGW",
@@ -76,7 +76,7 @@ describe("ZGW API setting actions", () => {
         clientId: "c2",
       })
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/zgw-api-settings\/zgw-1$/)
+      expect(url).toMatch(/\/settings\/zgw-api-settings\/zgw-1$/)
       expect(options.method).toBe("PUT")
       expect(JSON.parse(options.body as string).name).toBe("Updated ZGW")
     })
@@ -94,7 +94,7 @@ describe("ZGW API setting actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(new Response(null, { status: 200 }))
       await deleteZgwApiSetting("zgw-1")
       const [url, options] = vi.mocked(global.fetch).mock.calls[0] as [string, RequestInit]
-      expect(url).toMatch(/\/admin\/zgw-api-settings\/zgw-1$/)
+      expect(url).toMatch(/\/settings\/zgw-api-settings\/zgw-1$/)
       expect(options.method).toBe("DELETE")
     })
 
