@@ -33,6 +33,25 @@ export function NavUser() {
   const { isMobile } = useSidebar()
   const { data: session, status } = useSession()
 
+  if (status === "loading") {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" disabled>
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarFallback className="rounded-lg bg-muted" />
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium text-muted-foreground">
+                Laden…
+              </span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
   if (status === "unauthenticated" || !session) {
     return (
       <SidebarMenu>
