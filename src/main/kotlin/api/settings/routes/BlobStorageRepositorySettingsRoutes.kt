@@ -8,32 +8,30 @@ import com.baseflow.api.models.notFound
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.settings.BlobStorageRepositorySettingsResponse
 import com.baseflow.api.models.settings.CreateBlobStorageRepositorySettingsRequest
+import com.baseflow.api.models.settings.SetDefaultRepositorySettingsRequest
 import com.baseflow.api.models.settings.UpdateBlobStorageRepositorySettingsRequest
+import com.baseflow.config.BlobStorageRepoConfig
+import com.baseflow.config.BlobStorageType
 import com.baseflow.entities.settings.BlobStorageRepositorySettingEntity
 import com.baseflow.entities.settings.BlobStorageRepositorySettingsTable
+import com.baseflow.services.BlobStorageRegistrar
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
+import java.sql.SQLException
 import java.util.UUID
 import kotlin.time.Clock
 
-/**
- * Setting routes for managing blob storage repositories.
- *
- * Mounted at `/settings/storage-repositories`.
- *
- * Endpoints:
- * - `GET    /`      — list all repositories
- * - `POST   /`      — create a repository
- * - `PUT    /{id}`  — update a repository
- * - `DELETE /{id}`  — delete a repository
- */
 fun Route.blobStorageRepositorySettingsRoutes() {
     route("/storage-repositories") {
         get {
