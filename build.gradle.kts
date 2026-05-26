@@ -7,7 +7,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.54.0"
 
     // Code formatting with Spotless and ktlint
-    id("com.diffplug.spotless") version "8.5.0"
+    id("com.diffplug.spotless") version "8.5.1"
 }
 
 group = "com.baseflow"
@@ -73,8 +73,8 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.24.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.44.7")
-    implementation("software.amazon.awssdk:netty-nio-client:2.44.7")
+    implementation("software.amazon.awssdk:s3:2.44.11")
+    implementation("software.amazon.awssdk:netty-nio-client:2.44.11")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.34.0")
