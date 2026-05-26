@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26474001535",
+    "runNumber": "694",
+    "branch": "switch_encryption_algo",
+    "date": "2026-05-26T20:49:49Z",
+    "path": "integration/26474001535/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26458131092",
     "runNumber": "686",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/multi-d84ad83c9e",
