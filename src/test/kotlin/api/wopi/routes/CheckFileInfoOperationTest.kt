@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
+
 package com.baseflow.api.wopi.routes
 
 import com.baseflow.api.WOPI_API_BASE_PATH
@@ -26,12 +27,12 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import org.koin.module.requestScope
 import java.util.UUID
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class CheckFileInfoOperationTest {

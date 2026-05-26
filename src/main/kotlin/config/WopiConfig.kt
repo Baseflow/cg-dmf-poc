@@ -33,10 +33,14 @@ class WopiConfig(
     fun isEnabled(): Boolean = wopiEnabled
 
     companion object {
-        fun fromEnv(): WopiConfig = WopiConfig(
-            wopiEnabled = envOrSystem("WOPI_ENABLED", "false").toBoolean(),
-            slatSecret = envOrThrow("WOPI_SLAT_SECRET"),
-            slatTtlSeconds = envOrSystem("WOPI_SLAT_TTL_SECONDS", "3600").toLong(),
-        )
+        fun fromEnv(): WopiConfig {
+            val wopiEnabled = envOrSystem("WOPI_ENABLED", "false").toBoolean()
+
+            return WopiConfig(
+                wopiEnabled = wopiEnabled,
+                slatSecret = if (wopiEnabled) envOrThrow("WOPI_SLAT_SECRET") else "",
+                slatTtlSeconds = envOrSystem("WOPI_SLAT_TTL_SECONDS", "3600").toLong(),
+            )
+        }
     }
 }
