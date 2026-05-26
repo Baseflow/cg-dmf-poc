@@ -5,7 +5,6 @@ package com.baseflow.api.infra.models
 import com.baseflow.config.WopiConfig
 import io.ktor.openapi.OpenApiInfo
 import io.ktor.openapi.Tag
-import org.koin.java.KoinJavaComponent.inject
 
 internal val openApiSpecifications = listOf(
     DocumentenOpenApiSpecification(),

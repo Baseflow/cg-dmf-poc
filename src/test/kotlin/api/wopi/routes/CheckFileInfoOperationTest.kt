@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi.routes
 
 import com.baseflow.api.WOPI_API_BASE_PATH
@@ -46,14 +48,14 @@ class CheckFileInfoOperationTest {
                         every { it.validate(dummyAccessToken) } returns dummyFileId
                     }
 
-                    single<WopiConfig> { WopiConfig(true, "wopi automated tests")}
-                    requestScope{
+                    single<WopiConfig> { WopiConfig(true, "wopi automated tests") }
+                    requestScope {
                         scoped<AuditContext> { AuditContext() }
                         scoped<EnkelvoudigInformatieObjectService> { mockEnkelvoudigInformatieObjectService }
                         scoped<WopiDocumentService> { mockk<WopiDocumentService>() }
                         scoped<WopiSlatService> { mockWopiSlatService }
                     }
-                }
+                },
             )
         }
 
@@ -76,9 +78,9 @@ class CheckFileInfoOperationTest {
             coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
-        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/${dummyFileId}?access_token=${dummyAccessToken}")
+        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
-        assertEquals(200,response.status.value)
+        assertEquals(200, response.status.value)
         val fileInfo = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals("automated_test_document.tst", fileInfo.baseFileName)
         assertEquals("2026-05-26T11:38:05Z", fileInfo.lastModifiedTime)
@@ -96,9 +98,9 @@ class CheckFileInfoOperationTest {
             coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
-        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/${dummyFileId}?access_token=${dummyAccessToken}")
+        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
-        assertEquals(200,response.status.value)
+        assertEquals(200, response.status.value)
         val capabilities = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals(capabilities.supportedShareUrlTypes, null)
         assertEquals(capabilities.supportsAutosave, false)
@@ -115,7 +117,6 @@ class CheckFileInfoOperationTest {
         assertEquals(capabilities.supportsRename, true)
         assertEquals(capabilities.supportsUpdate, true)
         assertEquals(capabilities.supportsUserInfo, null)
-
     }
 
     @Test
@@ -128,9 +129,9 @@ class CheckFileInfoOperationTest {
             coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
-        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/${dummyFileId}?access_token=${dummyAccessToken}")
+        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
-        assertEquals(200,response.status.value)
+        assertEquals(200, response.status.value)
         val userMetadata = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals(userMetadata.isAnonymousUser, null)
         assertEquals(userMetadata.isEduUser, null)
@@ -149,9 +150,9 @@ class CheckFileInfoOperationTest {
             coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
-        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/${dummyFileId}?access_token=${dummyAccessToken}")
+        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
-        assertEquals(200,response.status.value)
+        assertEquals(200, response.status.value)
         val userPermissions = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals(userPermissions.readOnly, null)
         assertEquals(userPermissions.restrictedWebViewOnly, null)
@@ -172,8 +173,8 @@ class CheckFileInfoOperationTest {
             coEvery { it.getById(dummyFileId, emptyList()) } returns null
         }
 
-        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/${dummyFileId}?access_token=${dummyAccessToken}")
-        assertEquals(404,response.status.value)
+        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
+        assertEquals(404, response.status.value)
     }
 
     @Test
@@ -216,14 +217,14 @@ class CheckFileInfoOperationTest {
             )
         }
 
-        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/${dummyFileId}?access_token=${dummyAccessToken}")
-        assertEquals(404,response.status.value)
+        val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
+        assertEquals(404, response.status.value)
     }
 
     companion object {
         private val dummyFileId = UUID.fromString("12345678-1234-1234-1234-123456789012")
 
-        private val dummyAccessToken = "test_token";
+        private val dummyAccessToken = "test_token"
 
         private val dummyEnkelvoudigInformatieObject = EnkelvoudigInformatieObjectResponse(
             id = dummyFileId.toString(),

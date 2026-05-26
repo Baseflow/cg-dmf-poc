@@ -93,4 +93,4 @@ data class CheckFileInfoResponse(
     @SerialName("UserCanWrite")
     val userCanWrite: Boolean? = null,
 
-    )
+)
