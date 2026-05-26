@@ -30,6 +30,9 @@ data class CheckFileInfoResponse(
     // WOPI host capabilities (see: https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo/checkfileinfo-response#wopi-host-capabilities-properties)
     @SerialName("SupportedShareUrlTypes")
     val supportedShareUrlTypes: List<ShareUrlType>? = null,
+    // TODO(mvanbeusekom): The "SupportsAutosave" property is not part of the standard as documented by Microsoft.
+    //                     We should investigate if this property is actually supported or if it is Collabora Online
+    //                     specific.
     @SerialName("SupportsAutosave")
     val supportsAutosave: Boolean? = null,
     @SerialName("SupportsCobalt")
@@ -50,6 +53,9 @@ data class CheckFileInfoResponse(
     val supportsGetLock: Boolean? = null,
     @SerialName("SupportsLocks")
     val supportsLocks: Boolean? = null,
+    // TODO(mvanbeusekom): The "SupportsPutRelativeFile" property is not part of the standard as documented by Microsoft.
+    //                     We should investigate if this property is actually supported or if it is Collabora Online
+    //                     specific.
     @SerialName("SupportsPutRelativeFile")
     val supportsPutRelativeFile: Boolean? = null,
     @SerialName("SupportsRename")
