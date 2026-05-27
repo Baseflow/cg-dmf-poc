@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26508348144",
+    "runNumber": "701",
+    "branch": "fix/fix_swagger_documentation",
+    "date": "2026-05-27T11:32:43Z",
+    "path": "integration/26508348144/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26501575436",
     "runNumber": "700",
     "branch": "issue/CGDMF-150",
