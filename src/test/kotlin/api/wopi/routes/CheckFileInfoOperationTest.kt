@@ -38,6 +38,8 @@ class CheckFileInfoOperationTest {
 
     private val mockEnkelvoudigInformatieObjectService = mockk<EnkelvoudigInformatieObjectService>()
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     private fun Application.setup() {
         install(Koin) {
             allowOverride(true)
@@ -81,7 +83,7 @@ class CheckFileInfoOperationTest {
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
         assertEquals(200, response.status.value)
-        val fileInfo = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
+        val fileInfo = json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals("automated_test_document.tst", fileInfo.baseFileName)
         assertEquals("2026-05-26T11:38:05Z", fileInfo.lastModifiedTime)
         assertEquals("", fileInfo.ownerId)
@@ -103,7 +105,7 @@ class CheckFileInfoOperationTest {
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
         assertEquals(200, response.status.value)
-        val capabilities = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
+        val capabilities = json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals(null, capabilities.supportedShareUrlTypes)
         assertEquals(false, capabilities.supportsAutosave)
         assertEquals(null, capabilities.supportsCobalt)
@@ -134,7 +136,7 @@ class CheckFileInfoOperationTest {
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
         assertEquals(200, response.status.value)
-        val userMetadata = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
+        val userMetadata = json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals(null, userMetadata.isAnonymousUser)
         assertEquals(null, userMetadata.isEduUser)
         assertEquals(null, userMetadata.licenseCheckForEditIsEnabled)
@@ -155,7 +157,7 @@ class CheckFileInfoOperationTest {
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
 
         assertEquals(200, response.status.value)
-        val userPermissions = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
+        val userPermissions = json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
         assertEquals(null, userPermissions.readOnly)
         assertEquals(null, userPermissions.restrictedWebViewOnly)
         assertEquals(null, userPermissions.userCanAttend)
