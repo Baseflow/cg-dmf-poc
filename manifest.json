@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26514981239",
+    "runNumber": "702",
+    "branch": "CGDMF-140-file-integrity",
+    "date": "2026-05-27T13:49:28Z",
+    "path": "integration/26514981239/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26508348144",
     "runNumber": "701",
     "branch": "fix/fix_swagger_documentation",
