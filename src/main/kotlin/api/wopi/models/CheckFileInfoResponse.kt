@@ -24,6 +24,10 @@ data class CheckFileInfoResponse(
     val size: Long,
     @SerialName("LastModifiedTime")
     val lastModifiedTime: String,
+    @SerialName("OwnerId")
+    val ownerId: String,
+    @SerialName("UserId")
+    val userId: String,
     @SerialName("Version")
     val version: String,
 

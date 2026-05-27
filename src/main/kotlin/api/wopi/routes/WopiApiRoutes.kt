@@ -437,7 +437,9 @@ private suspend fun RoutingContext.getFileMetadata() {
             // Required CheckFileInfo properties
             baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
             lastModifiedTime = result.beginRegistratie,
+            ownerId = "", // TODO(mvanbeusekom): It is unclear how to determine the ownerId of the document.
             size = result.bestandsomvang,
+            userId = "", // TODO(mvanbeusekom): It is unclear how to determine the current user accessing the document.
             version = result.versie.toString(),
             // WOPI Host capabilities
             supportsAutosave = false,
