@@ -7,7 +7,7 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
-import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.api.wopi.wopiApiModule
 import com.baseflow.config.WopiConfig
 import com.baseflow.config.authenticationModule
@@ -102,21 +102,21 @@ class CheckFileInfoOperationTest {
 
         assertEquals(200, response.status.value)
         val capabilities = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
-        assertEquals(capabilities.supportedShareUrlTypes, null)
-        assertEquals(capabilities.supportsAutosave, false)
-        assertEquals(capabilities.supportsCobalt, null)
-        assertEquals(capabilities.supportsContainers, false)
-        assertEquals(capabilities.supportsDeleteFile, false)
-        assertEquals(capabilities.supportsEcosystem, null)
-        assertEquals(capabilities.supportsExtendedLockLength, null)
-        assertEquals(capabilities.supportsFolders, null)
-        assertEquals(capabilities.supportsGetFileWopiSrc, null)
-        assertEquals(capabilities.supportsGetLock, true)
-        assertEquals(capabilities.supportsLocks, true)
-        assertEquals(capabilities.supportsPutRelativeFile, true)
-        assertEquals(capabilities.supportsRename, true)
-        assertEquals(capabilities.supportsUpdate, true)
-        assertEquals(capabilities.supportsUserInfo, null)
+        assertEquals(null, capabilities.supportedShareUrlTypes)
+        assertEquals(false, capabilities.supportsAutosave)
+        assertEquals(null, capabilities.supportsCobalt)
+        assertEquals(false, capabilities.supportsContainers)
+        assertEquals(false, capabilities.supportsDeleteFile)
+        assertEquals(null, capabilities.supportsEcosystem)
+        assertEquals(null, capabilities.supportsExtendedLockLength)
+        assertEquals(null, capabilities.supportsFolders)
+        assertEquals(null, capabilities.supportsGetFileWopiSrc)
+        assertEquals(true, capabilities.supportsGetLock)
+        assertEquals(true, capabilities.supportsLocks)
+        assertEquals(true, capabilities.supportsPutRelativeFile)
+        assertEquals(true, capabilities.supportsRename)
+        assertEquals(true, capabilities.supportsUpdate)
+        assertEquals(null, capabilities.supportsUserInfo)
     }
 
     @Test
@@ -133,11 +133,11 @@ class CheckFileInfoOperationTest {
 
         assertEquals(200, response.status.value)
         val userMetadata = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
-        assertEquals(userMetadata.isAnonymousUser, null)
-        assertEquals(userMetadata.isEduUser, null)
-        assertEquals(userMetadata.licenseCheckForEditIsEnabled, null)
-        assertEquals(userMetadata.userFriendlyName, "Unknown user")
-        assertEquals(userMetadata.userInfo, null)
+        assertEquals(null, userMetadata.isAnonymousUser)
+        assertEquals(null, userMetadata.isEduUser)
+        assertEquals(null, userMetadata.licenseCheckForEditIsEnabled)
+        assertEquals("Unknown user", userMetadata.userFriendlyName)
+        assertEquals(null, userMetadata.userInfo)
     }
 
     @Test
@@ -154,13 +154,13 @@ class CheckFileInfoOperationTest {
 
         assertEquals(200, response.status.value)
         val userPermissions = Json.decodeFromString<CheckFileInfoResponse>(response.bodyAsText())
-        assertEquals(userPermissions.readOnly, null)
-        assertEquals(userPermissions.restrictedWebViewOnly, null)
-        assertEquals(userPermissions.userCanAttend, null)
-        assertEquals(userPermissions.userCanNotWriteRelative, null)
-        assertEquals(userPermissions.userCanPresent, null)
-        assertEquals(userPermissions.userCanRename, true)
-        assertEquals(userPermissions.userCanWrite, true)
+        assertEquals(null, userPermissions.readOnly)
+        assertEquals(null, userPermissions.restrictedWebViewOnly)
+        assertEquals(null, userPermissions.userCanAttend)
+        assertEquals(null, userPermissions.userCanNotWriteRelative)
+        assertEquals(null, userPermissions.userCanPresent)
+        assertEquals(true, userPermissions.userCanRename)
+        assertEquals(true, userPermissions.userCanWrite)
     }
 
     @Test

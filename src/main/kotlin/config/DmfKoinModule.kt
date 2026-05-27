@@ -3,7 +3,7 @@
 package com.baseflow.config
 
 import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.services.AuditTrailService
 import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.CatalogusService

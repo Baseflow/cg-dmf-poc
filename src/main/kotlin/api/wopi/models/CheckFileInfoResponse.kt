@@ -11,7 +11,7 @@ enum class ShareUrlType {
     @SerialName("ReadOnly")
     READ_ONLY,
 
-    @SerialName("Readwrite")
+    @SerialName("ReadWrite")
     READ_WRITE,
 }
 

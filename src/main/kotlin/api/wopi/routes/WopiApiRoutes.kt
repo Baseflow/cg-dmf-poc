@@ -22,7 +22,7 @@ import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiTokenResponse
 import com.baseflow.api.wopi.models.WopiUnlockResult
-import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.config.WopiConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.WopiSlatService
