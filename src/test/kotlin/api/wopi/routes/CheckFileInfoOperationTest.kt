@@ -168,7 +168,7 @@ class CheckFileInfoOperationTest {
     }
 
     @Test
-    fun `the CheckFileInfo operation should return notFound when the document does not exists`() = testApplication {
+    fun `the CheckFileInfo operation should return notFound when the document does not exist`() = testApplication {
         application {
             setup()
         }
