@@ -13,19 +13,6 @@ internal object AuthenticationConfig : Config() {
 
     val issuer: String = envOrSystem("OIDC_ISSUER", "http://localhost:8081/realms/cg-dmf")
 
-    /**
-     * Optional HS256 secret for verifying custom `auth-jwt` tokens.
-     *
-     * When set via `OIDC_JWT_SECRET`, the service verifies tokens that were signed
-     * with HMAC-SHA256 using this shared secret.
-     *
-     * This is not a fallback for Keycloak-issued OIDC access tokens. Those tokens are
-     * RS256-signed and must be verified with the JWK/JWKS public key published by the issuer.
-     *
-     * When null (default), RS256 verification via the JWK endpoint is used — the production default.
-     */
-    val jwtSecret: String? = envOrSystem("OIDC_JWT_SECRET", "").ifBlank { null }
-
     /** Comma-separated list of client_id values allowed for ZGW-style JWT auth. */
     val zgwAllowedClientIds: List<String> = envOrSystem("ZGW_ALLOWED_CLIENT_IDS", "gzac")
         .split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -59,7 +46,6 @@ internal object AuthenticationConfig : Config() {
 
     override fun printConfig() {
         logger.info("AuthenticationConfig: issuer={}", issuer)
-        logger.info("AuthenticationConfig: jwtSecret={}", jwtSecret?.let { "set" } ?: "not set")
         logger.info("AuthenticationConfig: zgwAllowedClientIds={}", zgwAllowedClientIds)
         logger.info("AuthenticationConfig: zgwClientSecrets configured for clients={}", zgwClientSecrets.keys)
         logger.info("AuthenticationConfig: adminRole={}", adminRole)

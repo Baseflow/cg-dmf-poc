@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.api.admin
+package com.baseflow.api.settings
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
+import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopi.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BestandsDeelConfig
@@ -19,7 +21,6 @@ import com.baseflow.services.NotificationService
 import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.StorageService
 import com.baseflow.services.WopiSlatService
-import com.baseflow.api.middleware.AuditContext
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -45,7 +46,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Tests the admin role-check plugin in `AdminRoutes.kt`.
+ * Tests the settings role-check plugin in `SettingsRoutes.kt`.
  *
  * The role-check runs on the [AuthenticationChecked] hook and verifies that the
  * authenticated principal carries the required role (`dmf-admin` by default).
@@ -153,7 +154,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
             }
         }
 
-        adminModule(useAuthentication = true)
+        settingsModule(useAuthentication = true)
     }
 
     // ── No / invalid auth ─────────────────────────────────────────────────────
@@ -162,8 +163,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `request without Authorization header returns 401`() = testApplication {
         application { setupWithAuth() }
 
-        // No principal → role-check skips → auth challenge fires → 401.
-        val response = client.get("/admin/storage-repositories")
+        val response = client.get("/settings/storage-repositories")
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
@@ -172,8 +172,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `request with an invalid token returns 401`() = testApplication {
         application { setupWithAuth() }
 
-        // Invalid token → JWT validator returns null → auth challenge fires → 401.
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer this.is.not.valid")
         }
 
@@ -186,7 +185,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `valid token with no role claims returns 403`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
         }
 
@@ -197,7 +196,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `valid token with a different realm_access role returns 403`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithKeycloakRoles(OTHER_ROLE)}")
         }
 
@@ -208,7 +207,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `valid token with a different top-level role returns 403`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(OTHER_ROLE)}")
         }
 
@@ -219,7 +218,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `403 response body is a problem detail with status 403`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
         }
 
@@ -234,7 +233,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `token with admin role in realm_access returns 200`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithKeycloakRoles(ADMIN_ROLE)}")
         }
 
@@ -245,7 +244,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `token with admin role alongside other roles in realm_access returns 200`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithKeycloakRoles(OTHER_ROLE, ADMIN_ROLE, "yet-another")}")
         }
 
@@ -258,7 +257,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `token with admin role in top-level roles claim returns 200`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(ADMIN_ROLE)}")
         }
 
@@ -269,7 +268,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `token with admin role alongside other roles in top-level roles returns 200`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.get("/admin/storage-repositories") {
+        val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(OTHER_ROLE, ADMIN_ROLE)}")
         }
 
@@ -282,7 +281,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `role check applies to POST sub-route`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.post("/admin/storage-repositories") {
+        val response = client.post("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
             contentType(ContentType.Application.Json)
             setBody("{}")
@@ -296,7 +295,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     fun `role check applies to nested PUT sub-route`() = testApplication {
         application { setupWithAuth() }
 
-        val response = client.put("/admin/storage-repositories/default") {
+        val response = client.put("/settings/storage-repositories/default") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithNoRoles()}")
             contentType(ContentType.Application.Json)
             setBody("{}")
