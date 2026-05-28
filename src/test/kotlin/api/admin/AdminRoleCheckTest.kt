@@ -6,9 +6,20 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
-import com.baseflow.config.appModule
+import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.BestandsDeelConfig
+import com.baseflow.config.OpenZaakConfig
+import com.baseflow.services.AuditTrailService
+import com.baseflow.services.BestandsDeelService
 import com.baseflow.services.BlobStorageRegistrar
+import com.baseflow.services.CatalogusService
+import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.NotificationService
+import com.baseflow.services.ObjectInformatieObjectService
 import com.baseflow.services.StorageService
+import com.baseflow.services.WopiSlatService
+import com.baseflow.api.middleware.AuditContext
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -25,8 +36,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.koin.dsl.module
-import org.koin.ksp.generated.defaultModule
 import org.koin.ktor.plugin.Koin
+import org.koin.module.requestScope
 import java.util.concurrent.CompletableFuture
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -34,7 +45,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Tests the admin role-check plugin in [AdminRoutes.kt].
+ * Tests the admin role-check plugin in `AdminRoutes.kt`.
  *
  * The role-check runs on the [AuthenticationChecked] hook and verifies that the
  * authenticated principal carries the required role (`dmf-admin` by default).
@@ -95,9 +106,25 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
 
         install(Koin) {
             allowOverride(true)
-            modules(appModule)
-            modules(defaultModule)
-            modules(module { single<StorageService> { mockStorageService } })
+            modules(
+                module {
+                    single { ApplicationConfig }
+                    single { CatalogusService(get()) }
+                    single { OpenZaakConfig.fromEnv() }
+                    single<StorageService> { mockStorageService }
+
+                    requestScope {
+                        scoped { AuditContext() }
+                        scoped { AuditTrailService(get()) }
+                        scoped { BestandsDeelService(BestandsDeelConfig.Default) }
+                        scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
+                        scoped { NotificationService(get()) }
+                        scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }
+                        scoped { WopiDocumentService(get(), get()) }
+                        scoped { params -> WopiSlatService(params.get(), params.get()) }
+                    }
+                },
+            )
         }
         install(ContentNegotiation) { json(apiJsonConfig()) }
 

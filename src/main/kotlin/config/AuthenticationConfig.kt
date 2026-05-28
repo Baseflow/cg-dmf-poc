@@ -26,13 +26,6 @@ internal object AuthenticationConfig : Config() {
      */
     val jwtSecret: String? = envOrSystem("OIDC_JWT_SECRET", "").ifBlank { null }
 
-    /**
-     * Expected `aud` claim value for `auth-jwt` tokens.
-     * Defaults to `account` (Keycloak's default audience for access tokens).
-     * Set `OIDC_AUDIENCE` to match your Keycloak client configuration.
-     */
-    val audience: String = envOrSystem("OIDC_AUDIENCE", "account")
-
     /** Comma-separated list of client_id values allowed for ZGW-style JWT auth. */
     val zgwAllowedClientIds: List<String> = envOrSystem("ZGW_ALLOWED_CLIENT_IDS", "gzac")
         .split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -59,13 +52,6 @@ internal object AuthenticationConfig : Config() {
         .toMap()
 
     /**
-     * If true, tokens whose client_id has no configured secret in [zgwClientSecrets]
-     * are rejected outright.  Set to false (the default) to preserve legacy behaviour
-     * where missing secrets cause a warning but the token is still accepted.
-     */
-    val zgwRequireSignature: Boolean = envOrSystem("ZGW_REQUIRE_SIGNATURE", "false").toBoolean()
-
-    /**
      * The role name (from `realm_access.roles` in Keycloak JWTs, or `roles` in ZGW JWTs)
      * that grants access to the admin API.  Defaults to `dmf-admin`.
      */
@@ -74,10 +60,8 @@ internal object AuthenticationConfig : Config() {
     override fun printConfig() {
         logger.info("AuthenticationConfig: issuer={}", issuer)
         logger.info("AuthenticationConfig: jwtSecret={}", jwtSecret?.let { "set" } ?: "not set")
-        logger.info("AuthenticationConfig: audience={}", audience)
         logger.info("AuthenticationConfig: zgwAllowedClientIds={}", zgwAllowedClientIds)
         logger.info("AuthenticationConfig: zgwClientSecrets configured for clients={}", zgwClientSecrets.keys)
-        logger.info("AuthenticationConfig: zgwRequireSignature={}", zgwRequireSignature)
         logger.info("AuthenticationConfig: adminRole={}", adminRole)
     }
 }

@@ -26,8 +26,6 @@ fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
     val jwtSecret = AuthenticationConfig.jwtSecret
-    val audience = AuthenticationConfig.audience
-    val zgwAllowedClientIds = AuthenticationConfig.zgwAllowedClientIds
     val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
 
     install(Authentication) {
@@ -43,7 +41,6 @@ fun Application.authenticationModule() {
                 verifier(
                     JWT.require(Algorithm.HMAC256(jwtSecret))
                         .withIssuer(issuer)
-                        .withAudience(audience)
                         .acceptLeeway(3)
                         .build(),
                 )
@@ -58,7 +55,6 @@ fun Application.authenticationModule() {
                 // RS256 verification via Keycloak's JWK endpoint (production default).
                 logger.info("[JWT] Using JWK/RS256 verification for auth-jwt (issuer={})", issuer)
                 verifier(jwkProvider, issuer) {
-                    withAudience(audience)
                     acceptLeeway(3)
                 }
             }
@@ -106,14 +102,14 @@ fun Application.authenticationModule() {
                         }
 
                         val secret = zgwClientSecrets[clientId]
-                        return if (secret != null) {
-                            JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
-                        } else {
-                            logger.warn(
-                                "[ZGW] No secret configured for client_id '{}' — rejecting token because signature verification cannot be performed",
+                        return if (secret == null) {
+                            logger.debug(
+                                "[ZGW] Unknown client '{}' — rejecting token because signature verification cannot be performed",
                                 clientId,
                             )
                             throw JWTVerificationException("No secret configured for client_id '$clientId'")
+                        } else {
+                            JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
                         }
                     }
 
@@ -124,13 +120,7 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
-                val clientId = token.getClaim("client_id").asString()
-                if (clientId in zgwAllowedClientIds) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    logger.warn("[ZGW] Rejected token with unknown client_id: {}", clientId)
-                    null
-                }
+                JWTPrincipal(token)
             }
 
             challenge { _, _ ->
