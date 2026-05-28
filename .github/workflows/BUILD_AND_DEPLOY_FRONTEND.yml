@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - develop-admin-portal # temporary
+      - develop
     paths:
       - 'frontend/admin-portal/**'
       - '.github/workflows/BUILD_AND_DEPLOY_FRONTEND.yml'
@@ -28,7 +28,7 @@ jobs:
         id: get_version
         run: |
           VERSION=$(jq -r '.version' frontend/admin-portal/package.json)
-          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - uses: ./.github/actions/docker
         name: Build and push to Azure Container Registry
