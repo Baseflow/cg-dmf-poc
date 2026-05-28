@@ -57,8 +57,10 @@ script:pre-request {
     iss: clientId,
     iat: Math.floor(Date.now() / 1000),
     client_id: clientId,
+    aud: "account",
     user_id: "bruno-gzac@example.com",
     user_representation: "Bruno Client",
+    roles: ["dmf-admin"]
   };
 
   const token = jwt.sign(payload, clientSecret, { algorithm: "HS256" });

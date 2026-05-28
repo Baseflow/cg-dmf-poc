@@ -4,6 +4,7 @@ package com.baseflow.api.middleware
 
 import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.badRequest
+import com.baseflow.api.models.forbidden
 import com.baseflow.api.models.respondProblem
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.JsonConvertException
@@ -21,6 +22,16 @@ fun Application.configureStatusPages() {
     val logger = LoggerFactory.getLogger("GlobalExceptionHandler")
 
     install(StatusPages) {
+        exception<ForbiddenException> { call, cause ->
+            call.respondProblem(
+                HttpStatusCode.Forbidden,
+                forbidden(
+                    detail = cause.message ?: "Forbidden",
+                    instance = call.request.path(),
+                ),
+            )
+        }
+
         exception<BadRequestException> { call, cause ->
             logger.error("Bad request at ${call.request.path()}: ${cause.message}")
 

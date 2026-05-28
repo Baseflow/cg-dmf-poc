@@ -13,7 +13,6 @@ data:
   {{- end }}
   # Authentication
   OIDC_ISSUER: {{ .Values.settings.oidcIssuer | quote }}
-  ZGW_ALLOWED_CLIENT_IDS: {{ required "settings.zgwAllowedClientIds is required" .Values.settings.zgwAllowedClientIds | quote }}
   # S3 / MinIO (non-sensitive) — env var names kept as S3_* until app is migrated to S3_*
   S3_ENDPOINT: {{ .Values.settings.s3.endpoint | quote }}
   S3_BUCKET: {{ .Values.settings.s3.bucket | quote }}

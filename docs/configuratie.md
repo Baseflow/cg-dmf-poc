@@ -22,13 +22,13 @@ Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u d
 | Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                       |
 | ------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                      |
-| `ZGW_ALLOWED_CLIENT_IDS`  | `gzac`                                | Komma-gescheiden lijst van `client_id`-waarden die worden geaccepteerd voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak) |
+| `ZGW_CLIENT_SECRETS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Tokens van clients die niet in deze lijst staan worden geweigerd. |
 
 Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te komen met deze waarden.
 
 OIDC issuer is voor rechtstreeks toegang van gebruikers to the API. Dit gebruiken we o.a. ook voor de beheer interface.
 
-ZGW_ALLOWED_CLIENT_IDS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
+ZGW_CLIENT_SECRETS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
 
 ## Versleuteling (at-rest encryptie van opslaginloggegevens)
 
@@ -95,7 +95,7 @@ Daarnaast moet u deze service registreren in Open Zaak.
   * Type is: `DRC (informatieobjecten)`
   * Api root url: `https://example.com/documenten/api/v1/`
   * Authorisatietype: `ZGW client_id + secret`
-  * Client id: ... (zoals gebruikt in DMF, zie ook `ZGW_ALLOWED_CLIENT_IDS`)
+  * Client id: ... (zoals gebruikt in DMF, zie ook `ZGW_CLIENT_SECRETS`)
   * Client secret: ... (zoals gebruikt in DMF)
   * Gebruikers-id: `openzaak`
   * Gebruikersrepresentatie: `Open Zaak`

@@ -12,8 +12,9 @@
   </root>
 
   <!-- Adjust logging levels for specific application packages -->
-  <logger name="com.baseflow" level="DEBUG"/>
+  <logger name="com.baseflow" level="${LOG_LEVEL:-DEBUG}"/>
   <logger name="io.ktor" level="WARN"/>
-
+  <logger name="io.ktor.auth" level="${LOG_LEVEL:-DEBUG}"/>
+  <logger name="io.ktor.server.auth" level="${LOG_LEVEL:-DEBUG}"/>
 
 </configuration>
