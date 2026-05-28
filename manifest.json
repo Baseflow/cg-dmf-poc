@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26581352979",
+    "runNumber": "712",
+    "branch": "CGDMF-73-authorization",
+    "date": "2026-05-28T14:39:56Z",
+    "path": "integration/26581352979/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26577560470",
     "runNumber": "711",
     "branch": "CGDMF-140-file-integrity",
