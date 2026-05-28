@@ -6,8 +6,8 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
-import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.middleware.AuditContext
+import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopi.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
