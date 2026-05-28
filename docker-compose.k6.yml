@@ -15,8 +15,8 @@ services:
     environment:
       ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:-changeme-use-a-strong-key-in-production}
       ENCRYPTION_SALT: ${ENCRYPTION_SALT:-deadbeefcafe0123456789abcdef0123}
-      OIDC_ISSUER: gzac
-      OIDC_JWT_SECRET: ${JWT_CLIENT_SECRET:-your-secret}
+      OIDC_ISSUER: http://keycloak:8080/realms/cg-dmf
+      ZGW_CLIENT_SECRETS: gzac:${JWT_CLIENT_SECRET:-your-secret}
       DB_POOL_SIZE: 25
 
   minio:

@@ -32,32 +32,6 @@ export const navigation: {
 } = {
   primary: [
     {
-      id: "documenten",
-      label: "Documenten API",
-      items: [
-        {
-          name: "OpenAPI UI",
-          url: "/documenten-api/openapi-ui",
-          icon: <BookOpen />,
-        },
-        {
-          name: "OpenAPI (Swagger UI)",
-          url: "/documenten-api/openapi-ui-swagger",
-          icon: <FileCode />,
-        },
-        {
-          name: "OpenAPI JSON",
-          url: "/api/docs/openapi/documenten.json",
-          icon: <Braces />,
-        },
-        {
-          name: "OpenAPI YAML",
-          url: "/api/docs/openapi/documenten.yaml",
-          icon: <Braces />,
-        },
-      ],
-    },
-    {
       id: "instellingen",
       label: "Instellingen",
       url: "/instellingen",
@@ -92,6 +66,32 @@ export const navigation: {
           url: "/instellingen/applicaties",
           icon: <AppWindow />,
           description: "Gekoppelde applicaties",
+        },
+      ],
+    },
+    {
+      id: "documenten",
+      label: "Documentatie",
+      items: [
+        {
+          name: "OpenAPI UI",
+          url: "/documenten-api/openapi-ui",
+          icon: <BookOpen />,
+        },
+        {
+          name: "OpenAPI (Swagger UI)",
+          url: "/documenten-api/openapi-ui-swagger",
+          icon: <FileCode />,
+        },
+        {
+          name: "OpenAPI JSON",
+          url: "/api/docs/openapi/documenten.json",
+          icon: <Braces />,
+        },
+        {
+          name: "OpenAPI YAML",
+          url: "/api/docs/openapi/documenten.yaml",
+          icon: <Braces />,
         },
       ],
     },

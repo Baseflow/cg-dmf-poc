@@ -34,6 +34,34 @@ export default async function Page() {
       </div>
 
       <div className="flex w-full max-w-2xl flex-col gap-8">
+        {session && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+              {navigation.primary.find((g) => g.id === "instellingen")?.label}
+            </h2>
+            <nav className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                navigation.primary.find((g) => g.id === "instellingen")
+                  ?.items ?? []
+              ).map(({ url, icon, name, description }) => (
+                <Link
+                  key={url}
+                  href={url}
+                  className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
+                      {icon}
+                    </span>
+                    <span className="text-sm font-medium">{name}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                </Link>
+              ))}
+            </nav>
+          </section>
+        )}
+
         {["documenten", "links"].map((id) => {
           const group = navigation.primary.find((g) => g.id === id)
           if (!group) return null
@@ -85,34 +113,6 @@ export default async function Page() {
             </section>
           )
         })}
-
-        {session && (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-              {navigation.primary.find((g) => g.id === "instellingen")?.label}
-            </h2>
-            <nav className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(
-                navigation.primary.find((g) => g.id === "instellingen")
-                  ?.items ?? []
-              ).map(({ url, icon, name, description }) => (
-                <Link
-                  key={url}
-                  href={url}
-                  className="group flex flex-col gap-2 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
-                      {icon}
-                    </span>
-                    <span className="text-sm font-medium">{name}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{description}</p>
-                </Link>
-              ))}
-            </nav>
-          </section>
-        )}
       </div>
     </div>
   )
