@@ -445,7 +445,7 @@ private suspend fun RoutingContext.getFileMetadata() {
             supportsAutosave = false,
             supportsContainers = false,
             supportsDeleteFile = false,
-            supportsGetLock = true,
+            supportsGetLock = false,
             supportsLocks = true,
             supportsPutRelativeFile = true,
             supportsRename = true,
