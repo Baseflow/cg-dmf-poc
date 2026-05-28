@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26582887574",
+    "runNumber": "714",
+    "branch": "fix/wopi-plugin-pipeline-termination",
+    "date": "2026-05-28T15:06:52Z",
+    "path": "integration/26582887574/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26581352979",
     "runNumber": "712",
     "branch": "CGDMF-73-authorization",
