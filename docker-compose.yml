@@ -48,7 +48,7 @@ services:
       DB_USER: documenten
       DB_PASSWORD: documenten
       OIDC_ISSUER: http://keycloak:8080/realms/cg-dmf
-      ZGW_ALLOWED_CLIENT_IDS: gzac
+      ZGW_CLIENT_SECRETS: ${ZGW_CLIENT_SECRETS:-}
       BLOB_STORAGE_TYPE1: S3
       BLOB_STORAGE_NAME1: minio-local
       BLOB_STORAGE_URL1: http://minio:9000

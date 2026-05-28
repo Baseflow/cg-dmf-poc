@@ -13,10 +13,6 @@ internal object AuthenticationConfig : Config() {
 
     val issuer: String = envOrSystem("OIDC_ISSUER", "http://localhost:8081/realms/cg-dmf")
 
-    /** Comma-separated list of client_id values allowed for ZGW-style JWT auth. */
-    val zgwAllowedClientIds: List<String> = envOrSystem("ZGW_ALLOWED_CLIENT_IDS", "gzac")
-        .split(",").map { it.trim() }.filter { it.isNotEmpty() }
-
     /**
      * Map of client_id → HS256 secret for ZGW JWT signature verification.
      *
@@ -46,7 +42,6 @@ internal object AuthenticationConfig : Config() {
 
     override fun printConfig() {
         logger.info("AuthenticationConfig: issuer={}", issuer)
-        logger.info("AuthenticationConfig: zgwAllowedClientIds={}", zgwAllowedClientIds)
         logger.info("AuthenticationConfig: zgwClientSecrets configured for clients={}", zgwClientSecrets.keys)
         logger.info("AuthenticationConfig: adminRole={}", adminRole)
     }

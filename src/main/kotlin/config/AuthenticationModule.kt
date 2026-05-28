@@ -66,9 +66,9 @@ fun Application.authenticationModule() {
         }
 
         // ZGW-style JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
-        // Tokens are HS256-signed with a per-client secret.  Configure secrets via
+        // Tokens are HS256-signed with a per-client secret.  Configure via
         // ZGW_CLIENT_SECRETS=client_id:secret,...  (see AuthenticationConfig).
-        // Set ZGW_REQUIRE_SIGNATURE=true to reject tokens with no configured secret.
+        // Tokens from clients not in ZGW_CLIENT_SECRETS are always rejected.
         jwt("auth-zgw") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
