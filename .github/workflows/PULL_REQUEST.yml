@@ -9,12 +9,30 @@ on:
       - '**'
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      helm: ${{ steps.filter.outputs.helm }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/admin-portal/**'
+            helm:
+              - 'helm/**'
+
   lint:
     permissions:
       issues: write
     uses: ./.github/workflows/LINT.yml
 
   helm-lint:
+    needs: changes
+    if: needs.changes.outputs.helm == 'true'
     uses: ./.github/workflows/HELM_LINT.yml
 
   test:
@@ -22,9 +40,17 @@ jobs:
     secrets: inherit
 
   frontend-test:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/FRONTEND_TEST.yml
 
   integration-test:
     needs: [lint, helm-lint, test, frontend-test]
+    if: >-
+      always() &&
+      needs.lint.result == 'success' &&
+      needs.test.result == 'success' &&
+      contains(fromJSON('["success","skipped"]'), needs.helm-lint.result) &&
+      contains(fromJSON('["success","skipped"]'), needs.frontend-test.result)
     uses: ./.github/workflows/INTEGRATION_TEST.yml
     secrets: inherit
