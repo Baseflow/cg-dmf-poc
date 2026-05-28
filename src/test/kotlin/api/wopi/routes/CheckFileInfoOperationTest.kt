@@ -87,7 +87,7 @@ class CheckFileInfoOperationTest {
         assertEquals("automated_test_document.tst", fileInfo.baseFileName)
         assertEquals("2026-05-26T11:38:05Z", fileInfo.lastModifiedTime)
         assertEquals("", fileInfo.ownerId)
-        assertEquals(42, fileInfo.size)
+        assertEquals(42L, fileInfo.size)
         assertEquals("", fileInfo.userId)
         assertEquals("1", fileInfo.version)
     }
