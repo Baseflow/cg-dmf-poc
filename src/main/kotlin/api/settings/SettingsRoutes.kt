@@ -2,15 +2,13 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.settings
 
-import com.baseflow.api.models.forbidden
-import com.baseflow.api.models.respondProblem
+import com.baseflow.api.middleware.ForbiddenException
 import com.baseflow.api.settings.routes.applicationSettingsRoutes
 import com.baseflow.api.settings.routes.blobStorageRepositorySettingsRoutes
 import com.baseflow.api.settings.routes.dmfSettingsRoutes
 import com.baseflow.api.settings.routes.oidcProviderSettingsRoutes
 import com.baseflow.api.settings.routes.zgwApiSettingsRoutes
 import com.baseflow.config.AuthenticationConfig
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
@@ -19,7 +17,6 @@ import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
-import io.ktor.server.request.path
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
@@ -83,12 +80,8 @@ fun Route.settingsRoutes(requireRoleCheck: Boolean = true) {
 
                     val roles = call.jwtRoles()
                     if (requiredRole !in roles) {
-                        call.respondProblem(
-                            HttpStatusCode.Forbidden,
-                            forbidden(
-                                "Access denied: role '$requiredRole' is required for settings endpoints.",
-                                call.request.path(),
-                            ),
+                        throw ForbiddenException(
+                            "Access denied: role '$requiredRole' is required for settings endpoints.",
                         )
                     }
                 }

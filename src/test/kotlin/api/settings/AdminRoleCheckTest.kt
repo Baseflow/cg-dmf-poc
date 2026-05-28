@@ -6,6 +6,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
+import com.baseflow.api.middleware.configureStatusPages
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopi.WopiDocumentService
@@ -128,6 +129,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
             )
         }
         install(ContentNegotiation) { json(apiJsonConfig()) }
+        configureStatusPages()
 
         install(Authentication) {
             jwt("auth-jwt") {
