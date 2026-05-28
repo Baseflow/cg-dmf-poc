@@ -4,10 +4,10 @@ vars {
   catalogusBaseUrl: https://openzaak.dev.baseflow.com/catalogi/api/v1
   storage.defaultRepo: minio-local
   storage.secondaryRepo: minio-archive
-  jwt.clientId: gzac
-  oidc.clientId: cg-dmf
+  jwt.clientId: cg-dmf-integration-test
+  oidc.authUrl: https://auth.gzac.baseflow.com/realms/cg-dmf/protocol/openid-connect/auth
+  oidc.tokenUrl: https://auth.gzac.baseflow.com/realms/cg-dmf/protocol/openid-connect/token
 }
 vars:secret [
   jwt.clientSecret
 ]
-

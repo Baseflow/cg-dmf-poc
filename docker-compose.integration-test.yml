@@ -71,7 +71,7 @@ services:
       BESTANDSDELEN_CHUNK_SIZE: ${BESTANDSDELEN_CHUNK_SIZE:-100000}
       ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:-changeme-use-a-strong-key-in-production}
       ENCRYPTION_SALT: ${ENCRYPTION_SALT:-deadbeefcafe0123456789abcdef0123}
-      OIDC_JWT_SECRET: ${JWT_CLIENT_SECRET:-your-secret}
+      ZGW_CLIENT_SECRETS: cg-dmf-integration-test:${JWT_CLIENT_SECRET:-your-secret}
       WOPI_ENABLED: true
       WOPI_SLAT_SECRET: ${WOPI_SLAT_SECRET:-changeme-use-a-strong-key-in-production}
     healthcheck:

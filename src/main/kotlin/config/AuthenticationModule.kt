@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit
 fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
-    val jwtSecret = AuthenticationConfig.jwtSecret
     val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
 
     install(Authentication) {
@@ -35,28 +34,16 @@ fun Application.authenticationModule() {
                 header?.let { parseAuthorizationHeader(it) }
             }
 
-            if (jwtSecret != null) {
-                // HS256 verification using a shared secret (e.g. local dev or symmetric key setup).
-                logger.info("[JWT] Using HS256 secret verification for auth-jwt")
-                verifier(
-                    JWT.require(Algorithm.HMAC256(jwtSecret))
-                        .withIssuer(issuer)
-                        .acceptLeeway(3)
-                        .build(),
-                )
-            } else {
-                // Configure JWK provider to fetch signing keys from Keycloak.
-                // Only used when OIDC_JWT_SECRET is not set.
-                val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
-                    .cached(10, 24, TimeUnit.HOURS)
-                    .rateLimited(10, 1, TimeUnit.MINUTES)
-                    .build()
+            // Configure JWK provider to fetch signing keys from Keycloak.
+            val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
+                .cached(10, 24, TimeUnit.HOURS)
+                .rateLimited(10, 1, TimeUnit.MINUTES)
+                .build()
 
-                // RS256 verification via Keycloak's JWK endpoint (production default).
-                logger.info("[JWT] Using JWK/RS256 verification for auth-jwt (issuer={})", issuer)
-                verifier(jwkProvider, issuer) {
-                    acceptLeeway(3)
-                }
+            // RS256 verification via Keycloak's JWK endpoint (production default).
+            logger.info("[JWT] Using JWK/RS256 verification for auth-jwt (issuer={})", issuer)
+            verifier(jwkProvider, issuer) {
+                acceptLeeway(3)
             }
 
             validate { credential ->
