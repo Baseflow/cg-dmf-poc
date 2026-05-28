@@ -115,7 +115,7 @@ class CheckFileInfoOperationTest {
         assertEquals(null, capabilities.supportsExtendedLockLength)
         assertEquals(null, capabilities.supportsFolders)
         assertEquals(null, capabilities.supportsGetFileWopiSrc)
-        assertEquals(true, capabilities.supportsGetLock)
+        assertEquals(false, capabilities.supportsGetLock)
         assertEquals(true, capabilities.supportsLocks)
         assertEquals(true, capabilities.supportsPutRelativeFile)
         assertEquals(true, capabilities.supportsRename)
