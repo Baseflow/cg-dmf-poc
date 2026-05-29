@@ -31,6 +31,7 @@ import kotlin.time.Clock
  */
 open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
     private val logger = LoggerFactory.getLogger(WopiDocumentService::class.java)
+
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
      * Returns null when no record with [id] exists.
@@ -131,6 +132,19 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
         storageService.downloadFileTo(bestandsnaam, output, repoName?.takeUnless { it.isBlank() }).join()
     }
 
+    private data class SourceMeta(
+        val bronOrganisatie: String,
+        val informatieobjectType: String,
+        val taal: String,
+        val auteur: String,
+        val creatieDatum: kotlinx.datetime.LocalDate,
+        val bestandsRepository: String,
+        val vertrouwlijkheidsAanduiding: String,
+        val status: String,
+        val beschrijving: String,
+        val indicatieGebruiksrecht: Boolean,
+    )
+
     /**
      * Creates a new EIO as a copy of [sourceId] with the provided [inputStream] and [targetFileName]
      * (WOPI PutRelativeFile).
@@ -146,7 +160,19 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
     ): WopiPutRelativeFileResult {
         val sourceMeta = transaction {
             val record = EIORecordEntity.findById(sourceId) ?: return@transaction null
-            record.latestVersion() ?: return@transaction null
+            val version = record.latestVersion() ?: return@transaction null
+            SourceMeta(
+                bronOrganisatie = version.bronOrganisatie,
+                informatieobjectType = version.informatieobject_type,
+                taal = version.taal,
+                auteur = version.auteur,
+                creatieDatum = version.creatieDatum,
+                bestandsRepository = version.bestandsRepository,
+                vertrouwlijkheidsAanduiding = version.vertrouwlijkheidsAanduiding,
+                status = version.status,
+                beschrijving = version.beschrijving,
+                indicatieGebruiksrecht = version.indicatieGebruiksrecht,
+            )
         } ?: return WopiPutRelativeFileResult.SourceNotFound
 
         val (fileType, readableStream) = StorageService.detectFileFormat(inputStream)
@@ -172,7 +198,7 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
                     recordId = newRecord
                     versie = 1
                     bronOrganisatie = sourceMeta.bronOrganisatie
-                    informatieobject_type = sourceMeta.informatieobject_type
+                    informatieobject_type = sourceMeta.informatieobjectType
                     taal = sourceMeta.taal
                     bestandsnaam = targetFileName
                     titel = targetFileName
