@@ -15,6 +15,7 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.AuthenticationChecked
 import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.routing.Route
@@ -22,31 +23,82 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 
 /**
+ * Role claims are interpreted based on the auth provider that authenticated the request:
+ * - auth-jwt (OIDC): realm/resource roles
+ * - auth-zgw (ZGW): top-level roles
+ */
+private enum class AuthTokenType {
+    OIDC,
+    ZGW,
+    UNKNOWN,
+}
+
+private fun ApplicationCall.authenticatedTokenType(): AuthTokenType {
+    if (authentication.principal<JWTPrincipal>("auth-jwt") != null) return AuthTokenType.OIDC
+    if (authentication.principal<JWTPrincipal>("auth-zgw") != null) return AuthTokenType.ZGW
+    return AuthTokenType.UNKNOWN
+}
+
+/**
  * Extracts roles from a Keycloak or ZGW JWT principal.
  *
- * - Keycloak (auth-jwt): roles are in `realm_access.roles` (string array).
+ * - Keycloak (auth-jwt): roles can be in `realm_access.roles` and/or
+ *   `resource_access.<client_id>.roles`.
  * - ZGW (auth-zgw): roles may be in a top-level `roles` claim (string array).
  */
 private fun ApplicationCall.jwtRoles(): Set<String> {
     val principal = principal<JWTPrincipal>() ?: return emptySet()
     val roles = mutableSetOf<String>()
+    val tokenType = authenticatedTokenType()
 
-    // Keycloak: realm_access.roles
-    runCatching {
-        principal.payload
-            .getClaim("realm_access")
-            .asMap()["roles"]
-            ?.let { it as? List<*> }
-            ?.filterIsInstance<String>()
-            ?.let { roles.addAll(it) }
+    if (tokenType == AuthTokenType.OIDC) {
+        // Keycloak: realm_access.roles
+        runCatching {
+            principal.payload
+                .getClaim("realm_access")
+                .asMap()["roles"]
+                ?.let { it as? List<*> }
+                ?.filterIsInstance<String>()
+                ?.let { roles.addAll(it) }
+        }
+
+        // Keycloak: resource_access.<client_id>.roles
+        runCatching {
+            val resourceAccess = principal.payload
+                .getClaim("resource_access")
+                .asMap()
+
+            val preferredClientId = AuthenticationConfig.oidcResourceClientId
+                .ifBlank { principal.payload.getClaim("azp").asString().orEmpty() }
+                .ifBlank { principal.payload.getClaim("client_id").asString().orEmpty() }
+
+            if (preferredClientId.isNotBlank()) {
+                (resourceAccess[preferredClientId] as? Map<*, *>)
+                    ?.get("roles")
+                    ?.let { it as? List<*> }
+                    ?.filterIsInstance<String>()
+                    ?.let { roles.addAll(it) }
+            } else {
+                // Fallback for tokens without azp/client_id when no explicit client id is configured.
+                resourceAccess.values
+                    .asSequence()
+                    .mapNotNull { it as? Map<*, *> }
+                    .mapNotNull { it["roles"] as? List<*> }
+                    .flatMap { it.asSequence() }
+                    .filterIsInstance<String>()
+                    .forEach { roles.add(it) }
+            }
+        }
     }
 
-    // ZGW: top-level roles claim
-    runCatching {
-        principal.payload
-            .getClaim("roles")
-            .asList(String::class.java)
-            ?.let { roles.addAll(it) }
+    if (tokenType == AuthTokenType.ZGW) {
+        // ZGW: top-level roles claim
+        runCatching {
+            principal.payload
+                .getClaim("roles")
+                .asList(String::class.java)
+                ?.let { roles.addAll(it) }
+        }
     }
 
     return roles

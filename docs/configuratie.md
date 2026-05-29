@@ -22,13 +22,24 @@ Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u d
 | Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                       |
 | ------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                      |
+| `OIDC_RESOURCE_CLIENT_ID` | _(leeg)_                              | Optionele OIDC client-id voor role-resolutie uit `resource_access.<client_id>.roles`. Indien leeg: fallback naar token claims `azp`, daarna `client_id`, en als laatste alle `resource_access.*.roles`. |
+| `ADMIN_ROLE`              | `dmf-admin`                           | Vereiste rol voor toegang tot beheer-endpoints onder `/settings/**`.                                              |
 | `ZGW_CLIENT_SECRETS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Tokens van clients die niet in deze lijst staan worden geweigerd. |
 
 Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te komen met deze waarden.
 
-OIDC issuer is voor rechtstreeks toegang van gebruikers to the API. Dit gebruiken we o.a. ook voor de beheer interface.
+OIDC issuer is voor rechtstreeks toegang van gebruikers tot de API. Dit gebruiken we o.a. ook voor de beheerinterface.
 
 ZGW_CLIENT_SECRETS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
+
+### Rolclaims voor beheer-endpoints (`/settings/**`)
+
+Voor autorisatie op de beheer-endpoints gebruikt de API role-claims op basis van het authenticatietype:
+
+- **OIDC token (`auth-jwt`)**: `realm_access.roles` en `resource_access.<client_id>.roles`
+- **ZGW token (`auth-zgw`)**: top-level `roles`
+
+`ADMIN_ROLE` moet voorkomen in de claim-bron die hoort bij het token-type van de aanvraag.
 
 ## Versleuteling (at-rest encryptie van opslaginloggegevens)
 
