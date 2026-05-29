@@ -28,10 +28,7 @@ import kotlin.time.Clock
  * as defined by the WOPI protocol. Delegates general EIO reads and writes to
  * [EnkelvoudigInformatieObjectService].
  */
-open class WopiDocumentService(
-    private val eioService: EnkelvoudigInformatieObjectService,
-    private val storageService: StorageService
-) {
+open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
      * Returns null when no record with [id] exists.

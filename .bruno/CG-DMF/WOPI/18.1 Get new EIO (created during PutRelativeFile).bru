@@ -1,0 +1,25 @@
+meta {
+  name: 18.1 Get new EIO (created during PutRelativeFile)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{wopiRelativeFileId}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~expand: informatieobjecttype
+}
+
+assert {
+  res.status: eq 200
+  res.body.integriteit.waarde: eq 4fbaf88c8ae025a47e7dee655966ae41d1e32265f38e99dcebc74a56ee1c5011
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

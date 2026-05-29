@@ -178,11 +178,12 @@ class BestandsDeelServiceTest {
         val bytes = ByteArray(4) { it.toByte() }
 
         val capturedKeys = mutableListOf<String>()
-        val capturedContent = mutableListOf<ByteArray>()
+        val capturedContent = mutableListOf<java.io.InputStream>()
         every {
             mockStorageService.uploadFile(
                 capture(capturedKeys),
                 capture(capturedContent),
+                any<Long>(),
                 anyNullable(),
             )
         } returns Unit
@@ -196,7 +197,7 @@ class BestandsDeelServiceTest {
         assertEquals(4, keyParts.size)
         assertEquals("parts", keyParts[2])
         assertEquals(uuid.toString(), keyParts[3])
-        assertContentEquals(bytes, capturedContent[0])
+        assertContentEquals(bytes, capturedContent[0].readAllBytes())
     }
 
     @Test
@@ -309,7 +310,7 @@ class BestandsDeelServiceTest {
         }
 
         val capturedRepos = mutableListOf<String?>()
-        every { mockStorageService.uploadFile(any(), any(), captureNullable(capturedRepos)) } returns Unit
+        every { mockStorageService.uploadFile(any(), any(), 4L, captureNullable(capturedRepos)) } returns Unit
 
         val stream = ByteArray(4).inputStream()
         bestandsDeelService.uploadFilePart(uuid, part.lock, stream, mockStorageService)
@@ -325,7 +326,14 @@ class BestandsDeelServiceTest {
         // bestandsRepository defaults to "" — blank means default provider
 
         val capturedRepos = mutableListOf<String?>()
-        every { mockStorageService.uploadFile(any(), any(), captureNullable(capturedRepos)) } returns Unit
+        every {
+            mockStorageService.uploadFile(
+                any(),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                captureNullable(capturedRepos),
+            )
+        } returns Unit
 
         val stream = ByteArray(4).inputStream()
         bestandsDeelService.uploadFilePart(uuid, part.lock, stream, mockStorageService)
