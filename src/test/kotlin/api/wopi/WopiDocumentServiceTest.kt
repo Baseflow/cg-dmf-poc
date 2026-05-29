@@ -75,7 +75,10 @@ class WopiDocumentServiceTest {
                 any<Long>(),
                 anyNullable(),
             )
-        } answers { thirdArg<Long>() }
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } just Runs
         every {
             mockStorageService.downloadFileTo(

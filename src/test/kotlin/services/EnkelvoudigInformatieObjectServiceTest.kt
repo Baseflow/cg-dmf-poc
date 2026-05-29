@@ -72,7 +72,10 @@ class EnkelvoudigInformatieObjectServiceTest {
                 any<Long>(),
                 anyNullable(),
             )
-        } returns 0L
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         mockAuditTrailService = mockk<AuditTrailService>()
@@ -958,7 +961,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument(withContent = true)
         val response = service.create(req)
 
-        verify { mockStorageService.uploadFile(any(), any(), "default-repo") }
+        verify { mockStorageService.uploadFile(any(), any<java.io.InputStream>(), any<Long>(), eq("default-repo")) }
         transaction {
             val latest = EIORecordEntity.findById(UUID.fromString(response.id))!!.versions.maxByOrNull { it.versie }!!
             assertEquals("default-repo", latest.bestandsRepository)
@@ -994,7 +997,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         service.update(id, generateTestDocument(withContent = true))
 
-        verify { mockStorageService.uploadFile(any(), any(), "repo-a") }
+        verify { mockStorageService.uploadFile(any(), any<java.io.InputStream>(), any<Long>(), eq("repo-a")) }
         transaction {
             val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
             assertEquals(2, v2.versie)
