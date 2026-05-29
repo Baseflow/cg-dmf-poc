@@ -101,7 +101,7 @@ dependencies {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.3") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.4") {
             because("Minimum version from transitive dependencies")
         }
     }
