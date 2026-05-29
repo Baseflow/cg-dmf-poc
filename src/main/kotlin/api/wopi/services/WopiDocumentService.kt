@@ -2,13 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi.services
 
-import com.baseflow.api.wopi.models.WopiDeleteResult
-import com.baseflow.api.wopi.models.WopiLockPayload
-import com.baseflow.api.wopi.models.WopiLockResult
-import com.baseflow.api.wopi.models.WopiPutFileResult
-import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
-import com.baseflow.api.wopi.models.WopiRenameResult
-import com.baseflow.api.wopi.models.WopiUnlockResult
+import com.baseflow.api.wopi.models.*
 import com.baseflow.entities.EIORecordEntity
 import com.baseflow.entities.EIOVersionEntity
 import com.baseflow.entities.OIORecords
@@ -22,8 +16,10 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
+import java.io.InputStream
 import java.io.OutputStream
-import java.util.UUID
+import java.util.*
 import kotlin.time.Clock
 
 /**
@@ -34,6 +30,8 @@ import kotlin.time.Clock
  * [EnkelvoudigInformatieObjectService].
  */
 open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
+    private val logger = LoggerFactory.getLogger(WopiDocumentService::class.java)
+
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
      * Returns null when no record with [id] exists.
@@ -134,81 +132,104 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
         storageService.downloadFileTo(bestandsnaam, output, repoName?.takeUnless { it.isBlank() }).join()
     }
 
+    private data class SourceMeta(
+        val bronOrganisatie: String,
+        val informatieobjectType: String,
+        val taal: String,
+        val auteur: String,
+        val creatieDatum: kotlinx.datetime.LocalDate,
+        val bestandsRepository: String,
+        val vertrouwlijkheidsAanduiding: String,
+        val status: String,
+        val beschrijving: String,
+        val indicatieGebruiksrecht: Boolean,
+    )
+
     /**
-     * Creates a new EIO as a copy of [sourceId] with the provided [bytes] and [targetFileName]
+     * Creates a new EIO as a copy of [sourceId] with the provided [inputStream] and [targetFileName]
      * (WOPI PutRelativeFile).
      *
      * - Create a new EIO record cloned from the source metadata and return
      *   [WopiPutRelativeFileResult.Success].
      */
-    fun wopiPutRelativeFile(sourceId: UUID, targetFileName: String, bytes: ByteArray): WopiPutRelativeFileResult {
-        // Resolve source metadata inside a transaction, then do I/O outside.
-        data class SourceMeta(
-            val bronOrganisatie: String,
-            val informatieobjectType: String,
-            val taal: String,
-            val auteur: String,
-            val creatieDatum: kotlinx.datetime.LocalDate,
-            val vertrouwlijkheid: String,
-            val status: String,
-            val beschrijving: String,
-            val indicatieGebruiksrecht: Boolean,
-            val bestandsRepository: String,
-        )
-
+    fun wopiPutRelativeFile(
+        sourceId: UUID,
+        targetFileName: String,
+        inputStream: InputStream,
+        contentLength: Long,
+    ): WopiPutRelativeFileResult {
         val sourceMeta = transaction {
             val record = EIORecordEntity.findById(sourceId) ?: return@transaction null
-            val v = record.latestVersion() ?: return@transaction null
+            val version = record.latestVersion() ?: return@transaction null
             SourceMeta(
-                bronOrganisatie = v.bronOrganisatie,
-                informatieobjectType = v.informatieobject_type,
-                taal = v.taal,
-                auteur = v.auteur,
-                creatieDatum = v.creatieDatum,
-                vertrouwlijkheid = v.vertrouwlijkheidsAanduiding,
-                status = v.status,
-                beschrijving = v.beschrijving,
-                indicatieGebruiksrecht = v.indicatieGebruiksrecht,
-                bestandsRepository = v.bestandsRepository,
+                bronOrganisatie = version.bronOrganisatie,
+                informatieobjectType = version.informatieobject_type,
+                taal = version.taal,
+                auteur = version.auteur,
+                creatieDatum = version.creatieDatum,
+                bestandsRepository = version.bestandsRepository,
+                vertrouwlijkheidsAanduiding = version.vertrouwlijkheidsAanduiding,
+                status = version.status,
+                beschrijving = version.beschrijving,
+                indicatieGebruiksrecht = version.indicatieGebruiksrecht,
             )
         } ?: return WopiPutRelativeFileResult.SourceNotFound
 
-        // No collision — create a new EIO record.
-        val fileType = StorageService.detectFileFormat(bytes)
-        val integrityResult = IntegrityCalculationService.calculateIntegrity(bytes, null)
-        val newId = transaction {
-            val newRecord = EIORecordEntity.new {}
-            val bestandsLocatie = "${newRecord.id.value}/1/$targetFileName"
-            EIOVersionEntity.new {
-                recordId = newRecord
-                versie = 1
-                bronOrganisatie = sourceMeta.bronOrganisatie
-                informatieobject_type = sourceMeta.informatieobjectType
-                taal = sourceMeta.taal
-                bestandsnaam = targetFileName
-                titel = targetFileName
-                auteur = sourceMeta.auteur
-                creatieDatum = sourceMeta.creatieDatum
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                formaat = fileType
-                bestandsomvang = bytes.size.toLong()
-                this.bestandsLocatie = bestandsLocatie
-                bestandsRepository = sourceMeta.bestandsRepository
-                vertrouwlijkheidsAanduiding = sourceMeta.vertrouwlijkheid
-                status = sourceMeta.status
-                beschrijving = sourceMeta.beschrijving
-                indicatieGebruiksrecht = sourceMeta.indicatieGebruiksrecht
-                integriteitAlgoritme = integrityResult.algorithm
-                integriteitWaarde = integrityResult.hash
-                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            }
-            newRecord.id.value
-        }
+        val (fileType, readableStream) = StorageService.detectFileFormat(inputStream)
 
-        // Upload outside the transaction.
+        val newId = UUID.randomUUID()
         val bestandsLocatie = "$newId/1/$targetFileName"
         val repoName = sourceMeta.bestandsRepository.takeUnless { it.isBlank() }
-        storageService.uploadFile(bestandsLocatie, bytes, repoName)
+
+        // Upload first so we can compute the SHA-256 hash in a single streaming pass.
+        // Always close the inputStream afterwards; on upload failure let the exception propagate.
+        val integrityResult = inputStream.use {
+            val (_, result) = IntegrityCalculationService.withIntegrity(readableStream, "SHA_256") { digestStream ->
+                storageService.uploadFile(bestandsLocatie, digestStream, contentLength, repoName)
+            }
+            result
+        }
+
+        // Persist the DB record. On failure, clean up the orphaned blob so storage stays consistent.
+        try {
+            transaction {
+                val newRecord = EIORecordEntity.new(newId) {}
+                EIOVersionEntity.new {
+                    recordId = newRecord
+                    versie = 1
+                    bronOrganisatie = sourceMeta.bronOrganisatie
+                    informatieobject_type = sourceMeta.informatieobjectType
+                    taal = sourceMeta.taal
+                    bestandsnaam = targetFileName
+                    titel = targetFileName
+                    auteur = sourceMeta.auteur
+                    creatieDatum = sourceMeta.creatieDatum
+                    beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    formaat = fileType
+                    this.bestandsomvang = contentLength
+                    this.bestandsLocatie = bestandsLocatie
+                    bestandsRepository = sourceMeta.bestandsRepository
+                    vertrouwlijkheidsAanduiding = sourceMeta.vertrouwlijkheidsAanduiding
+                    status = sourceMeta.status
+                    beschrijving = sourceMeta.beschrijving
+                    indicatieGebruiksrecht = sourceMeta.indicatieGebruiksrecht
+                    integriteitAlgoritme = integrityResult.algorithm
+                    integriteitWaarde = integrityResult.hash
+                    integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                }
+            }
+        } catch (dbEx: Exception) {
+            runCatching { storageService.deleteFiles(listOf(bestandsLocatie), repoName) }
+                .onFailure { cleanupEx ->
+                    logger.warn(
+                        "wopiPutRelativeFile: DB persist failed for {} and blob cleanup also failed: {}",
+                        bestandsLocatie,
+                        cleanupEx.message,
+                        cleanupEx,
+                    )
+                }
+            throw dbEx
+        }
 
         return WopiPutRelativeFileResult.Success(newId, targetFileName)
     }

@@ -44,7 +44,7 @@ class EnkelvoudigInformatieObjectFilterTest {
         transaction { AllTables.createMissing() }
 
         val mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any()) } returns Unit
+        every { mockStorageService.uploadFile(any(), any()) } answers { secondArg<ByteArray>().size.toLong() }
         val auditContext = AuditContext()
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
@@ -383,11 +383,11 @@ class EnkelvoudigInformatieObjectFilterTest {
     }
 
     // ----------------------------------------------------------------------------------
-    // trefwoorden__overlap (array overlap — ten minste één trefwoord moet aanwezig zijn)
+    // trefwoorden__overlap (array overlap — ten minste 1 trefwoord moet aanwezig zijn)
     // ----------------------------------------------------------------------------------
 
     @Test
-    fun `filter op trefwoorden__overlap geeft documenten terug met ten minste één overeenkomend trefwoord`() = runBlocking {
+    fun `filter op trefwoorden__overlap geeft documenten terug met ten minste 1 overeenkomend trefwoord`() = runBlocking {
         service.create(generateTestDocument(titel = "A").copy(trefwoorden = listOf("klimaat", "energie")))
         service.create(generateTestDocument(titel = "B").copy(trefwoorden = listOf("milieu")))
         service.create(generateTestDocument(titel = "C").copy(trefwoorden = listOf("financiën")))

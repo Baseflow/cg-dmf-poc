@@ -43,6 +43,7 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import io.ktor.utils.io.toByteArray
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
@@ -532,6 +533,7 @@ private suspend fun RoutingContext.renameFile() {
 private suspend fun RoutingContext.putRelativeFile() {
     val relativeTarget = call.request.headers["X-WOPI-RelativeTarget"]?.trim()
     val suggestedTarget = call.request.headers["X-WOPI-SuggestedTarget"]?.trim()
+    val contentLength = call.request.headers["X-WOPI-Size"]?.toLongOrNull()
 
     // Exactly one of RelativeTarget or SuggestedTarget must be provided.
     if (relativeTarget == null && suggestedTarget == null) {
@@ -556,47 +558,57 @@ private suspend fun RoutingContext.putRelativeFile() {
         return
     }
 
+    if (contentLength == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Size header is required and must be a valid integer.", call.request.path()),
+        )
+        return
+    }
+
     // SuggestedTarget never overwrites — the host picks a conflict-free name.
     val targetFileName = relativeTarget ?: suggestedTarget!!
 
     if (respondIfInvalidFileName(targetFileName)) return
 
     val sourceFileId = call.attributes[WopiValidatedFileIdKey]
-    val bytes = call.receiveChannel().toByteArray()
 
-    when (
-        val result = wopiService.wopiPutRelativeFile(
-            sourceId = sourceFileId,
-            targetFileName = targetFileName,
-            bytes = bytes,
-        )
-    ) {
-        is WopiPutRelativeFileResult.SourceNotFound ->
-            call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
-
-        is WopiPutRelativeFileResult.NameConflict -> {
-            call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
-            call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("A file named '$targetFileName' already exists.", call.request.path()),
+    call.receiveChannel().toInputStream().use { inputStream ->
+        when (
+            val result = wopiService.wopiPutRelativeFile(
+                sourceId = sourceFileId,
+                targetFileName = targetFileName,
+                inputStream = inputStream,
+                contentLength = contentLength,
             )
-        }
+        ) {
+            is WopiPutRelativeFileResult.SourceNotFound ->
+                call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
 
-        is WopiPutRelativeFileResult.TargetLocked -> {
-            call.response.headers.append("X-WOPI-Lock", result.currentLock)
-            call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("Target file is locked.", call.request.path()),
-            )
-        }
+            is WopiPutRelativeFileResult.NameConflict -> {
+                call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("A file named '$targetFileName' already exists.", call.request.path()),
+                )
+            }
 
-        is WopiPutRelativeFileResult.Success -> {
-            val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
-                "/wopi/api/v1/files/${result.fileId}"
-            call.respond(
-                HttpStatusCode.OK,
-                PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
-            )
+            is WopiPutRelativeFileResult.TargetLocked -> {
+                call.response.headers.append("X-WOPI-Lock", result.currentLock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("Target file is locked.", call.request.path()),
+                )
+            }
+
+            is WopiPutRelativeFileResult.Success -> {
+                val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
+                    "/wopi/api/v1/files/${result.fileId}"
+                call.respond(
+                    HttpStatusCode.OK,
+                    PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
+                )
+            }
         }
     }
 }

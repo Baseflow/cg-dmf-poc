@@ -15,15 +15,17 @@ interface BlobStorageProvider {
     /** Human-readable name for this repository. */
     val name: String
 
-    /** Upload [content] as [objectName] (key / blob name). */
-    fun uploadFile(objectName: String, content: ByteArray)
+    /** Upload [content] as [objectName] (key / blob name). Returns the number of bytes uploaded. */
+    fun uploadFile(objectName: String, content: ByteArray): Long
 
     /**
-     * Upload a stream of known [contentLength] bytes as [objectName].
-     * The default implementation buffers into a ByteArray; backends may override for true streaming.
+     * Upload a stream of [contentLength] bytes as [objectName]. Returns the number of bytes uploaded.
+     * The default implementation buffers the stream into a [ByteArray];
+     * backends should override for true zero-copy streaming.
      */
-    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long) {
-        uploadFile(objectName, stream.readBytes())
+    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long): Long {
+        val bytes = stream.readBytes()
+        return uploadFile(objectName, bytes)
     }
 
     /** Stream the object identified by [objectName] directly to [output]. */

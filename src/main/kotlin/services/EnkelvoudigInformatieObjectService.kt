@@ -15,19 +15,16 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.Query
-import org.jetbrains.exposed.v1.jdbc.andWhere
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.InputStream
 import java.io.OutputStream
 import java.nio.file.Files
 import java.util.*
-import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import java.util.Base64 as JavaBase64
 
 /**
  * Service for handling EnkelvoudigInformatieObject operations
@@ -147,15 +144,45 @@ class EnkelvoudigInformatieObjectService(
         repoName: String? = null,
     ): UploadResultaat {
         if (!request.inhoud.isNullOrEmpty() && !request.isFileEmpty()) {
-            val content = Base64.decode(request.inhoud)
-            val fileType = StorageService.detectFileFormat(content)
             require(bestandsLocatie.isNotBlank()) {
                 "bestandsLocatie must not be blank when inhoud is present"
             }
-            storageService.uploadFile(bestandsLocatie, content, repoName)
+
+            // Strip whitespace (MIME Base64 may contain \r\n line breaks) before computing
+            // the decoded length and feeding the decoder — java.util.Base64.getMimeDecoder()
+            // tolerates embedded whitespace at decode time, but the length formula and the
+            // byte-stream wrapping both require a clean string.
+            val b64 = request.inhoud.filter { !it.isWhitespace() }
+            val padding = b64.count { it == '=' }
+            val decodedLength = (b64.length / 4) * 3 - padding
+
+            // Wrap the Base64 string as a decoding stream; peek at the header to detect MIME type
+            // then stream straight into storage — no full ByteArray ever materialises in memory.
+            val rawStream: InputStream = JavaBase64.getMimeDecoder().wrap(b64.byteInputStream(Charsets.US_ASCII))
+            val (fileType, readableStream) = StorageService.detectFileFormat(rawStream)
+
+            val integriteit = request.integriteit
+            val uploadedBytes = if (integriteit?.algoritme != null) {
+                val (uploaded, integrityResult) = IntegrityCalculationService.withIntegrity(
+                    readableStream,
+                    integriteit.algoritme.name,
+                ) { stream -> storageService.uploadFile(bestandsLocatie, stream, decodedLength.toLong(), repoName) }
+                if (!integrityResult.hash.equals(integriteit.waarde, ignoreCase = true)) {
+                    // Blob is already written — clean it up before surfacing the error so no
+                    // orphaned objects accumulate in storage.
+                    runCatching { storageService.deleteFiles(listOf(bestandsLocatie), repoName) }
+                    throw IllegalArgumentException(
+                        "Integrity check failed: calculated hash does not match the provided value.",
+                    )
+                }
+                uploaded
+            } else {
+                storageService.uploadFile(bestandsLocatie, readableStream, decodedLength.toLong(), repoName)
+            }
+
             return UploadResultaat(
                 bestandsFormaat = fileType,
-                bestandsOmvang = content.size.toLong(),
+                bestandsOmvang = uploadedBytes,
                 bestandsLocatie = bestandsLocatie,
                 bestandsRepository = repoName,
             )
