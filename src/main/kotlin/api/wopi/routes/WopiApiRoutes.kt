@@ -43,6 +43,7 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import io.ktor.utils.io.toByteArray
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
@@ -88,7 +89,7 @@ fun Route.wopiApiRoutes() {
                 summary = "Issue a WOPI access token."
                 description =
                     "Issues a short-lived access token (SLAT) for the given EnkelvoudigInformatieObject. " +
-                    "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
+                        "Pass the returned `access_token` as a query parameter when calling the WOPI file endpoints."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the EnkelvoudigInformatieObject to issue a token for."
@@ -157,8 +158,8 @@ fun Route.wopiApiRoutes() {
                 summary = "Issues a WOPI operation"
                 description =
                     "The WOPI-client issues a certain WOPI operation, based on the `X-WOPI-Override` header. " +
-                    "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE, PUT_RELATIVE. " +
-                    "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
+                        "Supported values are: LOCK, UNLOCK, RENAME_FILE, DELETE, PUT_RELATIVE. " +
+                        "Requires a valid `access_token` query parameter and, depending on the operation, additional headers (see below)."
                 parameters {
                     path("file_id") {
                         description = "The UUID of the file to lock/unlock."
@@ -393,7 +394,7 @@ private suspend fun RoutingContext.getFileContents() {
     }
 
     val fileName = fileVersion.bestandsnaam.ifBlank { null } ?: fileVersion.titel.ifBlank { null }
-        ?: "document-${fileVersion.recordId}"
+    ?: "document-${fileVersion.recordId}"
     val contentType = try {
         fileVersion.formaat?.let { ContentType.parse(it) }
     } catch (_: Exception) {
@@ -562,13 +563,13 @@ private suspend fun RoutingContext.putRelativeFile() {
     if (respondIfInvalidFileName(targetFileName)) return
 
     val sourceFileId = call.attributes[WopiValidatedFileIdKey]
-    val bytes = call.receiveChannel().toByteArray()
+    val inputStream = call.receiveChannel().toInputStream()
 
     when (
         val result = wopiService.wopiPutRelativeFile(
             sourceId = sourceFileId,
             targetFileName = targetFileName,
-            bytes = bytes,
+            inputStream = inputStream,
         )
     ) {
         is WopiPutRelativeFileResult.SourceNotFound ->

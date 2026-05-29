@@ -10,6 +10,7 @@ import com.azure.storage.blob.models.DeleteSnapshotsOptionType
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.baseflow.config.BlobStorageRepoConfig
 import org.slf4j.LoggerFactory
+import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
 
@@ -48,12 +49,22 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
     }
 
     override fun uploadFile(objectName: String, content: ByteArray) {
+        uploadFile(objectName, content.inputStream(), content.size.toLong())
+    }
+
+    override fun uploadFile(objectName: String, stream: InputStream, contentLength: Long) {
         try {
             val blobClient = containerClient.getBlobClient(objectName)
-            blobClient.upload(content.inputStream(), content.size.toLong(), true)
-            logger.info("Uploaded blob {}/{} ({} bytes)", containerName, objectName, content.size)
+            blobClient.upload(stream, contentLength, true)
+            logger.info("Uploaded blob {}/{} via stream", containerName, objectName)
         } catch (e: Exception) {
-            logger.error("Failed to upload blob {} to container {}: {}", objectName, containerName, e.message, e)
+            logger.error(
+                "Failed to stream-upload blob {} to container {}: {}",
+                objectName,
+                containerName,
+                e.message,
+                e,
+            )
             throw e
         }
     }
