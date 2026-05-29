@@ -22,7 +22,7 @@ import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiTokenResponse
 import com.baseflow.api.wopi.models.WopiUnlockResult
-import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.config.WopiConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.WopiSlatService
@@ -52,9 +52,10 @@ import org.koin.ktor.plugin.scope
  */
 private val RoutingContext.slatService: WopiSlatService
     get() = call.scope.get<WopiSlatService> {
+        val config = call.scope.get<WopiConfig>()
         parametersOf(
-            WopiConfig.slatSecret,
-            WopiConfig.slatTtlSeconds,
+            config.slatSecret,
+            config.slatTtlSeconds,
         )
     }
 
@@ -433,16 +434,27 @@ private suspend fun RoutingContext.getFileMetadata() {
         )
     } else {
         val checkFileInfoResponse = CheckFileInfoResponse(
+            // Required CheckFileInfo properties
             baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
-            size = result.bestandsomvang,
-            userCanWrite = true,
-            supportsAutosave = false,
-            userFriendlyName = "Unknown user",
-            supportsLocks = true,
-            supportsGetLock = true,
-            supportsUpdate = true,
             lastModifiedTime = result.beginRegistratie,
+            ownerId = "", // TODO(mvanbeusekom): It is unclear how to determine the ownerId of the document.
+            size = result.bestandsomvang,
+            userId = "", // TODO(mvanbeusekom): It is unclear how to determine the current user accessing the document.
             version = result.versie.toString(),
+            // WOPI Host capabilities
+            supportsAutosave = false,
+            supportsContainers = false,
+            supportsDeleteFile = false,
+            supportsGetLock = false,
+            supportsLocks = true,
+            supportsPutRelativeFile = true,
+            supportsRename = true,
+            supportsUpdate = true,
+            // User metadata properties
+            userFriendlyName = "Unknown user",
+            // User permissions
+            userCanRename = true,
+            userCanWrite = true,
         )
         call.respond(HttpStatusCode.OK, checkFileInfoResponse)
     }

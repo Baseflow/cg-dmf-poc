@@ -9,7 +9,9 @@ import io.ktor.openapi.Tag
 internal val openApiSpecifications = listOf(
     DocumentenOpenApiSpecification(),
 ).let { specs ->
-    if (WopiConfig.isEnabled()) {
+    val config = WopiConfig.fromEnv()
+
+    if (config.isEnabled()) {
         specs + WopiOpenApiSpecification()
     } else {
         specs
