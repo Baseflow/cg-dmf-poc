@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26651404184",
+    "runNumber": "736",
+    "branch": "dependabot/github_actions/dorny/paths-filter-4",
+    "date": "2026-05-29T17:19:45Z",
+    "path": "integration/26651404184/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26642593950",
     "runNumber": "99",
