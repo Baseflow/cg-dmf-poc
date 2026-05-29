@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26634198882",
+    "runNumber": "730",
+    "branch": "CGDMF-141-remaining-integrity-algos",
+    "date": "2026-05-29T11:22:54Z",
+    "path": "integration/26634198882/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26634190346",
     "runNumber": "729",
     "branch": "CGDMF-140-file-integrity",
