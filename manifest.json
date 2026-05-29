@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26637212862",
+    "runNumber": "732",
+    "branch": "resource_access-roles",
+    "date": "2026-05-29T12:34:02Z",
+    "path": "integration/26637212862/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26634507540",
     "runNumber": "98",
