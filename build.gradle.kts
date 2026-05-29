@@ -82,7 +82,7 @@ dependencies {
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.3")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.4")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
     implementation(platform("io.insert-koin:koin-bom:4.2.1"))
