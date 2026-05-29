@@ -7,7 +7,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.54.0"
 
     // Code formatting with Spotless and ktlint
-    id("com.diffplug.spotless") version "8.5.1"
+    id("com.diffplug.spotless") version "8.6.0"
 }
 
 group = "com.baseflow"
