@@ -151,6 +151,210 @@ class IntegrityCalculationServiceTest {
         assertEquals(expected.hash, actual.hash)
     }
 
+    // ── withIntegrity — all remaining algorithms ───────────────────────────────
+
+    @Test
+    fun `withIntegrity CRC_16 - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "CRC_16")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "CRC_16") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("CRC_16", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity CRC_16 - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "CRC_16")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "CRC_16") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity CRC_16 - empty input produces stable zero-like result`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(emptyBytes, "CRC_16")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(emptyBytes.inputStream(), "CRC_16") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `calculateIntegrity CRC_16 - produces known checksum for single byte 0x01`() {
+        // CRC-16/IBM of [0x01]: poly 0xA001, init 0
+        // feed(0): crc = (0 ushr 8) xor TABLE[(0 xor 1) and 0xFF] = TABLE[1] = 0xC0C1
+        val result = IntegrityCalculationService.calculateIntegrity(byteArrayOf(0x01), "CRC_16")
+        assertEquals("c0c1", result.hash)
+    }
+
+    @Test
+    fun `withIntegrity CRC_64 - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "CRC_64")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "CRC_64") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("CRC_64", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity CRC_64 - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "CRC_64")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "CRC_64") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity CRC_64 - empty input is stable`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(emptyBytes, "CRC_64")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(emptyBytes.inputStream(), "CRC_64") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_4 - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_4")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "FLETCHER_4") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("FLETCHER_4", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_4 - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "FLETCHER_4")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "FLETCHER_4") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_8 - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_8")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "FLETCHER_8") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("FLETCHER_8", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_8 - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "FLETCHER_8")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "FLETCHER_8") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_16 - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_16")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "FLETCHER_16") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("FLETCHER_16", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_16 - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "FLETCHER_16")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "FLETCHER_16") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_32 - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_32")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "FLETCHER_32") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("FLETCHER_32", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity FLETCHER_32 - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "FLETCHER_32")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "FLETCHER_32") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity HMAC - hash matches calculateIntegrity for sample bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "HMAC")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "HMAC") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("HMAC", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity HMAC - hash matches calculateIntegrity for binary bytes`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "HMAC")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "HMAC") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity HMAC - empty input is stable`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(emptyBytes, "HMAC")
+        val (_, actual) = IntegrityCalculationService.withIntegrity(emptyBytes.inputStream(), "HMAC") {
+            it.copyTo(OutputStream.nullOutputStream())
+        }
+        assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity - different inputs produce different hashes for every algorithm`() {
+        val input1 = "hello".toByteArray()
+        val input2 = "world".toByteArray()
+        val algorithms = listOf(
+            "CRC_16",
+            "CRC_32",
+            "CRC_64",
+            "FLETCHER_4",
+            "FLETCHER_8",
+            "FLETCHER_16",
+            "FLETCHER_32",
+            "HMAC",
+            "MD5",
+            "SHA_1",
+            "SHA_256",
+        )
+
+        for (algo in algorithms) {
+            val (_, r1) = IntegrityCalculationService.withIntegrity(
+                input1.inputStream(),
+                algo,
+            ) { it.copyTo(OutputStream.nullOutputStream()) }
+            val (_, r2) = IntegrityCalculationService.withIntegrity(
+                input2.inputStream(),
+                algo,
+            ) { it.copyTo(OutputStream.nullOutputStream()) }
+            assertTrue(
+                r1.hash != r2.hash,
+                "Expected different hashes for algo $algo but got '${r1.hash}' for both inputs",
+            )
+        }
+    }
+
     @Test
     fun `withIntegrity - returns empty result for blank algorithm without reading stream`() {
         var streamRead = false

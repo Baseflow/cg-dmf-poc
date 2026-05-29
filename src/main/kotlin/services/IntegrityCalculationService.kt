@@ -3,6 +3,7 @@
 package com.baseflow.services
 
 import com.baseflow.api.models.IntegriteitAlgoritme
+import java.io.FilterInputStream
 import java.io.InputStream
 import java.security.DigestInputStream
 import java.security.MessageDigest
@@ -89,11 +90,83 @@ class IntegrityCalculationService {
             return (s2 shl 32) or s1
         }
 
-        // ── HMAC-SHA256 with empty key (integrity without shared secret) ─────
+        // ── HMAC-SHA256 with fixed zero key (integrity without shared secret) ──
+        private val HMAC_KEY = SecretKeySpec(ByteArray(1) { 0 }, "HmacSHA256")
+
         private fun hmacSha256(data: ByteArray): String {
             val mac = Mac.getInstance("HmacSHA256")
-            mac.init(SecretKeySpec(ByteArray(0), "HmacSHA256"))
+            mac.init(HMAC_KEY)
             return mac.doFinal(data).joinToString("") { "%02x".format(it) }
+        }
+
+        // ── Streaming filter wrappers ─────────────────────────────────────────
+
+        private class Crc16InputStream(inner: InputStream) : FilterInputStream(inner) {
+            var crc = 0
+                private set
+
+            private fun feed(b: Int) {
+                if (b >= 0) crc = (crc ushr 8) xor CRC16_TABLE[(crc xor b) and 0xFF]
+            }
+
+            override fun read(): Int = super.read().also { feed(it) }
+            override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { n ->
+                if (n >
+                    0
+                ) {
+                    for (i in off until off + n) crc = (crc ushr 8) xor CRC16_TABLE[(crc xor (b[i].toInt() and 0xFF)) and 0xFF]
+                }
+            }
+        }
+
+        private class Crc64InputStream(inner: InputStream) : FilterInputStream(inner) {
+            var crc = 0L
+                private set
+
+            override fun read(): Int = super.read().also { b ->
+                if (b >= 0) {
+                    val idx = ((crc xor (b.toLong() and 0xFF)) and 0xFF).toInt()
+                    crc = (crc ushr 8) xor CRC64_TABLE[idx]
+                }
+            }
+
+            override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { n ->
+                if (n > 0) {
+                    for (i in off until off + n) {
+                        val idx = ((crc xor (b[i].toLong() and 0xFF)) and 0xFF).toInt()
+                        crc = (crc ushr 8) xor CRC64_TABLE[idx]
+                    }
+                }
+            }
+        }
+
+        private class FletcherInputStream(inner: InputStream, private val mod: Long, private val bits: Int, private val mask: Int = 0xFF) :
+            FilterInputStream(inner) {
+            var s1 = 0L
+                private set
+            var s2 = 0L
+                private set
+
+            private fun feed(b: Int) {
+                s1 = (s1 + (b.toLong() and mask.toLong())) % mod
+                s2 = (s2 + s1) % mod
+            }
+
+            override fun read(): Int = super.read().also { if (it >= 0) feed(it) }
+            override fun read(b: ByteArray, off: Int, len: Int): Int =
+                super.read(b, off, len).also { n -> if (n > 0) for (i in off until off + n) feed(b[i].toInt()) }
+
+            fun result(): Long = (s2 shl (bits / 2)) or s1
+        }
+
+        private class HmacInputStream(inner: InputStream) : FilterInputStream(inner) {
+            private val mac = Mac.getInstance("HmacSHA256").also { it.init(HMAC_KEY) }
+
+            override fun read(): Int = super.read().also { if (it >= 0) mac.update(it.toByte()) }
+            override fun read(b: ByteArray, off: Int, len: Int): Int =
+                super.read(b, off, len).also { n -> if (n > 0) mac.update(b, off, n) }
+
+            fun result(): String = mac.doFinal().joinToString("") { "%02x".format(it) }
         }
 
         // ── Shared helpers ───────────────────────────────────────────────────
@@ -139,16 +212,11 @@ class IntegrityCalculationService {
          * Wraps [stream] in the appropriate digest/checksum filter for [algorithm], invokes
          * [block] with the wrapped stream (e.g. to upload it), then returns the computed hash.
          *
-         * The bytes are never accumulated in memory — the hash accumulates as a side-effect of
-         * whatever [block] does with the stream (a single pass).
+         * The hash accumulates as a side-effect of whatever [block] does with the stream —
+         * bytes are never buffered in memory; all algorithms use true streaming filters.
          *
          * When [algorithm] is null or blank [block] is called with the original [stream] and
          * empty strings are returned, so the upload still proceeds normally.
-         *
-         * Note: CRC_16, CRC_64, Fletcher variants, and HMAC do not use a standard Java streaming filter here.
-         * The stream is buffered up-front (readAllBytes) and [block] receives a ByteArrayInputStream; the checksum is computed
-         * from the buffered bytes after [block] completes.
-         * All MessageDigest-based algorithms (MD5, SHA_1, SHA_256) and CRC_32 use true streaming filters.
          */
         fun <T> withIntegrity(stream: InputStream, algorithm: String?, block: (InputStream) -> T): Pair<T, IntegrityCalculationResult> {
             if (algorithm.isNullOrEmpty()) {
@@ -156,11 +224,53 @@ class IntegrityCalculationService {
             }
             val algo = IntegriteitAlgoritme.valueOf(algorithm)
             return when (algo) {
+                IntegriteitAlgoritme.CRC_16 -> {
+                    val cis = Crc16InputStream(stream)
+                    val result = block(cis)
+                    result to IntegrityCalculationResult(cis.crc.toString(16), algorithm)
+                }
+
                 IntegriteitAlgoritme.CRC_32 -> {
                     val crc32 = CRC32()
                     val cis = CheckedInputStream(stream, crc32)
                     val result = block(cis)
                     result to IntegrityCalculationResult(crc32.value.toString(16), algorithm)
+                }
+
+                IntegriteitAlgoritme.CRC_64 -> {
+                    val cis = Crc64InputStream(stream)
+                    val result = block(cis)
+                    result to IntegrityCalculationResult(cis.crc.toULong().toString(16), algorithm)
+                }
+
+                IntegriteitAlgoritme.FLETCHER_4 -> {
+                    val fis = FletcherInputStream(stream, mod = 15L, bits = 8, mask = 0x03)
+                    val result = block(fis)
+                    result to IntegrityCalculationResult(fis.result().toString(16), algorithm)
+                }
+
+                IntegriteitAlgoritme.FLETCHER_8 -> {
+                    val fis = FletcherInputStream(stream, mod = 255L, bits = 16)
+                    val result = block(fis)
+                    result to IntegrityCalculationResult(fis.result().toUInt().toString(16), algorithm)
+                }
+
+                IntegriteitAlgoritme.FLETCHER_16 -> {
+                    val fis = FletcherInputStream(stream, mod = 65535L, bits = 32)
+                    val result = block(fis)
+                    result to IntegrityCalculationResult(fis.result().toUInt().toString(16), algorithm)
+                }
+
+                IntegriteitAlgoritme.FLETCHER_32 -> {
+                    val fis = FletcherInputStream(stream, mod = 4294967295L, bits = 64)
+                    val result = block(fis)
+                    result to IntegrityCalculationResult(fis.result().toULong().toString(16), algorithm)
+                }
+
+                IntegriteitAlgoritme.HMAC -> {
+                    val his = HmacInputStream(stream)
+                    val result = block(his)
+                    result to IntegrityCalculationResult(his.result(), algorithm)
                 }
 
                 IntegriteitAlgoritme.MD5,
@@ -172,20 +282,6 @@ class IntegrityCalculationService {
                     val result = block(digestStream)
                     val hash = digest.digest().joinToString("") { "%02x".format(it) }
                     result to IntegrityCalculationResult(hash, algorithm)
-                }
-
-                // No standard streaming filter — buffer and hash after block completes.
-                IntegriteitAlgoritme.CRC_16,
-                IntegriteitAlgoritme.CRC_64,
-                IntegriteitAlgoritme.FLETCHER_4,
-                IntegriteitAlgoritme.FLETCHER_8,
-                IntegriteitAlgoritme.FLETCHER_16,
-                IntegriteitAlgoritme.FLETCHER_32,
-                IntegriteitAlgoritme.HMAC,
-                -> {
-                    val buffer = stream.readAllBytes()
-                    val result = block(buffer.inputStream())
-                    result to IntegrityCalculationResult(computeHash(buffer, algo), algorithm)
                 }
             }
         }
