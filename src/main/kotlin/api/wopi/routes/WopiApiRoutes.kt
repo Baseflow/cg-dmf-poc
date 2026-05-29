@@ -533,7 +533,7 @@ private suspend fun RoutingContext.renameFile() {
 private suspend fun RoutingContext.putRelativeFile() {
     val relativeTarget = call.request.headers["X-WOPI-RelativeTarget"]?.trim()
     val suggestedTarget = call.request.headers["X-WOPI-SuggestedTarget"]?.trim()
-    val contentLength = call.request.headers["X-WOPI-Size"]?.toLong()
+    val contentLength = call.request.headers["X-WOPI-Size"]?.toLongOrNull()
 
     // Exactly one of RelativeTarget or SuggestedTarget must be provided.
     if (relativeTarget == null && suggestedTarget == null) {
