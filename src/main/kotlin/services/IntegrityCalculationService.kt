@@ -59,7 +59,8 @@ class IntegrityCalculationService {
             return when (integriteitAlgoritme) {
                 IntegriteitAlgoritme.CRC_32 -> {
                     val crc32 = CRC32()
-                    val result = CheckedInputStream(stream, crc32).use(block)
+                    val cis = CheckedInputStream(stream, crc32)
+                    val result = block(cis)
                     result to IntegrityCalculationResult(crc32.value.toString(16), algorithm)
                 }
 
@@ -73,7 +74,8 @@ class IntegrityCalculationService {
                         else -> "SHA-256"
                     }
                     val digest = MessageDigest.getInstance(javaAlgo)
-                    val result = DigestInputStream(stream, digest).use(block)
+                    val digestStream = DigestInputStream(stream, digest)
+                    val result = block(digestStream)
                     val hash = digest.digest().joinToString("") { "%02x".format(it) }
                     result to IntegrityCalculationResult(hash, algorithm)
                 }

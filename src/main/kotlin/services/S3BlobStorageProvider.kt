@@ -16,13 +16,7 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
-import software.amazon.awssdk.services.s3.model.Delete
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
-import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
-import software.amazon.awssdk.services.s3.model.GetObjectRequest
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest
-import software.amazon.awssdk.services.s3.model.ObjectIdentifier
-import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import software.amazon.awssdk.services.s3.model.*
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI
@@ -103,11 +97,18 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
                 .key(objectName)
                 .contentLength(contentLength)
                 .build()
-            val response = s3Client.putObject(
-                putRequest,
-                AsyncRequestBody.fromInputStream(stream, contentLength, java.util.concurrent.Executors.newSingleThreadExecutor()),
-            ).join()
-            logger.info("Uploaded {}/{} via stream (ETag: {})", bucketName, objectName, response.eTag())
+
+            // Use forBlockingOutputStream to create a pipe: the SDK reads from one end
+            // while we write stream content into the other end on the current thread.
+            // This avoids issues with fromInputStream and FilterInputStream wrappers
+            // (e.g. DigestInputStream) where async reads produce short-read false positives.
+            val body = AsyncRequestBody.forBlockingOutputStream(contentLength)
+            val future = s3Client.putObject(putRequest, body)
+            stream.transferTo(body.outputStream())
+            body.outputStream().close()
+            val response = future.join()
+
+            logger.info("Uploaded {}/{} via stream (ETag: {}, {} bytes)", bucketName, objectName, response.eTag(), contentLength)
         } catch (e: Exception) {
             logger.error("Failed to stream-upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
             throw e

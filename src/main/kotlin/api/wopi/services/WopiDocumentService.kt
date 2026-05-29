@@ -28,7 +28,10 @@ import kotlin.time.Clock
  * as defined by the WOPI protocol. Delegates general EIO reads and writes to
  * [EnkelvoudigInformatieObjectService].
  */
-open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
+open class WopiDocumentService(
+    private val eioService: EnkelvoudigInformatieObjectService,
+    private val storageService: StorageService
+) {
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
      * Returns null when no record with [id] exists.
@@ -136,12 +139,19 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
      * - Create a new EIO record cloned from the source metadata and return
      *   [WopiPutRelativeFileResult.Success].
      */
-    fun wopiPutRelativeFile(sourceId: UUID, targetFileName: String, inputStream: InputStream): WopiPutRelativeFileResult {
+    fun wopiPutRelativeFile(
+        sourceId: UUID,
+        targetFileName: String,
+        inputStream: InputStream,
+        contentLength: Long,
+    ): WopiPutRelativeFileResult {
         val sourceMeta = transaction {
             val record = EIORecordEntity.findById(sourceId) ?: return@transaction null
             record.latestVersion() ?: return@transaction null
         } ?: return WopiPutRelativeFileResult.SourceNotFound
-        val bestandsomvang = sourceMeta.bestandsomvang ?: return WopiPutRelativeFileResult.SourceNotFound
+
+        // No collision — create a new EIO record.
+        val (fileType, readableStream) = StorageService.detectFileFormat(inputStream)
 
         // Generate the new EIO UUID upfront so the storage path is known before any DB work.
         // This lets us upload first and persist everything in a single transaction afterwards.
@@ -151,8 +161,8 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
 
         // Stream bytes to storage through a DigestInputStream so we compute the SHA-256 hash
         // in a single pass without holding a second copy of the payload in memory.
-        val (_, integrityResult) = IntegrityCalculationService.withIntegrity(inputStream, "SHA_256") { digestStream ->
-            storageService.uploadFile(bestandsLocatie, digestStream, bestandsomvang, repoName)
+        val (_, integrityResult) = IntegrityCalculationService.withIntegrity(readableStream, "SHA_256") { digestStream ->
+            storageService.uploadFile(bestandsLocatie, digestStream, contentLength, repoName)
         }
 
         // Persist the new EIO record and version in a single transaction now that we have the
@@ -170,8 +180,8 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
                 auteur = sourceMeta.auteur
                 creatieDatum = sourceMeta.creatieDatum
                 beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                formaat = sourceMeta.formaat
-                this.bestandsomvang = bestandsomvang
+                formaat = fileType
+                this.bestandsomvang = contentLength
                 this.bestandsLocatie = bestandsLocatie
                 bestandsRepository = sourceMeta.bestandsRepository
                 vertrouwlijkheidsAanduiding = sourceMeta.vertrouwlijkheidsAanduiding
