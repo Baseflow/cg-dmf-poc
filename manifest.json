@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26628618305",
+    "runNumber": "726",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/qs-6.15.2",
+    "date": "2026-05-29T09:13:41Z",
+    "path": "integration/26628618305/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26628525815",
     "runNumber": "723",
     "branch": "CGDMF-141-remaining-integrity-algos",
