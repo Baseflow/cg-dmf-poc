@@ -120,8 +120,8 @@ class IntegrityCalculationService {
             IntegriteitAlgoritme.CRC_64 -> crc64(data).toULong().toString(16)
             IntegriteitAlgoritme.FLETCHER_4 -> fletcher4(data).toString(16)
             IntegriteitAlgoritme.FLETCHER_8 -> fletcher8(data).toString(16)
-            IntegriteitAlgoritme.FLETCHER_16 -> fletcher16(data).toString(16)
-            IntegriteitAlgoritme.FLETCHER_32 -> fletcher32(data).toString(16)
+            IntegriteitAlgoritme.FLETCHER_16 -> fletcher16(data).toUInt().toString(16)
+            IntegriteitAlgoritme.FLETCHER_32 -> fletcher32(data).toULong().toString(16)
             IntegriteitAlgoritme.HMAC -> hmacSha256(data)
             IntegriteitAlgoritme.MD5,
             IntegriteitAlgoritme.SHA_1,
