@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26651440867",
+    "runNumber": "740",
+    "branch": "dependabot/gradle/com.diffplug.spotless-8.6.0",
+    "date": "2026-05-29T17:20:44Z",
+    "path": "integration/26651440867/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26651398738",
     "runNumber": "735",
     "branch": "dependabot/github_actions/actions/setup-node-6",
