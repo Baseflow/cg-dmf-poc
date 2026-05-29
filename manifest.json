@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26625368758",
+    "runNumber": "720",
+    "branch": "CGDMF-140-file-integrity",
+    "date": "2026-05-29T07:59:34Z",
+    "path": "integration/26625368758/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26610256875",
     "runNumber": "97",
