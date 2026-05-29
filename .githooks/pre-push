@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env sh
 # Run spotlessApply before pushing to keep code formatting consistent.
 # This file lives in .githooks/ and is tracked by Git.
 # Git is pointed at this directory via: git config core.hooksPath .githooks
