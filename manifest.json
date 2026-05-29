@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26651428558",
+    "runNumber": "739",
+    "branch": "dependabot/gradle/com.google.devtools.ksp-2.3.9",
+    "date": "2026-05-29T17:21:15Z",
+    "path": "integration/26651428558/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26651440867",
     "runNumber": "740",
     "branch": "dependabot/gradle/com.diffplug.spotless-8.6.0",
