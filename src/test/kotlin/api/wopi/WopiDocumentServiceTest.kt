@@ -23,7 +23,9 @@ import com.baseflow.services.StorageService
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import com.baseflow.tooling.AllTables
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -64,7 +66,8 @@ class WopiDocumentServiceTest {
         transaction { AllTables.createMissing() }
 
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers
+            { secondArg<ByteArray>().size.toLong() }
         every {
             mockStorageService.uploadFile(
                 any<String>(),
@@ -72,7 +75,8 @@ class WopiDocumentServiceTest {
                 any<Long>(),
                 anyNullable(),
             )
-        } returns Unit
+        } answers { thirdArg<Long>() }
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } just Runs
         every {
             mockStorageService.downloadFileTo(
                 any(),
@@ -80,8 +84,6 @@ class WopiDocumentServiceTest {
                 anyNullable(),
             )
         } returns CompletableFuture.completedFuture(null)
-        every { mockStorageService.deleteFiles((any())) } returns Unit
-        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
 
         mockAuditTrailService = mockk<AuditTrailService>()
         every { mockAuditTrailService.removeAuditTrailsForResource(any()) } returns Unit

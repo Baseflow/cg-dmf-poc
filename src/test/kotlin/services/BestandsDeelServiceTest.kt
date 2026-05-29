@@ -104,7 +104,9 @@ class BestandsDeelServiceTest {
         bestandsDeelService = BestandsDeelService(smallConfig)
 
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers {
+            secondArg<ByteArray>().size.toLong()
+        }
         every {
             mockStorageService.uploadFile(
                 any<String>(),
@@ -112,7 +114,7 @@ class BestandsDeelServiceTest {
                 any<Long>(),
                 anyNullable(),
             )
-        } returns Unit
+        } answers { thirdArg<Long>() }
         val auditContext = AuditContext()
         eioService = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
@@ -186,7 +188,7 @@ class BestandsDeelServiceTest {
                 any<Long>(),
                 anyNullable(),
             )
-        } returns Unit
+        } answers { thirdArg<Long>() }
 
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, bytes.inputStream(), mockStorageService)
 
@@ -246,15 +248,21 @@ class BestandsDeelServiceTest {
         val eio = eioService.create(request)
         val part = eio.bestandsdelen.first()
         val uuid = UUID.fromString(part.url.substringAfterLast("/"))
-        val wrongSizeBytes = ByteArray(3) { it.toByte() }.inputStream() // part.omvang is 4, not 3
+        val wrongSizeBytes = ByteArray(3) { it.toByte() } // part.omvang is 4, not 3
 
-        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, wrongSizeBytes, mockStorageService)
+        // Mock uploadFile to return the wrong byte count — the service checks the return value
+        // against part.omvang and must return OmvangMismatch without marking the part voltooid.
+        every {
+            mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable())
+        } returns wrongSizeBytes.size.toLong()
+
+        val result = bestandsDeelService.uploadFilePart(uuid, part.lock, wrongSizeBytes.inputStream(), mockStorageService)
 
         assertIs<UploadFilePartResult.OmvangMismatch>(result)
         assertEquals(part.omvang, result.expected)
         assertEquals(3L, result.actual)
-        io.mockk.verify(exactly = 0) { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) }
-        io.mockk.verify(exactly = 0) {
+        // uploadFile was called (mismatch detected from its return value), but the part must not be marked voltooid
+        io.mockk.verify(exactly = 1) {
             mockStorageService.uploadFile(
                 any<String>(),
                 any<java.io.InputStream>(),
@@ -310,7 +318,9 @@ class BestandsDeelServiceTest {
         }
 
         val capturedRepos = mutableListOf<String?>()
-        every { mockStorageService.uploadFile(any(), any(), 4L, captureNullable(capturedRepos)) } returns Unit
+        every { mockStorageService.uploadFile(any(), any(), 4L, captureNullable(capturedRepos)) } answers {
+            thirdArg<Long>()
+        }
 
         val stream = ByteArray(4).inputStream()
         bestandsDeelService.uploadFilePart(uuid, part.lock, stream, mockStorageService)
@@ -333,7 +343,7 @@ class BestandsDeelServiceTest {
                 any<Long>(),
                 captureNullable(capturedRepos),
             )
-        } returns Unit
+        } answers { thirdArg<Long>() }
 
         val stream = ByteArray(4).inputStream()
         bestandsDeelService.uploadFilePart(uuid, part.lock, stream, mockStorageService)

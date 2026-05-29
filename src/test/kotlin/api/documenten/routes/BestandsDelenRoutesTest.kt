@@ -61,8 +61,8 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
         val auditContext = AuditContext()
         val bestandsDeelService = BestandsDeelService(SMALL_CHUNK_CONFIG)
         val storageService = mockk<StorageService>().also {
-            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
-            every { it.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } returns Unit
+            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers { secondArg<ByteArray>().size.toLong() }
+            every { it.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } answers { thirdArg<Long>() }
         }
         val service = EnkelvoudigInformatieObjectService(
             storageService = storageService,

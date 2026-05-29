@@ -63,7 +63,8 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers
+            { secondArg<ByteArray>().size.toLong() }
         every {
             mockStorageService.uploadFile(
                 any<String>(),
@@ -71,7 +72,7 @@ class EnkelvoudigInformatieObjectServiceTest {
                 any<Long>(),
                 anyNullable(),
             )
-        } returns Unit
+        } returns 0L
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         mockAuditTrailService = mockk<AuditTrailService>()
@@ -302,6 +303,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             // Read the stream eagerly so we can assert on its contents later.
             val captured = secondArg<java.io.InputStream>().readBytes()
             mergedBytesSlot.add(captured)
+            thirdArg<Long>() // return contentLength to satisfy the Long return type
         }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
 

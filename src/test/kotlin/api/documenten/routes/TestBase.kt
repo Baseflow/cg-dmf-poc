@@ -62,8 +62,8 @@ open class TestBase(dbNamePrefix: String) {
         connectDb()
 
         mockStorageService = mockk<StorageService>(relaxed = true).also {
-            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
-            every { it.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } returns Unit
+            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers { secondArg<ByteArray>().size.toLong() }
+            every { it.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } answers { thirdArg<Long>() }
             every { it.downloadFileTo(any(), any(), anyNullable()) } returns CompletableFuture.completedFuture(null)
         }
 

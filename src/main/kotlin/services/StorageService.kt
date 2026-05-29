@@ -62,17 +62,16 @@ open class StorageService(
     }
 
     /**
-     * Upload a file to the default (or named) repository.
+     * Upload a file to the default (or named) repository. Returns the number of bytes uploaded.
      */
-    fun uploadFile(objectName: String, content: ByteArray, repoName: String? = null) {
+    fun uploadFile(objectName: String, content: ByteArray, repoName: String? = null): Long =
         resolveProvider(repoName).uploadFile(objectName, content)
-    }
 
     /**
      * Upload from a stream of known [contentLength] bytes. Avoids materialising the full content
-     * in memory – use this for large files (e.g. merged bestandsdelen).
+     * in memory – use this for large files (e.g. merged bestandsdelen). Returns the number of bytes uploaded.
      */
-    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null) =
+    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null): Long =
         resolveProvider(repoName).uploadFile(objectName, stream, contentLength)
 
     /**

@@ -8,20 +8,11 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.middleware.configureStatusPages
-import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopi.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BestandsDeelConfig
 import com.baseflow.config.OpenZaakConfig
-import com.baseflow.services.AuditTrailService
-import com.baseflow.services.BestandsDeelService
-import com.baseflow.services.BlobStorageRegistrar
-import com.baseflow.services.CatalogusService
-import com.baseflow.services.EnkelvoudigInformatieObjectService
-import com.baseflow.services.NotificationService
-import com.baseflow.services.ObjectInformatieObjectService
-import com.baseflow.services.StorageService
-import com.baseflow.services.WopiSlatService
+import com.baseflow.services.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -102,7 +93,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
         connectDb()
 
         val mockStorageService = mockk<StorageService>(relaxed = true).also {
-            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
+            every { it.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns 0L
             every { it.downloadFileTo(any(), any(), anyNullable()) } returns CompletableFuture.completedFuture(null)
         }
 

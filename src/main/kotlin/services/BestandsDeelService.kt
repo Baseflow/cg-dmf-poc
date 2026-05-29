@@ -117,7 +117,10 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
                     bestandsDeelId = id,
                 )
                 val repoName = version.bestandsRepository.takeUnless { it.isBlank() }
-                storageService.uploadFile(storageKey, inputStream, part.omvang, repoName)
+                val uploadedBytes = storageService.uploadFile(storageKey, inputStream, part.omvang, repoName)
+                if (uploadedBytes != part.omvang) {
+                    return@transaction UploadFilePartResult.OmvangMismatch(part.omvang, uploadedBytes)
+                }
             }
 
             part.voltooid = true
