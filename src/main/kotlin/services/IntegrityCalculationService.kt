@@ -145,10 +145,10 @@ class IntegrityCalculationService {
          * When [algorithm] is null or blank [block] is called with the original [stream] and
          * empty strings are returned, so the upload still proceeds normally.
          *
-         * Note: CRC_16, CRC_64, Fletcher variants, and HMAC do not have standard Java streaming
-         * filter support. For those algorithms the stream bytes are accumulated and hashed after
-         * [block] completes. All MessageDigest-based algorithms (MD5, SHA_1, SHA_256) and CRC_32
-         * use true streaming filters.
+         * Note: CRC_16, CRC_64, Fletcher variants, and HMAC do not use a standard Java streaming filter here.
+         * The stream is buffered up-front (readAllBytes) and [block] receives a ByteArrayInputStream; the checksum is computed
+         * from the buffered bytes after [block] completes.
+         * All MessageDigest-based algorithms (MD5, SHA_1, SHA_256) and CRC_32 use true streaming filters.
          */
         fun <T> withIntegrity(stream: InputStream, algorithm: String?, block: (InputStream) -> T): Pair<T, IntegrityCalculationResult> {
             if (algorithm.isNullOrEmpty()) {
