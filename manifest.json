@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26651475293",
+    "runNumber": "743",
+    "branch": "dependabot/gradle/com.fasterxml.jackson.dataformat-jackson-dataformat-yaml-2.21.4",
+    "date": "2026-05-29T17:22:03Z",
+    "path": "integration/26651475293/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26651463520",
     "runNumber": "742",
     "branch": "dependabot/gradle/com.fasterxml.jackson.core-jackson-core-2.21.4",
