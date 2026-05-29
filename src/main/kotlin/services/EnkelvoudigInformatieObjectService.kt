@@ -149,12 +149,14 @@ class EnkelvoudigInformatieObjectService(
                 "bestandsLocatie must not be blank when inhoud is present"
             }
             val integriteit = request.integriteit
-            IntegrityCalculationService.calculateIntegrity(content, integriteit?.algoritme.toString())
-                .let { (calculatedHash) ->
-                    require(integriteit?.algoritme == null || calculatedHash == integriteit.waarde) {
-                        "Integrity check failed: calculated hash does not match the provided value."
+            if (integriteit?.algoritme != null) {
+                IntegrityCalculationService.calculateIntegrity(content, integriteit.algoritme.toString())
+                    .let { (calculatedHash) ->
+                        require(calculatedHash == integriteit.waarde) {
+                            "Integrity check failed: calculated hash does not match the provided value."
+                        }
                     }
-                }
+            }
             storageService.uploadFile(bestandsLocatie, content, repoName)
             return UploadResultaat(
                 bestandsFormaat = fileType,
@@ -749,7 +751,7 @@ class EnkelvoudigInformatieObjectService(
             storageService.uploadFile(newBestandsLocatie, bytes)
 
             val integrityResult =
-                IntegrityCalculationService.calculateIntegrity(bytes, latestVersion?.integriteitAlgoritme.toString())
+                IntegrityCalculationService.calculateIntegrity(bytes, latestVersion?.integriteitAlgoritme)
             val version = EIOVersionEntity.new {
                 recordId = record
                 versie = newVersionNumber

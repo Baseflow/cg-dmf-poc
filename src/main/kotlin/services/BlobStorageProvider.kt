@@ -19,8 +19,8 @@ interface BlobStorageProvider {
     fun uploadFile(objectName: String, content: ByteArray)
 
     /**
-     * Upload a stream of [contentLength] bytes as [objectName] and return the number of bytes
-     * actually written. The default implementation buffers the stream into a [ByteArray];
+     * Upload a stream of [contentLength] bytes as [objectName]
+     * The default implementation buffers the stream into a [ByteArray];
      * backends should override for true zero-copy streaming.
      * Pass [contentLength] = `-1L` when the size is not known upfront.
      */

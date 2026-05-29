@@ -97,9 +97,9 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
      * The chunk is stored under the key `{recordId}/{versie}/parts/{bestandsDeelId}` so it
      * can later be reassembled in the correct order when the parent EIO is unlocked.
      *
-     * @param id          UUID of the [BestandsDeelEntity] to update.
-     * @param lockToken   Lock token that must match the one stored on the part.
-     * @param inputStream     Raw bytes of the uploaded chunk (may be empty/null if no file was sent).
+     * @param id            UUID of the [BestandsDeelEntity] to update.
+     * @param lockToken     Lock token that must match the one stored on the part.
+     * @param inputStream   Raw bytes of the uploaded chunk (null if no file was sent).
      * @param storageService  Service used to persist the chunk in S3.
      * @return [UploadFilePartResult.Success], [UploadFilePartResult.NotFound], [UploadFilePartResult.InvalidLock]
      *         or [UploadFilePartResult.OmvangMismatch].
@@ -109,14 +109,7 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
             val part = BestandsDeelEntity.findById(id) ?: return@transaction UploadFilePartResult.NotFound
             if (part.lock != lockToken) return@transaction UploadFilePartResult.InvalidLock
 
-            if (inputStream != null && inputStream.available() > 0) {
-                // Pre-validate size using available() — reliable for ByteArrayInputStream
-                // and HTTP streams where the Ktor engine sets the limit to Content-Length.
-                val reported = inputStream.available().toLong()
-                if (reported != part.omvang) {
-                    return@transaction UploadFilePartResult.OmvangMismatch(expected = part.omvang, actual = reported)
-                }
-
+            if (inputStream != null) {
                 val version = part.versionId
                 val storageKey = bestandsDeelStorageKey(
                     recordId = version.recordId.id.value,

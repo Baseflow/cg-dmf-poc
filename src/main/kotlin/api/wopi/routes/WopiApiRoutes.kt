@@ -572,42 +572,43 @@ private suspend fun RoutingContext.putRelativeFile() {
     if (respondIfInvalidFileName(targetFileName)) return
 
     val sourceFileId = call.attributes[WopiValidatedFileIdKey]
-    val inputStream = call.receiveChannel().toInputStream()
 
-    when (
-        val result = wopiService.wopiPutRelativeFile(
-            sourceId = sourceFileId,
-            targetFileName = targetFileName,
-            inputStream = inputStream,
-            contentLength = contentLength,
-        )
-    ) {
-        is WopiPutRelativeFileResult.SourceNotFound ->
-            call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
-
-        is WopiPutRelativeFileResult.NameConflict -> {
-            call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
-            call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("A file named '$targetFileName' already exists.", call.request.path()),
+    call.receiveChannel().toInputStream().use { inputStream ->
+        when (
+            val result = wopiService.wopiPutRelativeFile(
+                sourceId = sourceFileId,
+                targetFileName = targetFileName,
+                inputStream = inputStream,
+                contentLength = contentLength,
             )
-        }
+        ) {
+            is WopiPutRelativeFileResult.SourceNotFound ->
+                call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
 
-        is WopiPutRelativeFileResult.TargetLocked -> {
-            call.response.headers.append("X-WOPI-Lock", result.currentLock)
-            call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("Target file is locked.", call.request.path()),
-            )
-        }
+            is WopiPutRelativeFileResult.NameConflict -> {
+                call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("A file named '$targetFileName' already exists.", call.request.path()),
+                )
+            }
 
-        is WopiPutRelativeFileResult.Success -> {
-            val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
-                "/wopi/api/v1/files/${result.fileId}"
-            call.respond(
-                HttpStatusCode.OK,
-                PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
-            )
+            is WopiPutRelativeFileResult.TargetLocked -> {
+                call.response.headers.append("X-WOPI-Lock", result.currentLock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("Target file is locked.", call.request.path()),
+                )
+            }
+
+            is WopiPutRelativeFileResult.Success -> {
+                val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
+                    "/wopi/api/v1/files/${result.fileId}"
+                call.respond(
+                    HttpStatusCode.OK,
+                    PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
+                )
+            }
         }
     }
 }

@@ -104,11 +104,18 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             // (e.g. DigestInputStream) where async reads produce short-read false positives.
             val body = AsyncRequestBody.forBlockingOutputStream(contentLength)
             val future = s3Client.putObject(putRequest, body)
-            stream.transferTo(body.outputStream())
-            body.outputStream().close()
+            val outputStream = body.outputStream()
+            stream.transferTo(outputStream)
+            outputStream.close()
             val response = future.join()
 
-            logger.info("Uploaded {}/{} via stream (ETag: {}, {} bytes)", bucketName, objectName, response.eTag(), contentLength)
+            logger.info(
+                "Uploaded {}/{} via stream (ETag: {}, {} bytes)",
+                bucketName,
+                objectName,
+                response.eTag(),
+                contentLength,
+            )
         } catch (e: Exception) {
             logger.error("Failed to stream-upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
             throw e

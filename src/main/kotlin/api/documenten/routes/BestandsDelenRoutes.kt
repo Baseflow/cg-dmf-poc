@@ -87,7 +87,6 @@ fun Route.bestandsDelenRoutes() {
                     inputStream = part.provider().readRemaining().inputStream()
             }
             part.release()
-            part.release()
         }
 
         if (lockToken.isNullOrBlank()) {

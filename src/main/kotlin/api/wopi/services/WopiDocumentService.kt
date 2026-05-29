@@ -16,6 +16,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
@@ -29,6 +30,7 @@ import kotlin.time.Clock
  * [EnkelvoudigInformatieObjectService].
  */
 open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObjectService, private val storageService: StorageService) {
+    private val logger = LoggerFactory.getLogger(WopiDocumentService::class.java)
     /**
      * Locks a file for a WOPI client using [wopiClientLock] as the lock token.
      * Returns null when no record with [id] exists.
@@ -147,48 +149,60 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
             record.latestVersion() ?: return@transaction null
         } ?: return WopiPutRelativeFileResult.SourceNotFound
 
-        // No collision — create a new EIO record.
         val (fileType, readableStream) = StorageService.detectFileFormat(inputStream)
 
-        // Generate the new EIO UUID upfront so the storage path is known before any DB work.
-        // This lets us upload first and persist everything in a single transaction afterwards.
         val newId = UUID.randomUUID()
         val bestandsLocatie = "$newId/1/$targetFileName"
         val repoName = sourceMeta.bestandsRepository.takeUnless { it.isBlank() }
 
-        // Stream bytes to storage through a DigestInputStream so we compute the SHA-256 hash
-        // in a single pass without holding a second copy of the payload in memory.
-        val (_, integrityResult) = IntegrityCalculationService.withIntegrity(readableStream, "SHA_256") { digestStream ->
-            storageService.uploadFile(bestandsLocatie, digestStream, contentLength, repoName)
+        // Upload first so we can compute the SHA-256 hash in a single streaming pass.
+        // Always close the inputStream afterwards; on upload failure let the exception propagate.
+        val integrityResult = inputStream.use {
+            val (_, result) = IntegrityCalculationService.withIntegrity(readableStream, "SHA_256") { digestStream ->
+                storageService.uploadFile(bestandsLocatie, digestStream, contentLength, repoName)
+            }
+            result
         }
 
-        // Persist the new EIO record and version in a single transaction now that we have the
-        // storage path and integrity hash.
-        transaction {
-            val newRecord = EIORecordEntity.new(newId) {}
-            EIOVersionEntity.new {
-                recordId = newRecord
-                versie = 1
-                bronOrganisatie = sourceMeta.bronOrganisatie
-                informatieobject_type = sourceMeta.informatieobject_type
-                taal = sourceMeta.taal
-                bestandsnaam = targetFileName
-                titel = targetFileName
-                auteur = sourceMeta.auteur
-                creatieDatum = sourceMeta.creatieDatum
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                formaat = fileType
-                this.bestandsomvang = contentLength
-                this.bestandsLocatie = bestandsLocatie
-                bestandsRepository = sourceMeta.bestandsRepository
-                vertrouwlijkheidsAanduiding = sourceMeta.vertrouwlijkheidsAanduiding
-                status = sourceMeta.status
-                beschrijving = sourceMeta.beschrijving
-                indicatieGebruiksrecht = sourceMeta.indicatieGebruiksrecht
-                integriteitAlgoritme = integrityResult.algorithm
-                integriteitWaarde = integrityResult.hash
-                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        // Persist the DB record. On failure, clean up the orphaned blob so storage stays consistent.
+        try {
+            transaction {
+                val newRecord = EIORecordEntity.new(newId) {}
+                EIOVersionEntity.new {
+                    recordId = newRecord
+                    versie = 1
+                    bronOrganisatie = sourceMeta.bronOrganisatie
+                    informatieobject_type = sourceMeta.informatieobject_type
+                    taal = sourceMeta.taal
+                    bestandsnaam = targetFileName
+                    titel = targetFileName
+                    auteur = sourceMeta.auteur
+                    creatieDatum = sourceMeta.creatieDatum
+                    beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    formaat = fileType
+                    this.bestandsomvang = contentLength
+                    this.bestandsLocatie = bestandsLocatie
+                    bestandsRepository = sourceMeta.bestandsRepository
+                    vertrouwlijkheidsAanduiding = sourceMeta.vertrouwlijkheidsAanduiding
+                    status = sourceMeta.status
+                    beschrijving = sourceMeta.beschrijving
+                    indicatieGebruiksrecht = sourceMeta.indicatieGebruiksrecht
+                    integriteitAlgoritme = integrityResult.algorithm
+                    integriteitWaarde = integrityResult.hash
+                    integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                }
             }
+        } catch (dbEx: Exception) {
+            runCatching { storageService.deleteFiles(listOf(bestandsLocatie), repoName) }
+                .onFailure { cleanupEx ->
+                    logger.warn(
+                        "wopiPutRelativeFile: DB persist failed for {} and blob cleanup also failed: {}",
+                        bestandsLocatie,
+                        cleanupEx.message,
+                        cleanupEx,
+                    )
+                }
+            throw dbEx
         }
 
         return WopiPutRelativeFileResult.Success(newId, targetFileName)
