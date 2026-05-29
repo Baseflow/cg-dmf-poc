@@ -32,7 +32,9 @@ data class CheckFileInfoResponse(
     @SerialName("UserCanRename")
     val userCanRename: Boolean = true,
     @SerialName("SupportsDeleteFile")
-    val supportsDeleteFile: Boolean = true,
+    val supportsDeleteFile: Boolean = false,
     @SerialName("SupportsPutRelativeFile")
     val supportsPutRelativeFile: Boolean = true,
+    @SerialName("SupportsContainers")
+    val supportsContainers: Boolean = false,
 )

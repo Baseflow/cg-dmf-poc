@@ -12,6 +12,7 @@ import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.WopiFileIdPlugin
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
+import com.baseflow.api.wopi.models.CheckContainerInfoResponse
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.api.wopi.models.PutRelativeFileResponse
 import com.baseflow.api.wopi.models.RenameFileResponse
@@ -102,6 +103,43 @@ fun Route.wopiApiRoutes() {
                     response(400) { description = "Bad request." }
                     response(404) { description = "Document not found." }
                     response(500) { description = "Internal server error." }
+                }
+            }
+        }
+
+        // ── Container endpoints ────────────────────────────────────────────────
+        route("/containers/{container_id}") {
+            get {
+                call.respondProblem(
+                    HttpStatusCode.NotImplemented,
+                    notImplemented("Containers are not supported by this DRC implementation.", call.request.path()),
+                )
+            }.describe {
+                operationId = "checkContainerInfo"
+                tag("wopi")
+                summary = "Check container info."
+                description =
+                    "Returns metadata and capability flags for the given container. " +
+                    "Requires a valid `access_token` query parameter. " +
+                    "In this DRC implementation a container corresponds to a bronorganisatie."
+                parameters {
+                    path("container_id") {
+                        description = "Identifier of the container (bronorganisatie code)."
+                        required = true
+                    }
+                    query("access_token") {
+                        description = "Short-lived access token obtained from POST /token/{file_id}."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Success."
+                        ContentType.Application.Json { schema = jsonSchema<CheckContainerInfoResponse>() }
+                    }
+                    response(401) { description = "Invalid access token." }
+                    response(404) { description = "Container not found." }
+                    response(500) { description = "Server error." }
                 }
             }
         }
