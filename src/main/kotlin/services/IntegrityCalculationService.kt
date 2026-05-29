@@ -28,17 +28,24 @@ class IntegrityCalculationService {
             return crc
         }
 
-        // ── CRC-64/ECMA-182 (poly 0xC96C5795D7870F42) ───────────────────────
+        // ── CRC-64/ECMA-182 (reflected poly 0xC96C5795D7870F42, init 0) ──────────────
+        private const val CRC64_ECMA_POLY: Long = -0x3693A86A2878F0BEL
+
         private val CRC64_TABLE: LongArray = LongArray(256) { i ->
             var crc = i.toLong()
-            repeat(8) { crc = if (crc and 1L != 0L) (crc ushr 1) xor -0x3693a86a2777a96bL else crc ushr 1 }
+            repeat(8) {
+                crc = if ((crc and 1L) != 0L) (crc ushr 1) xor CRC64_ECMA_POLY else crc ushr 1
+            }
             crc
         }
 
         private fun crc64(data: ByteArray): Long {
-            var crc = -1L
-            for (b in data) crc = (crc ushr 8) xor CRC64_TABLE[((crc xor b.toLong()) and 0xFF).toInt()]
-            return crc.inv()
+            var crc = 0L
+            for (b in data) {
+                val idx = ((crc xor (b.toLong() and 0xFF)) and 0xFF).toInt()
+                crc = (crc ushr 8) xor CRC64_TABLE[idx]
+            }
+            return crc
         }
 
         // ── Fletcher checksums ───────────────────────────────────────────────
