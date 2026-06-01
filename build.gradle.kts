@@ -22,7 +22,7 @@ dependencies {
     // Test dependencies
     testImplementation(kotlin("test"))
     testImplementation("com.h2database:h2:2.4.240")
-    testImplementation("io.mockk:mockk:1.14.9")
+    testImplementation("io.mockk:mockk:1.14.11")
     testImplementation("io.ktor:ktor-client-mock:3.5.0")
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.5.0")
     testImplementation("io.ktor:ktor-client-content-negotiation:3.5.0")
