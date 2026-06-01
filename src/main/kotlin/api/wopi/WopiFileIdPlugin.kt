@@ -2,11 +2,8 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi
 
-import com.baseflow.api.models.ProblemDetailsResponse
-import com.baseflow.api.models.respondProblem
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
-import io.ktor.server.request.path
+import io.ktor.server.plugins.BadRequestException
 import java.util.UUID
 
 /**
@@ -19,32 +16,12 @@ import java.util.UUID
 val WopiFileIdPlugin = createRouteScopedPlugin(name = "WopiFileId") {
     onCall { call ->
         val raw = call.parameters["file_id"]
-        if (raw == null) {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                ProblemDetailsResponse(
-                    title = "Bad Request",
-                    status = HttpStatusCode.BadRequest.value,
-                    detail = "Missing file_id path parameter.",
-                    instance = call.request.path(),
-                ),
-            )
-            return@onCall
-        }
+            ?: throw BadRequestException("Missing file_id path parameter.")
 
         val uuid = try {
             UUID.fromString(raw)
         } catch (_: IllegalArgumentException) {
-            call.respondProblem(
-                HttpStatusCode.BadRequest,
-                ProblemDetailsResponse(
-                    title = "Bad Request",
-                    status = HttpStatusCode.BadRequest.value,
-                    detail = "Invalid file_id path parameter. Expected a UUID.",
-                    instance = call.request.path(),
-                ),
-            )
-            return@onCall
+            throw BadRequestException("Invalid file_id path parameter. Expected a UUID.")
         }
 
         call.attributes.put(WopiValidatedFileIdKey, uuid)

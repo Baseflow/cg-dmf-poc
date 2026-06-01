@@ -107,6 +107,13 @@ suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, message: Stri
 }
 
 // Convenience factories
+fun unauthorized(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Unauthorized",
+    status = HttpStatusCode.Unauthorized.value,
+    detail = detail,
+    instance = instance,
+)
+
 fun badRequest(detail: String, instance: String? = null) = ProblemDetailsResponse(
     title = "Bad Request",
     status = HttpStatusCode.BadRequest.value,
