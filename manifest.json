@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26651424079",
+    "runNumber": "738",
+    "branch": "dependabot/gradle/flyway-fd8ad0e978",
+    "date": "2026-06-01T07:48:18Z",
+    "path": "integration/26651424079/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26651421344",
     "runNumber": "737",
     "branch": "dependabot/gradle/aws-sdk-778cea282d",
