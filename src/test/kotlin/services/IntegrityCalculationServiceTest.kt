@@ -363,22 +363,38 @@ class IntegrityCalculationServiceTest {
 
     @Test
     fun `calculateIntegrity FLETCHER_4 - produces known checksum for quick fox`() {
-        assertEquals("39", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_4").hash)
+        // libscrc.fletcher8(b"The quick brown fox jumps over the lazy dog")
+        assertEquals("29", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_4").hash)
     }
 
     @Test
     fun `calculateIntegrity FLETCHER_8 - produces known checksum for quick fox`() {
+        // libscrc.fletcher16 = Wikipedia Fletcher-16: libscrc.fletcher16(b"The quick brown fox...")
         assertEquals("fee8", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_8").hash)
     }
 
     @Test
+    fun `calculateIntegrity FLETCHER_8 - produces Wikipedia reference value for abcde`() {
+        // Wikipedia explicit example: Fletcher-16("abcde") = 0xC8F0
+        assertEquals("c8f0", IntegrityCalculationService.calculateIntegrity("abcde".toByteArray(), "FLETCHER_8").hash)
+    }
+
+    @Test
     fun `calculateIntegrity FLETCHER_16 - produces known checksum for quick fox`() {
-        assertEquals("5ba30fd9", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_16").hash)
+        // libscrc.fletcher32 = Wikipedia Fletcher-32: libscrc.fletcher32(b"The quick brown fox...")
+        assertEquals("53cd5b8d", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_16").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity FLETCHER_16 - produces Wikipedia reference value for abcde`() {
+        // Canonical reference: Fletcher-32("abcde") = 0xF04FC729
+        assertEquals("f04fc729", IntegrityCalculationService.calculateIntegrity("abcde".toByteArray(), "FLETCHER_16").hash)
     }
 
     @Test
     fun `calculateIntegrity FLETCHER_32 - produces known checksum for quick fox`() {
-        assertEquals("15ba200000fd9", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_32").hash)
+        // 32-bit LE word extension of libscrc pattern (no independent library)
+        assertEquals("7ba5bdcb1f163c77", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_32").hash)
     }
 
     @Test

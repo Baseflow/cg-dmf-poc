@@ -48,12 +48,18 @@ class IntegrityCalculationService {
         }
 
         // ── Fletcher checksums ───────────────────────────────────────────────
+        // Definitions align with libscrc: the N in FLETCHER_N denotes the input word size.
+        // FLETCHER_4  = libscrc.fletcher8  (4-bit nibble words, mod 16,       8-bit  output)
+        // FLETCHER_8  = libscrc.fletcher16 (8-bit byte words,  mod 255,       16-bit output)
+        // FLETCHER_16 = libscrc.fletcher32 (16-bit LE words,   mod 65535,     32-bit output, init 0xFFFF)
+        // FLETCHER_32 = consistent extension (32-bit LE words, mod 2^32-1,    64-bit output)
+
         private fun fletcher4(data: ByteArray): Int {
             var s1 = 0
             var s2 = 0
             for (b in data) {
-                s1 = (s1 + (b.toInt() and 0x0F)) % 15
-                s2 = (s2 + s1) % 15
+                s1 = (s1 + (b.toInt() and 0x0F)) % 16
+                s2 = (s2 + s1) % 16
             }
             return (s2 shl 4) or s1
         }
@@ -69,21 +75,41 @@ class IntegrityCalculationService {
         }
 
         private fun fletcher16(data: ByteArray): Int {
-            var s1 = 0
-            var s2 = 0
-            for (b in data) {
-                s1 = (s1 + (b.toInt() and 0xFF)) % 65535
+            var s1 = 0xFFFF
+            var s2 = 0xFFFF
+            var i = 0
+            while (i + 1 < data.size) {
+                val word = (data[i].toInt() and 0xFF) or ((data[i + 1].toInt() and 0xFF) shl 8)
+                s1 = (s1 + word) % 65535
+                s2 = (s2 + s1) % 65535
+                i += 2
+            }
+            if (i < data.size) {
+                s1 = (s1 + (data[i].toInt() and 0xFF)) % 65535
                 s2 = (s2 + s1) % 65535
             }
             return (s2 shl 16) or s1
         }
 
         private fun fletcher32(data: ByteArray): Long {
+            val mod = 4294967295L
             var s1 = 0L
             var s2 = 0L
-            for (b in data) {
-                s1 = (s1 + (b.toLong() and 0xFF)) % 4294967295L
-                s2 = (s2 + s1) % 4294967295L
+            var i = 0
+            while (i + 3 < data.size) {
+                val word = (data[i].toLong() and 0xFF) or
+                    ((data[i + 1].toLong() and 0xFF) shl 8) or
+                    ((data[i + 2].toLong() and 0xFF) shl 16) or
+                    ((data[i + 3].toLong() and 0xFF) shl 24)
+                s1 = (s1 + word) % mod
+                s2 = (s2 + s1) % mod
+                i += 4
+            }
+            if (i < data.size) {
+                var word = 0L
+                for (j in 0 until data.size - i) word = word or ((data[i + j].toLong() and 0xFF) shl (8 * j))
+                s1 = (s1 + word) % mod
+                s2 = (s2 + s1) % mod
             }
             return (s2 shl 32) or s1
         }
@@ -127,6 +153,7 @@ class IntegrityCalculationService {
             }
         }
 
+        // Used for FLETCHER_4 (mod=16, mask=0x0F) and FLETCHER_8 (mod=255, mask=0xFF).
         private class FletcherInputStream(inner: InputStream, private val mod: Long, private val bits: Int, private val mask: Int = 0xFF) :
             FilterInputStream(inner) {
             var s1 = 0L
@@ -144,6 +171,113 @@ class IntegrityCalculationService {
                 super.read(b, off, len).also { n -> if (n > 0) for (i in off until off + n) feed(b[i].toInt()) }
 
             fun result(): Long = (s2 shl (bits / 2)) or s1
+        }
+
+        // Used for FLETCHER_16: 16-bit LE words, mod 65535, init 0xFFFF.
+        // An odd trailing byte is fed as-is when result() is called.
+        private class Fletcher16InputStream(inner: InputStream) : FilterInputStream(inner) {
+            private var s1 = 0xFFFF
+            private var s2 = 0xFFFF
+            private var pending = -1 // low byte of an incomplete 16-bit word, or -1
+
+            private fun feedWord(word: Int) {
+                s1 = (s1 + word) % 65535
+                s2 = (s2 + s1) % 65535
+            }
+
+            override fun read(): Int {
+                val b = super.read()
+                if (b < 0) return b
+                if (pending < 0) {
+                    pending = b and 0xFF
+                } else {
+                    feedWord(pending or ((b and 0xFF) shl 8))
+                    pending = -1
+                }
+                return b
+            }
+
+            override fun read(buf: ByteArray, off: Int, len: Int): Int {
+                val n = super.read(buf, off, len)
+                if (n <= 0) return n
+                var i = 0
+                if (pending >= 0) {
+                    feedWord(pending or ((buf[off].toInt() and 0xFF) shl 8))
+                    pending = -1
+                    i = 1
+                }
+                while (i + 1 < n) {
+                    feedWord((buf[off + i].toInt() and 0xFF) or ((buf[off + i + 1].toInt() and 0xFF) shl 8))
+                    i += 2
+                }
+                if (i < n) pending = buf[off + i].toInt() and 0xFF
+                return n
+            }
+
+            fun result(): Int {
+                if (pending >= 0) {
+                    s1 = (s1 + pending) % 65535
+                    s2 = (s2 + s1) % 65535
+                    pending = -1
+                }
+                return (s2 shl 16) or s1
+            }
+        }
+
+        // Used for FLETCHER_32: 32-bit LE words, mod 2^32-1, init 0.
+        // 1–3 trailing bytes are fed as a partial LE word when result() is called.
+        private class Fletcher32InputStream(inner: InputStream) : FilterInputStream(inner) {
+            private val mod = 4294967295L
+            private var s1 = 0L
+            private var s2 = 0L
+            private val buf = ByteArray(4)
+            private var bufLen = 0
+
+            private fun feedWord(word: Long) {
+                s1 = (s1 + word) % mod
+                s2 = (s2 + s1) % mod
+            }
+
+            override fun read(): Int {
+                val b = super.read()
+                if (b < 0) return b
+                buf[bufLen++] = b.toByte()
+                if (bufLen == 4) {
+                    feedWord(
+                        (buf[0].toLong() and 0xFF) or ((buf[1].toLong() and 0xFF) shl 8) or
+                            ((buf[2].toLong() and 0xFF) shl 16) or ((buf[3].toLong() and 0xFF) shl 24),
+                    )
+                    bufLen = 0
+                }
+                return b
+            }
+
+            override fun read(data: ByteArray, off: Int, len: Int): Int {
+                val n = super.read(data, off, len)
+                if (n <= 0) return n
+                var i = 0
+                while (i < n) {
+                    buf[bufLen++] = data[off + i++]
+                    if (bufLen == 4) {
+                        feedWord(
+                            (buf[0].toLong() and 0xFF) or ((buf[1].toLong() and 0xFF) shl 8) or
+                                ((buf[2].toLong() and 0xFF) shl 16) or ((buf[3].toLong() and 0xFF) shl 24),
+                        )
+                        bufLen = 0
+                    }
+                }
+                return n
+            }
+
+            fun result(): Long {
+                if (bufLen > 0) {
+                    var word = 0L
+                    for (j in 0 until bufLen) word = word or ((buf[j].toLong() and 0xFF) shl (8 * j))
+                    feedWord(word)
+                    bufLen = 0
+                }
+                return (s2 shl 32) or s1
+            }
         }
 
         // ── Shared helpers ───────────────────────────────────────────────────
@@ -227,7 +361,7 @@ class IntegrityCalculationService {
                 }
 
                 IntegriteitAlgoritme.FLETCHER_4 -> {
-                    val fis = FletcherInputStream(stream, mod = 15L, bits = 8, mask = 0x0F)
+                    val fis = FletcherInputStream(stream, mod = 16L, bits = 8, mask = 0x0F)
                     val result = block(fis)
                     result to IntegrityCalculationResult(fis.result().toString(16), algorithm)
                 }
@@ -239,13 +373,13 @@ class IntegrityCalculationService {
                 }
 
                 IntegriteitAlgoritme.FLETCHER_16 -> {
-                    val fis = FletcherInputStream(stream, mod = 65535L, bits = 32)
+                    val fis = Fletcher16InputStream(stream)
                     val result = block(fis)
                     result to IntegrityCalculationResult(fis.result().toUInt().toString(16), algorithm)
                 }
 
                 IntegriteitAlgoritme.FLETCHER_32 -> {
-                    val fis = FletcherInputStream(stream, mod = 4294967295L, bits = 64)
+                    val fis = Fletcher32InputStream(stream)
                     val result = block(fis)
                     result to IntegrityCalculationResult(fis.result().toULong().toString(16), algorithm)
                 }
