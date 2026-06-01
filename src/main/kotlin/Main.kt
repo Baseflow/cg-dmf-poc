@@ -12,7 +12,6 @@ import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
-import com.baseflow.config.S3Config
 import com.baseflow.config.WopiConfig
 import com.baseflow.config.authenticationModule
 import com.baseflow.config.dmfKoinModule
@@ -37,14 +36,7 @@ fun main() {
     ApplicationConfig.printConfig()
     DatabaseConfig.printConfig()
 
-    // Decide which storage configuration to initialize/print based on the merged config layer:
-    // - If BlobStorageConfig has repositories configured, we are in blob storage mode.
-    // - Otherwise, we assume legacy S3-only mode and require S3 configuration.
-    if (BlobStorageConfig.repositories.isNotEmpty()) {
-        BlobStorageConfig.printConfig()
-    } else {
-        S3Config.printConfig()
-    }
+    BlobStorageConfig.printConfig()
     val dataSource = HikariDataSource(
         HikariConfig().apply {
             jdbcUrl = DatabaseConfig.url

@@ -2,10 +2,6 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.BlobStorageRepoConfig
-import com.baseflow.config.BlobStorageType
-import com.baseflow.config.S3ClientFactory
-import com.baseflow.config.S3Config
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -36,30 +32,19 @@ open class HealthCheckService {
         DependencyStatus(status = "error", detail = e.message)
     }
 
-    /**
-     * Probes S3 storage (configured via [S3Config]) for read and write availability.
-     *
-     * - **Read**: calls [S3BlobStorageProvider.isHealthy] (HEAD bucket).
-     * - **Write**: uploads a tiny probe object, downloads it back to confirm round-trip
-     *   availability, then deletes it (best-effort).
-     *
-     * Returns an error status immediately when S3 is not configured
-     * (i.e. the required `S3_SECRET_KEY` / `MINIO_SECRET_KEY` env var is absent).
-     */
     open fun checkStorage(): StorageStatus {
         val provider = BlobStorageRegistrar.defaultProvider()
-            ?: legacyProvider()
             ?: return StorageStatus(
                 status = "error",
-                read = DependencyStatus(status = "error", detail = "S3 storage is not configured"),
-                write = DependencyStatus(status = "error", detail = "S3 storage is not configured"),
+                read = DependencyStatus(status = "error", detail = "Blob storage is not configured"),
+                write = DependencyStatus(status = "error", detail = "Blob storage is not configured"),
             )
 
         val readStatus = try {
             if (provider.isHealthy()) {
                 DependencyStatus(status = "ok")
             } else {
-                DependencyStatus(status = "error", detail = "S3 bucket '${S3Config.bucketName}' is not reachable")
+                DependencyStatus(status = "error", detail = "Blob storage '${provider.name}' is not reachable")
             }
         } catch (e: Exception) {
             logger.warn("Storage read health check failed: {}", e.message)
@@ -75,10 +60,10 @@ open class HealthCheckService {
             // Read back
             try {
                 provider.downloadFileTo(probeKey, ByteArrayOutputStream())
-                    .orTimeout(S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds(), java.util.concurrent.TimeUnit.SECONDS)
+                    .orTimeout(OPERATION_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
                     .join()
             } catch (_: TimeoutException) {
-                throw TimeoutException("Download probe timed out after ${S3ClientFactory.S3_OPERATION_TIMEOUT.toSeconds()}s")
+                throw TimeoutException("Download probe timed out after ${OPERATION_TIMEOUT_SECONDS}s")
             }
 
             // Best-effort cleanup
@@ -105,20 +90,7 @@ open class HealthCheckService {
         )
     }
 
-    private fun legacyProvider(): S3BlobStorageProvider? {
-        if (!S3Config.isComplete()) return null
-        val cfg = BlobStorageRepoConfig(
-            index = 0,
-            name = "s3",
-            type = BlobStorageType.S3,
-            url = S3Config.endpoint,
-            accessKey = S3Config.accessKey,
-            secretKey = S3Config.secretKey,
-            bucket = S3Config.bucketName,
-            region = S3Config.region.id(),
-            disableChecksums = S3Config.disableChecksums,
-            disableChunkedEncoding = S3Config.disableChunkedEncoding,
-        )
-        return S3BlobStorageProvider(cfg)
+    companion object {
+        private const val OPERATION_TIMEOUT_SECONDS = 5L
     }
 }
