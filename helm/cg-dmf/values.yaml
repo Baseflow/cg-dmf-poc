@@ -160,9 +160,6 @@ settings:
 
   # -- OIDC issuer URL for JWT validation.
   oidcIssuer: "https://auth.example.com/realms/valtimo"
-  # -- Comma-separated list of ZGW client IDs allowed to call the API.
-  zgwAllowedClientIds: "gzac"
-
   # ---------------------------------------------------------------------------
   # Database
   # ---------------------------------------------------------------------------

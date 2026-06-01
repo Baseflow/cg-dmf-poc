@@ -41,7 +41,7 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
 
     private fun stubProvider(name: String): BlobStorageProvider = mockk<BlobStorageProvider>(relaxed = true).also {
         every { it.name } returns name
-        every { it.uploadFile(any(), any()) } returns Unit
+        every { it.uploadFile(any(), any()) } returns 0L
         every { it.downloadFileTo(any(), any()) } returns CompletableFuture.completedFuture(null)
         every { it.isHealthy() } returns true
     }

@@ -4,6 +4,8 @@ package com.baseflow.config
 
 import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.JWTVerifier
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.parseAuthorizationHeader
@@ -23,38 +25,33 @@ import java.util.concurrent.TimeUnit
 fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
-    val zgwAllowedClientIds = AuthenticationConfig.zgwAllowedClientIds
-
-    // Configure JWK provider to fetch signing keys from Keycloak which are served at issuer's certs endpoint
-    val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
-        .cached(10, 24, TimeUnit.HOURS)
-        .rateLimited(10, 1, TimeUnit.MINUTES)
-        .build()
+    val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
 
     install(Authentication) {
         jwt("auth-jwt") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
-                logger.info("Raw Authorization header: {}", header)
                 header?.let { parseAuthorizationHeader(it) }
             }
 
+            // Configure JWK provider to fetch signing keys from Keycloak.
+            val jwkProvider = JwkProviderBuilder(URI("$issuer/protocol/openid-connect/certs").toURL())
+                .cached(10, 24, TimeUnit.HOURS)
+                .rateLimited(10, 1, TimeUnit.MINUTES)
+                .build()
+
+            // RS256 verification via Keycloak's JWK endpoint (production default).
+            logger.info("[JWT] Using JWK/RS256 verification for auth-jwt (issuer={})", issuer)
             verifier(jwkProvider, issuer) {
                 acceptLeeway(3)
             }
 
             validate { credential ->
                 val token = credential.payload
-                logger.info(
-                    "JWT token received - subject: {}, issuer: {}, claims: {}",
-                    token.subject,
-                    token.issuer,
-                    token.claims.keys,
-                )
-                if (credential.payload.getClaim("username").asString() != "" ||
-                    credential.payload.getClaim("user_id").asString() != ""
+                if (!token.getClaim("preferred_username").asString().isNullOrBlank() ||
+                    !token.getClaim("user_id").asString().isNullOrBlank()
                 ) {
-                    JWTPrincipal(credential.payload)
+                    JWTPrincipal(token)
                 } else {
                     null
                 }
@@ -69,58 +66,48 @@ fun Application.authenticationModule() {
         }
 
         // ZGW-style JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
-        // These tokens are HS256-signed but we don't have access to the shared secret,
-        // so we skip signature verification and only validate the client_id claim.
+        // Tokens are HS256-signed with a per-client secret.  Configure via
+        // ZGW_CLIENT_SECRETS=client_id:secret,...  (see AuthenticationConfig).
+        // Tokens from clients not in ZGW_CLIENT_SECRETS are always rejected.
         jwt("auth-zgw") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
-                logger.info("[ZGW] Raw Authorization header: {}", header)
-                // <!-- FIXME unsafe -->
-                // Bypass: accept the literal token value "bypass" without any JWT validation.
-                if (header?.trim() == "Bearer bypass") {
-                    logger.warn(
-                        "[ZGW] UNSAFE BYPASS AUTH: request authenticated via hardcoded bypass token. " +
-                            "This must not be used in production.",
-                    )
-                    // Return a minimal syntactically-valid bearer header so the JWT machinery
-                    // hands control to our validate block, where we detect and accept it.
-                    return@authHeader parseAuthorizationHeader(
-                        "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJieXBhc3MiOnRydWV9.",
-                    )
-                }
                 header?.let { parseAuthorizationHeader(it) }
             }
 
             verifier(
                 object : JWTVerifier {
-                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT = JWT.decode(token)
-                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT = jwt
+                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT {
+                        val decoded = JWT.decode(token)
+                        val clientId = decoded.getClaim("client_id").asString()
+
+                        // Reject tokens that are not ZGW-style (no client_id claim).
+                        // This prevents Keycloak tokens with a bad signature from falling
+                        // through FirstSuccessful and being accepted by this provider.
+                        if (clientId.isNullOrBlank()) {
+                            throw JWTVerificationException("Not a ZGW token: missing or blank client_id claim")
+                        }
+
+                        val secret = zgwClientSecrets[clientId]
+                        return if (secret == null) {
+                            logger.debug(
+                                "[ZGW] Unknown client '{}' — rejecting token because signature verification cannot be performed",
+                                clientId,
+                            )
+                            throw JWTVerificationException("No secret configured for client_id '$clientId'")
+                        } else {
+                            JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
+                        }
+                    }
+
+                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT =
+                        throw JWTVerificationException("Decoded JWT verification without raw token is not supported")
                 },
             )
 
             validate { credential ->
                 val token = credential.payload
-                // <!-- FIXME unsafe --> Accept the hardcoded bypass token.
-                if (token.getClaim("bypass").asBoolean() == true) {
-                    logger.warn(
-                        "[ZGW] UNSAFE BYPASS AUTH: bypass principal granted. " +
-                            "This must not be used in production.",
-                    )
-                    return@validate JWTPrincipal(token)
-                }
-                val clientId = token.getClaim("client_id").asString()
-                logger.info(
-                    "[ZGW] JWT token received - issuer: {}, client_id: {}, claims: {}",
-                    token.issuer,
-                    clientId,
-                    token.claims.keys,
-                )
-                if (clientId in zgwAllowedClientIds) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    logger.warn("[ZGW] Rejected token with unknown client_id: {}", clientId)
-                    null
-                }
+                JWTPrincipal(token)
             }
 
             challenge { _, _ ->
@@ -158,11 +145,6 @@ fun Application.authenticationModule() {
             ),
         ),
     )
-    // <!-- FIXME unsafe -->
-    // The bypass token is accepted by this same provider: type the literal value `bypass`
-    // in the Swagger UI bearer box — it will be sent as `Authorization: Bearer bypass` and
-    // the auth-zgw handler will accept it without any JWT validation.
-    // FOR DEVELOPMENT / TESTING ONLY — never use this in production.
     registerSecurityScheme(
         providerName = "auth-zgw",
         securityScheme = HttpSecurityScheme(
@@ -170,9 +152,7 @@ fun Application.authenticationModule() {
             bearerFormat = "JWT",
             description = "ZGW-stijl HS256 JWT (GZAC/OpenZaak/Valtimo). " +
                 "Plak een token gegenereerd via de ZGW token-tool. " +
-                "Het token wordt niet op handtekening gecontroleerd; alleen client_id wordt gevalideerd.\n\n" +
-                "⚠️ UNSAFE BYPASS: typ de letterlijke waarde `bypass` om alle JWT-validatie over te slaan. " +
-                "Uitsluitend bedoeld voor lokale ontwikkeling en testen. NOOIT gebruiken in productie.",
+                "Het token wordt geverifieerd met de HS256-handtekening indien een secret geconfigureerd is voor de client_id.",
         ),
     )
 }

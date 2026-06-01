@@ -12,6 +12,7 @@ import com.baseflow.api.models.respondProblem
 import com.baseflow.api.wopi.WopiFileIdPlugin
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
+import com.baseflow.api.wopi.models.CheckContainerInfoResponse
 import com.baseflow.api.wopi.models.CheckFileInfoResponse
 import com.baseflow.api.wopi.models.PutRelativeFileResponse
 import com.baseflow.api.wopi.models.RenameFileResponse
@@ -22,7 +23,7 @@ import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiTokenResponse
 import com.baseflow.api.wopi.models.WopiUnlockResult
-import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.config.WopiConfig
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.WopiSlatService
@@ -43,6 +44,7 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import io.ktor.utils.io.toByteArray
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
@@ -52,9 +54,10 @@ import org.koin.ktor.plugin.scope
  */
 private val RoutingContext.slatService: WopiSlatService
     get() = call.scope.get<WopiSlatService> {
+        val config = call.scope.get<WopiConfig>()
         parametersOf(
-            WopiConfig.slatSecret,
-            WopiConfig.slatTtlSeconds,
+            config.slatSecret,
+            config.slatTtlSeconds,
         )
     }
 
@@ -102,6 +105,43 @@ fun Route.wopiApiRoutes() {
                     response(400) { description = "Bad request." }
                     response(404) { description = "Document not found." }
                     response(500) { description = "Internal server error." }
+                }
+            }
+        }
+
+        // ── Container endpoints ────────────────────────────────────────────────
+        route("/containers/{container_id}") {
+            get {
+                call.respondProblem(
+                    HttpStatusCode.NotImplemented,
+                    notImplemented("Containers are not supported by this DRC implementation.", call.request.path()),
+                )
+            }.describe {
+                operationId = "checkContainerInfo"
+                tag("wopi")
+                summary = "Check container info."
+                description =
+                    "Returns metadata and capability flags for the given container. " +
+                    "Requires a valid `access_token` query parameter. " +
+                    "In this DRC implementation a container corresponds to a bronorganisatie."
+                parameters {
+                    path("container_id") {
+                        description = "Identifier of the container (bronorganisatie code)."
+                        required = true
+                    }
+                    query("access_token") {
+                        description = "Short-lived access token obtained from POST /token/{file_id}."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Success."
+                        ContentType.Application.Json { schema = jsonSchema<CheckContainerInfoResponse>() }
+                    }
+                    response(401) { description = "Invalid access token." }
+                    response(404) { description = "Container not found." }
+                    response(500) { description = "Server error." }
                 }
             }
         }
@@ -433,16 +473,27 @@ private suspend fun RoutingContext.getFileMetadata() {
         )
     } else {
         val checkFileInfoResponse = CheckFileInfoResponse(
+            // Required CheckFileInfo properties
             baseFileName = result.bestandsnaam?.ifBlank { null } ?: result.titel.ifBlank { null } ?: "document",
-            size = result.bestandsomvang,
-            userCanWrite = true,
-            supportsAutosave = false,
-            userFriendlyName = "Unknown user",
-            supportsLocks = true,
-            supportsGetLock = true,
-            supportsUpdate = true,
             lastModifiedTime = result.beginRegistratie,
+            ownerId = "", // TODO(mvanbeusekom): It is unclear how to determine the ownerId of the document.
+            size = result.bestandsomvang,
+            userId = "", // TODO(mvanbeusekom): It is unclear how to determine the current user accessing the document.
             version = result.versie.toString(),
+            // WOPI Host capabilities
+            supportsAutosave = false,
+            supportsContainers = false,
+            supportsDeleteFile = false,
+            supportsGetLock = false,
+            supportsLocks = true,
+            supportsPutRelativeFile = true,
+            supportsRename = true,
+            supportsUpdate = true,
+            // User metadata properties
+            userFriendlyName = "Unknown user",
+            // User permissions
+            userCanRename = true,
+            userCanWrite = true,
         )
         call.respond(HttpStatusCode.OK, checkFileInfoResponse)
     }
@@ -520,6 +571,7 @@ private suspend fun RoutingContext.renameFile() {
 private suspend fun RoutingContext.putRelativeFile() {
     val relativeTarget = call.request.headers["X-WOPI-RelativeTarget"]?.trim()
     val suggestedTarget = call.request.headers["X-WOPI-SuggestedTarget"]?.trim()
+    val contentLength = call.request.headers["X-WOPI-Size"]?.toLongOrNull()
 
     // Exactly one of RelativeTarget or SuggestedTarget must be provided.
     if (relativeTarget == null && suggestedTarget == null) {
@@ -544,47 +596,57 @@ private suspend fun RoutingContext.putRelativeFile() {
         return
     }
 
+    if (contentLength == null) {
+        call.respondProblem(
+            HttpStatusCode.BadRequest,
+            badRequest("X-WOPI-Size header is required and must be a valid integer.", call.request.path()),
+        )
+        return
+    }
+
     // SuggestedTarget never overwrites — the host picks a conflict-free name.
     val targetFileName = relativeTarget ?: suggestedTarget!!
 
     if (respondIfInvalidFileName(targetFileName)) return
 
     val sourceFileId = call.attributes[WopiValidatedFileIdKey]
-    val bytes = call.receiveChannel().toByteArray()
 
-    when (
-        val result = wopiService.wopiPutRelativeFile(
-            sourceId = sourceFileId,
-            targetFileName = targetFileName,
-            bytes = bytes,
-        )
-    ) {
-        is WopiPutRelativeFileResult.SourceNotFound ->
-            call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
-
-        is WopiPutRelativeFileResult.NameConflict -> {
-            call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
-            call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("A file named '$targetFileName' already exists.", call.request.path()),
+    call.receiveChannel().toInputStream().use { inputStream ->
+        when (
+            val result = wopiService.wopiPutRelativeFile(
+                sourceId = sourceFileId,
+                targetFileName = targetFileName,
+                inputStream = inputStream,
+                contentLength = contentLength,
             )
-        }
+        ) {
+            is WopiPutRelativeFileResult.SourceNotFound ->
+                call.respondProblem(HttpStatusCode.NotFound, notFound("Source file not found.", call.request.path()))
 
-        is WopiPutRelativeFileResult.TargetLocked -> {
-            call.response.headers.append("X-WOPI-Lock", result.currentLock)
-            call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("Target file is locked.", call.request.path()),
-            )
-        }
+            is WopiPutRelativeFileResult.NameConflict -> {
+                call.response.headers.append("X-WOPI-ValidRelativeTarget", result.validRelativeTarget)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("A file named '$targetFileName' already exists.", call.request.path()),
+                )
+            }
 
-        is WopiPutRelativeFileResult.Success -> {
-            val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
-                "/wopi/api/v1/files/${result.fileId}"
-            call.respond(
-                HttpStatusCode.OK,
-                PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
-            )
+            is WopiPutRelativeFileResult.TargetLocked -> {
+                call.response.headers.append("X-WOPI-Lock", result.currentLock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("Target file is locked.", call.request.path()),
+                )
+            }
+
+            is WopiPutRelativeFileResult.Success -> {
+                val fileUrl = call.request.local.let { "https://${it.serverHost}:${it.serverPort}" } +
+                    "/wopi/api/v1/files/${result.fileId}"
+                call.respond(
+                    HttpStatusCode.OK,
+                    PutRelativeFileResponse(name = result.resolvedName, url = fileUrl),
+                )
+            }
         }
     }
 }

@@ -23,7 +23,6 @@ Create a `my-values.yaml` with at minimum the sensitive credentials and the URLs
 settings:
     baseUrl: "https://cg-dmf.example.com"
     oidcIssuer: "https://auth.example.com/realms/my-realm"
-    zgwAllowedClientIds: "gzac"
 
     database:
         url: "jdbc:postgresql://my-postgres:5432/documenten"
@@ -254,7 +253,6 @@ extraVolumeMounts:
 | ------------------------------ | ------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `settings.baseUrl`             | string | `https://cg-dmf.example.com`              | Public base URL returned in API self-links. Must match the externally reachable URL.                                                                                                                                                                                             |
 | `settings.oidcIssuer`          | string | `https://auth.example.com/realms/valtimo` | OIDC issuer URL used to validate incoming JWTs.                                                                                                                                                                                                                                  |
-| `settings.zgwAllowedClientIds` | string | **required**                              | Comma-separated list of `client_id` values accepted for ZGW-style JWT authentication. ZGW JWTs are HS256-signed tokens used by systems like GZAC/Valtimo and OpenZaak. The signature is not verified — only the `client_id` claim is checked against this list. Example: `gzac`. |
 
 #### Database (`settings.database`)
 

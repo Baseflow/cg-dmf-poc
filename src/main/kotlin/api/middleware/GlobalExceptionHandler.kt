@@ -4,6 +4,7 @@ package com.baseflow.api.middleware
 
 import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.badRequest
+import com.baseflow.api.models.forbidden
 import com.baseflow.api.models.respondProblem
 import com.baseflow.api.models.unauthorized
 import io.ktor.http.HttpStatusCode
@@ -27,6 +28,16 @@ fun Application.configureStatusPages() {
                 HttpStatusCode.Unauthorized,
                 unauthorized(
                     detail = cause.message ?: "Unauthorized",
+                    instance = call.request.path(),
+                ),
+            )
+        }
+
+        exception<ForbiddenException> { call, cause ->
+            call.respondProblem(
+                HttpStatusCode.Forbidden,
+                forbidden(
+                    detail = cause.message ?: "Forbidden",
                     instance = call.request.path(),
                 ),
             )

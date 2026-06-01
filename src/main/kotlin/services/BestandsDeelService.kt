@@ -11,6 +11,7 @@ import com.baseflow.entities.EIOVersionEntity
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.InputStream
 import java.util.UUID
 
 /** S3 object key for a bestandsdeel chunk. */
@@ -96,32 +97,30 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
      * The chunk is stored under the key `{recordId}/{versie}/parts/{bestandsDeelId}` so it
      * can later be reassembled in the correct order when the parent EIO is unlocked.
      *
-     * @param id          UUID of the [BestandsDeelEntity] to update.
-     * @param lockToken   Lock token that must match the one stored on the part.
-     * @param content     Raw bytes of the uploaded chunk (may be empty/null if no file was sent).
+     * @param id            UUID of the [BestandsDeelEntity] to update.
+     * @param lockToken     Lock token that must match the one stored on the part.
+     * @param inputStream   Raw bytes of the uploaded chunk (null if no file was sent).
      * @param storageService  Service used to persist the chunk in S3.
      * @return [UploadFilePartResult.Success], [UploadFilePartResult.NotFound], [UploadFilePartResult.InvalidLock]
      *         or [UploadFilePartResult.OmvangMismatch].
      */
-    fun uploadFilePart(id: UUID, lockToken: String, content: ByteArray?, storageService: StorageService): UploadFilePartResult =
+    fun uploadFilePart(id: UUID, lockToken: String, inputStream: InputStream?, storageService: StorageService): UploadFilePartResult =
         transaction {
             val part = BestandsDeelEntity.findById(id) ?: return@transaction UploadFilePartResult.NotFound
             if (part.lock != lockToken) return@transaction UploadFilePartResult.InvalidLock
 
-            if (content != null && content.isNotEmpty()) {
-                if (content.size.toLong() != part.omvang) {
-                    return@transaction UploadFilePartResult.OmvangMismatch(
-                        expected = part.omvang,
-                        actual = content.size.toLong(),
-                    )
-                }
+            if (inputStream != null) {
                 val version = part.versionId
                 val storageKey = bestandsDeelStorageKey(
                     recordId = version.recordId.id.value,
                     versie = version.versie,
                     bestandsDeelId = id,
                 )
-                storageService.uploadFile(storageKey, content, version.bestandsRepository.takeUnless { it.isBlank() })
+                val repoName = version.bestandsRepository.takeUnless { it.isBlank() }
+                val uploadedBytes = storageService.uploadFile(storageKey, inputStream, part.omvang, repoName)
+                if (uploadedBytes != part.omvang) {
+                    return@transaction UploadFilePartResult.OmvangMismatch(part.omvang, uploadedBytes)
+                }
             }
 
             part.voltooid = true

@@ -59,7 +59,14 @@ private val problemJson = Json {
 
 private val ProblemContentType = ContentType.parse("application/problem+json; charset=utf-8")
 
-/** Serialize and respond with problem+json at the given HTTP status. */
+/**
+ * Serialize and respond with problem+json at the given HTTP status.
+ *
+ * **Do not call this from a plugin hook** (`onCall`, `on(AuthenticationChecked)`, etc.) to reject a request.
+ * Sending a response from a hook does not stop the pipeline — the route handler will still execute.
+ * Throw a typed exception instead (e.g. [com.baseflow.api.middleware.ForbiddenException]) and let
+ * `StatusPages` handle it, which properly terminates the pipeline.
+ */
 suspend fun ApplicationCall.respondProblem(status: HttpStatusCode, problem: ProblemDetailsResponse) {
     val body = problemJson.encodeToString(ProblemDetailsResponse.serializer(), problem)
     respond(status, TextContent(body, ProblemContentType))
@@ -124,6 +131,13 @@ fun notFound(detail: String, instance: String? = null) = ProblemDetailsResponse(
 fun conflict(detail: String, instance: String? = null) = ProblemDetailsResponse(
     title = "Conflict",
     status = HttpStatusCode.Conflict.value,
+    detail = detail,
+    instance = instance,
+)
+
+fun forbidden(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Forbidden",
+    status = HttpStatusCode.Forbidden.value,
     detail = detail,
     instance = instance,
 )

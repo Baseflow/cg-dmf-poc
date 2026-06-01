@@ -16,13 +16,7 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Configuration
-import software.amazon.awssdk.services.s3.model.Delete
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
-import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest
-import software.amazon.awssdk.services.s3.model.GetObjectRequest
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest
-import software.amazon.awssdk.services.s3.model.ObjectIdentifier
-import software.amazon.awssdk.services.s3.model.PutObjectRequest
+import software.amazon.awssdk.services.s3.model.*
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI
@@ -77,7 +71,7 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
         return clientBuilder.build()
     }
 
-    override fun uploadFile(objectName: String, content: ByteArray) {
+    override fun uploadFile(objectName: String, content: ByteArray): Long {
         try {
             ensureBucketExists()
 
@@ -85,16 +79,18 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             val putRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectName)
+                .contentLength(content.size.toLong())
                 .build()
             val response = s3Client.putObject(putRequest, AsyncRequestBody.fromBytes(content)).join()
             logger.info("Uploaded {}/{} (ETag: {})", bucketName, objectName, response.eTag())
+            return content.size.toLong()
         } catch (e: Exception) {
             logger.error("Failed to upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
             throw e
         }
     }
 
-    override fun uploadFile(objectName: String, stream: InputStream, contentLength: Long) {
+    override fun uploadFile(objectName: String, stream: InputStream, contentLength: Long): Long {
         try {
             ensureBucketExists()
             logger.debug("Streaming upload of {} to bucket {} ({} bytes)", objectName, bucketName, contentLength)
@@ -103,11 +99,32 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
                 .key(objectName)
                 .contentLength(contentLength)
                 .build()
-            val response = s3Client.putObject(
-                putRequest,
-                AsyncRequestBody.fromInputStream(stream, contentLength, java.util.concurrent.Executors.newSingleThreadExecutor()),
-            ).join()
-            logger.info("Uploaded {}/{} via stream (ETag: {})", bucketName, objectName, response.eTag())
+
+            val body = AsyncRequestBody.forBlockingOutputStream(contentLength)
+            val future = s3Client.putObject(putRequest, body)
+            val os = body.outputStream()
+            val actualBytes: Long
+            try {
+                actualBytes = stream.transferTo(os)
+            } finally {
+                os.close()
+            }
+            if (actualBytes != contentLength) {
+                future.cancel(true)
+                throw IllegalStateException(
+                    "Upload size mismatch for $objectName: declared $contentLength bytes but streamed $actualBytes bytes",
+                )
+            }
+            val response = future.join()
+
+            logger.info(
+                "Uploaded {}/{} via stream (ETag: {}, {} bytes)",
+                bucketName,
+                objectName,
+                response.eTag(),
+                actualBytes,
+            )
+            return actualBytes
         } catch (e: Exception) {
             logger.error("Failed to stream-upload {} to bucket {}: {}", objectName, bucketName, e.message, e)
             throw e

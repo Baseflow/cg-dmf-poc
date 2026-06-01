@@ -4,10 +4,13 @@ package com.baseflow.api.models
 
 import io.ktor.openapi.JsonSchema
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlin.time.Clock
 
 /**
  * EnkelvoudigInformatieObject request model.
@@ -251,13 +254,13 @@ data class Ondertekening(
 @Serializable
 data class Integriteit(
     @JsonSchema.Description("Het hash-algoritme waarmee de integriteitswaarde is berekend.")
-    val algoritme: IntegriteitAlgoritme,
+    val algoritme: IntegriteitAlgoritme = IntegriteitAlgoritme.SHA_256,
     @JsonSchema.Description("De berekende hash-waarde (checksum) van het bestand.")
     @JsonSchema.Example("\"d41d8cd98f00b204e9800998ecf8427e\"")
     val waarde: String,
     @JsonSchema.Description("De datum waarop de integriteitswaarde is bepaald (ISO 8601, formaat YYYY-MM-DD).")
     @JsonSchema.Format("date")
-    val datum: LocalDate,
+    val datum: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.UTC).date,
 ) {
     init {
         require(waarde.isNotEmpty()) { "Waarde mag niet leeg zijn" }

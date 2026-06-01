@@ -19,7 +19,6 @@ jobs:
         run: |
           helm lint ./helm/cg-dmf \
             --strict \
-            --set settings.zgwAllowedClientIds=ci \
             --set settings.database.password=ci \
             --set settings.s3.accessKey=ci \
             --set settings.s3.secretKey=ci \
