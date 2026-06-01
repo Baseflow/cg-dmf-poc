@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26740166781",
+    "runNumber": "745",
+    "branch": "CGDMF-102-CheckContainerInfo",
+    "date": "2026-06-01T07:06:28Z",
+    "path": "integration/26740166781/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26728691930",
     "runNumber": "102",
