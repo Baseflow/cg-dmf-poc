@@ -6,6 +6,7 @@ import com.baseflow.testutils.TestDataFactory
 import java.io.OutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class IntegrityCalculationServiceTest {
@@ -294,31 +295,19 @@ class IntegrityCalculationServiceTest {
     }
 
     @Test
-    fun `withIntegrity HMAC - hash matches calculateIntegrity for sample bytes`() {
-        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "HMAC")
-        val (_, actual) = IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "HMAC") {
-            it.copyTo(OutputStream.nullOutputStream())
+    fun `calculateIntegrity HMAC - throws UnsupportedOperationException`() {
+        assertFailsWith<UnsupportedOperationException> {
+            IntegrityCalculationService.calculateIntegrity(sampleBytes, "HMAC")
         }
-        assertEquals(expected.hash, actual.hash)
-        assertEquals("HMAC", actual.algorithm)
     }
 
     @Test
-    fun `withIntegrity HMAC - hash matches calculateIntegrity for binary bytes`() {
-        val expected = IntegrityCalculationService.calculateIntegrity(binaryBytes, "HMAC")
-        val (_, actual) = IntegrityCalculationService.withIntegrity(binaryBytes.inputStream(), "HMAC") {
-            it.copyTo(OutputStream.nullOutputStream())
+    fun `withIntegrity HMAC - throws UnsupportedOperationException`() {
+        assertFailsWith<UnsupportedOperationException> {
+            IntegrityCalculationService.withIntegrity(sampleBytes.inputStream(), "HMAC") {
+                it.copyTo(OutputStream.nullOutputStream())
+            }
         }
-        assertEquals(expected.hash, actual.hash)
-    }
-
-    @Test
-    fun `withIntegrity HMAC - empty input is stable`() {
-        val expected = IntegrityCalculationService.calculateIntegrity(emptyBytes, "HMAC")
-        val (_, actual) = IntegrityCalculationService.withIntegrity(emptyBytes.inputStream(), "HMAC") {
-            it.copyTo(OutputStream.nullOutputStream())
-        }
-        assertEquals(expected.hash, actual.hash)
     }
 
     @Test
@@ -333,7 +322,6 @@ class IntegrityCalculationServiceTest {
             "FLETCHER_8",
             "FLETCHER_16",
             "FLETCHER_32",
-            "HMAC",
             "MD5",
             "SHA_1",
             "SHA_256",
@@ -353,6 +341,62 @@ class IntegrityCalculationServiceTest {
                 "Expected different hashes for algo $algo but got '${r1.hash}' for both inputs",
             )
         }
+    }
+
+    // ── Reference-vector tests (values from scripts/generate_test_vectors.py) ──
+    // Input: "The quick brown fox jumps over the lazy dog"
+
+    @Test
+    fun `calculateIntegrity CRC_16 - produces known checksum for quick fox`() {
+        assertEquals("fcdf", IntegrityCalculationService.calculateIntegrity(sampleBytes, "CRC_16").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity CRC_32 - produces known checksum for quick fox`() {
+        assertEquals("414fa339", IntegrityCalculationService.calculateIntegrity(sampleBytes, "CRC_32").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity CRC_64 - produces known checksum for quick fox`() {
+        assertEquals("efc9898bcbddbd7b", IntegrityCalculationService.calculateIntegrity(sampleBytes, "CRC_64").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity FLETCHER_4 - produces known checksum for quick fox`() {
+        assertEquals("39", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_4").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity FLETCHER_8 - produces known checksum for quick fox`() {
+        assertEquals("fee8", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_8").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity FLETCHER_16 - produces known checksum for quick fox`() {
+        assertEquals("5ba30fd9", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_16").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity FLETCHER_32 - produces known checksum for quick fox`() {
+        assertEquals("15ba200000fd9", IntegrityCalculationService.calculateIntegrity(sampleBytes, "FLETCHER_32").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity MD5 - produces known hash for quick fox`() {
+        assertEquals("9e107d9d372bb6826bd81d3542a419d6", IntegrityCalculationService.calculateIntegrity(sampleBytes, "MD5").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity SHA_1 - produces known hash for quick fox`() {
+        assertEquals("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12", IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_1").hash)
+    }
+
+    @Test
+    fun `calculateIntegrity SHA_256 - produces known hash for quick fox`() {
+        assertEquals(
+            "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592",
+            IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_256").hash,
+        )
     }
 
     @Test

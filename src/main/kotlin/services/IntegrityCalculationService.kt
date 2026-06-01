@@ -9,8 +9,6 @@ import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.zip.CRC32
 import java.util.zip.CheckedInputStream
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 class IntegrityCalculationService {
 
@@ -54,7 +52,7 @@ class IntegrityCalculationService {
             var s1 = 0
             var s2 = 0
             for (b in data) {
-                s1 = (s1 + (b.toInt() and 0x03)) % 15
+                s1 = (s1 + (b.toInt() and 0x0F)) % 15
                 s2 = (s2 + s1) % 15
             }
             return (s2 shl 4) or s1
@@ -90,15 +88,6 @@ class IntegrityCalculationService {
             return (s2 shl 32) or s1
         }
 
-        // ── HMAC-SHA256 with fixed zero key (integrity without shared secret) ──
-        private val HMAC_KEY = SecretKeySpec(ByteArray(1) { 0 }, "HmacSHA256")
-
-        private fun hmacSha256(data: ByteArray): String {
-            val mac = Mac.getInstance("HmacSHA256")
-            mac.init(HMAC_KEY)
-            return mac.doFinal(data).joinToString("") { "%02x".format(it) }
-        }
-
         // ── Streaming filter wrappers ─────────────────────────────────────────
 
         private class Crc16InputStream(inner: InputStream) : FilterInputStream(inner) {
@@ -111,9 +100,7 @@ class IntegrityCalculationService {
 
             override fun read(): Int = super.read().also { feed(it) }
             override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { n ->
-                if (n >
-                    0
-                ) {
+                if (n > 0) {
                     for (i in off until off + n) crc = (crc ushr 8) xor CRC16_TABLE[(crc xor (b[i].toInt() and 0xFF)) and 0xFF]
                 }
             }
@@ -159,16 +146,6 @@ class IntegrityCalculationService {
             fun result(): Long = (s2 shl (bits / 2)) or s1
         }
 
-        private class HmacInputStream(inner: InputStream) : FilterInputStream(inner) {
-            private val mac = Mac.getInstance("HmacSHA256").also { it.init(HMAC_KEY) }
-
-            override fun read(): Int = super.read().also { if (it >= 0) mac.update(it.toByte()) }
-            override fun read(b: ByteArray, off: Int, len: Int): Int =
-                super.read(b, off, len).also { n -> if (n > 0) mac.update(b, off, n) }
-
-            fun result(): String = mac.doFinal().joinToString("") { "%02x".format(it) }
-        }
-
         // ── Shared helpers ───────────────────────────────────────────────────
         private fun hashBytesWithMessageDigest(data: ByteArray, algo: IntegriteitAlgoritme): String {
             val javaAlgo = algo.toJavaMessageDigestName()
@@ -195,7 +172,13 @@ class IntegrityCalculationService {
             IntegriteitAlgoritme.FLETCHER_8 -> fletcher8(data).toString(16)
             IntegriteitAlgoritme.FLETCHER_16 -> fletcher16(data).toUInt().toString(16)
             IntegriteitAlgoritme.FLETCHER_32 -> fletcher32(data).toULong().toString(16)
-            IntegriteitAlgoritme.HMAC -> hmacSha256(data)
+            // HMAC requires a shared key. The Documenten API accepts HMAC as an algorithm choice
+            // but does not define key exchange or verification — callers must compute HMAC
+            // externally and supply the resulting value directly as integriteit_waarde.
+            IntegriteitAlgoritme.HMAC -> throw UnsupportedOperationException(
+                "HMAC requires a shared secret key and cannot be computed by this service. " +
+                    "Compute the HMAC externally and supply the value as integriteit_waarde.",
+            )
             IntegriteitAlgoritme.MD5,
             IntegriteitAlgoritme.SHA_1,
             IntegriteitAlgoritme.SHA_256,
@@ -244,7 +227,7 @@ class IntegrityCalculationService {
                 }
 
                 IntegriteitAlgoritme.FLETCHER_4 -> {
-                    val fis = FletcherInputStream(stream, mod = 15L, bits = 8, mask = 0x03)
+                    val fis = FletcherInputStream(stream, mod = 15L, bits = 8, mask = 0x0F)
                     val result = block(fis)
                     result to IntegrityCalculationResult(fis.result().toString(16), algorithm)
                 }
@@ -267,11 +250,10 @@ class IntegrityCalculationService {
                     result to IntegrityCalculationResult(fis.result().toULong().toString(16), algorithm)
                 }
 
-                IntegriteitAlgoritme.HMAC -> {
-                    val his = HmacInputStream(stream)
-                    val result = block(his)
-                    result to IntegrityCalculationResult(his.result(), algorithm)
-                }
+                IntegriteitAlgoritme.HMAC -> throw UnsupportedOperationException(
+                    "HMAC requires a shared secret key and cannot be computed by this service. " +
+                        "Compute the HMAC externally and supply the value as integriteit_waarde.",
+                )
 
                 IntegriteitAlgoritme.MD5,
                 IntegriteitAlgoritme.SHA_1,
