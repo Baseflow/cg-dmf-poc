@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26651421344",
+    "runNumber": "737",
+    "branch": "dependabot/gradle/aws-sdk-778cea282d",
+    "date": "2026-06-01T07:38:14Z",
+    "path": "integration/26651421344/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26740530110",
     "runNumber": "103",
