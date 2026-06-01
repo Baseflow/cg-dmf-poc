@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26740680874",
+    "runNumber": "746",
+    "branch": "fix/wopi-plugin-pipeline-termination",
+    "date": "2026-06-01T08:45:58Z",
+    "path": "integration/26740680874/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26744039008",
     "runNumber": "747",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/multi-591573d717",
