@@ -96,5 +96,4 @@ data class CheckFileInfoResponse(
     val userCanRename: Boolean? = null,
     @SerialName("UserCanWrite")
     val userCanWrite: Boolean? = null,
-
 )
