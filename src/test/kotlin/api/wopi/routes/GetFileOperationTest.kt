@@ -25,7 +25,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.mockk
-import org.apache.hc.core5.http.ContentType
+import io.ktor.http.ContentType
 import org.junit.jupiter.api.Nested
 import org.koin.dsl.module
 import org.koin.ktor.ext.get
