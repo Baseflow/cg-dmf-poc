@@ -5,7 +5,6 @@ package com.baseflow.api.wopi.routes
 import com.baseflow.api.WOPI_API_BASE_PATH
 import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.api.wopi.services.WopiFileVersion
 import com.baseflow.api.wopi.wopiApiModule
@@ -26,7 +25,6 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.datetime.LocalDate
 import org.apache.hc.core5.http.ContentType
 import org.junit.jupiter.api.Nested
 import org.koin.dsl.module
@@ -38,8 +36,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class GetFileOperationTest {
-
-    private val mockEnkelvoudigInformatieObjectService = mockk<EnkelvoudigInformatieObjectService>()
     private val mockWopiDocumentService = mockk<WopiDocumentService>(relaxed = true)
 
     private fun Application.setup() {
@@ -55,7 +51,7 @@ class GetFileOperationTest {
                     single<WopiConfig> { WopiConfig(true, "wopi automated tests") }
                     requestScope {
                         scoped<AuditContext> { AuditContext() }
-                        scoped<EnkelvoudigInformatieObjectService> { mockEnkelvoudigInformatieObjectService }
+                        scoped<EnkelvoudigInformatieObjectService> { mockk<EnkelvoudigInformatieObjectService>() }
                         scoped<WopiDocumentService> { mockWopiDocumentService }
                         scoped<WopiSlatService> { mockWopiSlatService }
                     }
@@ -372,37 +368,5 @@ class GetFileOperationTest {
         private val dummyFileId = UUID.fromString("12345678-1234-1234-1234-123456789012")
 
         private val dummyAccessToken = "test_token"
-
-        private val dummyEnkelvoudigInformatieObject = EnkelvoudigInformatieObjectResponse(
-            id = dummyFileId.toString(),
-            url = null,
-            identificatie = null,
-            bronorganisatie = "Test organisation",
-            creatiedatum = LocalDate(1978, 1, 1),
-            titel = "Automated test document",
-            versie = 1,
-            vertrouwelijkheidaanduiding = null,
-            auteur = "Automated test author",
-            status = null,
-            formaat = null,
-            taal = "en",
-            bestandsnaam = "automated_test_document.tst",
-            inhoud = null,
-            bestandsomvang = 42,
-            link = null,
-            beschrijving = null,
-            beginRegistratie = "2026-05-26T11:38:05Z",
-            indicatieGebruiksrecht = null,
-            verschijningsvorm = null,
-            ondertekening = null,
-            integriteit = null,
-            informatieobjecttype = "https://test.example.com/type/1",
-            trefwoorden = emptyList(),
-            inhoudIsVervallen = false,
-            bestandsdelen = emptyList(),
-            lock = "",
-            locked = false,
-            expand = null,
-        )
     }
 }
