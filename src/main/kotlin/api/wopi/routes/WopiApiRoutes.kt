@@ -198,7 +198,7 @@ fun Route.wopiApiRoutes() {
                         response(200) { description = "Success." }
                         response(400) {
                             description =
-                                "Bad request. This error is returned when the request contains a X-WOPI-MaxExpectedSize header that does not contain a valid 32-bit unsigned integer value."
+                                "Bad request. This error is returned when the request contains an X-WOPI-MaxExpectedSize header that does not contain a valid 32-bit unsigned integer value."
                         }
                         response(401) { description = "Invalid access token." }
                         response(404) { description = "Resource not found or user unauthorized." }
