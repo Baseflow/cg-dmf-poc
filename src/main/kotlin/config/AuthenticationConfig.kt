@@ -48,6 +48,7 @@ internal object AuthenticationConfig : Config() {
         }
         .toMap()
 
+
     override fun printConfig() {
         logger.info("AuthenticationConfig: OIDC issuer={}", issuer)
         logger.info("AuthenticationConfig: OIDC ResourceClientId={}", oidcResourceClientId.ifBlank { "<auto>" })

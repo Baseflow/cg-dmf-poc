@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit
 fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
-    val zgwClientSecrets = AuthenticationConfig.clientCredentials
 
     install(Authentication) {
         jwt("auth-jwt") {
