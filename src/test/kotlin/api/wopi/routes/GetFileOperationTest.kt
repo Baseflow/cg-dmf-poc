@@ -41,8 +41,7 @@ import kotlin.test.assertEquals
 class GetFileOperationTest {
 
     private val mockEnkelvoudigInformatieObjectService = mockk<EnkelvoudigInformatieObjectService>()
-    private val mockWopiDocumentService = mockk<WopiDocumentService>()
-
+    private val mockWopiDocumentService = mockk<WopiDocumentService>(relaxed = true)
     private val json = Json { ignoreUnknownKeys = true }
 
     private fun Application.setup() {
