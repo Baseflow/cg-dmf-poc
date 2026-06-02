@@ -365,7 +365,7 @@ private suspend fun RoutingContext.getFileContents() {
             call.respondProblem(
                 HttpStatusCode.BadRequest,
                 badRequest(
-                    "The X-WOPI-MaxExpectedSize contains an invalid value, it should contain a valid 4-byte integer value.",
+                    "The X-WOPI-MaxExpectedSize does not contain a valid 32-bit unsigned integer value.",
                     call.request.path(),
                 ),
             )

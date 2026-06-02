@@ -13,7 +13,7 @@ import com.baseflow.config.WopiConfig
 import com.baseflow.config.authenticationModule
 import com.baseflow.services.EnkelvoudigInformatieObjectService
 import com.baseflow.services.WopiSlatService
-import com.baseflow.tooling.decodeRfc5987
+import com.baseflow.testutils.decodeRfc5987
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
@@ -27,7 +27,6 @@ import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.json.Json
 import org.apache.hc.core5.http.ContentType
 import org.junit.jupiter.api.Nested
 import org.koin.dsl.module
@@ -42,7 +41,6 @@ class GetFileOperationTest {
 
     private val mockEnkelvoudigInformatieObjectService = mockk<EnkelvoudigInformatieObjectService>()
     private val mockWopiDocumentService = mockk<WopiDocumentService>(relaxed = true)
-    private val json = Json { ignoreUnknownKeys = true }
 
     private fun Application.setup() {
         install(Koin) {
