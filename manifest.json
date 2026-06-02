@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26818074240",
+    "runNumber": "760",
+    "branch": "CGDMF-167-Include-userId-in-SLAT",
+    "date": "2026-06-02T12:01:31Z",
+    "path": "integration/26818074240/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26817684805",
     "runNumber": "758",
     "branch": "cGDMF-164-application-credentials",
