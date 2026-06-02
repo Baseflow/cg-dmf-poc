@@ -164,7 +164,7 @@ class GetFileOperationTest {
     @Nested
     inner class FileNotFoundTests {
         @Test
-        fun `should return a not found error when file identifier doesn't exists`() = testApplication {
+        fun `should return a not found error when file identifier doesn't exist`() = testApplication {
             application {
                 setup()
             }
