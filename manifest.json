@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26822013129",
+    "runNumber": "771",
+    "branch": "issue/CGDMF-92",
+    "date": "2026-06-02T13:18:05Z",
+    "path": "integration/26822013129/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26821459635",
     "runNumber": "770",
     "branch": "resource_access-roles",
