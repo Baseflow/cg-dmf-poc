@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder
 import com.azure.core.http.rest.Response
 import com.azure.storage.blob.BlobContainerClientBuilder
 import com.azure.storage.blob.BlobServiceClientBuilder
@@ -10,6 +11,7 @@ import com.azure.storage.blob.models.DeleteSnapshotsOptionType
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.baseflow.config.BlobStorageRepoConfig
 import org.slf4j.LoggerFactory
+import reactor.netty.resources.ConnectionProvider
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
@@ -30,9 +32,22 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
 
     private val credential = StorageSharedKeyCredential(config.accessKey, config.secretKey)
 
+    private val httpClient = NettyAsyncHttpClientBuilder()
+        .connectTimeout(config.connectTimeout)
+        .readTimeout(config.readWriteTimeout)
+        .writeTimeout(config.readWriteTimeout)
+        .connectionProvider(
+            ConnectionProvider.builder("azure-blob-${config.name}")
+                .maxIdleTime(config.maxIdleTime)
+                .evictInBackground(config.maxIdleTime)
+                .build(),
+        )
+        .build()
+
     private val blobServiceClient = BlobServiceClientBuilder()
         .endpoint(config.url)
         .credential(credential)
+        .httpClient(httpClient)
         .buildClient()
 
     private val blobBatchClient = BlobBatchClientBuilder(blobServiceClient).buildClient()
@@ -41,6 +56,7 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
         .endpoint(config.url)
         .credential(credential)
         .containerName(containerName)
+        .httpClient(httpClient)
         .buildClient()
 
     init {

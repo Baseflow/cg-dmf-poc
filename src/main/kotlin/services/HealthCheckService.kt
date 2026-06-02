@@ -7,6 +7,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
 @Serializable
@@ -57,14 +59,10 @@ open class HealthCheckService {
             // Write
             provider.uploadFile(probeKey, byteArrayOf())
 
-            // Read back
-            try {
-                provider.downloadFileTo(probeKey, ByteArrayOutputStream())
-                    .orTimeout(OPERATION_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
-                    .join()
-            } catch (_: TimeoutException) {
-                throw TimeoutException("Download probe timed out after ${OPERATION_TIMEOUT_SECONDS}s")
-            }
+            // Read back — wrap in runAsync so synchronous providers (e.g. Azure) are also bounded
+            CompletableFuture.runAsync {
+                provider.downloadFileTo(probeKey, ByteArrayOutputStream()).get()
+            }.get(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 
             // Best-effort cleanup
             try {
@@ -74,9 +72,9 @@ open class HealthCheckService {
             }
 
             DependencyStatus(status = "ok")
-        } catch (e: TimeoutException) {
-            logger.warn("Storage write health check timed out: {}", e.message)
-            DependencyStatus(status = "error", detail = "Storage write timed out: ${e.message}")
+        } catch (_: TimeoutException) {
+            logger.warn("Storage write health check timed out after {}s", PROBE_TIMEOUT_SECONDS)
+            DependencyStatus(status = "error", detail = "Storage write timed out after ${PROBE_TIMEOUT_SECONDS}s")
         } catch (e: Exception) {
             logger.warn("Storage write health check failed: {}", e.message)
             DependencyStatus(status = "error", detail = e.message)
@@ -91,6 +89,6 @@ open class HealthCheckService {
     }
 
     companion object {
-        private const val OPERATION_TIMEOUT_SECONDS = 5L
+        private const val PROBE_TIMEOUT_SECONDS = 10L
     }
 }

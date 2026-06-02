@@ -71,6 +71,14 @@ Configureer één of meerdere opslagrepositories via omgevingsvariabelen met een
 | `BLOB_STORAGE_DISABLE_CHECKSUMS<N>`         | nee     | Zet op `true` als het eindpunt geen AWS checksum-extensies ondersteunt      |
 | `BLOB_STORAGE_DISABLE_CHUNKED_ENCODING<N>`  | nee     | Zet op `true` als het eindpunt of een tussenliggende proxy geen chunked transfer encoding ondersteunt |
 
+De volgende variabelen gelden globaal voor alle geconfigureerde repositories (geen numeriek achtervoegsel):
+
+| Variabele                                | Standaard | Beschrijving                                                                                          |
+| ---------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| `BLOB_STORAGE_CONNECT_TIMEOUT_SECONDS`   | `10`      | Maximale tijd in seconden om een TCP-verbinding op te bouwen                                          |
+| `BLOB_STORAGE_READ_WRITE_TIMEOUT_SECONDS`| `10`      | Maximale tijd in seconden tussen twee opeenvolgende bytes tijdens een overdracht                      |
+| `BLOB_STORAGE_MAX_IDLE_SECONDS`          | `300`     | Maximale tijd in seconden dat een verbinding inactief in de pool mag blijven voordat deze wordt gesloten |
+
 **Voorbeeld — één S3-repository:**
 
 ```env
