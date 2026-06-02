@@ -13,6 +13,7 @@ import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
 import com.baseflow.entities.settings.ApplicationSettingEntity
 import com.baseflow.entities.settings.ApplicationSettingsTable
+import com.baseflow.services.ZgwClientSecretRegistrar
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -77,7 +78,13 @@ fun Route.applicationSettingsRoutes() {
                     clientSecret = body.clientSecret
                         ?.takeIf { it.isNotBlank() }
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                }.toResponse()
+                }.let { entity ->
+                    // Update cache before returning from transaction
+                    if (entity.clientSecret != null) {
+                        ZgwClientSecretRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
+                    }
+                    entity.toResponse()
+                }
             } ?: return@post call.respondProblem(
                 HttpStatusCode.Conflict,
                 conflict("An application with this name already exists.", call.request.path()),
@@ -123,7 +130,13 @@ fun Route.applicationSettingsRoutes() {
                         existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing.toResponse()
+                    existing.let { entity ->
+                        // Update cache before returning from transaction
+                        if (entity.clientSecret != null) {
+                            ZgwClientSecretRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
+                        }
+                        entity.toResponse()
+                    }
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
@@ -146,20 +159,24 @@ fun Route.applicationSettingsRoutes() {
                         badRequest("Invalid UUID.", call.request.path()),
                     )
 
-                val deleted = transaction {
-                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction false
+                val deletedClientId = transaction {
+                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
+                    val clientId = existing.clientId
                     existing.delete()
-                    true
+                    clientId
                 }
 
-                if (!deleted) {
-                    return@delete call.respondProblem(
+                when (deletedClientId) {
+                    null -> return@delete call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
+                    else -> {
+                        // Remove the secret from cache
+                        ZgwClientSecretRegistrar.unregisterSecret(deletedClientId)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                 }
-
-                call.respond(HttpStatusCode.NoContent)
             }
 
             post("/rotate-secret") {
@@ -174,20 +191,23 @@ fun Route.applicationSettingsRoutes() {
                 val plaintext = body.newSecret?.takeIf { it.isNotBlank() } ?: generateSecret()
 
                 val found = transaction {
-                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction false
+                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
                     existing.clientSecret = plaintext
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    true
+                    existing to plaintext
                 }
 
-                if (!found) {
-                    return@post call.respondProblem(
+                when (found) {
+                    null -> return@post call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
+                    else -> {
+                        // Update the cache with the rotated secret
+                        ZgwClientSecretRegistrar.registerSecret(found.first.clientId, found.second)
+                        call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
+                    }
                 }
-
-                call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
             }
         }
     }

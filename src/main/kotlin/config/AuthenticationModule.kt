@@ -7,6 +7,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.JWTVerifier
+import com.baseflow.services.ZgwClientSecretRegistrar
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.openapi.HttpSecurityScheme
@@ -25,7 +26,7 @@ import java.util.concurrent.TimeUnit
 fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
-    val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
+    val zgwClientSecrets = AuthenticationConfig.clientCredentials
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -67,8 +68,8 @@ fun Application.authenticationModule() {
 
         // ZGW-style JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
         // Tokens are HS256-signed with a per-client secret.  Configure via
-        // ZGW_CLIENT_SECRETS=client_id:secret,...  (see AuthenticationConfig).
-        // Tokens from clients not in ZGW_CLIENT_SECRETS are always rejected.
+        // CLIENT_CREDENTIALS=client_id:secret,...  (see AuthenticationConfig).
+        // Tokens from clients not in CLIENT_CREDENTIALS are always rejected.
         jwt("auth-zgw") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
@@ -88,7 +89,7 @@ fun Application.authenticationModule() {
                             throw JWTVerificationException("Not a ZGW token: missing or blank client_id claim")
                         }
 
-                        val secret = zgwClientSecrets[clientId]
+                        val secret = ZgwClientSecretRegistrar.getSecret(clientId)
                         return if (secret == null) {
                             logger.debug(
                                 "[ZGW] Unknown client '{}' — rejecting token because signature verification cannot be performed",
