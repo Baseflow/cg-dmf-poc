@@ -8,8 +8,7 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.middleware.configureStatusPages
-import com.baseflow.api.settings.settingsModule
-import com.baseflow.api.wopi.wopi.WopiDocumentService
+import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BestandsDeelConfig
 import com.baseflow.config.OpenZaakConfig

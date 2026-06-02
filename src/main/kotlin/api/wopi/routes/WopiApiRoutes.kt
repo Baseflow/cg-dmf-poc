@@ -358,17 +358,20 @@ private suspend fun RoutingContext.updateFileContents() {
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.attributes[WopiValidatedFileIdKey]
 
-    val maxExpectedSize: Int = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
+    val maxExpectedSize: UInt = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
         try {
-            it.toInt()
+            it.toUInt()
         } catch (_: NumberFormatException) {
             call.respondProblem(
-                HttpStatusCode.PreconditionFailed,
-                badRequest("File is larger than X-WOPI-MaxExpectedSize.", call.request.path()),
+                HttpStatusCode.BadRequest,
+                badRequest(
+                    "The X-WOPI-MaxExpectedSize contains an invalid value, it should contain a valid 4-byte integer value.",
+                    call.request.path(),
+                ),
             )
             return
         }
-    } ?: Int.MAX_VALUE
+    } ?: UInt.MAX_VALUE
 
     val fileVersion = wopiService.wopiGetFileVersion(fileId)
     if (fileVersion == null) {
@@ -379,8 +382,8 @@ private suspend fun RoutingContext.getFileContents() {
         return
     }
 
-    if (fileVersion.bestandsomvang > maxExpectedSize) {
-        call.respond(HttpStatusCode.PreconditionFailed)
+    if (fileVersion.bestandsomvang > maxExpectedSize.toLong()) {
+        call.respondProblem(status = HttpStatusCode.PreconditionFailed, problem = badRequest("File size exceeds X-WOPI-MaxExpectedSize."))
         return
     }
 
