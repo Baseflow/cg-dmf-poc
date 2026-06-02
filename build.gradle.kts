@@ -201,6 +201,8 @@ val copyOpenApiSpecs by tasks.registering(Copy::class) {
     from(layout.projectDirectory.dir("docs")) {
         include(
             "documenten-1.5.0.yaml",
+            "documenten-1.6.0.yaml",
+            "documenten-1.7.0-rc.yaml",
             "maykin-documenten-1.5.0.yaml",
         )
     }
