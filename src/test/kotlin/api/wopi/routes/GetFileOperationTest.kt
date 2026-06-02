@@ -99,7 +99,7 @@ class GetFileOperationTest {
         }
 
         @Test
-        fun `should return a bad request error when X-WOPI-MaxExpectedSize contains a out-of-range value`() = testApplication {
+        fun `should return a bad request error when X-WOPI-MaxExpectedSize contains an out-of-range value`() = testApplication {
             application {
                 setup()
             }
