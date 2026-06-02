@@ -162,7 +162,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
                 }
                 challenge { _, _ -> call.respondText("Unauthorized", status = HttpStatusCode.Unauthorized) }
             }
-            jwt("auth-zgw") {
+            jwt("auth-api-key") {
                 verifier(JWT.require(Algorithm.HMAC256(JWT_SECRET)).withIssuer(JWT_ISSUER).build())
                 validate { credential ->
                     if (!credential.payload.getClaim("client_id").asString().isNullOrBlank()) {

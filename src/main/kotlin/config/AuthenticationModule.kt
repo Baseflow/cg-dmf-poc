@@ -70,7 +70,7 @@ fun Application.authenticationModule() {
         // Tokens are HS256-signed with a per-client secret.  Configure via
         // CLIENT_CREDENTIALS=client_id:secret,...  (see AuthenticationConfig).
         // Tokens from clients not in CLIENT_CREDENTIALS are always rejected.
-        jwt("auth-zgw") {
+        jwt("auth-api-key") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
                 header?.let { parseAuthorizationHeader(it) }
@@ -126,7 +126,7 @@ fun Application.authenticationModule() {
     // This means Swagger UI knows which lock icon to use and sends the Authorization header.
     //
     // auth-jwt → OAuth2 Authorization Code + PKCE: Swagger UI shows an interactive Keycloak login button.
-    // auth-zgw → HTTP Bearer (paste-in): Swagger UI shows a plain text box for a ZGW/GZAC token.
+    // auth-api-key → HTTP Bearer (paste-in): Swagger UI shows a plain text box for a ZGW/GZAC token.
     registerSecurityScheme(
         providerName = "auth-jwt",
         securityScheme = OAuth2SecurityScheme(
@@ -147,7 +147,7 @@ fun Application.authenticationModule() {
         ),
     )
     registerSecurityScheme(
-        providerName = "auth-zgw",
+        providerName = "auth-api-key",
         securityScheme = HttpSecurityScheme(
             scheme = "bearer",
             bearerFormat = "JWT",

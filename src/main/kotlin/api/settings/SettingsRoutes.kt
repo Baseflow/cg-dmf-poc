@@ -25,7 +25,7 @@ import io.ktor.server.routing.routing
 /**
  * Role claims are interpreted based on the auth provider that authenticated the request:
  * - auth-jwt (OIDC): realm/resource roles
- * - auth-zgw (ZGW): top-level roles
+ * - auth-api-key (ZGW): top-level roles
  */
 private enum class AuthTokenType {
     OIDC,
@@ -35,7 +35,7 @@ private enum class AuthTokenType {
 
 private fun ApplicationCall.authenticatedTokenType(): AuthTokenType {
     if (authentication.principal<JWTPrincipal>("auth-jwt") != null) return AuthTokenType.OIDC
-    if (authentication.principal<JWTPrincipal>("auth-zgw") != null) return AuthTokenType.ZGW
+    if (authentication.principal<JWTPrincipal>("auth-api-key") != null) return AuthTokenType.ZGW
     return AuthTokenType.UNKNOWN
 }
 
@@ -44,7 +44,7 @@ private fun ApplicationCall.authenticatedTokenType(): AuthTokenType {
  *
  * - Keycloak (auth-jwt): roles can be in `realm_access.roles` and/or
  *   `resource_access.<client_id>.roles`.
- * - ZGW (auth-zgw): roles may be in a top-level `roles` claim (string array).
+ * - ZGW (auth-api-key): roles may be in a top-level `roles` claim (string array).
  */
 private fun ApplicationCall.jwtRoles(): Set<String> {
     val principal = principal<JWTPrincipal>() ?: return emptySet()
@@ -152,7 +152,7 @@ fun Route.settingsRoutes(requireRoleCheck: Boolean = true) {
 fun Application.settingsModule(useAuthentication: Boolean = true) {
     routing {
         if (useAuthentication) {
-            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
+            authenticate("auth-jwt", "auth-api-key", strategy = AuthenticationStrategy.FirstSuccessful) {
                 settingsRoutes(requireRoleCheck = true)
             }
         } else {
