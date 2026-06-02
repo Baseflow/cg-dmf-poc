@@ -20,6 +20,7 @@ vars:post-response {
 
 assert {
   res.status: eq 200
+  res.body.inhoudIsVervallen: isDefined
 }
 
 settings {

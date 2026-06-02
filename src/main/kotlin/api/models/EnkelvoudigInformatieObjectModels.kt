@@ -172,7 +172,10 @@ data class EnkelvoudigInformatieObjectRequest(
     @JsonSchema.Example("[\"omgevingsrecht\", \"vergunning\"]")
     val trefwoorden: List<String>? = null,
 
-    @JsonSchema.Description("Indicatie of de inhoud van het INFORMATIEOBJECT is vervallen en niet meer te downloaden is.")
+    @JsonSchema.Description(
+        "Geeft aan of de inhoud van het INFORMATIEOBJECT al dan niet vervallen, dus niet langer geldig is. " +
+            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. Niet opgegeven = veld ontbreekt of is `null`.",
+    )
     val inhoudIsVervallen: Boolean? = null,
 ) : ApiRequest {
     init {
@@ -482,7 +485,10 @@ data class EnkelvoudigInformatieObjectResponse(
     @JsonSchema.Example("[\"omgevingsrecht\", \"vergunning\"]")
     val trefwoorden: List<String> = emptyList(),
 
-    @JsonSchema.Description("Geeft aan of de inhoud van het INFORMATIEOBJECT vervallen (dus niet langer geldig) is.")
+    @JsonSchema.Description(
+        "Geeft aan of de inhoud van het INFORMATIEOBJECT al dan niet vervallen, dus niet langer geldig is. " +
+            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. Niet opgegeven = veld ontbreekt of is `null`.",
+    )
     val inhoudIsVervallen: Boolean? = null,
 
     @JsonSchema.Description("Lijst van BESTANDSDELen voor chunked upload. Gevuld wanneer het bestand via BESTANDSDELen wordt geüpload.")

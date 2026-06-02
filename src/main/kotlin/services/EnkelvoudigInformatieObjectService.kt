@@ -93,6 +93,7 @@ class EnkelvoudigInformatieObjectService(
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
             bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
+            inhoudIsVervallen = request.inhoudIsVervallen
         }
         val trefwoorden =
             request.trefwoorden?.map { it.lowercase(Locale.ROOT) }?.distinct()?.sorted() ?: emptyList()
@@ -452,6 +453,7 @@ class EnkelvoudigInformatieObjectService(
                     latestVersion?.ondertekenings_datum,
                 )
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
+                inhoudIsVervallen = mergeNullable(partial, request.inhoudIsVervallen, latestVersion?.inhoudIsVervallen)
             }
 
             val trefwoordenToStore: List<String> = when {
@@ -591,7 +593,7 @@ class EnkelvoudigInformatieObjectService(
                     .where { EIOVersionTrefwoorden.versionId eq version.id }
                     .orderBy(Trefwoorden.woord to SortOrder.ASC)
                     .map { it[Trefwoorden.woord] },
-            inhoudIsVervallen = false, // Placeholder for inhoudIsVervallen
+            inhoudIsVervallen = version.inhoudIsVervallen,
             locked = this.lockToken != null,
             versie = version.versie,
             beginRegistratie = version.beginRegistratie
@@ -802,6 +804,7 @@ class EnkelvoudigInformatieObjectService(
                 ondertekening_soort = latestVersion?.ondertekening_soort.orEmpty()
                 ondertekenings_datum = latestVersion?.ondertekenings_datum
                 identificatie = latestVersion?.identificatie.orEmpty()
+                inhoudIsVervallen = latestVersion?.inhoudIsVervallen
             }
 
             val trefwoorden = if (latestVersion != null) {

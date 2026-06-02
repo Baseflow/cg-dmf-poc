@@ -575,7 +575,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals(false, putResp.indicatieGebruiksrecht)
         assertEquals("", putResp.verschijningsvorm)
         assertEquals(emptyList(), putResp.trefwoorden)
-        assertEquals(false, putResp.inhoudIsVervallen)
+        assertNull(putResp.inhoudIsVervallen)
     }
 
     @Test
