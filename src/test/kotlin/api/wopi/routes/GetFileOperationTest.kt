@@ -273,7 +273,8 @@ class GetFileOperationTest {
 
             val contentDisposition = response.headers[HttpHeaders.ContentDisposition]
                 ?.let { ContentDisposition.parse(it) }
-            val fileName = contentDisposition?.parameter(ContentDisposition.Parameters.FileName)
+            val fileName = contentDisposition?.parameter(ContentDisposition.Parameters.FileNameAsterisk)
+                ?.let { decodeRfc5987(it) }
 
             assertEquals(200, response.status.value)
             assertEquals("test.pdf", fileName)
