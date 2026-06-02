@@ -174,7 +174,7 @@ data class EnkelvoudigInformatieObjectRequest(
 
     @JsonSchema.Description(
         "Geeft aan of de inhoud van het INFORMATIEOBJECT al dan niet vervallen, dus niet langer geldig is. " +
-            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. `null` = niet opgegeven.",
+            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. Niet opgegeven = veld ontbreekt of is `null`.",
     )
     val inhoudIsVervallen: Boolean? = null,
 ) : ApiRequest {
@@ -487,7 +487,7 @@ data class EnkelvoudigInformatieObjectResponse(
 
     @JsonSchema.Description(
         "Geeft aan of de inhoud van het INFORMATIEOBJECT al dan niet vervallen, dus niet langer geldig is. " +
-            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. `null` = niet opgegeven.",
+            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. Niet opgegeven = veld ontbreekt of is `null`.",
     )
     val inhoudIsVervallen: Boolean? = null,
 
