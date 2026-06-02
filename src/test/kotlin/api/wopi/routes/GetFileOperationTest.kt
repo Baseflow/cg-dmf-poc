@@ -89,6 +89,34 @@ class GetFileOperationTest {
         }
 
         @Test
+        fun `should return a bad request error when X-WOPI-MaxExpectedSize contains a non-numeric value`() = testApplication {
+            application {
+                setup()
+            }
+
+            val response: HttpResponse =
+                client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId/contents?access_token=$dummyAccessToken") {
+                    header("X-WOPI-MaxExpectedSize", "test123")
+                }
+
+            assertEquals(400, response.status.value)
+        }
+
+        @Test
+        fun `should return a bad request error when X-WOPI-MaxExpectedSize contains a out-of-range value`() = testApplication {
+            application {
+                setup()
+            }
+
+            val response: HttpResponse =
+                client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId/contents?access_token=$dummyAccessToken") {
+                    header("X-WOPI-MaxExpectedSize", "4294967296")
+                }
+
+            assertEquals(400, response.status.value)
+        }
+
+        @Test
         fun `should return a precondition failed error when X-WOPI-MaxExpectedSize is smaller than file size`() = testApplication {
             application {
                 setup()
