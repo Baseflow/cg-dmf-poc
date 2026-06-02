@@ -804,6 +804,7 @@ class EnkelvoudigInformatieObjectService(
                 ondertekening_soort = latestVersion?.ondertekening_soort.orEmpty()
                 ondertekenings_datum = latestVersion?.ondertekenings_datum
                 identificatie = latestVersion?.identificatie.orEmpty()
+                inhoudIsVervallen = latestVersion?.inhoudIsVervallen
             }
 
             val trefwoorden = if (latestVersion != null) {
