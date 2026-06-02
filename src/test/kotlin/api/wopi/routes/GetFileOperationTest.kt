@@ -274,7 +274,7 @@ class GetFileOperationTest {
                 client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId/contents?access_token=$dummyAccessToken")
 
             assertEquals(200, response.status.value)
-            assertEquals(ContentType.APPLICATION_PDF.toString(), response.headers["Content-Type"])
+            assertEquals(ContentType.Application.Pdf.toString(), response.headers["Content-Type"])
         }
     }
 
