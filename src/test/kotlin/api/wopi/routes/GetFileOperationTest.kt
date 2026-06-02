@@ -266,7 +266,7 @@ class GetFileOperationTest {
             mockWopiDocumentService.also {
                 every { it.wopiGetFileVersion(dummyFileId) } returns createDummyWopiFileVersion(
                     100,
-                    format = ContentType.APPLICATION_PDF.toString(),
+                    format = ContentType.Application.Pdf.toString(),
                 )
             }
 
