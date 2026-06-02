@@ -69,6 +69,25 @@ class IntegrityCalculationServiceTest {
     }
 
     @Test
+    fun `calculateIntegrity SHA_512 - produces known hash`() {
+        val result = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_512")
+        // Well-known SHA-512 of "The quick brown fox jumps over the lazy dog"
+        assertEquals(
+            "07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6",
+            result.hash,
+        )
+        assertEquals("SHA_512", result.algorithm)
+    }
+
+    @Test
+    fun `calculateIntegrity SHA_3 - produces known hash`() {
+        val result = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_3")
+        // Well-known SHA3-256 of "The quick brown fox jumps over the lazy dog"
+        assertEquals("69070dda01975c8c120c3aada1b282394e7f032fa9cf32f4cb2259a0897dfc04", result.hash)
+        assertEquals("SHA_3", result.algorithm)
+    }
+
+    @Test
     fun `calculateIntegrity CRC_32 - produces known checksum`() {
         val result = IntegrityCalculationService.calculateIntegrity(sampleBytes, "CRC_32")
         // CRC-32 of "The quick brown fox jumps over the lazy dog" = 0x414FA339
@@ -138,6 +157,32 @@ class IntegrityCalculationServiceTest {
         ) { stream -> stream.copyTo(OutputStream.nullOutputStream()) }
 
         assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity SHA_512 - hash matches calculateIntegrity`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_512")
+
+        val (_, actual) = IntegrityCalculationService.withIntegrity(
+            sampleBytes.inputStream(),
+            "SHA_512",
+        ) { stream -> stream.copyTo(OutputStream.nullOutputStream()) }
+
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("SHA_512", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity SHA_3 - hash matches calculateIntegrity`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_3")
+
+        val (_, actual) = IntegrityCalculationService.withIntegrity(
+            sampleBytes.inputStream(),
+            "SHA_3",
+        ) { stream -> stream.copyTo(OutputStream.nullOutputStream()) }
+
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("SHA_3", actual.algorithm)
     }
 
     @Test

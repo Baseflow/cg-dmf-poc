@@ -615,6 +615,12 @@ enum class IntegriteitAlgoritme {
 
     @SerialName("sha_256")
     SHA_256,
+
+    @SerialName("sha_512")
+    SHA_512,
+
+    @SerialName("sha_3")
+    SHA_3,
 }
 
 @JsonSchema.Description("Het type ondertekening van een INFORMATIEOBJECT: analoog (handtekening), digitaal of pki (PKI-certificaat).")
