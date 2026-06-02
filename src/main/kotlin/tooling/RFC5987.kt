@@ -25,4 +25,3 @@ fun decodeRfc5987(value: String): String {
         URLDecoder.decode(encodedValue.replace("+", "%2B"), charset)
     }.getOrElse { value }
 }
-}
