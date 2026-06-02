@@ -9,6 +9,7 @@ import com.baseflow.api.models.settings.RotateSecretRequest
 import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
 import com.baseflow.entities.settings.ApplicationSettingEntity
+import com.baseflow.services.ApplicationCredentialRegistrar
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -22,6 +23,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -313,6 +315,35 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
             assertNotNull(entity.clientSecret)
             assertEquals("original-secret", entity.clientSecret)
         }
+    }
+
+    @Test
+    fun `PUT removes old clientId from in-memory credentials cache when clientId changes`() = testApplication {
+        application { setup() }
+        ApplicationCredentialRegistrar.resetForTesting()
+
+        val id = insertApp("app", clientId = "old-client", clientSecret = "shared-secret")
+
+        // Simulate existing in-memory registration for the pre-update clientId.
+        ApplicationCredentialRegistrar.registerSecret("old-client", "shared-secret")
+
+        val response = client.put("/settings/application-settings/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(
+                        name = "app",
+                        clientId = "new-client",
+                        clientSecret = null,
+                    ),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertNull(ApplicationCredentialRegistrar.getSecret("old-client"))
+        assertEquals("shared-secret", ApplicationCredentialRegistrar.getSecret("new-client"))
     }
 
     // -----------------------------------------------------------------------

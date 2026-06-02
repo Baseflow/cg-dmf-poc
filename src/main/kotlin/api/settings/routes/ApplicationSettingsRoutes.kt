@@ -125,6 +125,7 @@ fun Route.applicationSettingsRoutes() {
                         ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
                             .firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
+                    val previousClientId = existing.clientId
                     existing.name = body.name
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
@@ -133,6 +134,9 @@ fun Route.applicationSettingsRoutes() {
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     existing.let { entity ->
                         // Update cache before returning from transaction
+                        if (previousClientId != entity.clientId) {
+                            ApplicationCredentialRegistrar.unregisterSecret(previousClientId)
+                        }
                         if (entity.clientSecret != null) {
                             ApplicationCredentialRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
                         }
@@ -231,7 +235,7 @@ private val logger = LoggerFactory.getLogger("com.baseflow.api.settings.routes.A
 private fun ApplicationSettingEntity.toResponse(): ApplicationSettingsResponse {
     val decryptedSecret = try {
         clientSecret
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         logger.error(
             "CRITICAL: Failed to decrypt clientSecret for application '$name' (${id.value}). " +
                 "The encryption key or salt might have changed. " +
