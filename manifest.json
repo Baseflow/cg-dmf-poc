@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26842835565",
+    "runNumber": "779",
+    "branch": "newversions",
+    "date": "2026-06-02T19:30:48Z",
+    "path": "integration/26842835565/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26842618927",
     "runNumber": "778",
     "branch": "inhoudVervallen",
