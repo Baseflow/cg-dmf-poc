@@ -21,9 +21,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.net.URI
 import java.nio.ByteBuffer
-import java.time.Duration
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.TimeUnit
 
 /**
  * [BlobStorageProvider] implementation backed by an S3-compatible object store.
@@ -52,9 +50,10 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             .build()
 
         val httpClientBuilder = NettyNioAsyncHttpClient.builder()
-            .connectionTimeout(CONNECTION_TIMEOUT)
-            .readTimeout(READ_WRITE_TIMEOUT)
-            .writeTimeout(READ_WRITE_TIMEOUT)
+            .connectionTimeout(config.connectTimeout)
+            .readTimeout(config.readWriteTimeout)
+            .writeTimeout(config.readWriteTimeout)
+            .connectionMaxIdleTime(config.maxIdleTime)
 
         val clientBuilder = S3AsyncClient.builder()
             .region(Region.of(config.region ?: "eu-west-1"))
@@ -185,10 +184,10 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
     }
 
     override fun isHealthy(): Boolean = try {
-        s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build())
-            .get(TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+        s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build()).join()
         true
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        logger.warn("S3 health check failed for '{}' (bucket: {}): {}", name, bucketName, e.message)
         false
     }
 
@@ -197,7 +196,7 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             .bucket(bucketName)
             .key(objectName)
             .build()
-        s3Client.deleteObject(request).get(TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+        s3Client.deleteObject(request).join()
         logger.debug("Deleted {}/{}", bucketName, objectName)
     }
 
@@ -214,7 +213,7 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
                 .bucket(bucketName)
                 .delete(Delete.builder().objects(identifiers).build())
                 .build()
-            val response = s3Client.deleteObjects(request).get(TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+            val response = s3Client.deleteObjects(request).join()
             if (response.hasErrors()) {
                 val errors = response.errors().joinToString { "${it.key()}: ${it.message()}" }
                 logger.warn("S3 DeleteObjects returned errors for bucket {}: {}", bucketName, errors)
@@ -228,21 +227,5 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
             logger.info("Bucket {} does not exist, creating it", bucketName)
             s3Client.createBucket { it.bucket(bucketName) }.join()
         }
-    }
-
-    companion object {
-        /** Maximum time to wait for a TCP connection to be established. */
-        val CONNECTION_TIMEOUT: Duration = Duration.ofSeconds(10)
-
-        /**
-         * Maximum idle time between consecutive read/write buffers during a streaming transfer.
-         * This is NOT a total-transfer timeout – a 1 GB upload over a slow link will succeed as
-         * long as each individual chunk of data arrives within this window.
-         * 60 s gives ample headroom for S3-side processing pauses without masking dead connections.
-         */
-        val READ_WRITE_TIMEOUT: Duration = Duration.ofSeconds(60)
-
-        /** Kept for callers that still reference the old constant (e.g. health-check .get() calls). */
-        val TIMEOUT: Duration = CONNECTION_TIMEOUT
     }
 }

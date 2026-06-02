@@ -70,12 +70,12 @@ leave empty/null for the chart to create one named <fullname>-database.
 {{- end }}
 
 {{/*
-Name of the Secret that holds S3/MinIO credentials.
-Set settings.s3.existingSecret to the name of a pre-existing Secret to use it;
-leave empty/null for the chart to create one named <fullname>-s3.
+Name of the Secret that holds blob storage credentials.
+Set settings.blobStorage.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-blob-storage.
 */}}
-{{- define "cg-dmf.s3SecretName" -}}
-{{- .Values.settings.s3.existingSecret | default (printf "%s-s3" (include "cg-dmf.fullname" .)) }}
+{{- define "cg-dmf.blobStorageSecretName" -}}
+{{- .Values.settings.blobStorage.existingSecret | default (printf "%s-blob-storage" (include "cg-dmf.fullname" .)) }}
 {{- end }}
 
 {{/*
