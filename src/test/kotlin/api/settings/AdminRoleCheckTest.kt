@@ -8,11 +8,17 @@ import com.baseflow.api.apiJsonConfig
 import com.baseflow.api.documenten.routes.TestBase
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.middleware.configureStatusPages
-import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.config.ApplicationConfig
 import com.baseflow.config.BestandsDeelConfig
 import com.baseflow.config.OpenZaakConfig
-import com.baseflow.services.*
+import com.baseflow.services.AuditTrailService
+import com.baseflow.services.BestandsDeelService
+import com.baseflow.services.BlobStorageRegistrar
+import com.baseflow.services.CatalogusService
+import com.baseflow.services.EnkelvoudigInformatieObjectService
+import com.baseflow.services.NotificationService
+import com.baseflow.services.ObjectInformatieObjectService
+import com.baseflow.services.StorageService
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -44,6 +50,7 @@ import kotlin.test.assertEquals
  * authenticated principal carries the required role (`dmf-admin` by default).
  * The role can appear in either:
  * - `realm_access.roles` (Keycloak JWT shape), or
+ * - `resource_access.<client_id>.roles` (Keycloak client-role shape), or
  * - a top-level `roles` claim (ZGW JWT shape).
  */
 class AdminRoleCheckTest : TestBase("admin_role_check") {
@@ -53,6 +60,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
         private const val OTHER_ROLE = "some-other-role"
         private const val JWT_SECRET = "test-secret-key-for-testing-only"
         private const val JWT_ISSUER = "test-issuer"
+        private const val OIDC_CLIENT_ID = "dmf-api"
     }
 
     @BeforeTest
@@ -70,7 +78,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     private fun tokenWithKeycloakRoles(vararg roles: String): String = JWT.create()
         .withIssuer(JWT_ISSUER)
         .withSubject("testuser")
-        .withClaim("username", "testuser")
+        .withClaim("preferred_username", "testuser")
         .withClaim("realm_access", mapOf("roles" to roles.toList()))
         .sign(Algorithm.HMAC256(JWT_SECRET))
 
@@ -78,15 +86,35 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     private fun tokenWithZgwRoles(vararg roles: String): String = JWT.create()
         .withIssuer(JWT_ISSUER)
         .withSubject("testuser")
+        .withClaim("client_id", "gzac")
         .withClaim("username", "testuser")
         .withArrayClaim("roles", roles)
+        .sign(Algorithm.HMAC256(JWT_SECRET))
+
+    /** Builds a Keycloak-shaped JWT that wrongly places roles in top-level `roles`. */
+    private fun oidcTokenWithTopLevelRoles(vararg roles: String): String = JWT.create()
+        .withIssuer(JWT_ISSUER)
+        .withSubject("testuser")
+        .withClaim("preferred_username", "testuser")
+        .withArrayClaim("roles", roles)
+        .sign(Algorithm.HMAC256(JWT_SECRET))
+
+    /**
+     * Builds a JWT with roles in `resource_access.<client_id>.roles` (Keycloak client-role shape).
+     */
+    private fun tokenWithResourceAccessRoles(vararg roles: String, clientId: String = OIDC_CLIENT_ID): String = JWT.create()
+        .withIssuer(JWT_ISSUER)
+        .withSubject("testuser")
+        .withClaim("preferred_username", "testuser")
+        .withClaim("azp", clientId)
+        .withClaim("resource_access", mapOf(clientId to mapOf("roles" to roles.toList())))
         .sign(Algorithm.HMAC256(JWT_SECRET))
 
     /** Builds a valid JWT with no role claims at all. */
     private fun tokenWithNoRoles(): String = JWT.create()
         .withIssuer(JWT_ISSUER)
         .withSubject("testuser")
-        .withClaim("username", "testuser")
+        .withClaim("preferred_username", "testuser")
         .sign(Algorithm.HMAC256(JWT_SECRET))
 
     private fun Application.setupWithAuth() {
@@ -113,8 +141,6 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
                         scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
                         scoped { NotificationService(get()) }
                         scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }
-                        scoped { WopiDocumentService(get(), get()) }
-                        scoped { params -> WopiSlatService(params.get(), params.get()) }
                     }
                 },
             )
@@ -126,7 +152,9 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
             jwt("auth-jwt") {
                 verifier(JWT.require(Algorithm.HMAC256(JWT_SECRET)).withIssuer(JWT_ISSUER).build())
                 validate { credential ->
-                    if (credential.payload.getClaim("username").asString()?.isNotEmpty() == true) {
+                    if (!credential.payload.getClaim("preferred_username").asString().isNullOrBlank() ||
+                        !credential.payload.getClaim("user_id").asString().isNullOrBlank()
+                    ) {
                         JWTPrincipal(credential.payload)
                     } else {
                         null
@@ -137,7 +165,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
             jwt("auth-zgw") {
                 verifier(JWT.require(Algorithm.HMAC256(JWT_SECRET)).withIssuer(JWT_ISSUER).build())
                 validate { credential ->
-                    if (credential.payload.getClaim("username").asString()?.isNotEmpty() == true) {
+                    if (!credential.payload.getClaim("client_id").asString().isNullOrBlank()) {
                         JWTPrincipal(credential.payload)
                     } else {
                         null
@@ -208,6 +236,28 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
     }
 
     @Test
+    fun `oidc token with admin role only in top-level roles returns 403`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/settings/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${oidcTokenWithTopLevelRoles(ADMIN_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `valid token with a different resource_access role returns 403`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/settings/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithResourceAccessRoles(OTHER_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
     fun `403 response body is a problem detail with status 403`() = testApplication {
         application { setupWithAuth() }
 
@@ -263,6 +313,33 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
 
         val response = client.get("/settings/storage-repositories") {
             header(HttpHeaders.Authorization, "Bearer ${tokenWithZgwRoles(OTHER_ROLE, ADMIN_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    // ── Authorised: Keycloak resource_access client roles ──────────────────────
+
+    @Test
+    fun `token with admin role in resource_access returns 200`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/settings/storage-repositories") {
+            header(HttpHeaders.Authorization, "Bearer ${tokenWithResourceAccessRoles(ADMIN_ROLE)}")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
+    fun `token with admin role alongside other roles in resource_access returns 200`() = testApplication {
+        application { setupWithAuth() }
+
+        val response = client.get("/settings/storage-repositories") {
+            header(
+                HttpHeaders.Authorization,
+                "Bearer ${tokenWithResourceAccessRoles(OTHER_ROLE, ADMIN_ROLE, "yet-another")}",
+            )
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
