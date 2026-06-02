@@ -40,16 +40,31 @@ object ZgwClientSecretRegistrar {
             secrets.putAll(AuthenticationConfig.clientCredentials)
 
             // Then, load from database (which will override env config if present)
+            var dbSecretCount = 0
             for (entity in dbSettings) {
-                if (entity.clientSecret != null) {
-                    secrets[entity.clientId] = entity.clientSecret!!
+                val secret = runCatching { entity.clientSecret }
+                    .onFailure {
+                        logger.error(
+                            "Failed to decrypt clientSecret for application '{}' ({}); skipping secret for client_id='{}'",
+                            entity.name,
+                            entity.id.value,
+                            entity.clientId,
+                            it,
+                        )
+                    }
+                    .getOrNull()
+                    ?.takeIf { it.isNotBlank() }
+
+                if (secret != null) {
+                    secrets[entity.clientId] = secret
+                    dbSecretCount++
                 }
             }
 
             logger.info(
                 "ZGW client secrets initialized: {} from env config, {} from database, {} total",
                 AuthenticationConfig.clientCredentials.size,
-                dbSettings.count { it.clientSecret != null },
+                dbSecretCount,
                 secrets.size,
             )
         }
