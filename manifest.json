@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26813472196",
+    "runNumber": "756",
+    "branch": "cGDMF-164-application-credentials",
+    "date": "2026-06-02T10:24:47Z",
+    "path": "integration/26813472196/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26812720713",
     "runNumber": "755",
     "branch": "cGDMF-164-application-credentials",
