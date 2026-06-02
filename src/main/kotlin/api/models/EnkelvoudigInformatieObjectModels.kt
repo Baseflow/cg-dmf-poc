@@ -299,9 +299,10 @@ data class BestandsDeelResponse(
     @JsonSchema.Description("Het vergrendel-token (lock) dat vereist is om dit BESTANDSDEEL te uploaden.")
     @JsonSchema.ReadOnly
     val lock: String,
-    @JsonSchema.Description("De inhoud van dit BESTANDSDEEL (alleen aanwezig bij voltooid=true, base64-gecodeerd).")
-    @JsonSchema.Format("byte")
-    val inhoud: String? = null,
+    // NOTE: The official ZGW specification mentions an `inhoud` field on BestandsDeel that should contain
+    // a URI to retrieve the part's content. However, this is not implemented here (nor by OpenZaak) because
+    // it is unclear what it would mean to retrieve a single chunk's content independently of the assembled
+    // document. A ticket should be opened with the specification maintainers to clarify or remove this field.
 )
 
 @OptIn(ExperimentalSerializationApi::class)
