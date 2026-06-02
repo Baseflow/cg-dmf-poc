@@ -17,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap
  * Call [initialise] once during application startup (after Flyway migration).
  * The cache is updated whenever ApplicationSettings are created/changed/deleted.
  */
-object ZgwClientSecretRegistrar {
+object ApplicationCredentialRegistrar {
 
-    private val logger = LoggerFactory.getLogger(ZgwClientSecretRegistrar::class.java)
+    private val logger = LoggerFactory.getLogger(ApplicationCredentialRegistrar::class.java)
 
     /** In-memory cache of client_id → secret pairs. */
     private val secrets = ConcurrentHashMap<String, String>()

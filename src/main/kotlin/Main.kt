@@ -17,7 +17,7 @@ import com.baseflow.config.authenticationModule
 import com.baseflow.config.dmfKoinModule
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
-import com.baseflow.services.ZgwClientSecretRegistrar
+import com.baseflow.services.ApplicationCredentialRegistrar
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.serialization.kotlinx.json.json
@@ -66,7 +66,7 @@ fun main() {
     BlobStorageRegistrar.initialise()
 
     // Initialize ZGW client secrets cache from both env config and database
-    ZgwClientSecretRegistrar.initialise()
+    ApplicationCredentialRegistrar.initialise()
 
     // Ensure notification kanaal exists
     NotificationConfig.printConfig()

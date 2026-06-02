@@ -13,7 +13,7 @@ import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
 import com.baseflow.entities.settings.ApplicationSettingEntity
 import com.baseflow.entities.settings.ApplicationSettingsTable
-import com.baseflow.services.ZgwClientSecretRegistrar
+import com.baseflow.services.ApplicationCredentialRegistrar
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -81,7 +81,7 @@ fun Route.applicationSettingsRoutes() {
                 }.let { entity ->
                     // Update cache before returning from transaction
                     if (entity.clientSecret != null) {
-                        ZgwClientSecretRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
+                        ApplicationCredentialRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
                     }
                     entity.toResponse()
                 }
@@ -122,7 +122,8 @@ fun Route.applicationSettingsRoutes() {
                     val existing = ApplicationSettingEntity.findById(id)
                         ?: return@transaction null
                     val nameConflict = existing.name != body.name &&
-                        ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }.firstOrNull() != null
+                        ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
+                            .firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
                     existing.name = body.name
                     existing.clientId = body.clientId
@@ -133,7 +134,7 @@ fun Route.applicationSettingsRoutes() {
                     existing.let { entity ->
                         // Update cache before returning from transaction
                         if (entity.clientSecret != null) {
-                            ZgwClientSecretRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
+                            ApplicationCredentialRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
                         }
                         entity.toResponse()
                     }
@@ -143,10 +144,12 @@ fun Route.applicationSettingsRoutes() {
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
+
                     "conflict" -> return@put call.respondProblem(
                         HttpStatusCode.Conflict,
                         conflict("An application with this name already exists.", call.request.path()),
                     )
+
                     else -> call.respond(HttpStatusCode.OK, updated as ApplicationSettingsResponse)
                 }
             }
@@ -171,9 +174,10 @@ fun Route.applicationSettingsRoutes() {
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
+
                     else -> {
                         // Remove the secret from cache
-                        ZgwClientSecretRegistrar.unregisterSecret(deletedClientId)
+                        ApplicationCredentialRegistrar.unregisterSecret(deletedClientId)
                         call.respond(HttpStatusCode.NoContent)
                     }
                 }
@@ -202,9 +206,10 @@ fun Route.applicationSettingsRoutes() {
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
+
                     else -> {
                         // Update the cache with the rotated secret
-                        ZgwClientSecretRegistrar.registerSecret(found.first.clientId, found.second)
+                        ApplicationCredentialRegistrar.registerSecret(found.first.clientId, found.second)
                         call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
                     }
                 }
