@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "26850844339",
+    "runNumber": "783",
+    "branch": "fix/sha512_and_sha3",
+    "date": "2026-06-02T22:11:55Z",
+    "path": "integration/26850844339/index.html"
+  },
+  {
     "category": "k6",
     "runId": "26850490132",
     "runNumber": "111",
