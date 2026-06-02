@@ -383,7 +383,9 @@ private suspend fun RoutingContext.getFileContents() {
     }
 
     if (fileVersion.bestandsomvang > maxExpectedSize.toLong()) {
-        call.respondProblem(status = HttpStatusCode.PreconditionFailed, problem = badRequest("File size exceeds X-WOPI-MaxExpectedSize."))
+        call.respondProblem(HttpStatusCode.PreconditionFailed, "File size exceeds X-WOPI-MaxExpectedSize.")
+        return
+    }
         return
     }
 
