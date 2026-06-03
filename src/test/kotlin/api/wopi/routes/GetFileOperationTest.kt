@@ -16,6 +16,7 @@ import com.baseflow.testutils.decodeRfc5987
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -34,6 +35,7 @@ import org.koin.module.requestScope
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GetFileOperationTest {
     private val mockWopiDocumentService = mockk<WopiDocumentService>(relaxed = true)
@@ -82,6 +84,9 @@ class GetFileOperationTest {
                 }
 
             assertEquals(400, response.status.value)
+            assertEquals("application/problem+json; charset=utf-8", response.headers[HttpHeaders.ContentType])
+            val body: String = response.bodyAsText()
+            assertTrue(body.contains("The X-WOPI-MaxExpectedSize header does not contain a valid 32-bit unsigned integer value."))
         }
 
         @Test
@@ -96,6 +101,9 @@ class GetFileOperationTest {
                 }
 
             assertEquals(400, response.status.value)
+            assertEquals("application/problem+json; charset=utf-8", response.headers[HttpHeaders.ContentType])
+            val body: String = response.bodyAsText()
+            assertTrue(body.contains("The X-WOPI-MaxExpectedSize header does not contain a valid 32-bit unsigned integer value."))
         }
 
         @Test
@@ -110,6 +118,9 @@ class GetFileOperationTest {
                 }
 
             assertEquals(400, response.status.value)
+            assertEquals("application/problem+json; charset=utf-8", response.headers[HttpHeaders.ContentType])
+            val body: String = response.bodyAsText()
+            assertTrue(body.contains("The X-WOPI-MaxExpectedSize header does not contain a valid 32-bit unsigned integer value."))
         }
 
         @Test
@@ -128,6 +139,9 @@ class GetFileOperationTest {
                 }
 
             assertEquals(412, response.status.value)
+            assertEquals("application/problem+json; charset=utf-8", response.headers[HttpHeaders.ContentType])
+            val body: String = response.bodyAsText()
+            assertTrue(body.contains("File size exceeds X-WOPI-MaxExpectedSize (or UInt32 max when absent)."))
         }
 
         @Test
@@ -163,6 +177,9 @@ class GetFileOperationTest {
                     client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId/contents?access_token=$dummyAccessToken")
 
                 assertEquals(412, response.status.value)
+                assertEquals("application/problem+json; charset=utf-8", response.headers[HttpHeaders.ContentType])
+                val body: String = response.bodyAsText()
+                assertTrue(body.contains("File size exceeds X-WOPI-MaxExpectedSize (or UInt32 max when absent)."))
             }
 
         @Test

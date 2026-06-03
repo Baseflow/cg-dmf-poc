@@ -9,7 +9,7 @@ import java.net.URLDecoder
  */
 fun decodeRfc5987(value: String): String {
     // Format: charset'language'encoded-value (RFC 5987 / RFC 6266)
-    val quote = 39.toChar() // single quote (')
+    val quote = '\'' // single quote (')
     val firstQuote = value.indexOf(quote)
     if (firstQuote < 0) return value
     val secondQuote = value.indexOf(quote, startIndex = firstQuote + 1)
