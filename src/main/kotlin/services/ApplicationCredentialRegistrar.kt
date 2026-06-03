@@ -9,13 +9,20 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Manages ZGW client secrets cache for JWT signature verification.
+ * Manages client secrets cache for JWT signature verification.
  *
  * On startup, loads secrets from both [AuthenticationConfig.clientCredentials] (environment variables)
  * and the [ApplicationSettingEntity] database table, combining them into a single in-memory cache.
+ * Database entries take precedence over environment variables when both define the same client_id.
  *
  * Call [initialise] once during application startup (after Flyway migration).
  * The cache is updated whenever ApplicationSettings are created/changed/deleted.
+ *
+ * **Single-instance only.** This is a plain in-memory cache — each application instance maintains
+ * its own independent copy. In a horizontally-scaled deployment (multiple pods, Kubernetes, etc.)
+ * a credential change applied through one instance will not be visible to the others until they
+ * restart. If multi-instance support is required, replace this cache with a distributed store
+ * (e.g. Redis / Memcached) or add a short TTL so stale entries self-expire.
  */
 object ApplicationCredentialRegistrar {
 
@@ -27,21 +34,23 @@ object ApplicationCredentialRegistrar {
     /**
      * Call once during application startup (after Flyway migration).
      * Loads secrets from environment config and the database, merging them into the cache.
-     * Database secrets take precedence if both sources define the same client_id.
+     * Database secrets take precedence over env config when both define the same client_id.
+     *
+     * WARNING: Do not call this while the HTTP server is already handling requests. The
+     * [secrets].clear() → repopulate sequence is not atomic, so concurrent requests would
+     * briefly see an empty cache. Currently safe because [initialise] is only called before
+     * the server starts listening.
      */
     fun initialise() {
         secrets.clear()
 
+        // Load env config first, outside the transaction — it has no DB dependency, and loading
+        // it inside would leave the cache empty if the transaction fails (e.g. DB unreachable).
+        secrets.putAll(AuthenticationConfig.clientCredentials)
+
+        var dbSecretCount = 0
         transaction {
-            // Load all application settings from database
-            val dbSettings = ApplicationSettingEntity.all().toList()
-
-            // First, load from environment config
-            secrets.putAll(AuthenticationConfig.clientCredentials)
-
-            // Then, load from database (which will override env config if present)
-            var dbSecretCount = 0
-            for (entity in dbSettings) {
+            for (entity in ApplicationSettingEntity.all()) {
                 val secret = runCatching { entity.clientSecret }
                     .onFailure {
                         logger.error(
@@ -60,14 +69,14 @@ object ApplicationCredentialRegistrar {
                     dbSecretCount++
                 }
             }
-
-            logger.info(
-                "ZGW client secrets initialized: {} from env config, {} from database, {} total",
-                AuthenticationConfig.clientCredentials.size,
-                dbSecretCount,
-                secrets.size,
-            )
         }
+
+        logger.info(
+            "Client secrets initialized: {} from env config, {} from database, {} total",
+            AuthenticationConfig.clientCredentials.size,
+            dbSecretCount,
+            secrets.size,
+        )
     }
 
     /**
@@ -86,16 +95,20 @@ object ApplicationCredentialRegistrar {
      */
     fun registerSecret(clientId: String, secret: String) {
         secrets[clientId] = secret
-        logger.debug("ZGW client secret registered for client_id: {}", clientId)
+        logger.debug("Client secret registered for client_id: {}", clientId)
     }
 
     /**
      * Removes the secret for [clientId].
      * Called when an ApplicationSetting is deleted.
+     *
+     * NOTE: If [clientId] was also present in [AuthenticationConfig.clientCredentials] (env config),
+     * it will be removed from the cache permanently until the next restart. Env-sourced credentials
+     * are not re-added automatically on delete — only [initialise] restores them.
      */
     fun unregisterSecret(clientId: String) {
         secrets.remove(clientId)
-        logger.debug("ZGW client secret unregistered for client_id: {}", clientId)
+        logger.debug("Client secret unregistered for client_id: {}", clientId)
     }
 
     /**

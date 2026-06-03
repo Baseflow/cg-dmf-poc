@@ -78,17 +78,14 @@ fun Route.applicationSettingsRoutes() {
                     clientSecret = body.clientSecret
                         ?.takeIf { it.isNotBlank() }
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                }.let { entity ->
-                    // Update cache before returning from transaction
-                    if (entity.clientSecret != null) {
-                        ApplicationCredentialRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
-                    }
-                    entity.toResponse()
-                }
+                }.toResponse()
             } ?: return@post call.respondProblem(
                 HttpStatusCode.Conflict,
                 conflict("An application with this name already exists.", call.request.path()),
             )
+            if (created.clientSecret != null) {
+                ApplicationCredentialRegistrar.registerSecret(created.clientId, created.clientSecret)
+            }
             call.respond(HttpStatusCode.Created, created)
         }
 
@@ -118,30 +115,22 @@ fun Route.applicationSettingsRoutes() {
                     )
                 }
 
+                var previousClientId = ""
                 val updated = transaction {
                     val existing = ApplicationSettingEntity.findById(id)
                         ?: return@transaction null
+                    previousClientId = existing.clientId
                     val nameConflict = existing.name != body.name &&
                         ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
                             .firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
-                    val previousClientId = existing.clientId
                     existing.name = body.name
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
                         existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing.let { entity ->
-                        // Update cache before returning from transaction
-                        if (previousClientId != entity.clientId) {
-                            ApplicationCredentialRegistrar.unregisterSecret(previousClientId)
-                        }
-                        if (entity.clientSecret != null) {
-                            ApplicationCredentialRegistrar.registerSecret(entity.clientId, entity.clientSecret!!)
-                        }
-                        entity.toResponse()
-                    }
+                    existing.toResponse()
                 }
                 when (updated) {
                     null -> return@put call.respondProblem(
@@ -154,7 +143,16 @@ fun Route.applicationSettingsRoutes() {
                         conflict("An application with this name already exists.", call.request.path()),
                     )
 
-                    else -> call.respond(HttpStatusCode.OK, updated as ApplicationSettingsResponse)
+                    else -> {
+                        val response = updated as ApplicationSettingsResponse
+                        if (previousClientId != response.clientId) {
+                            ApplicationCredentialRegistrar.unregisterSecret(previousClientId)
+                        }
+                        if (response.clientSecret != null) {
+                            ApplicationCredentialRegistrar.registerSecret(response.clientId, response.clientSecret)
+                        }
+                        call.respond(HttpStatusCode.OK, response)
+                    }
                 }
             }
 
@@ -198,25 +196,22 @@ fun Route.applicationSettingsRoutes() {
 
                 val plaintext = body.newSecret?.takeIf { it.isNotBlank() } ?: generateSecret()
 
-                val found = transaction {
+                val clientId = transaction {
                     val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
                     existing.clientSecret = plaintext
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing to plaintext
+                    existing.clientId
                 }
 
-                when (found) {
-                    null -> return@post call.respondProblem(
+                if (clientId == null) {
+                    return@post call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
-
-                    else -> {
-                        // Update the cache with the rotated secret
-                        ApplicationCredentialRegistrar.registerSecret(found.first.clientId, found.second)
-                        call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
-                    }
                 }
+
+                ApplicationCredentialRegistrar.registerSecret(clientId, plaintext)
+                call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
             }
         }
     }
