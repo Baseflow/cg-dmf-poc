@@ -72,7 +72,6 @@ kunnen bestaande versleutelde referenties niet meer worden ontsleuteld — sla d
 De applicatie ondersteunt S3-compatibele opslag (bijv. MinIO, AWS S3) en Azure Blob Storage.
 Configureer één of meerdere opslagrepositories via omgevingsvariabelen met een numeriek achtervoegsel (1, 2, 3, …).
 
-<<<<<<< HEAD
 | Variabele                          | Vereist | Beschrijving                                                                 |
 | ---------------------------------- | ------- | ---------------------------------------------------------------------------- |
 | `BLOB_STORAGE_NAME<N>`             | nee     | Leesbare naam voor de repository (standaard: `repo-<N>`)                    |
