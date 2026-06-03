@@ -22,6 +22,7 @@ import com.baseflow.api.wopi.models.WopiPutFileResult
 import com.baseflow.api.wopi.models.WopiPutRelativeFileResult
 import com.baseflow.api.wopi.models.WopiRenameResult
 import com.baseflow.api.wopi.models.WopiTokenResponse
+import com.baseflow.api.wopi.models.WopiUnlockAndRelockResult
 import com.baseflow.api.wopi.models.WopiUnlockResult
 import com.baseflow.api.wopi.services.WopiDocumentService
 import com.baseflow.config.WopiConfig
@@ -332,7 +333,37 @@ private suspend fun RoutingContext.lockFile() {
         return
     }
 
+    val oldLock = call.request.headers["X-WOPI-OldLock"]
     val fileId = call.attributes[WopiValidatedFileIdKey]
+
+    if (oldLock != null) {
+        // UnlockAndRelock: replace oldLock with the new lock value.
+        when (val response = wopiService.wopiUnlockAndRelock(fileId, oldLock, lock)) {
+            null -> {
+                call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
+                return
+            }
+
+            is WopiUnlockAndRelockResult.Success -> call.respond(HttpStatusCode.OK)
+            is WopiUnlockAndRelockResult.NotLocked -> {
+                call.response.header("X-WOPI-Lock", "")
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("File is not locked", call.request.path()),
+                )
+            }
+
+            is WopiUnlockAndRelockResult.LockMismatch -> {
+                call.response.header("X-WOPI-Lock", response.currentFileLock.lock)
+                call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("Lock mismatch: file is locked with a different token", call.request.path()),
+                )
+            }
+        }
+        return
+    }
+
     when (val response = wopiService.wopiLock(fileId, lock)) {
         null -> {
             call.respondProblem(HttpStatusCode.NotFound, notFound("File not found", call.request.path()))
@@ -341,7 +372,7 @@ private suspend fun RoutingContext.lockFile() {
 
         is WopiLockResult.Success -> call.respond(HttpStatusCode.OK)
         is WopiLockResult.AlreadyLocked -> {
-            // TODO(elitsa): RefreshLock
+            // RefreshLock: same client re-locks with the same token — treat as success.
             call.respond(HttpStatusCode.OK)
         }
 

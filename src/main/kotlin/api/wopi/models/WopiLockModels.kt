@@ -25,6 +25,12 @@ sealed class WopiUnlockResult {
     data class LockMismatch(val currentFileLock: WopiLockPayload) : WopiUnlockResult()
 }
 
+sealed class WopiUnlockAndRelockResult {
+    data object Success : WopiUnlockAndRelockResult()
+    data object NotLocked : WopiUnlockAndRelockResult()
+    data class LockMismatch(val currentFileLock: WopiLockPayload) : WopiUnlockAndRelockResult()
+}
+
 sealed class WopiPutFileResult {
     /** File was saved successfully; contains the updated response. */
     data class Success(val response: EnkelvoudigInformatieObjectResponse) : WopiPutFileResult()
