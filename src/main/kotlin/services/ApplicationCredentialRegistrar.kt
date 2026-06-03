@@ -87,7 +87,7 @@ object ApplicationCredentialRegistrar {
     /**
      * Returns all cached client IDs.
      */
-    fun getAllClientIds(): Set<String> = secrets.keys
+    fun getAllClientIds(): Set<String> = secrets.keys.toSet()
 
     /**
      * Registers or updates a secret for [clientId].
