@@ -2,14 +2,11 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.api.wopi
 
-import com.baseflow.api.models.ProblemDetailsResponse
-import com.baseflow.api.models.respondProblem
+import com.baseflow.api.middleware.UnauthorizedException
 import com.baseflow.config.WopiConfig
 import com.baseflow.services.WopiSlatService
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
-import io.ktor.server.request.path
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
 import java.util.UUID
@@ -27,48 +24,17 @@ val WopiSlatAuthPlugin = createRouteScopedPlugin(
         val slatService: WopiSlatService = getWopiSlatService(call)
 
         val token = call.request.queryParameters["access_token"]
-        if (token == null) {
-            call.respondProblem(
-                HttpStatusCode.Unauthorized,
-                ProblemDetailsResponse(
-                    title = "Unauthorized",
-                    status = HttpStatusCode.Unauthorized.value,
-                    detail = "Missing access_token query parameter.",
-                    instance = call.request.path(),
-                ),
-            )
-            return@onCall
-        }
+            ?: throw UnauthorizedException("Missing access_token query parameter.")
 
         val fileId = slatService.validate(token)
-        if (fileId == null) {
-            call.respondProblem(
-                HttpStatusCode.Unauthorized,
-                ProblemDetailsResponse(
-                    title = "Unauthorized",
-                    status = HttpStatusCode.Unauthorized.value,
-                    detail = "Invalid or expired access_token.",
-                    instance = call.request.path(),
-                ),
-            )
-            return@onCall
-        }
+            ?: throw UnauthorizedException("Invalid or expired access_token.")
 
         // Verify the token was issued for the file_id in the URL path.
         // This prevents using a valid token for one file to access a different file.
         // WopiFileIdPlugin (installed on the same route) has already parsed and stored the UUID.
         val pathFileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
         if (pathFileId != null && pathFileId != fileId) {
-            call.respondProblem(
-                HttpStatusCode.Unauthorized,
-                ProblemDetailsResponse(
-                    title = "Unauthorized",
-                    status = HttpStatusCode.Unauthorized.value,
-                    detail = "access_token was not issued for this file.",
-                    instance = call.request.path(),
-                ),
-            )
-            return@onCall
+            throw UnauthorizedException("access_token was not issued for this file.")
         }
 
         // Store the validated UUID so route handlers can use it without re-parsing path params

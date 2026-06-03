@@ -60,7 +60,7 @@ class EnkelvoudigInformatieObjectServiceResolveExpandTest {
         )
         val catalogusService = CatalogusService(config, HttpClient(mockEngine))
         val mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any(), any()) } returns Unit
+        every { mockStorageService.uploadFile(any(), any()) } answers { secondArg<ByteArray>().size.toLong() }
         val auditContext = AuditContext()
         return EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,

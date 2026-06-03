@@ -22,13 +22,24 @@ Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u d
 | Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                       |
 | ------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                      |
+| `OIDC_RESOURCE_CLIENT_ID` | _(leeg)_                              | Optionele OIDC client-id voor role-resolutie uit `resource_access.<client_id>.roles`. Indien leeg: fallback naar token claims `azp`, daarna `client_id`, en als laatste alle `resource_access.*.roles`. |
+| `ADMIN_ROLE`              | `dmf-admin`                           | Vereiste rol voor toegang tot beheer-endpoints onder `/settings/**`.                                              |
 | `ZGW_CLIENT_SECRETS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Tokens van clients die niet in deze lijst staan worden geweigerd. |
 
 Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te komen met deze waarden.
 
-OIDC issuer is voor rechtstreeks toegang van gebruikers to the API. Dit gebruiken we o.a. ook voor de beheer interface.
+OIDC issuer is voor rechtstreeks toegang van gebruikers tot de API. Dit gebruiken we o.a. ook voor de beheerinterface.
 
 ZGW_CLIENT_SECRETS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
+
+### Rolclaims voor beheer-endpoints (`/settings/**`)
+
+Voor autorisatie op de beheer-endpoints gebruikt de API role-claims op basis van het authenticatietype:
+
+- **OIDC token (`auth-jwt`)**: `realm_access.roles` en `resource_access.<client_id>.roles`
+- **ZGW token (`auth-zgw`)**: top-level `roles`
+
+`ADMIN_ROLE` moet voorkomen in de claim-bron die hoort bij het token-type van de aanvraag.
 
 ## Versleuteling (at-rest encryptie van opslaginloggegevens)
 
@@ -54,16 +65,41 @@ Sla de gegenereerde waarden op in een geheimenbeheerder (bijv. Kubernetes Secret
 Gebruik nooit dezelfde waarden in meerdere omgevingen. Als `ENCRYPTION_SECRET_KEY` of `ENCRYPTION_SALT` gewijzigd worden,
 kunnen bestaande versleutelde referenties niet meer worden ontsleuteld — sla de sleutels dus veilig op.
 
-## S3-configuratie
+## Blob storage-configuratie
 
-MinIO of een andere S3 opslag worden gebruikt voor objectopslag. Stel de volgende omgevingsvariabelen in:
+De applicatie ondersteunt S3-compatibele opslag (bijv. MinIO, AWS S3) en Azure Blob Storage.
+Configureer één of meerdere opslagrepositories via omgevingsvariabelen met een numeriek achtervoegsel (1, 2, 3, …).
 
-| Variabele        | Standaardwaarde         | Beschrijving                                   |
-| ---------------- | ----------------------- | --------------------------------------------- |
-| `S3_ENDPOINT`    | `http://localhost:9000` | MinIO / S3-compatibele eindpunt-URL           |
-| `S3_ACCESS_KEY`  | `minioadmin`            | Toegangssleutel (gebruikersnaam)              |
-| `S3_SECRET_KEY`  | `minioadmin`            | Geheime sleutel (wachtwoord)                  |
-| `S3_BUCKET`      | `documenten`            | Bucket gebruikt voor documentopslag           |
+| Variabele                          | Vereist | Beschrijving                                                                 |
+| ---------------------------------- | ------- | ---------------------------------------------------------------------------- |
+| `BLOB_STORAGE_NAME<N>`             | nee     | Leesbare naam voor de repository (standaard: `repo-<N>`)                    |
+| `BLOB_STORAGE_TYPE<N>`             | ja      | Opslagtype: `S3` of `Azure Blob Storage`                                    |
+| `BLOB_STORAGE_URL<N>`              | ja      | Eindpunt-URL (S3: `http://minio:9000`, Azure: `https://<account>.blob.core.windows.net`) |
+| `BLOB_STORAGE_ACCESS_KEY<N>`       | ja      | Toegangssleutel (S3) of accountnaam (Azure)                                 |
+| `BLOB_STORAGE_SECRET_KEY<N>`       | ja      | Geheime sleutel (S3) of accountsleutel (Azure)                              |
+| `BLOB_STORAGE_BUCKET<N>`           | nee     | Bucketnaam (S3) of containernaam (Azure) (standaard: `documenten`)          |
+| `BLOB_STORAGE_REGION<N>`           | nee     | Regio (alleen S3, bijv. `eu-west-1`)                                        |
+| `BLOB_STORAGE_DISABLE_CHECKSUMS<N>`         | nee     | Zet op `true` als het eindpunt geen AWS checksum-extensies ondersteunt      |
+| `BLOB_STORAGE_DISABLE_CHUNKED_ENCODING<N>`  | nee     | Zet op `true` als het eindpunt of een tussenliggende proxy geen chunked transfer encoding ondersteunt |
+
+De volgende variabelen gelden globaal voor alle geconfigureerde repositories (geen numeriek achtervoegsel):
+
+| Variabele                                | Standaard | Beschrijving                                                                                          |
+| ---------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| `BLOB_STORAGE_CONNECT_TIMEOUT_SECONDS`   | `10`      | Maximale tijd in seconden om een TCP-verbinding op te bouwen                                          |
+| `BLOB_STORAGE_READ_WRITE_TIMEOUT_SECONDS`| `10`      | Maximale tijd in seconden tussen twee opeenvolgende bytes tijdens een overdracht                      |
+| `BLOB_STORAGE_MAX_IDLE_SECONDS`          | `300`     | Maximale tijd in seconden dat een verbinding inactief in de pool mag blijven voordat deze wordt gesloten |
+
+**Voorbeeld — één S3-repository:**
+
+```env
+BLOB_STORAGE_NAME1=minio-local
+BLOB_STORAGE_TYPE1=S3
+BLOB_STORAGE_URL1=http://localhost:9000
+BLOB_STORAGE_ACCESS_KEY1=minioadmin
+BLOB_STORAGE_SECRET_KEY1=minioadmin
+BLOB_STORAGE_BUCKET1=documenten
+```
 
 ## Bestandsdelen-configuratie
 

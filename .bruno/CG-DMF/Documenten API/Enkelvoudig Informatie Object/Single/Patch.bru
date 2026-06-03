@@ -1,7 +1,7 @@
 meta {
   name: Patch
   type: http
-  seq: 5
+  seq: 6
 }
 
 patch {
@@ -18,7 +18,8 @@ body:json {
     "auteur": "Thomas Luijken",
     "creatiedatum": "2026-01-24",
     "beschrijving": "Test document uploaded by Bruno",
-    "informatieobjecttype": "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d"
+    "informatieobjecttype": "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d",
+    "inhoudIsVervallen": true
   }
 }
 
@@ -29,4 +30,5 @@ settings {
 
 assert {
   res.status: eq 200
+  res.body.inhoudIsVervallen: eq true
 }

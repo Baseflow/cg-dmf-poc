@@ -14,6 +14,22 @@ internal object AuthenticationConfig : Config() {
     val issuer: String = envOrSystem("OIDC_ISSUER", "http://localhost:8081/realms/cg-dmf")
 
     /**
+     * Optional Keycloak/OIDC client id used to read client roles from
+     * `resource_access.<client_id>.roles`.
+     *
+     * If empty, role extraction falls back to token claims (`azp`, then `client_id`),
+     * and only then to all `resource_access.*.roles` entries.
+     */
+    val oidcResourceClientId: String = envOrSystem("OIDC_RESOURCE_CLIENT_ID", "")
+
+    /**
+     * The role name (from `realm_access.roles`, `resource_access.<client_id>.roles`
+     * in Keycloak/OIDC JWTs, or `roles` in ZGW JWTs)
+     * that grants access to the admin API. Defaults to `dmf-admin`.
+     */
+    val adminRole: String = envOrSystem("ADMIN_ROLE", "dmf-admin")
+
+    /**
      * Map of client_id → HS256 secret for ZGW JWT signature verification.
      *
      * Sourced from ZGW_CLIENT_SECRETS: a comma-separated list of `client_id:secret` pairs.
@@ -34,15 +50,10 @@ internal object AuthenticationConfig : Config() {
         }
         .toMap()
 
-    /**
-     * The role name (from `realm_access.roles` in Keycloak JWTs, or `roles` in ZGW JWTs)
-     * that grants access to the admin API.  Defaults to `dmf-admin`.
-     */
-    val adminRole: String = envOrSystem("ADMIN_ROLE", "dmf-admin")
-
     override fun printConfig() {
-        logger.info("AuthenticationConfig: issuer={}", issuer)
+        logger.info("AuthenticationConfig: OIDC issuer={}", issuer)
+        logger.info("AuthenticationConfig: OIDC ResourceClientId={}", oidcResourceClientId.ifBlank { "<auto>" })
+        logger.info("AuthenticationConfig: DMF adminRole={}", adminRole)
         logger.info("AuthenticationConfig: zgwClientSecrets configured for clients={}", zgwClientSecrets.keys)
-        logger.info("AuthenticationConfig: adminRole={}", adminRole)
     }
 }

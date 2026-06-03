@@ -4,10 +4,13 @@ package com.baseflow.api.models
 
 import io.ktor.openapi.JsonSchema
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlin.time.Clock
 
 /**
  * EnkelvoudigInformatieObject request model.
@@ -169,7 +172,10 @@ data class EnkelvoudigInformatieObjectRequest(
     @JsonSchema.Example("[\"omgevingsrecht\", \"vergunning\"]")
     val trefwoorden: List<String>? = null,
 
-    @JsonSchema.Description("Indicatie of de inhoud van het INFORMATIEOBJECT is vervallen en niet meer te downloaden is.")
+    @JsonSchema.Description(
+        "Geeft aan of de inhoud van het INFORMATIEOBJECT al dan niet vervallen, dus niet langer geldig is. " +
+            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. Niet opgegeven = veld ontbreekt of is `null`.",
+    )
     val inhoudIsVervallen: Boolean? = null,
 ) : ApiRequest {
     init {
@@ -251,13 +257,13 @@ data class Ondertekening(
 @Serializable
 data class Integriteit(
     @JsonSchema.Description("Het hash-algoritme waarmee de integriteitswaarde is berekend.")
-    val algoritme: IntegriteitAlgoritme,
+    val algoritme: IntegriteitAlgoritme = IntegriteitAlgoritme.SHA_256,
     @JsonSchema.Description("De berekende hash-waarde (checksum) van het bestand.")
     @JsonSchema.Example("\"d41d8cd98f00b204e9800998ecf8427e\"")
     val waarde: String,
     @JsonSchema.Description("De datum waarop de integriteitswaarde is bepaald (ISO 8601, formaat YYYY-MM-DD).")
     @JsonSchema.Format("date")
-    val datum: LocalDate,
+    val datum: LocalDate = Clock.System.now().toLocalDateTime(TimeZone.UTC).date,
 ) {
     init {
         require(waarde.isNotEmpty()) { "Waarde mag niet leeg zijn" }
@@ -293,9 +299,10 @@ data class BestandsDeelResponse(
     @JsonSchema.Description("Het vergrendel-token (lock) dat vereist is om dit BESTANDSDEEL te uploaden.")
     @JsonSchema.ReadOnly
     val lock: String,
-    @JsonSchema.Description("De inhoud van dit BESTANDSDEEL (alleen aanwezig bij voltooid=true, base64-gecodeerd).")
-    @JsonSchema.Format("byte")
-    val inhoud: String? = null,
+    // NOTE: The official ZGW specification mentions an `inhoud` field on BestandsDeel that should contain
+    // a URI to retrieve the part's content. However, this is not implemented here (nor by OpenZaak) because
+    // it is unclear what it would mean to retrieve a single chunk's content independently of the assembled
+    // document. A ticket should be opened with the specification maintainers to clarify or remove this field.
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -479,7 +486,10 @@ data class EnkelvoudigInformatieObjectResponse(
     @JsonSchema.Example("[\"omgevingsrecht\", \"vergunning\"]")
     val trefwoorden: List<String> = emptyList(),
 
-    @JsonSchema.Description("Geeft aan of de inhoud van het INFORMATIEOBJECT vervallen (dus niet langer geldig) is.")
+    @JsonSchema.Description(
+        "Geeft aan of de inhoud van het INFORMATIEOBJECT al dan niet vervallen, dus niet langer geldig is. " +
+            "`true` = De inhoud is vervallen. `false` = De inhoud is niet vervallen. Niet opgegeven = veld ontbreekt of is `null`.",
+    )
     val inhoudIsVervallen: Boolean? = null,
 
     @JsonSchema.Description("Lijst van BESTANDSDELen voor chunked upload. Gevuld wanneer het bestand via BESTANDSDELen wordt geüpload.")

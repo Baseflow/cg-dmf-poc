@@ -179,29 +179,34 @@ settings:
     poolSize: null
 
   # ---------------------------------------------------------------------------
-  # S3 / MinIO object storage
+  # Blob storage (primary repository, mapped to BLOB_STORAGE_*1 env vars)
+  # Use extraEnvVars to configure additional repositories (BLOB_STORAGE_*2, etc.)
   # ---------------------------------------------------------------------------
-  s3:
-    # -- Name of an existing Secret containing S3/MinIO credentials (keys: S3_ACCESS_KEY, S3_SECRET_KEY).
+  blobStorage:
+    # -- Name of an existing Secret containing blob storage credentials (keys: BLOB_STORAGE_ACCESS_KEY1, BLOB_STORAGE_SECRET_KEY1).
     # When set, the chart will not create a Secret and will reference this name instead.
-    # Leave empty/null to let the chart manage the Secret (named <fullname>-s3).
+    # Leave empty/null to let the chart manage the Secret (named <fullname>-blob-storage).
     existingSecret: null
-    # -- S3/MinIO endpoint URL.
-    endpoint: "http://minio:9000"
-    # -- Bucket name used to store document files.
+    # -- Human-readable repository name shown in logs.
+    name: "default"
+    # -- Storage type. Supported values: S3, "Azure Blob Storage".
+    type: "S3"
+    # -- Endpoint URL of the blob storage service (S3: http://minio:9000, Azure: https://<account>.blob.core.windows.net).
+    url: "http://minio:9000"
+    # -- Bucket (S3) or container (Azure) name used to store document files.
     bucket: "cg-dmf"
-    # -- S3/MinIO access key.
+    # -- Access key (S3) or account name (Azure).
     accessKey: ""
-    # -- S3/MinIO secret key.
+    # -- Secret key (S3) or account key (Azure).
     # @sensitive
     secretKey: ""
-    # -- Disable automatic request/response checksum negotiation.
+    # -- Region (S3 only, optional).
+    region: ""
+    # -- Disable automatic request/response checksum negotiation (S3 only).
     # Set to true when the S3-compatible endpoint does not support AWS checksum extensions.
-    # Maps to the S3_DISABLE_CHECKSUMS environment variable.
     disableChecksums: false
-    # -- Disable chunked encoding on S3 requests.
+    # -- Disable chunked encoding on S3 requests (S3 only).
     # Set to true when the endpoint or an intermediate proxy does not support chunked transfer encoding.
-    # Maps to the S3_DISABLE_CHUNKED_ENCODING environment variable.
     disableChunkedEncoding: false
 
   # ---------------------------------------------------------------------------

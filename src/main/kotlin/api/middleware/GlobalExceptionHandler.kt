@@ -6,6 +6,7 @@ import com.baseflow.api.models.ProblemDetailsResponse
 import com.baseflow.api.models.badRequest
 import com.baseflow.api.models.forbidden
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.models.unauthorized
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.JsonConvertException
 import io.ktor.server.application.*
@@ -22,6 +23,16 @@ fun Application.configureStatusPages() {
     val logger = LoggerFactory.getLogger("GlobalExceptionHandler")
 
     install(StatusPages) {
+        exception<UnauthorizedException> { call, cause ->
+            call.respondProblem(
+                HttpStatusCode.Unauthorized,
+                unauthorized(
+                    detail = cause.message ?: "Unauthorized",
+                    instance = call.request.path(),
+                ),
+            )
+        }
+
         exception<ForbiddenException> { call, cause ->
             call.respondProblem(
                 HttpStatusCode.Forbidden,

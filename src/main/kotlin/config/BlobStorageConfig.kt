@@ -3,6 +3,7 @@
 package com.baseflow.config
 
 import org.slf4j.LoggerFactory
+import java.time.Duration
 
 /**
  * Parsed configuration for a single blob storage repository,
@@ -19,6 +20,9 @@ data class BlobStorageRepoConfig(
     val region: String? = null,
     val disableChecksums: Boolean = false,
     val disableChunkedEncoding: Boolean = false,
+    val connectTimeout: Duration = Duration.ofSeconds(10),
+    val readWriteTimeout: Duration = Duration.ofSeconds(10),
+    val maxIdleTime: Duration = Duration.ofSeconds(300),
     /** Any additional custom env values keyed by their suffix (e.g. "CONTAINER_NAME" → value). */
     val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean = false,
@@ -47,9 +51,18 @@ object BlobStorageConfig : Config() {
     private val logger = LoggerFactory.getLogger(BlobStorageConfig::class.java)
 
     private val KNOWN_SUFFIXES = setOf(
-        "TYPE", "URL", "ACCESS_KEY", "SECRET_KEY", "BUCKET",
-        "REGION", "DISABLE_CHECKSUMS", "DISABLE_CHUNKED_ENCODING", "NAME",
+        "TYPE", "URL", "ACCESS_KEY", "SECRET_KEY", "BUCKET", "REGION", "DISABLE_CHECKSUMS", "DISABLE_CHUNKED_ENCODING", "NAME",
     )
+
+    val connectTimeout: Duration by lazy {
+        Duration.ofSeconds(envOrNull("BLOB_STORAGE_CONNECT_TIMEOUT_SECONDS")?.toLong() ?: 10L)
+    }
+    val readWriteTimeout: Duration by lazy {
+        Duration.ofSeconds(envOrNull("BLOB_STORAGE_READ_WRITE_TIMEOUT_SECONDS")?.toLong() ?: 10L)
+    }
+    val maxIdleTime: Duration by lazy {
+        Duration.ofSeconds(envOrNull("BLOB_STORAGE_MAX_IDLE_SECONDS")?.toLong() ?: 300L)
+    }
 
     /**
      * All discovered repository configurations, lazily parsed once.
@@ -85,6 +98,9 @@ object BlobStorageConfig : Config() {
                 region = region,
                 disableChecksums = disableChecksums,
                 disableChunkedEncoding = disableChunkedEncoding,
+                connectTimeout = connectTimeout,
+                readWriteTimeout = readWriteTimeout,
+                maxIdleTime = maxIdleTime,
                 extraProperties = extra,
             )
             logger.info(
@@ -130,6 +146,12 @@ object BlobStorageConfig : Config() {
     }
 
     override fun printConfig() {
+        logger.info(
+            "BlobStorageConfig: connectTimeout={}s, readWriteTimeout={}s, maxIdleTime={}s",
+            connectTimeout.seconds,
+            readWriteTimeout.seconds,
+            maxIdleTime.seconds,
+        )
         repositories.forEachIndexed { i, repo ->
             logger.info(
                 "BlobStorageConfig[{}]: name={}, type={}, url={}, bucket={}, region={}, disableChecksums={}, disableChunkedEncoding={}, extraKeys={}",

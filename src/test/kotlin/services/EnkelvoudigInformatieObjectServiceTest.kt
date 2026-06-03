@@ -7,6 +7,7 @@ package com.baseflow.services
 import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.api.models.Integriteit
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
@@ -62,8 +63,19 @@ class EnkelvoudigInformatieObjectServiceTest {
         }
         val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         mockStorageService = mockk<StorageService>()
-        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } returns Unit
-        every { mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable()) } returns Unit
+        every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers
+            { secondArg<ByteArray>().size.toLong() }
+        every {
+            mockStorageService.uploadFile(
+                any<String>(),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
         val auditContext = AuditContext()
         mockAuditTrailService = mockk<AuditTrailService>()
@@ -283,11 +295,18 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val mergedKey = "$id/1/big.pdf"
         val mergedBytesSlot = mutableListOf<ByteArray>()
-        every { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) } answers {
+        every {
+            mockStorageService.uploadFile(
+                eq(mergedKey),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        } answers {
             // Read the stream eagerly so we can assert on its contents later.
             val captured = secondArg<java.io.InputStream>().readBytes()
             mergedBytesSlot.add(captured)
-            Unit
+            thirdArg<Long>() // return contentLength to satisfy the Long return type
         }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
 
@@ -400,6 +419,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             inhoud = base64Content,
             bestandsomvang = null,
             formaat = "text/plain",
+            integriteit = Integriteit(waarde = "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e"),
         )
         val resp = service.create(req)
         assertEquals(content.length.toLong(), resp.bestandsomvang)
@@ -413,6 +433,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             inhoud = base64Content,
             bestandsomvang = 100L, // Intentionally different from content size
             formaat = "text/plain",
+            integriteit = Integriteit(waarde = "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e"),
         )
         val resp = service.create(req)
         assertEquals(100L, resp.bestandsomvang)
@@ -554,7 +575,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals(false, putResp.indicatieGebruiksrecht)
         assertEquals("", putResp.verschijningsvorm)
         assertEquals(emptyList(), putResp.trefwoorden)
-        assertEquals(false, putResp.inhoudIsVervallen)
+        assertNull(putResp.inhoudIsVervallen)
     }
 
     @Test
@@ -836,6 +857,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             bestandsnaam = "doc.pdf",
             bestandsomvang = 123456L,
             inhoud = pdfContent,
+            integriteit = Integriteit(waarde = "3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4"),
         )
         val resp = service.create(request)
         assertEquals("application/pdf", resp.formaat)
@@ -844,7 +866,12 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `formaat moet opgegeven zijn als het formaat niet bepaald kan worden`() = runBlocking {
         var request = generateTestDocument()
-        request = request.copy(inhoud = "dGVzdA==", formaat = null)
+        request = request.copy(
+            inhoud = "dGVzdA==", // base64 for "test"
+            formaat = null,
+            bestandsomvang = 4L,
+            integriteit = Integriteit(waarde = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"),
+        )
         val exception = assertFailsWith<IllegalArgumentException> {
             service.create(request)
         }
@@ -874,6 +901,7 @@ class EnkelvoudigInformatieObjectServiceTest {
             inhoud = PDF_CONTENT_ALT,
             formaat = "application/pdf",
             bestandsomvang = 620L,
+            integriteit = Integriteit(waarde = "b7d25591c18da373709d3d88ddf5eeab0b5089359e580f051314fd8935df0b73"),
         )
         val patchedResp = service.update(UUID.fromString(resp.id), requestWithUpdatedContent, false)
         assertNotNull(patchedResp)
@@ -906,7 +934,13 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `streamByBestandsnaam passes named repoName to downloadFileTo`() {
-        every { mockStorageService.downloadFileTo(any(), any(), eq("archive-repo")) } returns CompletableFuture.completedFuture(null)
+        every {
+            mockStorageService.downloadFileTo(
+                any(),
+                any(),
+                eq("archive-repo"),
+            )
+        } returns CompletableFuture.completedFuture(null)
         service.streamByBestandsnaam("path/to/file.pdf", ByteArrayOutputStream(), "archive-repo")
         verify { mockStorageService.downloadFileTo("path/to/file.pdf", any(), "archive-repo") }
     }
@@ -927,7 +961,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument(withContent = true)
         val response = service.create(req)
 
-        verify { mockStorageService.uploadFile(any(), any(), "default-repo") }
+        verify { mockStorageService.uploadFile(any(), any<java.io.InputStream>(), any<Long>(), eq("default-repo")) }
         transaction {
             val latest = EIORecordEntity.findById(UUID.fromString(response.id))!!.versions.maxByOrNull { it.versie }!!
             assertEquals("default-repo", latest.bestandsRepository)
@@ -963,7 +997,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         service.update(id, generateTestDocument(withContent = true))
 
-        verify { mockStorageService.uploadFile(any(), any(), "repo-a") }
+        verify { mockStorageService.uploadFile(any(), any<java.io.InputStream>(), any<Long>(), eq("repo-a")) }
         transaction {
             val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
             assertEquals(2, v2.versie)

@@ -26,8 +26,7 @@ val dmfKoinModule = module {
     single { CatalogusService(get()) }
     single { HealthCheckService() }
     single { OpenZaakConfig.fromEnv() }
-    single { S3ClientFactory() }
-    single { StorageService(get()) }
+    single { StorageService() }
     single { WopiConfig.fromEnv() }
 
     requestScope {

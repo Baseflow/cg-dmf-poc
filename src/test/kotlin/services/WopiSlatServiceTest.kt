@@ -60,8 +60,12 @@ class WopiSlatServiceTest {
     @Test
     fun `tampered signature returns null`() {
         val (token, _) = service.issue(UUID.randomUUID())
-        // Flip the last character of the token (the signature portion)
-        val tampered = token.dropLast(1) + if (token.last() == 'A') 'B' else 'A'
+        // Flip the second-to-last character: the last base64 char of a 32-byte HMAC has 2
+        // padding bits that Java's decoder ignores, so flipping it can leave the decoded
+        // signature unchanged (~6% of the time). The second-to-last char has all 6 bits
+        // meaningful, so flipping it always produces a different signature.
+        val secondToLast = token[token.length - 2]
+        val tampered = token.dropLast(2) + (if (secondToLast == 'A') 'B' else 'A') + token.last()
         assertNull(service.validate(tampered))
     }
 

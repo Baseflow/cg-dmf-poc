@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.services
 
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder
 import com.azure.core.http.rest.Response
 import com.azure.storage.blob.BlobContainerClientBuilder
 import com.azure.storage.blob.BlobServiceClientBuilder
@@ -10,6 +11,8 @@ import com.azure.storage.blob.models.DeleteSnapshotsOptionType
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.baseflow.config.BlobStorageRepoConfig
 import org.slf4j.LoggerFactory
+import reactor.netty.resources.ConnectionProvider
+import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
 
@@ -29,9 +32,22 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
 
     private val credential = StorageSharedKeyCredential(config.accessKey, config.secretKey)
 
+    private val httpClient = NettyAsyncHttpClientBuilder()
+        .connectTimeout(config.connectTimeout)
+        .readTimeout(config.readWriteTimeout)
+        .writeTimeout(config.readWriteTimeout)
+        .connectionProvider(
+            ConnectionProvider.builder("azure-blob-${config.name}")
+                .maxIdleTime(config.maxIdleTime)
+                .evictInBackground(config.maxIdleTime)
+                .build(),
+        )
+        .build()
+
     private val blobServiceClient = BlobServiceClientBuilder()
         .endpoint(config.url)
         .credential(credential)
+        .httpClient(httpClient)
         .buildClient()
 
     private val blobBatchClient = BlobBatchClientBuilder(blobServiceClient).buildClient()
@@ -40,6 +56,7 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
         .endpoint(config.url)
         .credential(credential)
         .containerName(containerName)
+        .httpClient(httpClient)
         .buildClient()
 
     init {
@@ -47,13 +64,33 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
         ensureContainerExists()
     }
 
-    override fun uploadFile(objectName: String, content: ByteArray) {
+    override fun uploadFile(objectName: String, content: ByteArray): Long =
+        uploadFile(objectName, content.inputStream(), content.size.toLong())
+
+    override fun uploadFile(objectName: String, stream: InputStream, contentLength: Long): Long {
         try {
+            var actualBytes = 0L
+            val countingStream = object : InputStream() {
+                override fun read(): Int = stream.read().also { if (it >= 0) actualBytes++ }
+                override fun read(b: ByteArray, off: Int, len: Int) = stream.read(b, off, len).also { if (it > 0) actualBytes += it }
+            }
             val blobClient = containerClient.getBlobClient(objectName)
-            blobClient.upload(content.inputStream(), content.size.toLong(), true)
-            logger.info("Uploaded blob {}/{} ({} bytes)", containerName, objectName, content.size)
+            blobClient.upload(countingStream, contentLength, true)
+            if (actualBytes != contentLength) {
+                throw IllegalStateException(
+                    "Upload size mismatch for $objectName: declared $contentLength bytes but streamed $actualBytes bytes",
+                )
+            }
+            logger.info("Uploaded blob {}/{} via stream ({} bytes)", containerName, objectName, actualBytes)
+            return actualBytes
         } catch (e: Exception) {
-            logger.error("Failed to upload blob {} to container {}: {}", objectName, containerName, e.message, e)
+            logger.error(
+                "Failed to stream-upload blob {} to container {}: {}",
+                objectName,
+                containerName,
+                e.message,
+                e,
+            )
             throw e
         }
     }

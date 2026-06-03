@@ -1,7 +1,7 @@
 meta {
   name: Get
   type: http
-  seq: 2
+  seq: 3
 }
 
 get {
@@ -20,6 +20,7 @@ vars:post-response {
 
 assert {
   res.status: eq 200
+  res.body.inhoudIsVervallen: isDefined
 }
 
 settings {

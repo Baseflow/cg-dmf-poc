@@ -14,8 +14,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.*
 import io.ktor.utils.io.*
-import kotlinx.io.readByteArray
+import io.ktor.utils.io.streams.inputStream
 import org.koin.ktor.plugin.scope
+import java.io.InputStream
 import java.util.*
 
 /**
@@ -77,14 +78,13 @@ fun Route.bestandsDelenRoutes() {
         // Parse multipart body to extract lock token and file content.
         // The 'inhoud' binary part is read into memory and forwarded to the storage backend.
         var lockToken: String? = null
-        var inhoudBytes: ByteArray? = null
+        var inputStream: InputStream? = null
 
         call.receiveMultipart().forEachPart { part ->
             when {
                 part is PartData.FormItem && part.name == "lock" -> lockToken = part.value
                 part is PartData.FileItem && part.name == "inhoud" ->
-                    inhoudBytes =
-                        part.provider().readRemaining().readByteArray()
+                    inputStream = part.provider().readRemaining().inputStream()
             }
             part.release()
         }
@@ -96,7 +96,7 @@ fun Route.bestandsDelenRoutes() {
             )
         }
 
-        when (val result = service.uploadFilePart(id, requireNotNull(lockToken), inhoudBytes, storageService)) {
+        when (val result = service.uploadFilePart(id, requireNotNull(lockToken), inputStream, storageService)) {
             is UploadFilePartResult.NotFound ->
                 call.respond(HttpStatusCode.NotFound, mapOf("detail" to "BestandsDeel niet gevonden"))
 

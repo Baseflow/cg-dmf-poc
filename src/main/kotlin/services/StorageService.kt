@@ -2,8 +2,6 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.services
 
-import com.baseflow.config.S3ClientFactory
-import com.baseflow.config.S3Config
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -16,65 +14,35 @@ import java.util.zip.ZipInputStream
  * registered by [BlobStorageRegistrar].
  *
  * When a specific repository name is not supplied, the *default* (first configured)
- * provider is used.  A legacy fallback using the old `S3_*` env vars is kept so the
- * application still works when no `BLOB_STORAGE_*` env vars are defined.
+ * provider is used.
  */
-open class StorageService(
-    @Suppress("unused") s3ClientFactory: S3ClientFactory, // kept for Koin graph compatibility
-) {
+open class StorageService {
 
     private val logger = LoggerFactory.getLogger(StorageService::class.java)
-
-    /**
-     * Lazy legacy provider – only built when [BlobStorageRegistrar] has no
-     * providers and the old `S3_*` env vars are still in use.
-     */
-    private val legacyProvider: BlobStorageProvider? by lazy {
-        try {
-            val cfg = com.baseflow.config.BlobStorageRepoConfig(
-                index = 0,
-                name = "legacy-s3",
-                type = com.baseflow.config.BlobStorageType.S3,
-                url = S3Config.endpoint,
-                accessKey = S3Config.accessKey,
-                secretKey = S3Config.secretKey,
-                bucket = S3Config.bucketName,
-                region = S3Config.region.id(),
-                disableChecksums = S3Config.disableChecksums,
-                disableChunkedEncoding = S3Config.disableChunkedEncoding,
-            )
-            S3BlobStorageProvider(cfg)
-        } catch (e: Exception) {
-            logger.warn("Legacy S3Config could not be initialised – no fallback available: {}", e.message)
-            null
-        }
-    }
 
     private fun resolveProvider(repoName: String? = null): BlobStorageProvider {
         val provider = if (repoName != null) {
             BlobStorageRegistrar.providerByName(repoName)
                 ?: throw IllegalArgumentException("No blob storage repository registered with name '$repoName'")
         } else {
-            BlobStorageRegistrar.defaultProvider() ?: legacyProvider
+            BlobStorageRegistrar.defaultProvider()
         }
         return provider
-            ?: throw IllegalStateException("No blob storage provider available. Configure BLOB_STORAGE_* env vars or legacy S3_* env vars.")
+            ?: throw IllegalStateException("No blob storage provider available. Configure BLOB_STORAGE_* env vars.")
     }
 
     /**
-     * Upload a file to the default (or named) repository.
+     * Upload a file to the default (or named) repository. Returns the number of bytes uploaded.
      */
-    fun uploadFile(objectName: String, content: ByteArray, repoName: String? = null) {
+    fun uploadFile(objectName: String, content: ByteArray, repoName: String? = null): Long =
         resolveProvider(repoName).uploadFile(objectName, content)
-    }
 
     /**
      * Upload from a stream of known [contentLength] bytes. Avoids materialising the full content
-     * in memory – use this for large files (e.g. merged bestandsdelen).
+     * in memory – use this for large files (e.g. merged bestandsdelen). Returns the number of bytes uploaded.
      */
-    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null) {
+    fun uploadFile(objectName: String, stream: InputStream, contentLength: Long, repoName: String? = null): Long =
         resolveProvider(repoName).uploadFile(objectName, stream, contentLength)
-    }
 
     /**
      * Stream a file from the default (or named) repository.
@@ -220,6 +188,22 @@ open class StorageService(
                 "application/vnd.ms-powerpoint"
 
             else -> null
+        }
+
+        private const val FORMAT_DETECTION_BUFFER_SIZE = 65536
+
+        /**
+         * Detects the file format by reading the first bytes of the stream.
+         * Returns a pair of the detected format (or null) and the stream to continue reading from.
+         * The returned stream is guaranteed to include all original bytes (mark/reset is used internally).
+         * Callers MUST use the returned [InputStream] for subsequent reads.
+         */
+        internal fun detectFileFormat(stream: InputStream): Pair<String?, InputStream> {
+            val buffered = if (stream.markSupported()) stream else java.io.BufferedInputStream(stream, FORMAT_DETECTION_BUFFER_SIZE + 1)
+            buffered.mark(FORMAT_DETECTION_BUFFER_SIZE)
+            val header = buffered.readNBytes(FORMAT_DETECTION_BUFFER_SIZE)
+            buffered.reset()
+            return detectFileFormat(header) to buffered
         }
 
         /*

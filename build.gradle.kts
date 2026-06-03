@@ -7,7 +7,7 @@ plugins {
     id("com.github.ben-manes.versions") version "0.54.0"
 
     // Code formatting with Spotless and ktlint
-    id("com.diffplug.spotless") version "8.5.1"
+    id("com.diffplug.spotless") version "8.6.0"
 }
 
 group = "com.baseflow"
@@ -22,7 +22,7 @@ dependencies {
     // Test dependencies
     testImplementation(kotlin("test"))
     testImplementation("com.h2database:h2:2.4.240")
-    testImplementation("io.mockk:mockk:1.14.9")
+    testImplementation("io.mockk:mockk:1.14.11")
     testImplementation("io.ktor:ktor-client-mock:3.5.0")
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.5.0")
     testImplementation("io.ktor:ktor-client-content-negotiation:3.5.0")
@@ -56,8 +56,8 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.11")
 
     // Database migrations
-    implementation("org.flywaydb:flyway-core:12.6.2")
-    implementation("org.flywaydb:flyway-database-postgresql:12.6.2")
+    implementation("org.flywaydb:flyway-core:12.7.0")
+    implementation("org.flywaydb:flyway-database-postgresql:12.7.0")
 
     // Kotlin coroutines and datetime
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
@@ -66,15 +66,15 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // Logging
-    implementation("ch.qos.logback:logback-classic:1.5.32")
+    implementation("ch.qos.logback:logback-classic:1.5.33")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
     implementation("com.auth0:jwks-rsa:0.24.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.44.12")
-    implementation("software.amazon.awssdk:netty-nio-client:2.44.12")
+    implementation("software.amazon.awssdk:s3:2.45.0")
+    implementation("software.amazon.awssdk:netty-nio-client:2.45.0")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.34.0")
@@ -82,7 +82,7 @@ dependencies {
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.3")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.4")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
     implementation(platform("io.insert-koin:koin-bom:4.2.1"))
@@ -101,7 +101,7 @@ dependencies {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.3") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.21.4") {
             because("Minimum version from transitive dependencies")
         }
     }
@@ -201,6 +201,8 @@ val copyOpenApiSpecs by tasks.registering(Copy::class) {
     from(layout.projectDirectory.dir("docs")) {
         include(
             "documenten-1.5.0.yaml",
+            "documenten-1.6.0.yaml",
+            "documenten-1.7.0-rc.yaml",
             "maykin-documenten-1.5.0.yaml",
         )
     }

@@ -53,7 +53,7 @@ spec:
             - secretRef:
                 name: {{ include "cg-dmf.databaseSecretName" . }}
             - secretRef:
-                name: {{ include "cg-dmf.s3SecretName" . }}
+                name: {{ include "cg-dmf.blobStorageSecretName" . }}
             - secretRef:
                 name: {{ include "cg-dmf.openzaakSecretName" . }}
             - configMapRef:
