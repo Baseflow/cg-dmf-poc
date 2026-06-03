@@ -291,6 +291,8 @@ class IntegrityCalculationService {
             IntegriteitAlgoritme.MD5 -> "MD5"
             IntegriteitAlgoritme.SHA_1 -> "SHA-1"
             IntegriteitAlgoritme.SHA_256 -> "SHA-256"
+            IntegriteitAlgoritme.SHA_512 -> "SHA-512"
+            IntegriteitAlgoritme.SHA_3 -> "SHA3-256"
             else -> throw IllegalArgumentException("Not a MessageDigest algorithm: $this")
         }
 
@@ -316,6 +318,8 @@ class IntegrityCalculationService {
             IntegriteitAlgoritme.MD5,
             IntegriteitAlgoritme.SHA_1,
             IntegriteitAlgoritme.SHA_256,
+            IntegriteitAlgoritme.SHA_512,
+            IntegriteitAlgoritme.SHA_3,
             -> hashBytesWithMessageDigest(data, algo)
         }
 
@@ -392,6 +396,8 @@ class IntegrityCalculationService {
                 IntegriteitAlgoritme.MD5,
                 IntegriteitAlgoritme.SHA_1,
                 IntegriteitAlgoritme.SHA_256,
+                IntegriteitAlgoritme.SHA_512,
+                IntegriteitAlgoritme.SHA_3,
                 -> {
                     val digest = MessageDigest.getInstance(algo.toJavaMessageDigestName())
                     val digestStream = DigestInputStream(stream, digest)
