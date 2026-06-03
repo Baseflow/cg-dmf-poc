@@ -54,6 +54,28 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
     }
 
     /**
+     * Replaces an existing lock with a new one (WOPI UnlockAndRelock).
+     * - If the file is not locked, returns [WopiUnlockAndRelockResult.NotLocked].
+     * - If the stored lock does not match [oldLock], returns [WopiUnlockAndRelockResult.LockMismatch].
+     * - On success, replaces the stored lock with [newLock] and returns [WopiUnlockAndRelockResult.Success].
+     * Returns null when no record with [id] exists.
+     */
+    fun wopiUnlockAndRelock(id: UUID, oldLock: String, newLock: String): WopiUnlockAndRelockResult? {
+        return transaction {
+            val record = EIORecordEntity.findById(id) ?: return@transaction null
+            val storedLock = record.lockToken
+            if (storedLock.isNullOrEmpty()) {
+                return@transaction WopiUnlockAndRelockResult.NotLocked
+            }
+            if (storedLock != oldLock) {
+                return@transaction WopiUnlockAndRelockResult.LockMismatch(WopiLockPayload(lock = storedLock))
+            }
+            record.lockToken = newLock
+            WopiUnlockAndRelockResult.Success
+        }
+    }
+
+    /**
      * Unlocks a file for a WOPI client.
      * Returns null when no record with [id] exists.
      */
