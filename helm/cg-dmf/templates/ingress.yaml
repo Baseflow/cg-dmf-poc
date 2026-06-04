@@ -33,9 +33,7 @@ spec:
         paths:
           {{- range .paths }}
           - path: {{ .path }}
-            {{- if .pathType }}
-            pathType: {{ .pathType }}
-            {{- end }}
+            pathType: {{ .pathType | default "ImplementationSpecific" }}
             backend:
               service:
                 name: {{ $fullName }}

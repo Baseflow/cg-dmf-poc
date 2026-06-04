@@ -40,7 +40,8 @@
 4. Admin Portal:
 {{- if contains "NodePort" .Values.adminPortal.service.type }}
    export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "cg-dmf.adminPortal.fullname" . }})
-   echo http://localhost:$NODE_PORT
+   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+   echo http://$NODE_IP:$NODE_PORT
 {{- else if .Values.adminPortal.ingress.enabled }}
 {{- range .Values.adminPortal.ingress.hosts }}
    http{{ if $.Values.adminPortal.ingress.tls }}s{{ end }}://{{ .host }}

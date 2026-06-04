@@ -134,7 +134,8 @@ topologySpreadConstraints: []
 #     topologyKey: kubernetes.io/hostname
 #     whenUnsatisfiable: DoNotSchedule
 #     labelSelector:
-#       matchLabels: {}  # filled in automatically from selectorLabels
+#       matchLabels:
+#         app.kubernetes.io/name: cg-dmf
 
 # -- Array with extra environment variables to add to the container.
 extraEnvVars: []
