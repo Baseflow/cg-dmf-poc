@@ -235,6 +235,12 @@ fun Route.wopiApiRoutes() {
                     }
                     responses {
                         response(200) { description = "Success." }
+                        response(400) {
+                            description =
+                                "Bad request. This error is returned when the request contains an " +
+                                "X-WOPI-MaxExpectedSize header that does not contain a valid 32-bit unsigned " +
+                                "integer value."
+                        }
                         response(401) { description = "Invalid access token." }
                         response(404) { description = "Resource not found or user unauthorized." }
                         response(412) { description = "File is larger than X-WOPI-MaxExpectedSize." }
@@ -397,17 +403,20 @@ private suspend fun RoutingContext.updateFileContents() {
 private suspend fun RoutingContext.getFileContents() {
     val fileId = call.attributes[WopiValidatedFileIdKey]
 
-    val maxExpectedSize: Int = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
+    val maxExpectedSize: UInt = call.request.headers["X-WOPI-MaxExpectedSize"]?.let {
         try {
-            it.toInt()
+            it.toUInt()
         } catch (_: NumberFormatException) {
             call.respondProblem(
-                HttpStatusCode.PreconditionFailed,
-                badRequest("File is larger than X-WOPI-MaxExpectedSize.", call.request.path()),
+                HttpStatusCode.BadRequest,
+                badRequest(
+                    "The X-WOPI-MaxExpectedSize header does not contain a valid 32-bit unsigned integer value.",
+                    call.request.path(),
+                ),
             )
             return
         }
-    } ?: Int.MAX_VALUE
+    } ?: UInt.MAX_VALUE
 
     val fileVersion = wopiService.wopiGetFileVersion(fileId)
     if (fileVersion == null) {
@@ -418,8 +427,11 @@ private suspend fun RoutingContext.getFileContents() {
         return
     }
 
-    if (fileVersion.bestandsomvang > maxExpectedSize) {
-        call.respond(HttpStatusCode.PreconditionFailed)
+    if (fileVersion.bestandsomvang > maxExpectedSize.toLong()) {
+        call.respondProblem(
+            HttpStatusCode.PreconditionFailed,
+            "File size exceeds X-WOPI-MaxExpectedSize (or UInt32 max when absent).",
+        )
         return
     }
 
