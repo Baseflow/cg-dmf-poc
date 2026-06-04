@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26951211681",
+    "runNumber": "796",
+    "branch": "cGDMF-164-application-credentials",
+    "date": "2026-06-04T12:23:32Z",
+    "path": "integration/26951211681/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26950722057",
     "runNumber": "795",
     "branch": "CGDMF-152-Check-hash-joined-bestandsdelen",
