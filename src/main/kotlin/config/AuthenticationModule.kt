@@ -96,7 +96,13 @@ fun Application.authenticationModule() {
                             )
                             throw JWTVerificationException("No secret configured for client_id '$clientId'")
                         } else {
-                            JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
+                            JWT.require(Algorithm.HMAC256(secret))
+                                .withClaimPresence("iat")   // ZGW tokens use iat as the freshness signal
+                                .acceptLeeway(3)            // clock skew tolerance for exp/nbf
+                                .acceptIssuedAt(3)          // validate iat is not in the future (3s tolerance)
+                                .withIssuer(clientId)       // ZGW spec: iss must equal client_id
+                                .build()
+                                .verify(token)
                         }
                     }
 
@@ -107,6 +113,12 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
+                if (token.getClaim("user_id").asString().isNullOrBlank()) {
+                    logger.warn(
+                        "[ZGW] Token for client '{}' has no user_id claim — audit trail will be incomplete",
+                        token.getClaim("client_id").asString(),
+                    )
+                }
                 JWTPrincipal(token)
             }
 
