@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "cg-dmf.fullname" . }}-test-backend"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cg-dmf.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+    - name: test-backend
+      image: busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      command:
+        - sh
+        - -c
+        - >
+          wget -qO- http://{{ include "cg-dmf.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/health/liveness
+
+---
+{{- if .Values.adminPortal.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "cg-dmf.adminPortal.fullname" . }}-test"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cg-dmf.adminPortal.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  containers:
+    - name: test-admin-portal
+      image: busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      command:
+        - sh
+        - -c
+        - >
+          wget -qO- http://{{ include "cg-dmf.adminPortal.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.adminPortal.service.port }}/
+{{- end }}

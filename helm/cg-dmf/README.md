@@ -113,7 +113,7 @@ settings:
 
 Leave `existingSecret` empty or `null` (the default) to have the chart create and manage the
 Secret automatically. The chart-managed names follow the pattern `<fullname>-database`,
-`<fullname>-s3`, and `<fullname>-openzaak`.
+`<fullname>-blob-storage`, and `<fullname>-openzaak`.
 
 Alternatively, set the actual secret values through your CD pipeline using `--set`:
 
@@ -309,3 +309,78 @@ When using externally-managed secrets, set `existingSecret` to the name of your 
 will skip creation and reference that name directly in the Deployment.
 
 All three are annotated with `helm.sh/resource-policy: keep` so they survive a `helm uninstall`.
+
+## Admin Portal
+
+The chart can optionally deploy the **cg-dmf Admin Portal** (Next.js frontend) alongside the API.
+Enable it with `adminPortal.enabled: true`.
+
+### Enabling the Admin Portal
+
+```yaml
+adminPortal:
+  enabled: true
+  image:
+    tag: "1.0.0"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-production
+    hosts:
+      - host: admin.cg-dmf.example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: cg-dmf-admin-tls-secret
+        hosts:
+          - admin.cg-dmf.example.com
+  settings:
+    nextauthUrl: "https://admin.cg-dmf.example.com"
+    nextauthSecret: "your-nextauth-secret"
+    keycloakUrl: "https://auth.example.com"
+    keycloakRealm: "valtimo"
+    keycloakClientId: "dmf-dashboard"
+    keycloakClientSecret: "your-client-secret"
+    backendUrl: "https://cg-dmf.example.com"
+```
+
+### Admin Portal Secret
+
+The admin portal creates one Secret (unless `adminPortal.settings.existingSecret` is set):
+
+| Secret name                   | Keys                                        |
+| ----------------------------- | ------------------------------------------- |
+| `<fullname>-admin-portal`     | `NEXTAUTH_SECRET`, `KEYCLOAK_CLIENT_SECRET` |
+
+### Configuration reference: Admin Portal (`adminPortal`)
+
+| Key | Type | Default | Description |
+| --- | ---- | ------- | ----------- |
+| `adminPortal.enabled` | bool | `false` | Enable the admin portal deployment. |
+| `adminPortal.replicaCount` | int | `1` | Number of replicas. |
+| `adminPortal.image.repository` | string | `baseflow.azurecr.io/cg-dmf-admin-portal` | Image repository. |
+| `adminPortal.image.tag` | string | `""` | Image tag. Defaults to the chart's `appVersion`. |
+| `adminPortal.image.pullPolicy` | string | `IfNotPresent` | Image pull policy. |
+| `adminPortal.podAnnotations` | object | `{}` | Annotations on admin portal pods. |
+| `adminPortal.service.type` | string | `ClusterIP` | Service type. |
+| `adminPortal.service.port` | int | `80` | Service port. |
+| `adminPortal.service.nodePort` | int | `null` | NodePort (when type is `NodePort`). |
+| `adminPortal.ingress.enabled` | bool | `false` | Enable Ingress for the admin portal. |
+| `adminPortal.ingress.ingressClassName` | string | `nginx` | Ingress class name. |
+| `adminPortal.ingress.annotations` | object | `{}` | Ingress annotations. |
+| `adminPortal.ingress.hosts` | list | see values.yaml | Host/path rules. |
+| `adminPortal.ingress.tls` | list | `[]` | TLS configuration (secretName + hosts). |
+| `adminPortal.resources` | object | `{}` | CPU/memory requests and limits. |
+| `adminPortal.extraEnvVars` | list | `[]` | Extra environment variables injected into the container. Supports Helm templating via `tplvalues.render`. |
+| `adminPortal.extraVolumes` | list | `[]` | Extra volumes added to the pod spec. |
+| `adminPortal.extraVolumeMounts` | list | `[]` | Extra volume mounts added to the container. |
+| `adminPortal.settings.existingSecret` | string | `null` | Pre-existing Secret name. When set, the chart skips Secret creation and references this name. |
+| `adminPortal.settings.nextauthUrl` | string | `https://admin.cg-dmf.example.com` | Public URL of the admin portal, used by NextAuth for callback URLs. |
+| `adminPortal.settings.nextauthSecret` | string | **required** | Secret key for encrypting NextAuth session tokens. |
+| `adminPortal.settings.keycloakUrl` | string | `https://auth.example.com` | Base Keycloak URL without realm path. |
+| `adminPortal.settings.keycloakRealm` | string | `valtimo` | Keycloak realm name. |
+| `adminPortal.settings.keycloakClientId` | string | `dmf-dashboard` | Keycloak OAuth client ID. |
+| `adminPortal.settings.keycloakClientSecret` | string | **required** | Keycloak OAuth client secret. |
+| `adminPortal.settings.backendUrl` | string | `https://cg-dmf.example.com` | Backend API URL the admin portal proxies requests to. |

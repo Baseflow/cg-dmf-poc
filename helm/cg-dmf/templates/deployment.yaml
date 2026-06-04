@@ -55,6 +55,8 @@ spec:
             - secretRef:
                 name: {{ include "cg-dmf.blobStorageSecretName" . }}
             - secretRef:
+                name: {{ include "cg-dmf.encryptionSecretName" . }}
+            - secretRef:
                 name: {{ include "cg-dmf.openzaakSecretName" . }}
             - configMapRef:
                 name: {{ include "cg-dmf.fullname" . }}
@@ -99,5 +101,9 @@ spec:
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
