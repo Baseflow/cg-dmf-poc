@@ -80,10 +80,14 @@ fun Application.authenticationModule() {
                     override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT {
                         val decoded = JWT.decode(token)
                         val clientId = decoded.getClaim("client_id").asString()
+                        val issuerToken = decoded.getClaim("iss").asString()
+
+                        logger.info("[ZGW] Verifying token for client '{}', issuer '{}'", clientId, issuerToken)
 
                         // Reject tokens that are not ZGW-style (no client_id claim).
                         // This prevents Keycloak tokens with a bad signature from falling
                         // through FirstSuccessful and being accepted by this provider.
+
                         if (clientId.isNullOrBlank()) {
                             throw JWTVerificationException("Not a ZGW token: missing or blank client_id claim")
                         }
@@ -100,7 +104,7 @@ fun Application.authenticationModule() {
                                 .withClaimPresence("iat") // ZGW tokens use iat as the freshness signal
                                 .acceptLeeway(3) // clock skew tolerance for exp/nbf
                                 .acceptIssuedAt(3) // validate iat is not in the future (3s tolerance)
-                                .withIssuer(clientId) // ZGW spec: iss must equal client_id
+                                .withIssuer(issuer) // ZGW spec: iss must equal client_id
                                 .build()
                                 .verify(token)
                         }

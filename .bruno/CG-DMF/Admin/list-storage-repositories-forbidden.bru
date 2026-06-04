@@ -12,14 +12,15 @@ get {
 
 script:pre-request {
   const jwt = require("jsonwebtoken");
-
+  
   const clientId = bru.getEnvVar("jwt.clientId");
   const clientSecret = bru.getEnvVar("jwt.clientSecret");
-
+  const issuer = bru.getEnvVar("jwt.issuer");
+  
   // Generate a token without the dmf-admin role to verify the endpoint rejects it
   if (clientId && clientSecret) {
     const payload = {
-      iss: clientId,
+      iss: issuer,
       iat: Math.floor(Date.now() / 1000),
       client_id: clientId,
       aud: "account",
@@ -27,7 +28,7 @@ script:pre-request {
       user_representation: "Bruno Client",
       roles: []
     };
-
+  
     const token = jwt.sign(payload, clientSecret, { algorithm: "HS256" });
     req.setHeader("Authorization", `Bearer ${token}`);
   }
@@ -43,4 +44,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-
