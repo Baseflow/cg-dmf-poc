@@ -174,6 +174,42 @@ openen en bewerken in de browser. Zie [docs/wopi.md](wopi.md) voor een volledig 
 | `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar door de WOPI_client, bijv. `http://localhost:8080`. Het volledige WOPI-endpoint is dan bijv. `http://localhost:8080/wopi/api/v1/files/{file_id}` |
 | `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke basis-URL van de WOPI-client bijv. `https://collabora.dev.baseflow.com`                                                                                                          |
 
+## Ingress en paden
+
+De DMF-backend stelt een aantal HTTP-paden beschikbaar. Bij het inrichten van een reverse proxy of ingress-controller
+is het van belang te weten welke paden extern bereikbaar moeten zijn en welke beschermd of afgeschermd moeten blijven.
+
+### Cluster intern (geen externe blootstelling nodig)
+
+Deze paden worden uitsluitend gebruikt door Kubernetes-interne componenten (kubelet voor health probes).
+
+| Pad          | Omschrijving                              |
+|--------------|-------------------------------------------|
+| `/health/*`  | Liveness, readiness en validatie probes   |
+
+### Openbaar (geen authenticatie vereist)
+
+| Pad       | Omschrijving                                              |
+|-----------|-----------------------------------------------------------|
+| `/docs/*` | API-documentatieportal en OpenAPI-specificaties           |
+
+### Primaire functionaliteit (authenticatie vereist)
+
+Beschikbaar stellen aan consumenten (GZAC, Open Zaak, etc.). Alle verzoeken vereisen een geldig JWT-token (OIDC of ZGW).
+
+| Pad                      | Omschrijving                                                                          |
+|--------------------------|---------------------------------------------------------------------------------------|
+| `/documenten/api/v1/*`   | VNG Documenten API 1.5.0 — documenten, relaties en bestandsdelen                     |
+| `/wopi/api/v1/*`         | WOPI-host — tokenuitgifte (JWT) en bestandsbewerkingen (kortlevend SLAT-token)        |
+
+### Alleen beheer
+
+Beperk toegang via een apart netwerk, IP-allowlist of interne ingress. Vereist authenticatie én de `dmf-admin`-rol (instelbaar via `ADMIN_ROLE`).
+
+| Pad           | Omschrijving                                                                 |
+|---------------|------------------------------------------------------------------------------|
+| `/settings/*` | Beheer van applicatie-instellingen, opslag, OIDC-providers en ZGW-koppelingen |
+
 ## Aanvullende opmerkingen
 
 - Zorg ervoor dat alle omgevingsvariabelen zijn ingesteld voordat u de applicatie start.
