@@ -117,7 +117,7 @@ die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
 
 ## OpenZaak-integratie
 
-Om te het opgegeven bestandstype te valideren in de catalogus (in OpenZaak), stel de volgende omgevingsvariabelen in:
+Om het opgegeven bestandstype te valideren in de catalogus (in OpenZaak), stel de volgende omgevingsvariabelen in:
 
 Ga naar OpenZaak en navigeer naar API Autorisaties -> Applicaties
 - Kies voor Applicatie toevoegen
