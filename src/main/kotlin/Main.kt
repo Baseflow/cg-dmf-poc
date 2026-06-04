@@ -9,6 +9,7 @@ import com.baseflow.api.infra.openApiModule
 import com.baseflow.api.settings.settingsModule
 import com.baseflow.api.wopi.wopiApiModule
 import com.baseflow.config.ApplicationConfig
+import com.baseflow.config.AuthenticationConfig
 import com.baseflow.config.BlobStorageConfig
 import com.baseflow.config.DatabaseConfig
 import com.baseflow.config.NotificationConfig
@@ -35,6 +36,7 @@ import org.koin.ktor.plugin.Koin
 
 fun main() {
     ApplicationConfig.printConfig()
+    AuthenticationConfig.printConfig()
     DatabaseConfig.printConfig()
 
     BlobStorageConfig.printConfig()
