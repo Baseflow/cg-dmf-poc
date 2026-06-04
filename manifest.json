@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26943575617",
+    "runNumber": "794",
+    "branch": "CGDMF-152-Check-hash-joined-bestandsdelen",
+    "date": "2026-06-04T09:40:54Z",
+    "path": "integration/26943575617/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26943111545",
     "runNumber": "793",
     "branch": "CGDMF-152-Check-hash-joined-bestandsdelen",
