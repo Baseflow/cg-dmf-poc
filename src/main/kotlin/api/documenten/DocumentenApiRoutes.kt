@@ -98,7 +98,7 @@ fun Application.documentenApiModule(useAuthentication: Boolean = true) {
 
     routing {
         if (useAuthentication) {
-            authenticate("auth-jwt", "auth-api-key", strategy = AuthenticationStrategy.FirstSuccessful) {
+            authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
                 documentenApiRoutes()
             }
         } else {

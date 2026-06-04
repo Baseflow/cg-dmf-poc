@@ -16,22 +16,21 @@ Zorg ervoor dat de volgende omgevingsvariabelen zijn ingesteld:
 
 Het databaseschema wordt automatisch aangemaakt en bijgewerkt wanneer de applicatie start.
 
-## Keycloak-configuratie
+## Authenticatie-configuratie
 
-Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u de volgende omgevingsvariabelen:
+Om authenticatie en autorisatie met Keycloak en via ZGW authenticatie mogelijk te maken, configureert u de volgende omgevingsvariabelen:
 
-| Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                       |
-| ------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                      |
-| `OIDC_RESOURCE_CLIENT_ID` | _(leeg)_                              | Optionele OIDC client-id voor role-resolutie uit `resource_access.<client_id>.roles`. Indien leeg: fallback naar token claims `azp`, daarna `client_id`, en als laatste alle `resource_access.*.roles`. |
-| `ADMIN_ROLE`              | `dmf-admin`                           | Vereiste rol voor toegang tot beheer-endpoints onder `/settings/**`.                                              |
-| `CLIENT_CREDENTIALS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Tokens van clients die niet in deze lijst staan worden geweigerd. |
+| Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                                                                                                                                                      |
+| ------------------------- | ------------------------------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                                                                                                                                                       |
+| `OIDC_RESOURCE_CLIENT_ID` | _(leeg)_                              | Optionele OIDC client-id voor role-resolutie uit `resource_access.<client_id>.roles`. Indien leeg: fallback naar token claims `azp`, daarna `client_id`, en als laatste alle `resource_access.*.roles`.                                           |
+| `ADMIN_ROLE`              | `dmf-admin`                           | Vereiste rol voor toegang tot beheer-endpoints onder `/settings/**`.                                                                                                                                                                              |
+| `CLIENT_CREDENTIALS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Credentials kunnen ook gegenereerd worden met behulp van de admin portal. |
 
 Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te komen met deze waarden.
 
 OIDC issuer is voor rechtstreeks toegang van gebruikers tot de API. Dit gebruiken we o.a. ook voor de beheerinterface.
-
-CLIENT_CREDENTIALS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
+CLIENT_CREDENTIALS wordt gebruikt door GZAC en/of openzaak om te communiceren met de DMF als service
 
 ### Rolclaims voor beheer-endpoints (`/settings/**`)
 
@@ -71,6 +70,8 @@ kunnen bestaande versleutelde referenties niet meer worden ontsleuteld — sla d
 
 De applicatie ondersteunt S3-compatibele opslag (bijv. MinIO, AWS S3) en Azure Blob Storage.
 Configureer één of meerdere opslagrepositories via omgevingsvariabelen met een numeriek achtervoegsel (1, 2, 3, …).
+
+Opslag repositories kunnen worden geconfigureerd met variabelen, of met behulp van de beheerinterface.
 
 | Variabele                          | Vereist | Beschrijving                                                                 |
 | ---------------------------------- | ------- | ---------------------------------------------------------------------------- |
@@ -116,7 +117,13 @@ die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
 
 ## OpenZaak-integratie
 
-Om te integreren met OpenZaak, stel de volgende omgevingsvariabelen in:
+Om te het opgegeven bestandstype te valideren in de catalogus (in OpenZaak), stel de volgende omgevingsvariabelen in:
+
+Ga naar OpenZaak en navigeer naar API Autorisaties -> Applicaties
+- Kies voor Applicatie toevoegen
+- Voer een naam in (bijv. DMF)
+- Kies een client-id en client-secret voor de communicatie van DMF naar OpenZaak
+- Sla de applicatie op en gebruik deze waarden in de onderstaande omgevingsvariabelen.
 
 | Variabele                     | Standaardwaarde                     | Beschrijving                                                      |
 |-------------------------------|-------------------------------------|-------------------------------------------------------------------|
@@ -138,6 +145,8 @@ Daarnaast moet u deze service registreren in Open Zaak.
     * Client secret: ... (zoals gebruikt in DMF)
     * Gebruikers-id: `openzaak`
     * Gebruikersrepresentatie: `Open Zaak`
+
+Hiermee kan OpenZaak de URLs van de DMF-DRC herkennen en objecten aanmaken/valideren in de DMF-DRC.
 
 Ook moeten er Zaak types en informatie object types zijn gemaakt in Open Zaak om later door GZAC gebruikt te kunnen
 worden.

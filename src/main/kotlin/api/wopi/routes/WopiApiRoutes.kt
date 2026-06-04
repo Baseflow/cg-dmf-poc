@@ -81,7 +81,7 @@ fun Route.wopiApiRoutes() {
         install(WopiFileIdPlugin)
 
         // ── Token issuance ─────────────────────────────────────────────────────
-        authenticate("auth-jwt", "auth-api-key", strategy = AuthenticationStrategy.FirstSuccessful) {
+        authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
             post("/token/{file_id}") {
                 issueToken(slatService)
             }.describe {

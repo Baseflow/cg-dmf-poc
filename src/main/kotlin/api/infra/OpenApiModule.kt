@@ -44,7 +44,7 @@ private val openApiJson = Json {
  * Schemes are registered in [com.baseflow.config.AuthenticationModule] via [registerSecurityScheme]
  * and discovered here through [findSecuritySchemes]:
  * - "auth-jwt" → OAuth2 Authorization Code + PKCE (full OIDC login via Keycloak)
- * - "auth-api-key" → HTTP Bearer (paste-in ZGW/GZAC token)
+ * - "auth-zgw" → HTTP Bearer (paste-in ZGW/GZAC token)
  *
  * Using the exact same names as the Ktor `authenticate(...)` provider names is required so that
  * the routing-openapi `+` operator can inject matching `security` requirements on each operation,
@@ -102,14 +102,14 @@ fun Application.openApiModule() {
 private fun Application.buildOpenApiDoc(openApiSpec: OpenApiSpecification): OpenApiDoc {
     val baseUrl = ApplicationConfig.baseUrl()
 
-    // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-api-key (Bearer)
+    // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-zgw (Bearer)
     val securitySchemes = buildSecuritySchemes()
 
-    // Global security: OIDC via Keycloak (auth-jwt) OR paste-in ZGW token (auth-api-key).
+    // Global security: OIDC via Keycloak (auth-jwt) OR paste-in ZGW token (auth-zgw).
     // These names MUST match the keys in securitySchemes above so Swagger UI can resolve them.
     val globalSecurity: List<SecurityRequirement> = listOf(
         mapOf("auth-jwt" to listOf("openid", "profile", "email")),
-        mapOf("auth-api-key" to emptyList()),
+        mapOf("auth-zgw" to emptyList()),
     )
 
     val apiRoutes = routingRoot.descendants().filter { route ->
