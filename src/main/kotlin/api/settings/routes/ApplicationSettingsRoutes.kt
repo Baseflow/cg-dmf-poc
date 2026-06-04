@@ -13,6 +13,7 @@ import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
 import com.baseflow.entities.settings.ApplicationSettingEntity
 import com.baseflow.entities.settings.ApplicationSettingsTable
+import com.baseflow.services.ApplicationCredentialRegistrar
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -82,6 +83,9 @@ fun Route.applicationSettingsRoutes() {
                 HttpStatusCode.Conflict,
                 conflict("An application with this name already exists.", call.request.path()),
             )
+            if (created.clientSecret != null) {
+                ApplicationCredentialRegistrar.registerSecret(created.clientId, created.clientSecret)
+            }
             call.respond(HttpStatusCode.Created, created)
         }
 
@@ -111,11 +115,14 @@ fun Route.applicationSettingsRoutes() {
                     )
                 }
 
+                var previousClientId = ""
                 val updated = transaction {
                     val existing = ApplicationSettingEntity.findById(id)
                         ?: return@transaction null
+                    previousClientId = existing.clientId
                     val nameConflict = existing.name != body.name &&
-                        ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }.firstOrNull() != null
+                        ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
+                            .firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
                     existing.name = body.name
                     existing.clientId = body.clientId
@@ -130,11 +137,22 @@ fun Route.applicationSettingsRoutes() {
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
+
                     "conflict" -> return@put call.respondProblem(
                         HttpStatusCode.Conflict,
                         conflict("An application with this name already exists.", call.request.path()),
                     )
-                    else -> call.respond(HttpStatusCode.OK, updated as ApplicationSettingsResponse)
+
+                    else -> {
+                        val response = updated as ApplicationSettingsResponse
+                        if (previousClientId != response.clientId) {
+                            ApplicationCredentialRegistrar.unregisterSecret(previousClientId)
+                        }
+                        if (response.clientSecret != null) {
+                            ApplicationCredentialRegistrar.registerSecret(response.clientId, response.clientSecret)
+                        }
+                        call.respond(HttpStatusCode.OK, response)
+                    }
                 }
             }
 
@@ -146,20 +164,25 @@ fun Route.applicationSettingsRoutes() {
                         badRequest("Invalid UUID.", call.request.path()),
                     )
 
-                val deleted = transaction {
-                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction false
+                val deletedClientId = transaction {
+                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
+                    val clientId = existing.clientId
                     existing.delete()
-                    true
+                    clientId
                 }
 
-                if (!deleted) {
-                    return@delete call.respondProblem(
+                when (deletedClientId) {
+                    null -> return@delete call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
-                }
 
-                call.respond(HttpStatusCode.NoContent)
+                    else -> {
+                        // Remove the secret from cache
+                        ApplicationCredentialRegistrar.unregisterSecret(deletedClientId)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+                }
             }
 
             post("/rotate-secret") {
@@ -173,20 +196,21 @@ fun Route.applicationSettingsRoutes() {
 
                 val plaintext = body.newSecret?.takeIf { it.isNotBlank() } ?: generateSecret()
 
-                val found = transaction {
-                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction false
+                val clientId = transaction {
+                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
                     existing.clientSecret = plaintext
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    true
+                    existing.clientId
                 }
 
-                if (!found) {
+                if (clientId == null) {
                     return@post call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
                 }
 
+                ApplicationCredentialRegistrar.registerSecret(clientId, plaintext)
                 call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
             }
         }
@@ -206,7 +230,7 @@ private val logger = LoggerFactory.getLogger("com.baseflow.api.settings.routes.A
 private fun ApplicationSettingEntity.toResponse(): ApplicationSettingsResponse {
     val decryptedSecret = try {
         clientSecret
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         logger.error(
             "CRITICAL: Failed to decrypt clientSecret for application '$name' (${id.value}). " +
                 "The encryption key or salt might have changed. " +

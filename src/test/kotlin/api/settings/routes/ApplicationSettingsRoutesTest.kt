@@ -9,6 +9,7 @@ import com.baseflow.api.models.settings.RotateSecretRequest
 import com.baseflow.api.models.settings.RotateSecretResponse
 import com.baseflow.api.models.settings.UpdateApplicationSettingsRequest
 import com.baseflow.entities.settings.ApplicationSettingEntity
+import com.baseflow.services.ApplicationCredentialRegistrar
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -22,6 +23,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -315,9 +317,112 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
         }
     }
 
+    @Test
+    fun `PUT removes old clientId from in-memory credentials cache when clientId changes`() = testApplication {
+        application { setup() }
+        ApplicationCredentialRegistrar.resetForTesting()
+
+        val id = insertApp("app", clientId = "old-client", clientSecret = "shared-secret")
+
+        // Simulate existing in-memory registration for the pre-update clientId.
+        ApplicationCredentialRegistrar.registerSecret("old-client", "shared-secret")
+
+        val response = client.put("/settings/application-settings/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(
+                        name = "app",
+                        clientId = "new-client",
+                        clientSecret = null,
+                    ),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertNull(ApplicationCredentialRegistrar.getSecret("old-client"))
+        assertEquals("shared-secret", ApplicationCredentialRegistrar.getSecret("new-client"))
+    }
+
     // -----------------------------------------------------------------------
     // DELETE /settings/application-settings/{id}
     // -----------------------------------------------------------------------
+
+    @Test
+    fun `POST adds secret to credentials cache after commit`() = testApplication {
+        application { setup() }
+        ApplicationCredentialRegistrar.resetForTesting()
+
+        val response = client.post("/settings/application-settings") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "new-app", clientId = "my-client", clientSecret = "my-secret"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertEquals("my-secret", ApplicationCredentialRegistrar.getSecret("my-client"))
+    }
+
+    @Test
+    fun `POST does not add to cache when no secret provided`() = testApplication {
+        application { setup() }
+        ApplicationCredentialRegistrar.resetForTesting()
+
+        val response = client.post("/settings/application-settings") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "new-app", clientId = "my-client"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        assertNull(ApplicationCredentialRegistrar.getSecret("my-client"))
+    }
+
+    @Test
+    fun `DELETE removes secret from credentials cache after commit`() = testApplication {
+        application { setup() }
+        ApplicationCredentialRegistrar.resetForTesting()
+
+        val id = insertApp("app", clientId = "my-client", clientSecret = "my-secret")
+        ApplicationCredentialRegistrar.registerSecret("my-client", "my-secret")
+
+        val response = client.delete("/settings/application-settings/$id")
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
+        assertNull(ApplicationCredentialRegistrar.getSecret("my-client"))
+    }
+
+    @Test
+    fun `rotate-secret updates credentials cache after commit`() = testApplication {
+        application { setup() }
+        ApplicationCredentialRegistrar.resetForTesting()
+
+        val id = insertApp("app", clientId = "my-client", clientSecret = "old-secret")
+        ApplicationCredentialRegistrar.registerSecret("my-client", "old-secret")
+
+        val response = client.post("/settings/application-settings/$id/rotate-secret") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    RotateSecretRequest.serializer(),
+                    RotateSecretRequest(newSecret = "new-secret"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("new-secret", ApplicationCredentialRegistrar.getSecret("my-client"))
+    }
 
     @Test
     fun `DELETE removes application and returns 204`() = testApplication {

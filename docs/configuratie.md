@@ -1,36 +1,36 @@
 # Configuratiehandleiding
 
-Deze handleiding geeft gedetailleerde instructies voor het configureren van verschillende componenten om samen te werken met de DMF (als DRC-component).
+Deze handleiding geeft gedetailleerde instructies voor het configureren van verschillende componenten om samen te werken
+met de DMF (als DRC-component).
 
 ## Databaseconfiguratie
 
 Zorg ervoor dat de volgende omgevingsvariabelen zijn ingesteld:
 
-| Variabele      | Standaardwaarde                              | Beschrijving                                        |
-| -------------- | -------------------------------------------- |-----------------------------------------------------|
-| `DB_URL`       | `jdbc:postgresql://localhost:5432/documenten`| JDBC-URL naar de PostgreSQL-database                |
-| `DB_USER`      | `documenten`                                 | Databasegebruiker                                   |
-| `DB_PASSWORD`  | `documenten`                                 | Databasewachtwoord                                  |
-| `DB_POOL_SIZE` | `10`                                         | Maximaal aantal verbindingen in de verbindingspool. |
+| Variabele      | Standaardwaarde                               | Beschrijving                                        |
+|----------------|-----------------------------------------------|-----------------------------------------------------|
+| `DB_URL`       | `jdbc:postgresql://localhost:5432/documenten` | JDBC-URL naar de PostgreSQL-database                |
+| `DB_USER`      | `documenten`                                  | Databasegebruiker                                   |
+| `DB_PASSWORD`  | `documenten`                                  | Databasewachtwoord                                  |
+| `DB_POOL_SIZE` | `10`                                          | Maximaal aantal verbindingen in de verbindingspool. |
 
 Het databaseschema wordt automatisch aangemaakt en bijgewerkt wanneer de applicatie start.
 
-## Keycloak-configuratie
+## Authenticatie-configuratie
 
-Om authenticatie en autorisatie met Keycloak mogelijk te maken, configureert u de volgende omgevingsvariabelen:
+Om authenticatie en autorisatie met Keycloak en via ZGW authenticatie mogelijk te maken, configureert u de volgende omgevingsvariabelen:
 
-| Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                       |
-| ------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                      |
-| `OIDC_RESOURCE_CLIENT_ID` | _(leeg)_                              | Optionele OIDC client-id voor role-resolutie uit `resource_access.<client_id>.roles`. Indien leeg: fallback naar token claims `azp`, daarna `client_id`, en als laatste alle `resource_access.*.roles`. |
-| `ADMIN_ROLE`              | `dmf-admin`                           | Vereiste rol voor toegang tot beheer-endpoints onder `/settings/**`.                                              |
-| `ZGW_CLIENT_SECRETS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Tokens van clients die niet in deze lijst staan worden geweigerd. |
+| Variabele                 | Standaardwaarde                       | Beschrijving                                                                                                                                                                                                                                      |
+| ------------------------- | ------------------------------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OIDC_ISSUER`             | `http://localhost:8081/realms/cg-dmf` | Issuer-URL van de OIDC-provider die wordt gebruikt om binnenkomende JWT-tokens te valideren                                                                                                                                                       |
+| `OIDC_RESOURCE_CLIENT_ID` | _(leeg)_                              | Optionele OIDC client-id voor role-resolutie uit `resource_access.<client_id>.roles`. Indien leeg: fallback naar token claims `azp`, daarna `client_id`, en als laatste alle `resource_access.*.roles`.                                           |
+| `ADMIN_ROLE`              | `dmf-admin`                           | Vereiste rol voor toegang tot beheer-endpoints onder `/settings/**`.                                                                                                                                                                              |
+| `CLIENT_CREDENTIALS`      | _(leeg)_                              | Komma-gescheiden lijst van `client_id:secret`-paren voor ZGW-stijl JWT-authenticatie (GZAC / Valtimo / Open Zaak). Voorbeeld: `gzac:supersecret,valtimo:anothersecret`. Credentials kunnen ook gegenereerd worden met behulp van de admin portal. |
 
 Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te komen met deze waarden.
 
 OIDC issuer is voor rechtstreeks toegang van gebruikers tot de API. Dit gebruiken we o.a. ook voor de beheerinterface.
-
-ZGW_CLIENT_SECRETS wordt gebruikt door openzaak en/of GZAC om te communiceren met de DMF als service
+CLIENT_CREDENTIALS wordt gebruikt door GZAC en/of openzaak om te communiceren met de DMF als service
 
 ### Rolclaims voor beheer-endpoints (`/settings/**`)
 
@@ -46,9 +46,9 @@ Voor autorisatie op de beheer-endpoints gebruikt de API role-claims op basis van
 Toegangssleutels en geheime sleutels van blobopslag-repositories worden versleuteld opgeslagen in de database
 met AES-256-PBE-GCM. De volgende omgevingsvariabelen zijn verplicht:
 
-| Variabele               | Standaardwaarde | Beschrijving                                                                 |
-| ----------------------- | --------------- | ---------------------------------------------------------------------------- |
-| `ENCRYPTION_SECRET_KEY` | _(geen)_        | Wachtwoordzin voor AES-256-PBE-GCM sleutelafleiding (verplicht)             |
+| Variabele               | Standaardwaarde | Beschrijving                                                                                                                                                  |
+|-------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ENCRYPTION_SECRET_KEY` | _(geen)_        | Wachtwoordzin voor AES-256-PBE-GCM sleutelafleiding (verplicht)                                                                                               |
 | `ENCRYPTION_SALT`       | _(geen)_        | Salt voor sleutelafleiding; hex of platte tekst wordt geaccepteerd. Bij gebruik van hex moet deze uit een even aantal hexadecimale tekens bestaan (verplicht) |
 
 **Waarden genereren:**
@@ -62,13 +62,16 @@ openssl rand -hex 16
 ```
 
 Sla de gegenereerde waarden op in een geheimenbeheerder (bijv. Kubernetes Secrets, HashiCorp Vault of Azure Key Vault).
-Gebruik nooit dezelfde waarden in meerdere omgevingen. Als `ENCRYPTION_SECRET_KEY` of `ENCRYPTION_SALT` gewijzigd worden,
+Gebruik nooit dezelfde waarden in meerdere omgevingen. Als `ENCRYPTION_SECRET_KEY` of `ENCRYPTION_SALT` gewijzigd
+worden,
 kunnen bestaande versleutelde referenties niet meer worden ontsleuteld — sla de sleutels dus veilig op.
 
 ## Blob storage-configuratie
 
 De applicatie ondersteunt S3-compatibele opslag (bijv. MinIO, AWS S3) en Azure Blob Storage.
 Configureer één of meerdere opslagrepositories via omgevingsvariabelen met een numeriek achtervoegsel (1, 2, 3, …).
+
+Opslag repositories kunnen worden geconfigureerd met variabelen, of met behulp van de beheerinterface.
 
 | Variabele                          | Vereist | Beschrijving                                                                 |
 | ---------------------------------- | ------- | ---------------------------------------------------------------------------- |
@@ -107,55 +110,66 @@ Bij het aanmaken van een `EnkelvoudigInformatieObject` met een `bestandsomvang` 
 wordt automatisch de bestandsdelen-workflow geactiveerd. De bestanden worden dan opgesplitst in losse delen
 die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
 
-| Variabele                     | Standaardwaarde | Beschrijving                                                                                                        |
-| ----------------------------- | --------------- |---------------------------------------------------------------------------------------------------------------------|
-| `BESTANDSDELEN_TRIGGER_SIZE`  | `4294967296`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 4 GB) |
-| `BESTANDSDELEN_CHUNK_SIZE`    | `3221225472`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 3 GB)                                          |
+| Variabele                    | Standaardwaarde | Beschrijving                                                                                                        |
+|------------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------|
+| `BESTANDSDELEN_TRIGGER_SIZE` | `4294967296`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 4 GB) |
+| `BESTANDSDELEN_CHUNK_SIZE`   | `3221225472`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 3 GB)                                          |
 
 ## OpenZaak-integratie
 
-Om te integreren met OpenZaak, stel de volgende omgevingsvariabelen in:
+Om het opgegeven bestandstype te valideren in de catalogus (in OpenZaak), stel de volgende omgevingsvariabelen in:
 
-| Variabele                      | Standaardwaarde                     | Beschrijving                                             |
-| ------------------------------ | ----------------------------------- | ------------------------------------------------------- |
-| `OPENZAAK_ENDPOINT`            | `https://openzaak.dev.baseflow.com` | Basis-URL van de Open Zaak-instantie                    |
-| `OPENZAAK_CLIENT_ID`           | `cg-dmf`                            | Client-ID gebruikt voor authenticatie met Open Zaak     |
-| `OPENZAAK_CLIENT_SECRET`       | `baseflow`                          | Client secret gebruikt voor authenticatie met Open Zaak |
-| `OPENZAAK_VALIDATION_ENABLED`  | `true`                              | Stel in op `false` om Open Zaak-objecttypevalidatie over te slaan |
+Ga naar OpenZaak en navigeer naar API Autorisaties -> Applicaties
+- Kies voor Applicatie toevoegen
+- Voer een naam in (bijv. DMF)
+- Kies een client-id en client-secret voor de communicatie van DMF naar OpenZaak
+- Sla de applicatie op en gebruik deze waarden in de onderstaande omgevingsvariabelen.
+
+| Variabele                     | Standaardwaarde                     | Beschrijving                                                      |
+|-------------------------------|-------------------------------------|-------------------------------------------------------------------|
+| `OPENZAAK_ENDPOINT`           | `https://openzaak.dev.baseflow.com` | Basis-URL van de Open Zaak-instantie                              |
+| `OPENZAAK_CLIENT_ID`          | `cg-dmf`                            | Client-ID gebruikt voor authenticatie met Open Zaak               |
+| `OPENZAAK_CLIENT_SECRET`      | `baseflow`                          | Client secret gebruikt voor authenticatie met Open Zaak           |
+| `OPENZAAK_VALIDATION_ENABLED` | `true`                              | Stel in op `false` om Open Zaak-objecttypevalidatie over te slaan |
 
 Daarnaast moet u deze service registreren in Open Zaak.
+
 * Ga naar de Open Zaak-beheerinterface en navigeer naar `API authorisaties` en selecteer het tabblad `Services`.
 * Klik op de knop `Service toevoegen`.
 * Voer de volgende informatie in:
-  * Kies een label en service slug
-  * Type is: `DRC (informatieobjecten)`
-  * Api root url: `https://example.com/documenten/api/v1/`
-  * Authorisatietype: `ZGW client_id + secret`
-  * Client id: ... (zoals gebruikt in DMF, zie ook `ZGW_CLIENT_SECRETS`)
-  * Client secret: ... (zoals gebruikt in DMF)
-  * Gebruikers-id: `openzaak`
-  * Gebruikersrepresentatie: `Open Zaak`
+    * Kies een label en service slug
+    * Type is: `DRC (informatieobjecten)`
+    * Api root url: `https://example.com/documenten/api/v1/`
+    * Authorisatietype: `ZGW client_id + secret`
+    * Client id: ... (zoals gebruikt in DMF, zie ook `CLIENT_CREDENTIALS`)
+    * Client secret: ... (zoals gebruikt in DMF)
+    * Gebruikers-id: `openzaak`
+    * Gebruikersrepresentatie: `Open Zaak`
 
-Ook moeten er Zaak types en informatie object types zijn gemaakt in Open Zaak om later door GZAC gebruikt te kunnen worden.
+Hiermee kan OpenZaak de URLs van de DMF-DRC herkennen en objecten aanmaken/valideren in de DMF-DRC.
+
+Ook moeten er Zaak types en informatie object types zijn gemaakt in Open Zaak om later door GZAC gebruikt te kunnen
+worden.
 
 ## Notificaties (Open Notificaties API)
 
 Notificaties zijn optioneel. Wanneer leeg gelaten, is de integratie automatisch uitgeschakeld.
 Stel de volgende omgevingsvariabelen in indien nodig:
 
-| Variabele                 | Standaardwaarde | Beschrijving                                                                           |
-| ------------------------- | --------------- | ------------------------------------------------------------------------------------- |
-| `NOTIFICATION_API_URL`    | _(leeg)_        | Basis-URL van de Open Notificaties API, bijv. `https://notificaties.example.com/api/v1` |
-| `NOTIFICATION_API_TOKEN`  | _(leeg)_        | Bearer-token met de scope `notificaties.publiceren`                                   |
-| `NOTIFICATION_KANAAL`     | `documenten`    | Naam van het notificatiekanaal (kanaal) zoals geregistreerd in Open Notificaties      |
-| `NOTIFICATION_SOURCE`     | `drc`           | Bronidentificatie verzonden met elke notificatie                                      |
+| Variabele                | Standaardwaarde | Beschrijving                                                                            |
+|--------------------------|-----------------|-----------------------------------------------------------------------------------------|
+| `NOTIFICATION_API_URL`   | _(leeg)_        | Basis-URL van de Open Notificaties API, bijv. `https://notificaties.example.com/api/v1` |
+| `NOTIFICATION_API_TOKEN` | _(leeg)_        | Bearer-token met de scope `notificaties.publiceren`                                     |
+| `NOTIFICATION_KANAAL`    | `documenten`    | Naam van het notificatiekanaal (kanaal) zoals geregistreerd in Open Notificaties        |
+| `NOTIFICATION_SOURCE`    | `drc`           | Bronidentificatie verzonden met elke notificatie                                        |
 
 ## WOPI
 
-De DMF implementeert een WOPI-host waarmee WOPI-clients (bijvoorbeeld Collabora of Microsoft 365) documenten kunnen openen en  bewerken in de browser. Zie [docs/wopi.md](wopi.md) voor een volledig overzicht.
+De DMF implementeert een WOPI-host waarmee WOPI-clients (bijvoorbeeld Collabora of Microsoft 365) documenten kunnen
+openen en bewerken in de browser. Zie [docs/wopi.md](wopi.md) voor een volledig overzicht.
 
 | Variabele              | Standaardwaarde | Beschrijving                                                                                                                                                                              |
-|------------------------| --------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|------------------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `WOPI_ENABLED`         | `false`         | Zet op `true` om de WOPI functionaliteit beschikbaar te maken.                                                                                                                            |
 | `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar door de WOPI_client, bijv. `http://localhost:8080`. Het volledige WOPI-endpoint is dan bijv. `http://localhost:8080/wopi/api/v1/files/{file_id}` |
 | `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke basis-URL van de WOPI-client bijv. `https://collabora.dev.baseflow.com`                                                                                                          |

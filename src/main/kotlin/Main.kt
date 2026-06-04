@@ -15,6 +15,7 @@ import com.baseflow.config.NotificationConfig
 import com.baseflow.config.WopiConfig
 import com.baseflow.config.authenticationModule
 import com.baseflow.config.dmfKoinModule
+import com.baseflow.services.ApplicationCredentialRegistrar
 import com.baseflow.services.BlobStorageRegistrar
 import com.baseflow.services.NotificationService
 import com.zaxxer.hikari.HikariConfig
@@ -64,6 +65,9 @@ fun main() {
     // Register blob storage repositories from env vars into database
     BlobStorageRegistrar.initialise()
 
+    // Initialize ZGW client secrets cache from both env config and database
+    ApplicationCredentialRegistrar.initialise()
+
     // Ensure notification kanaal exists
     NotificationConfig.printConfig()
 
@@ -111,7 +115,7 @@ fun Application.module() {
  * [Flyway.repair] only in that case. Repair updates **all** checksums, but
  * since V7 is the only amended migration, no other checksums will change.
  *
- * We use [MigrationInfo.isChecksumMatching] to detect mismatches, because
+ * We use [org.flywaydb.core.api.MigrationInfo.isChecksumMatching] to detect mismatches, because
  * the [MigrationState] enum does not expose a dedicated "checksum mismatch"
  * state for versioned migrations — the mismatch is only surfaced as a
  * validation failure during [Flyway.migrate].

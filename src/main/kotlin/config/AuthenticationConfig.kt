@@ -30,15 +30,13 @@ internal object AuthenticationConfig : Config() {
     val adminRole: String = envOrSystem("ADMIN_ROLE", "dmf-admin")
 
     /**
-     * Map of client_id → HS256 secret for ZGW JWT signature verification.
+     * Map of client_id → HS256 secret for JWT signature verification.
      *
-     * Sourced from ZGW_CLIENT_SECRETS: a comma-separated list of `client_id:secret` pairs.
-     * Example: ZGW_CLIENT_SECRETS=gzac:supersecret,valtimo:anothersecret
+     * Sourced from CLIENT_CREDENTIALS: a comma-separated list of `client_id:secret` pairs.
+     * Example: CLIENT_CREDENTIALS=gzac:supersecret,valtimo:anothersecret
      *
-     * Clients not present in this map will have their signature skipped when
-     * ZGW_REQUIRE_SIGNATURE=false (the default), or rejected when it is true.
      */
-    val zgwClientSecrets: Map<String, String> = envOrSystem("ZGW_CLIENT_SECRETS", "")
+    val clientCredentials: Map<String, String> = envOrSystem("CLIENT_CREDENTIALS", "")
         .split(",")
         .mapNotNull { entry ->
             val parts = entry.trim().split(":", limit = 2)
@@ -54,6 +52,6 @@ internal object AuthenticationConfig : Config() {
         logger.info("AuthenticationConfig: OIDC issuer={}", issuer)
         logger.info("AuthenticationConfig: OIDC ResourceClientId={}", oidcResourceClientId.ifBlank { "<auto>" })
         logger.info("AuthenticationConfig: DMF adminRole={}", adminRole)
-        logger.info("AuthenticationConfig: zgwClientSecrets configured for clients={}", zgwClientSecrets.keys)
+        logger.info("AuthenticationConfig: clientCredentials configured for clients={}", clientCredentials.keys)
     }
 }

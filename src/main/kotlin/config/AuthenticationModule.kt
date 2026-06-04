@@ -7,6 +7,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.JWTVerifier
+import com.baseflow.services.ApplicationCredentialRegistrar
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.auth.parseAuthorizationHeader
 import io.ktor.openapi.HttpSecurityScheme
@@ -25,7 +26,6 @@ import java.util.concurrent.TimeUnit
 fun Application.authenticationModule() {
     val logger = LoggerFactory.getLogger("AuthenticationModule")
     val issuer = AuthenticationConfig.issuer
-    val zgwClientSecrets = AuthenticationConfig.zgwClientSecrets
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -65,10 +65,10 @@ fun Application.authenticationModule() {
             }
         }
 
-        // ZGW-style JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
+        // Application credential JWT authentication (used by GZAC/Valtimo, Open Zaak, etc.)
         // Tokens are HS256-signed with a per-client secret.  Configure via
-        // ZGW_CLIENT_SECRETS=client_id:secret,...  (see AuthenticationConfig).
-        // Tokens from clients not in ZGW_CLIENT_SECRETS are always rejected.
+        // CLIENT_CREDENTIALS=client_id:secret,...  (see AuthenticationConfig).
+        // They can also be added/changed from the admin portal.
         jwt("auth-zgw") {
             authHeader { call ->
                 val header = call.request.headers["Authorization"]
@@ -88,7 +88,7 @@ fun Application.authenticationModule() {
                             throw JWTVerificationException("Not a ZGW token: missing or blank client_id claim")
                         }
 
-                        val secret = zgwClientSecrets[clientId]
+                        val secret = ApplicationCredentialRegistrar.getSecret(clientId)
                         return if (secret == null) {
                             logger.debug(
                                 "[ZGW] Unknown client '{}' — rejecting token because signature verification cannot be performed",
@@ -96,7 +96,13 @@ fun Application.authenticationModule() {
                             )
                             throw JWTVerificationException("No secret configured for client_id '$clientId'")
                         } else {
-                            JWT.require(Algorithm.HMAC256(secret)).build().verify(token)
+                            JWT.require(Algorithm.HMAC256(secret))
+                                .withClaimPresence("iat") // ZGW tokens use iat as the freshness signal
+                                .acceptLeeway(3) // clock skew tolerance for exp/nbf
+                                .acceptIssuedAt(3) // validate iat is not in the future (3s tolerance)
+                                .withIssuer(clientId) // ZGW spec: iss must equal client_id
+                                .build()
+                                .verify(token)
                         }
                     }
 
@@ -107,6 +113,12 @@ fun Application.authenticationModule() {
 
             validate { credential ->
                 val token = credential.payload
+                if (token.getClaim("user_id").asString().isNullOrBlank()) {
+                    logger.warn(
+                        "[ZGW] Token for client '{}' has no user_id claim — audit trail will be incomplete",
+                        token.getClaim("client_id").asString(),
+                    )
+                }
                 JWTPrincipal(token)
             }
 
