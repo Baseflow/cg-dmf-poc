@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "26962079777",
+    "runNumber": "801",
+    "branch": "helm_chart_updates",
+    "date": "2026-06-04T15:40:01Z",
+    "path": "integration/26962079777/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "26960403345",
     "runNumber": "800",
     "branch": "CGDMF-152-Check-hash-joined-bestandsdelen",
