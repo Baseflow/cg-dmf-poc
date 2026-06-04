@@ -32,4 +32,20 @@
 3. Credentials are stored in:
    - database:      {{ include "cg-dmf.databaseSecretName" . }}
    - blob-storage:  {{ include "cg-dmf.blobStorageSecretName" . }}
+   - encryption:    {{ include "cg-dmf.encryptionSecretName" . }}
    - openzaak:      {{ include "cg-dmf.openzaakSecretName" . }}
+{{- if .Values.adminPortal.enabled }}
+   - admin-portal:  {{ include "cg-dmf.adminPortal.secretName" . }}
+
+4. Admin Portal:
+{{- if contains "NodePort" .Values.adminPortal.service.type }}
+   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "cg-dmf.adminPortal.fullname" . }})
+   echo http://localhost:$NODE_PORT
+{{- else if .Values.adminPortal.ingress.enabled }}
+{{- range .Values.adminPortal.ingress.hosts }}
+   http{{ if $.Values.adminPortal.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}
+{{- else }}
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "cg-dmf.adminPortal.fullname" . }} 3000:{{ .Values.adminPortal.service.port }}
+{{- end }}
+{{- end }}

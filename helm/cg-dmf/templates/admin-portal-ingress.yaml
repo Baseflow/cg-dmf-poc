@@ -1,24 +1,24 @@
-{{- if .Values.ingress.enabled }}
-{{- $fullName := include "cg-dmf.fullname" . }}
-{{- $svcPort := .Values.service.port }}
+{{- if and .Values.adminPortal.enabled .Values.adminPortal.ingress.enabled }}
+{{- $fullName := include "cg-dmf.adminPortal.fullname" . }}
+{{- $svcPort := .Values.adminPortal.service.port }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "cg-dmf.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+    {{- include "cg-dmf.adminPortal.labels" . | nindent 4 }}
+  {{- with .Values.adminPortal.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.ingressClassName }}
-  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- if .Values.adminPortal.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.adminPortal.ingress.ingressClassName }}
   {{- end }}
-  {{- if .Values.ingress.tls }}
+  {{- if .Values.adminPortal.ingress.tls }}
   tls:
-    {{- range .Values.ingress.tls }}
+    {{- range .Values.adminPortal.ingress.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -27,15 +27,13 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
+    {{- range .Values.adminPortal.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
           {{- range .paths }}
           - path: {{ .path }}
-            {{- if .pathType }}
             pathType: {{ .pathType }}
-            {{- end }}
             backend:
               service:
                 name: {{ $fullName }}
@@ -44,3 +42,4 @@ spec:
           {{- end }}
     {{- end }}
 {{- end }}
+

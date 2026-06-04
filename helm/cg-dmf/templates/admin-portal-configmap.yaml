@@ -1,0 +1,14 @@
+{{- if .Values.adminPortal.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cg-dmf.adminPortal.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{- include "cg-dmf.adminPortal.labels" . | nindent 4 }}
+data:
+  KEYCLOAK_URL: {{ .Values.adminPortal.settings.keycloakUrl | quote }}
+  KEYCLOAK_REALM: {{ .Values.adminPortal.settings.keycloakRealm | quote }}
+  KEYCLOAK_CLIENT_ID: {{ .Values.adminPortal.settings.keycloakClientId | quote }}
+  BACKEND_URL: {{ .Values.adminPortal.settings.backendUrl | quote }}
+  NEXTAUTH_URL: {{ .Values.adminPortal.settings.nextauthUrl | quote }}
+{{- end }}
