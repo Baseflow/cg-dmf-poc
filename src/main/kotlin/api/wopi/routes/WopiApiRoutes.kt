@@ -291,7 +291,7 @@ private suspend fun RoutingContext.issueToken(slatService: WopiSlatService) {
     val uuid = call.attributes[WopiValidatedFileIdKey]
     val issuerUserId = call.principal<JWTPrincipal>()
         ?.let { principal ->
-            principal.payload.getClaim("user_id").asString()
+            principal.payload.getClaim("sub").asString()
                 ?: principal.payload.getClaim("preferred_username").asString()
                 ?: principal.payload.getClaim("client_id").asString()
         }
