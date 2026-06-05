@@ -80,12 +80,11 @@ class WopiSlatServiceTest {
     @Test
     fun `manually constructed token with wrong HMAC returns null`() {
         val fileId = UUID.randomUUID()
-        val expiresAt = Instant.now().epochSecond + 3600
+        val (validToken, _) = service.issue(fileId, issuerUserId)
+        val payloadEncoded = validToken.substringBeforeLast(".")
         val encoder = Base64.getUrlEncoder().withoutPadding()
-        val payload = "{\"fileId\":\"$fileId\",\"expiresAt\":$expiresAt,\"userId\":\"$issuerUserId\"}"
         val fakeSig = ByteArray(32) { 0x00 } // all-zero signature
-        val token = "${encoder.encodeToString(payload.toByteArray())}." +
-            encoder.encodeToString(fakeSig)
+        val token = "$payloadEncoded.${encoder.encodeToString(fakeSig)}"
         assertNull(service.validate(token))
     }
 
