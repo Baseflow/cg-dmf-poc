@@ -922,12 +922,15 @@ class EnkelvoudigInformatieObjectService(
                 val pipeSize = 256 * 1024 // 256 KB buffer between producer and consumer
                 val pipedOut = java.io.PipedOutputStream()
                 val pipedIn = java.io.PipedInputStream(pipedOut, pipeSize)
+                val downloadFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
 
                 val downloadThread = Thread({
                     try {
                         for (part in ctx.parts) {
                             storageService.downloadFileTo(part.storageKey, pipedOut, ctx.repoName).get()
                         }
+                    } catch (t: Throwable) {
+                        downloadFailure.set(t)
                     } finally {
                         pipedOut.close()
                     }
