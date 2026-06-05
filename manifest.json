@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27019598070",
+    "runNumber": "819",
+    "branch": "dependabot/gradle/com.fasterxml.jackson.core-jackson-core-2.22.0",
+    "date": "2026-06-05T14:11:04Z",
+    "path": "integration/27019598070/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27019577172",
     "runNumber": "818",
     "branch": "dependabot/gradle/aws-sdk-8c2ea0d591",
