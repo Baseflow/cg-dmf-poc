@@ -44,7 +44,7 @@ open class TestBase(dbNamePrefix: String) {
     /**
      * Small-chunk config used for route tests so that bestandsdelen behaviour
      * can be triggered with small file sizes instead of relying on the default 4 GB threshold.
-     * Values are chosen to be above the default test document size (630 bytes) so that
+     * The trigger size is chosen to be above the default test document size (630 bytes) so that
      * regular create/unlock tests are not affected, while still allowing targeted tests
      * to trigger chunking with sizes just above the trigger.
      */

@@ -954,6 +954,19 @@ class EnkelvoudigInformatieObjectService(
                         // Wait for the download thread to finish so any download error is surfaced.
                         downloadThread.join()
 
+                        downloadFailure.get()?.let { t ->
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException("Failed to download one or more bestandsdelen while merging.", t)
+                        }
+
+                        val uploadedBytes = uploadWithIntegrity.first
+                        if (ctx.contentLength > 0 && uploadedBytes != ctx.contentLength) {
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException(
+                                "Merged upload incomplete: expected ${ctx.contentLength} bytes but uploaded $uploadedBytes.",
+                            )
+                        }
+
                         val calculatedHash = uploadWithIntegrity.second.hash
                         if (!calculatedHash.equals(ctx.integriteitWaarde, ignoreCase = true)) {
                             // Merged object is already uploaded; remove it to avoid orphaned invalid data.
@@ -968,7 +981,7 @@ class EnkelvoudigInformatieObjectService(
                             )
                         }
                     } else {
-                        storageService.uploadFile(
+                        val uploadedBytes = storageService.uploadFile(
                             ctx.mergedLocatie,
                             pipedIn,
                             ctx.contentLength,
@@ -976,6 +989,18 @@ class EnkelvoudigInformatieObjectService(
                         )
                         // Wait for the download thread to finish so any download error is surfaced.
                         downloadThread.join()
+
+                        downloadFailure.get()?.let { t ->
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException("Failed to download one or more bestandsdelen while merging.", t)
+                        }
+
+                        if (ctx.contentLength > 0 && uploadedBytes != ctx.contentLength) {
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException(
+                                "Merged upload incomplete: expected ${ctx.contentLength} bytes but uploaded $uploadedBytes.",
+                            )
+                        }
                     }
                 } finally {
                     pipedIn.close()
