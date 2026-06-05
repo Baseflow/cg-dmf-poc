@@ -5,17 +5,25 @@ package com.baseflow.api.documenten.routes
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.models.*
+import com.baseflow.entities.BestandsDeelEntity
+import com.baseflow.entities.BestandsDelen
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.services.bestandsDeelStorageKey
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.mockk.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -322,6 +330,68 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
             setBody(Json.encodeToString(unlockReq))
         }
         assertEquals(HttpStatusCode.Conflict, secondUnlock.status)
+    }
+
+    @Test
+    fun `unlock returns 500 when merged bestandsdelen integrity does not match and keeps resource locked`() = testApplication {
+        application { setup() }
+
+        val chunk1 = ByteArray(100) { it.toByte() }
+        val chunk2 = ByteArray(50) { (it + 100).toByte() }
+        val oversized = 4_294_967_297L // > default chunk trigger size, so bestandsdelen flow is used
+
+        val createReq = generateTestDocument(bestandsnaam = "big.pdf").copy(
+            bestandsomvang = oversized,
+            inhoud = null,
+            formaat = "application/pdf",
+            // Keep generated integrity metadata as-is; merged bytes below intentionally differ.
+        )
+
+        val postResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(createReq))
+        }
+        assertEquals(HttpStatusCode.Created, postResp.status)
+        val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
+        val id = UUID.fromString(created.id)
+        val token = created.lock
+        assertNotNull(token)
+
+        val parts = transaction {
+            val latestVersion = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+            BestandsDeelEntity
+                .find { BestandsDelen.versionId eq latestVersion.id }
+                .sortedBy { it.volgnummer }
+                .also { list ->
+                    list.forEach { it.voltooid = true }
+                }
+                .map {
+                    bestandsDeelStorageKey(id, latestVersion.versie, it.id.value)
+                }
+        }
+        assertEquals(2, parts.size)
+
+        val bytesByKey = mapOf(parts[0] to chunk1, parts[1] to chunk2)
+        every { mockStorageService.downloadFileTo(any(), any(), anyNullable()) } answers {
+            val key = firstArg<String>()
+            val out = secondArg<java.io.OutputStream>()
+            out.write(bytesByKey[key] ?: byteArrayOf())
+            CompletableFuture.completedFuture(null)
+        }
+
+        val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/unlock") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UnlockEIORequest(lock = token)))
+        }
+        assertEquals(HttpStatusCode.InternalServerError, unlockResp.status)
+        val problem = Json.parseToJsonElement(unlockResp.bodyAsText()).jsonObject
+        assertEquals("Internal Server Error", problem["title"]?.jsonPrimitive?.content)
+        assertContains(problem["detail"]?.jsonPrimitive?.content.orEmpty(), "Integrity check failed")
+
+        val getResp = client.get("$API_BASE/$RESOURCE_SEGMENT/${created.id}")
+        assertEquals(HttpStatusCode.OK, getResp.status)
+        val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResp.bodyAsText())
+        assertEquals(true, fetched.locked)
     }
 
     @Test

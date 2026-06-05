@@ -844,7 +844,14 @@ class EnkelvoudigInformatieObjectService(
     fun unlock(id: UUID, lock: String): UnlockResult? {
         // Collect bestandsdelen info inside the transaction, then do blob I/O outside.
         data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)
-        data class MergeContext(val parts: List<PartInfo>, val mergedLocatie: String, val latestVersionId: UUID)
+        data class MergeContext(
+            val parts: List<PartInfo>,
+            val mergedLocatie: String,
+            val latestVersionId: UUID,
+            val repoName: String?,
+            val integriteitAlgoritme: String,
+            val integriteitWaarde: String,
+        )
 
         // Transaction 1: validate lock and collect part metadata.
         // When there are no parts to merge the lock is also cleared here (nothing can fail after this).
@@ -879,7 +886,14 @@ class EnkelvoudigInformatieObjectService(
                         )
                     }
                     val mergedLocatie = "${record.id.value}/${latestVersion.versie}/${latestVersion.bestandsnaam}"
-                    mergeCtx = MergeContext(partInfos, mergedLocatie, latestVersion.id.value)
+                    mergeCtx = MergeContext(
+                        parts = partInfos,
+                        mergedLocatie = mergedLocatie,
+                        latestVersionId = latestVersion.id.value,
+                        repoName = latestVersion.bestandsRepository.takeUnless { it.isBlank() },
+                        integriteitAlgoritme = latestVersion.integriteitAlgoritme,
+                        integriteitWaarde = latestVersion.integriteitWaarde,
+                    )
                 }
             }
 
@@ -905,12 +919,34 @@ class EnkelvoudigInformatieObjectService(
                 try {
                     Files.newOutputStream(tempFile).use { out ->
                         for (part in ctx.parts) {
-                            storageService.downloadFileTo(part.storageKey, out).get()
+                            storageService.downloadFileTo(part.storageKey, out, ctx.repoName).get()
                         }
                     }
                     val contentLength = Files.size(tempFile)
                     Files.newInputStream(tempFile).use { input ->
-                        storageService.uploadFile(ctx.mergedLocatie, input, contentLength)
+                        val uploadWithIntegrity = IntegrityCalculationService.withIntegrity(
+                            stream = input,
+                            algorithm = ctx.integriteitAlgoritme,
+                        ) { stream ->
+                            storageService.uploadFile(
+                                ctx.mergedLocatie,
+                                stream,
+                                contentLength,
+                                ctx.repoName,
+                            )
+                        }
+                        val calculatedHash = uploadWithIntegrity.second.hash
+                        if (ctx.integriteitAlgoritme.isNotBlank() && ctx.integriteitWaarde.isNotBlank()) {
+                            if (!calculatedHash.equals(ctx.integriteitWaarde, ignoreCase = true)) {
+                                // Merged object is already uploaded at this point; remove it to avoid orphaned invalid data.
+                                runCatching {
+                                    storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                                }
+                                throw IllegalStateException(
+                                    "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
+                                )
+                            }
+                        }
                     }
                 } finally {
                     Files.deleteIfExists(tempFile)
@@ -919,7 +955,7 @@ class EnkelvoudigInformatieObjectService(
                 // Delete individual part blobs now that the merged object is safely stored.
                 // Best-effort: blob deletion failures are logged but do not abort the unlock.
                 val partKeys = ctx.parts.map { it.storageKey }
-                storageService.deleteFiles(partKeys)
+                storageService.deleteFiles(partKeys, ctx.repoName)
 
                 logger.info(
                     "Merged {} bestandsdeel(en) into '{}' for EIO {}",

@@ -8,6 +8,7 @@ import com.baseflow.api.middleware.AuditContext
 import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
 import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.api.models.Integriteit
+import com.baseflow.api.models.IntegriteitAlgoritme
 import com.baseflow.api.models.Ondertekening
 import com.baseflow.api.models.OndertekeningSoort
 import com.baseflow.api.models.Vertrouwelijkheidaanduiding
@@ -248,12 +249,22 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val chunkBytes1 = ByteArray(100) { it.toByte() }
         val chunkBytes2 = ByteArray(50) { (it + 100).toByte() }
+        val mergedBytes = chunkBytes1 + chunkBytes2
+        val expectedIntegrity = IntegrityCalculationService.calculateIntegrity(
+            mergedBytes,
+            IntegriteitAlgoritme.SHA_256.name,
+        ).hash
         val totalSize = (chunkBytes1.size + chunkBytes2.size).toLong()
 
         val req = generateTestDocument(bestandsnaam = "big.pdf").copy(
             bestandsomvang = totalSize,
             inhoud = null,
             formaat = "application/pdf",
+            integriteit = Integriteit(
+                algoritme = IntegriteitAlgoritme.SHA_256,
+                waarde = expectedIntegrity,
+                datum = LocalDate(2025, 1, 1),
+            ),
         )
         val created = serviceWithChunking.create(req)
         val id = UUID.fromString(created.id)
@@ -317,7 +328,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         verify { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) }
         val merged = mergedBytesSlot.first()
         assertEquals(totalSize.toInt(), merged.size)
-        assertContentEquals(chunkBytes1 + chunkBytes2, merged)
+        assertContentEquals(mergedBytes, merged)
 
         // Lock should be cleared
         transaction {
@@ -332,6 +343,100 @@ class EnkelvoudigInformatieObjectServiceTest {
                 .find { BestandsDelen.versionId eq latestVersion.id }
                 .count()
             assertEquals(0L, remaining)
+        }
+    }
+
+    @Test
+    fun `unlock should throw when merged bestandsdelen hash does not match expected integrity`() = runBlocking {
+        val smallChunkConfig = object : BestandsDeelConfig() {
+            override val triggerSizeBytes: Long = 1L
+            override val chunkSizeBytes: Long = 100L
+        }
+        val auditContext = AuditContext()
+        val serviceWithChunking = EnkelvoudigInformatieObjectService(
+            storageService = mockStorageService,
+            ApplicationConfig,
+            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            mockAuditTrailService,
+            auditContext,
+            BestandsDeelService(smallChunkConfig),
+        )
+
+        val chunkBytes1 = ByteArray(100) { it.toByte() }
+        val chunkBytes2 = ByteArray(50) { (it + 100).toByte() }
+        val totalSize = (chunkBytes1.size + chunkBytes2.size).toLong()
+
+        val req = generateTestDocument(bestandsnaam = "big.pdf").copy(
+            bestandsomvang = totalSize,
+            inhoud = null,
+            formaat = "application/pdf",
+            integriteit = Integriteit(
+                algoritme = IntegriteitAlgoritme.SHA_256,
+                waarde = "deadbeef",
+                datum = LocalDate(2025, 1, 1),
+            ),
+        )
+        val created = serviceWithChunking.create(req)
+        val id = UUID.fromString(created.id)
+
+        val token = transaction {
+            EIORecordEntity.findById(id)!!.lockToken!!
+        }
+
+        val latestVersion = transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+        }
+        val parts = transaction {
+            BestandsDeelEntity
+                .find { BestandsDelen.versionId eq latestVersion.id }
+                .sortedBy { it.volgnummer }
+        }
+        assertEquals(2, parts.size)
+
+        transaction {
+            parts[0].voltooid = true
+            parts[1].voltooid = true
+        }
+
+        val part1Key = bestandsDeelStorageKey(id, 1, parts[0].id.value)
+        val part2Key = bestandsDeelStorageKey(id, 1, parts[1].id.value)
+        every { mockStorageService.downloadFileTo(eq(part1Key), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            out.write(chunkBytes1)
+            CompletableFuture.completedFuture(null)
+        }
+        every { mockStorageService.downloadFileTo(eq(part2Key), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            out.write(chunkBytes2)
+            CompletableFuture.completedFuture(null)
+        }
+
+        val mergedKey = "$id/1/big.pdf"
+        every {
+            mockStorageService.uploadFile(
+                eq(mergedKey),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
+
+        val exception = assertFailsWith<IllegalStateException> {
+            serviceWithChunking.unlock(id, token)
+        }
+        assertEquals(
+            "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
+            exception.message,
+        )
+
+        transaction {
+            val rec = EIORecordEntity.findById(id)
+            assertNotNull(rec)
+            assertEquals(token, rec.lockToken)
         }
     }
 
