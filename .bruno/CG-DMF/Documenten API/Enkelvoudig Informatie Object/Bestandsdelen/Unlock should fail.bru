@@ -1,7 +1,7 @@
 meta {
-  name: Unlock
+  name: Unlock should fail
   type: http
-  seq: 10
+  seq: 7
 }
 
 post {
@@ -17,7 +17,8 @@ body:json {
 }
 
 assert {
-  res.status: eq 204
+  res.status: eq 500
+  res.body.detail: contains Integrity check failed for merged file
 }
 
 settings {
