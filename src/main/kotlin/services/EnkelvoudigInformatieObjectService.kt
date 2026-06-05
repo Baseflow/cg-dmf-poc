@@ -20,7 +20,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.InputStream
 import java.io.OutputStream
-import java.nio.file.Files
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -851,6 +850,7 @@ class EnkelvoudigInformatieObjectService(
             val repoName: String?,
             val integriteitAlgoritme: String,
             val integriteitWaarde: String,
+            val contentLength: Long,
         )
 
         // Transaction 1: validate lock and collect part metadata.
@@ -893,6 +893,7 @@ class EnkelvoudigInformatieObjectService(
                         repoName = latestVersion.bestandsRepository.takeUnless { it.isBlank() },
                         integriteitAlgoritme = latestVersion.integriteitAlgoritme,
                         integriteitWaarde = latestVersion.integriteitWaarde,
+                        contentLength = latestVersion.bestandsomvang ?: 0L,
                     )
                 }
             }
@@ -913,43 +914,56 @@ class EnkelvoudigInformatieObjectService(
         if (ctx != null) {
             val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
             try {
-                // Stream each part into a temp file to avoid materialising the full
-                // merged content in memory (parts can be gigabytes in total).
-                val tempFile = Files.createTempFile("eio-merge-", ".tmp")
-                try {
-                    Files.newOutputStream(tempFile).use { out ->
+                // Stream downloads directly into the upload via a piped stream pair,
+                // avoiding any intermediate temp file on local disk.
+                // A background thread sequentially downloads each part into the pipe;
+                // the main thread reads from the pipe through an integrity-computing
+                // filter and feeds the bytes into the blob storage upload call.
+                val pipeSize = 256 * 1024 // 256 KB buffer between producer and consumer
+                val pipedOut = java.io.PipedOutputStream()
+                val pipedIn = java.io.PipedInputStream(pipedOut, pipeSize)
+
+                val downloadThread = Thread({
+                    try {
                         for (part in ctx.parts) {
-                            storageService.downloadFileTo(part.storageKey, out, ctx.repoName).get()
+                            storageService.downloadFileTo(part.storageKey, pipedOut, ctx.repoName).get()
                         }
+                    } finally {
+                        pipedOut.close()
                     }
-                    val contentLength = Files.size(tempFile)
-                    Files.newInputStream(tempFile).use { input ->
-                        val uploadWithIntegrity = IntegrityCalculationService.withIntegrity(
-                            stream = input,
-                            algorithm = ctx.integriteitAlgoritme,
-                        ) { stream ->
-                            storageService.uploadFile(
-                                ctx.mergedLocatie,
-                                stream,
-                                contentLength,
-                                ctx.repoName,
-                            )
-                        }
-                        val calculatedHash = uploadWithIntegrity.second.hash
-                        if (ctx.integriteitAlgoritme.isNotBlank() && ctx.integriteitWaarde.isNotBlank()) {
-                            if (!calculatedHash.equals(ctx.integriteitWaarde, ignoreCase = true)) {
-                                // Merged object is already uploaded at this point; remove it to avoid orphaned invalid data.
-                                runCatching {
-                                    storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
-                                }
-                                throw IllegalStateException(
-                                    "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
-                                )
+                }, "eio-merge-download-${ctx.latestVersionId}")
+                downloadThread.isDaemon = true
+                downloadThread.start()
+
+                try {
+                    val uploadWithIntegrity = IntegrityCalculationService.withIntegrity(
+                        stream = pipedIn,
+                        algorithm = ctx.integriteitAlgoritme,
+                    ) { stream ->
+                        storageService.uploadFile(
+                            ctx.mergedLocatie,
+                            stream,
+                            ctx.contentLength,
+                            ctx.repoName,
+                        )
+                    }
+                    // Wait for the download thread to finish so any download error is surfaced.
+                    downloadThread.join()
+
+                    val calculatedHash = uploadWithIntegrity.second.hash
+                    if (ctx.integriteitAlgoritme.isNotBlank() && ctx.integriteitWaarde.isNotBlank()) {
+                        if (!calculatedHash.equals(ctx.integriteitWaarde, ignoreCase = true)) {
+                            // Merged object is already uploaded at this point; remove it to avoid orphaned invalid data.
+                            runCatching {
+                                storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
                             }
+                            throw IllegalStateException(
+                                "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
+                            )
                         }
                     }
                 } finally {
-                    Files.deleteIfExists(tempFile)
+                    pipedIn.close()
                 }
 
                 // Delete individual part blobs now that the merged object is safely stored.
