@@ -3,6 +3,7 @@
 package com.baseflow.testutils
 
 import java.net.URLDecoder
+import java.nio.charset.Charset
 
 /**
  * Decodes RFC 5987-encoded strings.
@@ -18,7 +19,7 @@ fun decodeRfc5987(value: String): String {
     val charsetToken = value.substring(0, firstQuote).ifEmpty { "UTF-8" }
     val encodedValue = value.substring(secondQuote + 1)
 
-    val charset = runCatching { java.nio.charset.Charset.forName(charsetToken) }.getOrNull() ?: return value
+    val charset = runCatching { Charset.forName(charsetToken) }.getOrNull() ?: return value
 
     return runCatching {
         // RFC 5987 uses percent-encoding; '+' should remain '+' (URLDecoder treats '+' as space).
