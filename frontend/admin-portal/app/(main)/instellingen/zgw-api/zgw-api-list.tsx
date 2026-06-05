@@ -480,6 +480,7 @@ function SettingForm({
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://openzaak.example.com"
             disabled={saving}
+            copyable
           />
           <FieldDescription>
             Basis-URL van de ZGW API-implementatie.
@@ -494,6 +495,7 @@ function SettingForm({
             onChange={(e) => setClientId(e.target.value)}
             placeholder="client-id"
             disabled={saving}
+            copyable
           />
           <FieldDescription>Client-ID voor JWT-authenticatie.</FieldDescription>
           <FieldError>{fieldErrors.clientId}</FieldError>
@@ -510,6 +512,7 @@ function SettingForm({
                 : "Voer het client secret in"
             }
             disabled={saving}
+            copyable
           />
         </Field>
       </form>

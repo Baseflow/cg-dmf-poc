@@ -472,6 +472,7 @@ function ProviderForm({
             onChange={(e) => setIssuer(e.target.value)}
             placeholder="https://auth.example.com/realms/my-realm"
             disabled={saving}
+            copyable
           />
           <FieldDescription>Discovery-URL van de OIDC-provider.</FieldDescription>
           <FieldError>{fieldErrors.issuer}</FieldError>
@@ -484,6 +485,7 @@ function ProviderForm({
             onChange={(e) => setClientId(e.target.value)}
             placeholder="my-client-id"
             disabled={saving}
+            copyable
           />
           <FieldDescription>Client-ID van de OIDC-registratie.</FieldDescription>
           <FieldError>{fieldErrors.clientId}</FieldError>
@@ -502,6 +504,7 @@ function ProviderForm({
                 : "Voer het client secret in"
             }
             disabled={saving}
+            copyable
           />
         </Field>
       </form>

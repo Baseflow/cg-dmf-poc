@@ -1,5 +1,6 @@
 "use client"
 
+import { CopyableCell } from "@/components/copyable-cell"
 import { SecretCell } from "@/components/secret-cell"
 import { SettingsTable } from "@/components/settings-table"
 import {
@@ -47,7 +48,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SecretInput } from "@/components/ui/secret-input"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { AlertTriangle, AppWindow, Check, Copy, MoreHorizontal, RefreshCw, X } from "lucide-react"
+import { AlertTriangle, AppWindow, Check, MoreHorizontal, RefreshCw, X } from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -99,7 +100,6 @@ export function ApplicationList({
   const [rotatePhase, setRotatePhase] = useState<RotatePhase>("idle")
   const [rotatedSecret, setRotatedSecret] = useState("")
   const [rotateError, setRotateError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [isRotating, startRotate] = useTransition()
 
   const handleDrawerCloseAttempt = useCallback(() => {
@@ -132,7 +132,6 @@ export function ApplicationList({
     setRotatePhase("idle")
     setRotatedSecret("")
     setRotateError(null)
-    setCopied(false)
   }, [])
 
   function closeRotate() {
@@ -226,12 +225,6 @@ export function ApplicationList({
     })
   }
 
-  async function handleCopy() {
-    await navigator.clipboard.writeText(rotatedSecret)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   const columns = useMemo<ColumnDef<ApplicationSetting>[]>(
     () => [
       {
@@ -244,9 +237,7 @@ export function ApplicationList({
       {
         accessorKey: "clientId",
         header: "Client ID",
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.clientId}</span>
-        ),
+        cell: ({ row }) => <CopyableCell value={row.original.clientId} />,
       },
       {
         accessorKey: "clientSecret",
@@ -456,26 +447,12 @@ export function ApplicationList({
                   je dit venster sluit.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={rotatedSecret}
-                  className="font-mono text-xs"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopy}
-                  aria-label="Kopieer secret"
-                >
-                  {copied ? (
-                    <Check className="size-4 text-green-600" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                </Button>
-              </div>
+              <Input
+                readOnly
+                value={rotatedSecret}
+                className="font-mono text-xs"
+                copyable
+              />
               <DialogFooter>
                 <Button onClick={closeRotate}>Sluiten</Button>
               </DialogFooter>
@@ -595,6 +572,13 @@ function AppForm({
   const [clientSecret, setClientSecret] = useState(app?.clientSecret ?? "")
   const [fieldErrors, setFieldErrors] = useState<AppFormErrors>({})
 
+  function generateSecret() {
+    const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
+    const bytes = new Uint8Array(32)
+    crypto.getRandomValues(bytes)
+    setClientSecret(Array.from(bytes, (b) => alphabet[b % alphabet.length]).join(""))
+  }
+
   const isDirty =
     name !== (app?.name ?? "") ||
     clientId !== (app?.clientId ?? "") ||
@@ -658,6 +642,7 @@ function AppForm({
             onChange={(e) => setClientId(e.target.value)}
             placeholder="my-client-id"
             disabled={saving}
+            copyable
           />
           <FieldDescription>
             De unieke identifier van de applicatie.
@@ -676,6 +661,8 @@ function AppForm({
                 : "Voer het client secret in"
             }
             disabled={saving}
+            onGenerate={generateSecret}
+            copyable
           />
         </Field>
       </form>
