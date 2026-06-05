@@ -936,24 +936,27 @@ class EnkelvoudigInformatieObjectService(
                 downloadThread.start()
 
                 try {
-                    val uploadWithIntegrity = IntegrityCalculationService.withIntegrity(
-                        stream = pipedIn,
-                        algorithm = ctx.integriteitAlgoritme,
-                    ) { stream ->
-                        storageService.uploadFile(
-                            ctx.mergedLocatie,
-                            stream,
-                            ctx.contentLength,
-                            ctx.repoName,
-                        )
-                    }
-                    // Wait for the download thread to finish so any download error is surfaced.
-                    downloadThread.join()
+                    val shouldVerifyIntegrity =
+                        ctx.integriteitAlgoritme.isNotBlank() && ctx.integriteitWaarde.isNotBlank()
 
-                    val calculatedHash = uploadWithIntegrity.second.hash
-                    if (ctx.integriteitAlgoritme.isNotBlank() && ctx.integriteitWaarde.isNotBlank()) {
+                    if (shouldVerifyIntegrity) {
+                        val uploadWithIntegrity = IntegrityCalculationService.withIntegrity(
+                            stream = pipedIn,
+                            algorithm = ctx.integriteitAlgoritme,
+                        ) { stream ->
+                            storageService.uploadFile(
+                                ctx.mergedLocatie,
+                                stream,
+                                ctx.contentLength,
+                                ctx.repoName,
+                            )
+                        }
+                        // Wait for the download thread to finish so any download error is surfaced.
+                        downloadThread.join()
+
+                        val calculatedHash = uploadWithIntegrity.second.hash
                         if (!calculatedHash.equals(ctx.integriteitWaarde, ignoreCase = true)) {
-                            // Merged object is already uploaded at this point; remove it to avoid orphaned invalid data.
+                            // Merged object is already uploaded; remove it to avoid orphaned invalid data.
                             runCatching {
                                 storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
                             }
@@ -961,6 +964,15 @@ class EnkelvoudigInformatieObjectService(
                                 "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
                             )
                         }
+                    } else {
+                        storageService.uploadFile(
+                            ctx.mergedLocatie,
+                            pipedIn,
+                            ctx.contentLength,
+                            ctx.repoName,
+                        )
+                        // Wait for the download thread to finish so any download error is surfaced.
+                        downloadThread.join()
                     }
                 } finally {
                     pipedIn.close()
