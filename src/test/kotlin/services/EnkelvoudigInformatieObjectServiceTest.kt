@@ -428,11 +428,11 @@ class EnkelvoudigInformatieObjectServiceTest {
         val exception = assertFailsWith<IllegalStateException> {
             serviceWithChunking.unlock(id, token)
         }
-        assertEquals(
-            "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
-            exception.message,
-        )
+        // Assert on stable substrings rather than exact wording to stay resilient to message changes.
+        assertContains(exception.message.orEmpty(), "Integrity check failed")
+        assertContains(exception.message.orEmpty(), "deadbeef")
 
+        // Lock must remain set after a failed integrity check.
         transaction {
             val rec = EIORecordEntity.findById(id)
             assertNotNull(rec)

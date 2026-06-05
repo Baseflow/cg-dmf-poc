@@ -41,6 +41,18 @@ open class TestBase(dbNamePrefix: String) {
     lateinit var mockStorageService: StorageService
         protected set
 
+    /**
+     * Small-chunk config used for route tests so that bestandsdelen behaviour
+     * can be triggered with small file sizes instead of relying on the default 4 GB threshold.
+     * Values are chosen to be above the default test document size (630 bytes) so that
+     * regular create/unlock tests are not affected, while still allowing targeted tests
+     * to trigger chunking with sizes just above the trigger.
+     */
+    val testBestandsDeelConfig = object : BestandsDeelConfig() {
+        override val triggerSizeBytes: Long = 1024L
+        override val chunkSizeBytes: Long = 512L
+    }
+
     fun connectDb() {
         Database.connect(
             "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
@@ -85,7 +97,7 @@ open class TestBase(dbNamePrefix: String) {
                     requestScope {
                         scoped { AuditContext() }
                         scoped { AuditTrailService(get()) }
-                        scoped { BestandsDeelService(BestandsDeelConfig.Default) }
+                        scoped { BestandsDeelService(testBestandsDeelConfig) }
                         scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
                         scoped { NotificationService(get()) }
                         scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }

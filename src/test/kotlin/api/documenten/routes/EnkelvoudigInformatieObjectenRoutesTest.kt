@@ -336,12 +336,11 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
     fun `unlock returns 500 when merged bestandsdelen integrity does not match and keeps resource locked`() = testApplication {
         application { setup() }
 
-        val chunk1 = ByteArray(100) { it.toByte() }
-        val chunk2 = ByteArray(50) { (it + 100).toByte() }
-        val oversized = 4_294_967_297L // > default chunk trigger size, so bestandsdelen flow is used
+        // Use a size that exceeds the test config's triggerSizeBytes so chunking kicks in.
+        val totalSize = testBestandsDeelConfig.triggerSizeBytes + 1
 
         val createReq = generateTestDocument(bestandsnaam = "big.pdf").copy(
-            bestandsomvang = oversized,
+            bestandsomvang = totalSize,
             inhoud = null,
             formaat = "application/pdf",
             // Keep generated integrity metadata as-is; merged bytes below intentionally differ.
@@ -369,15 +368,25 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
                     bestandsDeelStorageKey(id, latestVersion.versie, it.id.value)
                 }
         }
-        assertEquals(2, parts.size)
+        // Number of parts depends on chunkSizeBytes; just verify chunking was triggered.
+        assert(parts.size >= 2) { "Expected at least 2 bestandsdelen, got ${parts.size}" }
 
-        val bytesByKey = mapOf(parts[0] to chunk1, parts[1] to chunk2)
+        // Mock each part download to return arbitrary bytes that differ from the declared integrity hash.
         every { mockStorageService.downloadFileTo(any(), any(), anyNullable()) } answers {
-            val key = firstArg<String>()
             val out = secondArg<java.io.OutputStream>()
-            out.write(bytesByKey[key] ?: byteArrayOf())
+            // Write a small arbitrary byte so the merged content won't match the integrity hash.
+            out.write(byteArrayOf(0x42))
             CompletableFuture.completedFuture(null)
         }
+        // Explicitly stub uploadFile and deleteFiles for the merge path so the test
+        // fails due to integrity mismatch (not a missing MockK answer).
+        every {
+            mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable())
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
 
         val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/unlock") {
             contentType(ContentType.Application.Json)
@@ -387,6 +396,9 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val problem = Json.parseToJsonElement(unlockResp.bodyAsText()).jsonObject
         assertEquals("Internal Server Error", problem["title"]?.jsonPrimitive?.content)
         assertContains(problem["detail"]?.jsonPrimitive?.content.orEmpty(), "Integrity check failed")
+
+        // Verify that the orphaned merged blob was cleaned up on integrity failure.
+        verify { mockStorageService.deleteFiles(any(), anyNullable()) }
 
         val getResp = client.get("$API_BASE/$RESOURCE_SEGMENT/${created.id}")
         assertEquals(HttpStatusCode.OK, getResp.status)

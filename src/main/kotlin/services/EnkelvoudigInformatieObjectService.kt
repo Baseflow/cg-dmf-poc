@@ -961,7 +961,10 @@ class EnkelvoudigInformatieObjectService(
                                 storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
                             }
                             throw IllegalStateException(
-                                "Integrity check failed for merged file: calculated hash does not match integriteitWaarde.",
+                                "Integrity check failed for merged file: " +
+                                    "algorithm=${ctx.integriteitAlgoritme}, " +
+                                    "expected=${ctx.integriteitWaarde}, " +
+                                    "calculated=$calculatedHash.",
                             )
                         }
                     } else {
