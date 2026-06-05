@@ -80,6 +80,9 @@ fun Application.authenticationModule() {
                     override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT {
                         val decoded = JWT.decode(token)
                         val clientId = decoded.getClaim("client_id").asString()
+                        val issuerToken = decoded.getClaim("iss").asString()
+
+                        logger.info("[ZGW] Verifying token for client '{}', issuer '{}'", clientId, issuerToken)
 
                         // Reject tokens that are not ZGW-style (no client_id claim).
                         // This prevents Keycloak tokens with a bad signature from falling
