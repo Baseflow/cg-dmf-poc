@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27017515256",
+    "runNumber": "813",
+    "branch": "CGDMF-167-Include-userId-in-SLAT",
+    "date": "2026-06-05T13:30:39Z",
+    "path": "integration/27017515256/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27017417334",
     "runNumber": "812",
     "branch": "CGDMF-152-Check-hash-joined-bestandsdelen",
