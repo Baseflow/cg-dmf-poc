@@ -1005,8 +1005,25 @@ class EnkelvoudigInformatieObjectService(
                             )
                         }
                     }
+                } catch (e: Exception) {
+                    // Close the read-end of the pipe first so the download thread unblocks
+                    // (it may be stuck writing into the pipe with no consumer).
+                    runCatching { pipedIn.close() }
+                    // Now it is safe to join without risking a deadlock.
+                    downloadThread.join()
+                    downloadFailure.get()?.let { downloadEx ->
+                        if (downloadEx !== e) e.addSuppressed(downloadEx)
+                    }
+                    throw e
                 } finally {
-                    pipedIn.close()
+                    // Guarantee cleanup even on non-Exception Throwables or if
+                    // the happy-path forgot to close the stream.
+                    runCatching { pipedIn.close() }
+                    // If the thread is still alive (e.g. uploadFile threw before the
+                    // explicit join() calls in the happy path), ensure it terminates.
+                    if (downloadThread.isAlive) {
+                        downloadThread.join()
+                    }
                 }
 
                 // Delete individual part blobs now that the merged object is safely stored.
