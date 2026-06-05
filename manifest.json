@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27019679713",
+    "runNumber": "822",
+    "branch": "dependabot/gradle/com.fasterxml.jackson.dataformat-jackson-dataformat-yaml-2.22.0",
+    "date": "2026-06-05T14:12:41Z",
+    "path": "integration/27019679713/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27019609348",
     "runNumber": "820",
     "branch": "dependabot/gradle/ch.qos.logback-logback-classic-1.5.34",
