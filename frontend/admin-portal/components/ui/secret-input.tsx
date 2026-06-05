@@ -2,18 +2,26 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useCopy } from "@/hooks/use-copy"
 import { cn } from "@/lib/utils"
-import { Eye, EyeOff } from "lucide-react"
+import { Check, Copy, Eye, EyeOff, RefreshCw } from "lucide-react"
 import * as React from "react"
 
 function SecretInput({
   className,
   disabled,
+  copyable,
+  onGenerate,
   ...props
-}: React.ComponentProps<typeof Input>) {
+}: React.ComponentProps<typeof Input> & {
+  copyable?: boolean
+  onGenerate?: () => void
+}) {
   const [show, setShow] = React.useState(false)
-  return (
-    <div className="relative">
+  const { copied, copy } = useCopy()
+
+  const inputWrapper = (
+    <div className={cn("relative", (copyable || onGenerate) && "flex-1")}>
       <Input
         type={show ? "text" : "password"}
         className={cn("pr-9", className)}
@@ -32,6 +40,42 @@ function SecretInput({
       >
         {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       </Button>
+    </div>
+  )
+
+  if (!copyable && !onGenerate) return inputWrapper
+
+  return (
+    <div className="flex gap-2">
+      {inputWrapper}
+      {onGenerate && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={onGenerate}
+          disabled={disabled}
+          aria-label="Genereer waarde"
+        >
+          <RefreshCw className="size-4" />
+        </Button>
+      )}
+      {copyable && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => typeof props.value === "string" && copy(props.value)}
+          disabled={!props.value}
+          aria-label="Kopieer waarde"
+        >
+          {copied ? (
+            <Check className="size-4 text-green-600" />
+          ) : (
+            <Copy className="size-4" />
+          )}
+        </Button>
+      )}
     </div>
   )
 }
