@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27019755003",
+    "runNumber": "823",
+    "branch": "dependabot/gradle/plugin.serialization-2.4.0",
+    "date": "2026-06-05T14:14:18Z",
+    "path": "integration/27019755003/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27019673905",
     "runNumber": "821",
     "branch": "dependabot/gradle/jvm-2.4.0",
