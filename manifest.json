@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27019759938",
+    "runNumber": "824",
+    "branch": "dependabot/gradle/tools.jackson.core-jackson-core-3.1.4",
+    "date": "2026-06-05T14:14:43Z",
+    "path": "integration/27019759938/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27019755003",
     "runNumber": "823",
     "branch": "dependabot/gradle/plugin.serialization-2.4.0",
