@@ -9,6 +9,7 @@ import com.baseflow.api.models.conflict
 import com.baseflow.api.models.notFound
 import com.baseflow.api.models.notImplemented
 import com.baseflow.api.models.respondProblem
+import com.baseflow.api.models.unauthorized
 import com.baseflow.api.wopi.WopiFileIdPlugin
 import com.baseflow.api.wopi.WopiSlatAuthPlugin
 import com.baseflow.api.wopi.WopiValidatedFileIdKey
@@ -34,6 +35,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.path
 import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.*
@@ -286,6 +289,20 @@ fun Route.wopiApiRoutes() {
 
 private suspend fun RoutingContext.issueToken(slatService: WopiSlatService) {
     val uuid = call.attributes[WopiValidatedFileIdKey]
+    val issuerUserId = call.principal<JWTPrincipal>()
+        ?.let { principal ->
+            principal.payload.getClaim("sub").asString()
+                ?: principal.payload.getClaim("preferred_username").asString()
+                ?: principal.payload.getClaim("client_id").asString()
+        }
+        ?.takeIf { it.isNotBlank() }
+        ?: run {
+            call.respondProblem(
+                HttpStatusCode.Unauthorized,
+                unauthorized("Could not determine issuing user identity from token claims.", call.request.path()),
+            )
+            return
+        }
 
     if (!service.exists(uuid)) {
         call.respondProblem(
@@ -295,7 +312,7 @@ private suspend fun RoutingContext.issueToken(slatService: WopiSlatService) {
         return
     }
 
-    val (token, expiresAt) = slatService.issue(uuid)
+    val (token, expiresAt) = slatService.issue(uuid, issuerUserId)
     call.respond(HttpStatusCode.OK, WopiTokenResponse(accessToken = token, expiresAt = expiresAt))
 }
 
