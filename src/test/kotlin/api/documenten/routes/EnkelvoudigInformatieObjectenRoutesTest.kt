@@ -5,17 +5,25 @@ package com.baseflow.api.documenten.routes
 import com.baseflow.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.api.DOCUMENTEN_API_VERSION
 import com.baseflow.api.models.*
+import com.baseflow.entities.BestandsDeelEntity
+import com.baseflow.entities.BestandsDelen
+import com.baseflow.entities.EIORecordEntity
+import com.baseflow.services.bestandsDeelStorageKey
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.mockk.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.*
+import java.util.concurrent.CompletableFuture
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -322,6 +330,80 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
             setBody(Json.encodeToString(unlockReq))
         }
         assertEquals(HttpStatusCode.Conflict, secondUnlock.status)
+    }
+
+    @Test
+    fun `unlock returns 500 when merged bestandsdelen integrity does not match and keeps resource locked`() = testApplication {
+        application { setup() }
+
+        // Use a size that exceeds the test config's triggerSizeBytes so chunking kicks in.
+        val totalSize = testBestandsDeelConfig.triggerSizeBytes + 1
+
+        val createReq = generateTestDocument(bestandsnaam = "big.pdf").copy(
+            bestandsomvang = totalSize,
+            inhoud = null,
+            formaat = "application/pdf",
+            // Keep generated integrity metadata as-is; merged bytes below intentionally differ.
+        )
+
+        val postResp = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(createReq))
+        }
+        assertEquals(HttpStatusCode.Created, postResp.status)
+        val created = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(postResp.bodyAsText())
+        val id = UUID.fromString(created.id)
+        val token = created.lock
+        assertNotNull(token)
+
+        val parts = transaction {
+            val latestVersion = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+            BestandsDeelEntity
+                .find { BestandsDelen.versionId eq latestVersion.id }
+                .sortedBy { it.volgnummer }
+                .also { list ->
+                    list.forEach { it.voltooid = true }
+                }
+                .map {
+                    bestandsDeelStorageKey(id, latestVersion.versie, it.id.value)
+                }
+        }
+        // Number of parts depends on chunkSizeBytes; just verify chunking was triggered.
+        assert(parts.size >= 2) { "Expected at least 2 bestandsdelen, got ${parts.size}" }
+
+        // Mock each part download to return arbitrary bytes that differ from the declared integrity hash.
+        every { mockStorageService.downloadFileTo(any(), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            // Write a small arbitrary byte so the merged content won't match the integrity hash.
+            out.write(byteArrayOf(0x42))
+            CompletableFuture.completedFuture(null)
+        }
+        // Explicitly stub uploadFile and deleteFiles for the merge path so the test
+        // fails due to integrity mismatch (not a missing MockK answer).
+        every {
+            mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable())
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
+
+        val unlockResp = client.post("$API_BASE/$RESOURCE_SEGMENT/${created.id}/unlock") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(UnlockEIORequest(lock = token)))
+        }
+        assertEquals(HttpStatusCode.InternalServerError, unlockResp.status)
+        val problem = Json.parseToJsonElement(unlockResp.bodyAsText()).jsonObject
+        assertEquals("Internal Server Error", problem["title"]?.jsonPrimitive?.content)
+        assertContains(problem["detail"]?.jsonPrimitive?.content.orEmpty(), "Integrity check failed")
+
+        // Verify that the orphaned merged blob was cleaned up on integrity failure.
+        verify { mockStorageService.deleteFiles(any(), anyNullable()) }
+
+        val getResp = client.get("$API_BASE/$RESOURCE_SEGMENT/${created.id}")
+        assertEquals(HttpStatusCode.OK, getResp.status)
+        val fetched = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getResp.bodyAsText())
+        assertEquals(true, fetched.locked)
     }
 
     @Test

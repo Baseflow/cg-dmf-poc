@@ -20,7 +20,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.InputStream
 import java.io.OutputStream
-import java.nio.file.Files
 import java.util.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -844,7 +843,15 @@ class EnkelvoudigInformatieObjectService(
     fun unlock(id: UUID, lock: String): UnlockResult? {
         // Collect bestandsdelen info inside the transaction, then do blob I/O outside.
         data class PartInfo(val storageKey: String, val bestandsDeelId: UUID)
-        data class MergeContext(val parts: List<PartInfo>, val mergedLocatie: String, val latestVersionId: UUID)
+        data class MergeContext(
+            val parts: List<PartInfo>,
+            val mergedLocatie: String,
+            val latestVersionId: UUID,
+            val repoName: String?,
+            val integriteitAlgoritme: String,
+            val integriteitWaarde: String,
+            val contentLength: Long,
+        )
 
         // Transaction 1: validate lock and collect part metadata.
         // When there are no parts to merge the lock is also cleared here (nothing can fail after this).
@@ -879,7 +886,15 @@ class EnkelvoudigInformatieObjectService(
                         )
                     }
                     val mergedLocatie = "${record.id.value}/${latestVersion.versie}/${latestVersion.bestandsnaam}"
-                    mergeCtx = MergeContext(partInfos, mergedLocatie, latestVersion.id.value)
+                    mergeCtx = MergeContext(
+                        parts = partInfos,
+                        mergedLocatie = mergedLocatie,
+                        latestVersionId = latestVersion.id.value,
+                        repoName = latestVersion.bestandsRepository.takeUnless { it.isBlank() },
+                        integriteitAlgoritme = latestVersion.integriteitAlgoritme,
+                        integriteitWaarde = latestVersion.integriteitWaarde,
+                        contentLength = latestVersion.bestandsomvang ?: 0L,
+                    )
                 }
             }
 
@@ -899,27 +914,122 @@ class EnkelvoudigInformatieObjectService(
         if (ctx != null) {
             val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
             try {
-                // Stream each part into a temp file to avoid materialising the full
-                // merged content in memory (parts can be gigabytes in total).
-                val tempFile = Files.createTempFile("eio-merge-", ".tmp")
-                try {
-                    Files.newOutputStream(tempFile).use { out ->
+                // Stream downloads directly into the upload via a piped stream pair,
+                // avoiding any intermediate temp file on local disk.
+                // A background thread sequentially downloads each part into the pipe;
+                // the main thread reads from the pipe through an integrity-computing
+                // filter and feeds the bytes into the blob storage upload call.
+                val pipeSize = 256 * 1024 // 256 KB buffer between producer and consumer
+                val pipedOut = java.io.PipedOutputStream()
+                val pipedIn = java.io.PipedInputStream(pipedOut, pipeSize)
+                val downloadFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
+
+                val downloadThread = Thread({
+                    try {
                         for (part in ctx.parts) {
-                            storageService.downloadFileTo(part.storageKey, out).get()
+                            storageService.downloadFileTo(part.storageKey, pipedOut, ctx.repoName).get()
+                        }
+                    } catch (t: Throwable) {
+                        downloadFailure.set(t)
+                    } finally {
+                        pipedOut.close()
+                    }
+                }, "eio-merge-download-${ctx.latestVersionId}")
+                downloadThread.isDaemon = true
+                downloadThread.start()
+
+                try {
+                    val shouldVerifyIntegrity =
+                        ctx.integriteitAlgoritme.isNotBlank() && ctx.integriteitWaarde.isNotBlank()
+
+                    if (shouldVerifyIntegrity) {
+                        val uploadWithIntegrity = IntegrityCalculationService.withIntegrity(
+                            stream = pipedIn,
+                            algorithm = ctx.integriteitAlgoritme,
+                        ) { stream ->
+                            storageService.uploadFile(
+                                ctx.mergedLocatie,
+                                stream,
+                                ctx.contentLength,
+                                ctx.repoName,
+                            )
+                        }
+                        // Wait for the download thread to finish so any download error is surfaced.
+                        downloadThread.join()
+
+                        downloadFailure.get()?.let { t ->
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException("Failed to download one or more bestandsdelen while merging.", t)
+                        }
+
+                        val uploadedBytes = uploadWithIntegrity.first
+                        if (ctx.contentLength > 0 && uploadedBytes != ctx.contentLength) {
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException(
+                                "Merged upload incomplete: expected ${ctx.contentLength} bytes but uploaded $uploadedBytes.",
+                            )
+                        }
+
+                        val calculatedHash = uploadWithIntegrity.second.hash
+                        if (!calculatedHash.equals(ctx.integriteitWaarde, ignoreCase = true)) {
+                            // Merged object is already uploaded; remove it to avoid orphaned invalid data.
+                            runCatching {
+                                storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            }
+                            throw IllegalStateException(
+                                "Integrity check failed for merged file: " +
+                                    "algorithm=${ctx.integriteitAlgoritme}, " +
+                                    "expected=${ctx.integriteitWaarde}, " +
+                                    "calculated=$calculatedHash.",
+                            )
+                        }
+                    } else {
+                        val uploadedBytes = storageService.uploadFile(
+                            ctx.mergedLocatie,
+                            pipedIn,
+                            ctx.contentLength,
+                            ctx.repoName,
+                        )
+                        // Wait for the download thread to finish so any download error is surfaced.
+                        downloadThread.join()
+
+                        downloadFailure.get()?.let { t ->
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException("Failed to download one or more bestandsdelen while merging.", t)
+                        }
+
+                        if (ctx.contentLength > 0 && uploadedBytes != ctx.contentLength) {
+                            storageService.deleteFiles(listOf(ctx.mergedLocatie), ctx.repoName)
+                            throw IllegalStateException(
+                                "Merged upload incomplete: expected ${ctx.contentLength} bytes but uploaded $uploadedBytes.",
+                            )
                         }
                     }
-                    val contentLength = Files.size(tempFile)
-                    Files.newInputStream(tempFile).use { input ->
-                        storageService.uploadFile(ctx.mergedLocatie, input, contentLength)
+                } catch (e: Exception) {
+                    // Close the read-end of the pipe first so the download thread unblocks
+                    // (it may be stuck writing into the pipe with no consumer).
+                    runCatching { pipedIn.close() }
+                    // Now it is safe to join without risking a deadlock.
+                    downloadThread.join()
+                    downloadFailure.get()?.let { downloadEx ->
+                        if (downloadEx !== e) e.addSuppressed(downloadEx)
                     }
+                    throw e
                 } finally {
-                    Files.deleteIfExists(tempFile)
+                    // Guarantee cleanup even on non-Exception Throwables or if
+                    // the happy-path forgot to close the stream.
+                    runCatching { pipedIn.close() }
+                    // If the thread is still alive (e.g. uploadFile threw before the
+                    // explicit join() calls in the happy path), ensure it terminates.
+                    if (downloadThread.isAlive) {
+                        downloadThread.join()
+                    }
                 }
 
                 // Delete individual part blobs now that the merged object is safely stored.
                 // Best-effort: blob deletion failures are logged but do not abort the unlock.
                 val partKeys = ctx.parts.map { it.storageKey }
-                storageService.deleteFiles(partKeys)
+                storageService.deleteFiles(partKeys, ctx.repoName)
 
                 logger.info(
                     "Merged {} bestandsdeel(en) into '{}' for EIO {}",
