@@ -1,9 +1,9 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 
 plugins {
-    kotlin("jvm") version "2.3.21"
+    kotlin("jvm") version "2.4.0"
     application
-    kotlin("plugin.serialization") version "2.3.21"
+    kotlin("plugin.serialization") version "2.4.0"
     id("com.github.ben-manes.versions") version "0.54.0"
 
     // Code formatting with Spotless and ktlint
@@ -56,8 +56,8 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.11")
 
     // Database migrations
-    implementation("org.flywaydb:flyway-core:12.7.0")
-    implementation("org.flywaydb:flyway-database-postgresql:12.7.0")
+    implementation("org.flywaydb:flyway-core:12.8.1")
+    implementation("org.flywaydb:flyway-database-postgresql:12.8.1")
 
     // Kotlin coroutines and datetime
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
@@ -66,15 +66,15 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // Logging
-    implementation("ch.qos.logback:logback-classic:1.5.33")
+    implementation("ch.qos.logback:logback-classic:1.5.34")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
     implementation("com.auth0:jwks-rsa:0.24.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.45.0")
-    implementation("software.amazon.awssdk:netty-nio-client:2.45.0")
+    implementation("software.amazon.awssdk:s3:2.46.4")
+    implementation("software.amazon.awssdk:netty-nio-client:2.46.4")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.34.0")
@@ -82,7 +82,7 @@ dependencies {
 
     // Utilities
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.4")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.0")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
     implementation(platform("io.insert-koin:koin-bom:4.2.1"))
@@ -97,11 +97,11 @@ dependencies {
     // Security. override to secure versions to fix CVEs in transitive dependencies
     constraints {
         // dependency of flyway-core and ktor-server-auth-jwt
-        implementation("tools.jackson.core:jackson-core:3.1.3") {
+        implementation("tools.jackson.core:jackson-core:3.1.4") {
             because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
         }
         // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.21.4") {
+        implementation("com.fasterxml.jackson.core:jackson-core:2.22.0") {
             because("Minimum version from transitive dependencies")
         }
     }
@@ -201,6 +201,8 @@ val copyOpenApiSpecs by tasks.registering(Copy::class) {
     from(layout.projectDirectory.dir("docs")) {
         include(
             "documenten-1.5.0.yaml",
+            "documenten-1.6.0.yaml",
+            "documenten-1.7.0-rc.yaml",
             "maykin-documenten-1.5.0.yaml",
         )
     }
@@ -243,7 +245,7 @@ tasks.register<JavaExec>("flywayMigrate") {
     group = "flyway"
     description = "Migrates the database"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("migrate")
 }
 
@@ -251,7 +253,7 @@ tasks.register<JavaExec>("flywayInfo") {
     group = "flyway"
     description = "Prints the details and status information about all migrations"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("info")
 }
 
@@ -259,7 +261,7 @@ tasks.register<JavaExec>("flywayUndo") {
     group = "flyway"
     description = "Undoes the most recently applied versioned migration"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("undo")
 }
 
@@ -267,7 +269,7 @@ tasks.register<JavaExec>("flywayClean") {
     group = "flyway"
     description = "Drops all objects in the configured schemas"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("clean")
 }
 
@@ -275,7 +277,7 @@ tasks.register<JavaExec>("flywayValidate") {
     group = "flyway"
     description = "Validates the applied migrations against the available ones"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("validate")
 }
 
@@ -283,7 +285,7 @@ tasks.register<JavaExec>("generateMigration") {
     group = "flyway"
     description = "Generate a Flyway migration script from Exposed table definitions"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.MigrationGeneratorKt")
+    mainClass.set("com.baseflow.shared.tooling.MigrationGeneratorKt")
     // Pass command-line args through
     if (project.hasProperty("args")) {
         args((project.property("args") as String).split("\\s+".toRegex()))
@@ -294,7 +296,7 @@ tasks.register<JavaExec>("addStubData") {
     group = "database"
     description = "Load stub/seed data into the database for development and testing"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.StubDataLoaderKt")
+    mainClass.set("com.baseflow.shared.tooling.StubDataLoaderKt")
 }
 
 // Prefer stable versions

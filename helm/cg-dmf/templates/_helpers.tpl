@@ -47,6 +47,7 @@ Selector labels (used in matchLabels and service selector).
 {{- define "cg-dmf.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "cg-dmf.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: backend
 {{- end }}
 
 {{/*
@@ -70,12 +71,12 @@ leave empty/null for the chart to create one named <fullname>-database.
 {{- end }}
 
 {{/*
-Name of the Secret that holds S3/MinIO credentials.
-Set settings.s3.existingSecret to the name of a pre-existing Secret to use it;
-leave empty/null for the chart to create one named <fullname>-s3.
+Name of the Secret that holds blob storage credentials.
+Set settings.blobStorage.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-blob-storage.
 */}}
-{{- define "cg-dmf.s3SecretName" -}}
-{{- .Values.settings.s3.existingSecret | default (printf "%s-s3" (include "cg-dmf.fullname" .)) }}
+{{- define "cg-dmf.blobStorageSecretName" -}}
+{{- .Values.settings.blobStorage.existingSecret | default (printf "%s-blob-storage" (include "cg-dmf.fullname" .)) }}
 {{- end }}
 
 {{/*
@@ -85,6 +86,50 @@ leave empty/null for the chart to create one named <fullname>-openzaak.
 */}}
 {{- define "cg-dmf.openzaakSecretName" -}}
 {{- .Values.settings.openzaak.existingSecret | default (printf "%s-openzaak" (include "cg-dmf.fullname" .)) }}
+{{- end }}
+
+{{/*
+Name of the Secret that holds encryption keys.
+Set settings.encryption.existingSecret to the name of a pre-existing Secret to use it;
+leave empty/null for the chart to create one named <fullname>-encryption.
+*/}}
+{{- define "cg-dmf.encryptionSecretName" -}}
+{{- .Values.settings.encryption.existingSecret | default (printf "%s-encryption" (include "cg-dmf.fullname" .)) }}
+{{- end }}
+
+{{/*
+Admin portal: fully qualified name.
+*/}}
+{{- define "cg-dmf.adminPortal.fullname" -}}
+{{- printf "%s-admin-portal" (include "cg-dmf.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Admin portal: common labels.
+*/}}
+{{- define "cg-dmf.adminPortal.labels" -}}
+helm.sh/chart: {{ include "cg-dmf.chart" . }}
+{{ include "cg-dmf.adminPortal.selectorLabels" . }}
+{{- with .Values.adminPortal.image.tag }}
+app.kubernetes.io/version: {{ . | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Admin portal: selector labels.
+*/}}
+{{- define "cg-dmf.adminPortal.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "cg-dmf.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: admin-portal
+{{- end }}
+
+{{/*
+Admin portal: secret name for sensitive credentials.
+*/}}
+{{- define "cg-dmf.adminPortal.secretName" -}}
+{{- .Values.adminPortal.settings.existingSecret | default (printf "%s-admin-portal" (include "cg-dmf.fullname" .)) }}
 {{- end }}
 
 {{/*

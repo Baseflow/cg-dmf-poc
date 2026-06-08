@@ -9,7 +9,7 @@ written in Kotlin.
 - Kubernetes 1.19+
 - Helm 3.x
 - A PostgreSQL database
-- A S3-compatible object store
+- A S3-compatible object store or Azure Blob Storage
 - An OpenZaak instance (or set `settings.openzaak.validationEnabled: false` to skip validation)
 - An OIDC-compatible identity provider (e.g. Keycloak)
 
@@ -29,8 +29,10 @@ settings:
         username: "documenten"
         password: "changeme"
 
-    s3:
-        endpoint: "https://s3.example.com"
+    blobStorage:
+        name: "production"
+        type: "S3"
+        url: "https://s3.example.com"
         bucket: "cg-dmf"
         accessKey: "myaccesskey"
         secretKey: "mysecretkey"
@@ -63,7 +65,7 @@ helm uninstall cg-dmf --namespace cg-dmf
 > uninstall. Remove them manually if needed:
 >
 > ```shell
-> kubectl delete secret cg-dmf-database cg-dmf-s3 cg-dmf-openzaak -n cg-dmf
+> kubectl delete secret cg-dmf-database cg-dmf-blob-storage cg-dmf-openzaak -n cg-dmf
 > ```
 
 ## Exposing the API via Ingress
@@ -103,15 +105,15 @@ The chart will skip creating its own Secret and reference the name you provided 
 settings:
     database:
         existingSecret: "my-db-secret" # must contain: DB_URL, DB_USER, DB_PASSWORD
-    s3:
-        existingSecret: "my-s3-secret" # must contain: S3_ACCESS_KEY, S3_SECRET_KEY
+    blobStorage:
+        existingSecret: "my-blob-storage-secret" # must contain: BLOB_STORAGE_ACCESS_KEY1, BLOB_STORAGE_SECRET_KEY1
     openzaak:
         existingSecret: "my-openzaak-secret" # must contain: OPENZAAK_CLIENT_SECRET
 ```
 
 Leave `existingSecret` empty or `null` (the default) to have the chart create and manage the
 Secret automatically. The chart-managed names follow the pattern `<fullname>-database`,
-`<fullname>-s3`, and `<fullname>-openzaak`.
+`<fullname>-blob-storage`, and `<fullname>-openzaak`.
 
 Alternatively, set the actual secret values through your CD pipeline using `--set`:
 
@@ -119,8 +121,8 @@ Alternatively, set the actual secret values through your CD pipeline using `--se
 helm upgrade cg-dmf ./helm/cg-dmf \
   --reuse-values \
   --set settings.database.password="$DB_PASSWORD" \
-  --set settings.s3.accessKey="$S3_ACCESS_KEY" \
-  --set settings.s3.secretKey="$S3_SECRET_KEY" \
+  --set settings.blobStorage.accessKey="$BLOB_STORAGE_ACCESS_KEY1" \
+  --set settings.blobStorage.secretKey="$BLOB_STORAGE_SECRET_KEY1" \
   --set settings.openzaak.clientSecret="$OPENZAAK_CLIENT_SECRET"
 ```
 
@@ -264,21 +266,23 @@ extraVolumeMounts:
 | `settings.database.password`       | string | **required**                                 | Database password. Stored in the `<fullname>-database` Secret.                                                                                                                                                                                            |
 | `settings.database.poolSize`       | int    | `null` (app default: 10)                     | Maximum HikariCP connection pool size (`DB_POOL_SIZE`). Leave null to use the application default.                                                                                                                                                        |
 
-#### S3 (`settings.s3`)
+#### Blob storage (`settings.blobStorage`)
 
-> The helm values use the `s3` prefix in preparation for a future rename of the app's `S3_*`
-> environment variables to `S3_*`. Until that migration happens, these values are mapped to
-> `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY` internally.
+Configures the primary blob storage repository (mapped to `BLOB_STORAGE_*1` env vars).
+Use `extraEnvVars` to configure additional repositories (`BLOB_STORAGE_*2`, etc.).
 
-| Key                                  | Type   | Default             | Description                                                                                                                                                                                                                                 |
-| ------------------------------------ | ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `settings.s3.existingSecret`         | string | `null`              | Name of a pre-existing Secret containing S3 credentials (keys: `S3_ACCESS_KEY`, `S3_SECRET_KEY`). When set, the chart skips Secret creation and references this name. Defaults to the chart-managed Secret `<fullname>-s3` when empty/null. |
-| `settings.s3.endpoint`               | string | `http://minio:9000` | S3 endpoint URL.                                                                                                                                                                                                                            |
-| `settings.s3.bucket`                 | string | `cg-dmf`            | Bucket used to store uploaded document files.                                                                                                                                                                                               |
-| `settings.s3.accessKey`              | string | **required**        | S3 access key. Stored in the `<fullname>-s3` Secret.                                                                                                                                                                                        |
-| `settings.s3.secretKey`              | string | **required**        | S3 secret key. Stored in the `<fullname>-s3` Secret.                                                                                                                                                                                        |
-| `settings.s3.disableChecksums`       | bool   | `false`             | Disable automatic request/response checksum negotiation (`S3_DISABLE_CHECKSUMS`). Set to `true` when the S3-compatible endpoint does not support AWS checksum extensions.                                                                   |
-| `settings.s3.disableChunkedEncoding` | bool   | `false`             | Disable chunked encoding on S3 requests (`S3_DISABLE_CHUNKED_ENCODING`). Set to `true` when the endpoint or an intermediate proxy does not support chunked transfer encoding.                                                               |
+| Key                                          | Type   | Default             | Description                                                                                                                                                                                                                                              |
+| -------------------------------------------- | ------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `settings.blobStorage.existingSecret`        | string | `null`              | Name of a pre-existing Secret containing credentials (keys: `BLOB_STORAGE_ACCESS_KEY1`, `BLOB_STORAGE_SECRET_KEY1`). When set, the chart skips Secret creation and references this name. Defaults to the chart-managed Secret `<fullname>-blob-storage`. |
+| `settings.blobStorage.name`                  | string | `default`           | Human-readable repository name shown in logs (`BLOB_STORAGE_NAME1`).                                                                                                                                                                                    |
+| `settings.blobStorage.type`                  | string | `S3`                | Storage type: `S3` or `Azure Blob Storage` (`BLOB_STORAGE_TYPE1`).                                                                                                                                                                                      |
+| `settings.blobStorage.url`                   | string | `http://minio:9000` | Endpoint URL (`BLOB_STORAGE_URL1`).                                                                                                                                                                                                                      |
+| `settings.blobStorage.bucket`                | string | `cg-dmf`            | Bucket (S3) or container (Azure) name (`BLOB_STORAGE_BUCKET1`).                                                                                                                                                                                          |
+| `settings.blobStorage.accessKey`             | string | **required**        | Access key (S3) or account name (Azure). Stored in the `<fullname>-blob-storage` Secret.                                                                                                                                                                 |
+| `settings.blobStorage.secretKey`             | string | **required**        | Secret key (S3) or account key (Azure). Stored in the `<fullname>-blob-storage` Secret.                                                                                                                                                                  |
+| `settings.blobStorage.region`                | string | `""`                | Region (S3 only, optional — `BLOB_STORAGE_REGION1`). Omitted from env when empty.                                                                                                                                                                       |
+| `settings.blobStorage.disableChecksums`      | bool   | `false`             | Disable checksum negotiation (S3 only — `BLOB_STORAGE_DISABLE_CHECKSUMS1`). Set to `true` when the endpoint does not support AWS checksum extensions.                                                                                                    |
+| `settings.blobStorage.disableChunkedEncoding`| bool   | `false`             | Disable chunked encoding (S3 only — `BLOB_STORAGE_DISABLE_CHUNKED_ENCODING1`). Set to `true` when the endpoint or a proxy does not support chunked transfer encoding.                                                                                    |
 
 #### OpenZaak integration (`settings.openzaak`)
 
@@ -295,13 +299,88 @@ extraVolumeMounts:
 Unless `existingSecret` is set, the chart creates three Kubernetes Secrets. The names follow the
 pattern `<fullname>-<component>` (where `<fullname>` is the computed release full name):
 
-| Secret name           | Keys                               |
-| --------------------- | ---------------------------------- |
-| `<fullname>-database` | `DB_URL`, `DB_USER`, `DB_PASSWORD` |
-| `<fullname>-s3`       | `S3_ACCESS_KEY`, `S3_SECRET_KEY`   |
-| `<fullname>-openzaak` | `OPENZAAK_CLIENT_SECRET`           |
+| Secret name                  | Keys                                                     |
+| ---------------------------- | -------------------------------------------------------- |
+| `<fullname>-database`        | `DB_URL`, `DB_USER`, `DB_PASSWORD`                       |
+| `<fullname>-blob-storage`    | `BLOB_STORAGE_ACCESS_KEY1`, `BLOB_STORAGE_SECRET_KEY1`   |
+| `<fullname>-openzaak`        | `OPENZAAK_CLIENT_SECRET`                                 |
 
 When using externally-managed secrets, set `existingSecret` to the name of your Secret — the chart
 will skip creation and reference that name directly in the Deployment.
 
 All three are annotated with `helm.sh/resource-policy: keep` so they survive a `helm uninstall`.
+
+## Admin Portal
+
+The chart can optionally deploy the **cg-dmf Admin Portal** (Next.js frontend) alongside the API.
+Enable it with `adminPortal.enabled: true`.
+
+### Enabling the Admin Portal
+
+```yaml
+adminPortal:
+  enabled: true
+  image:
+    tag: "1.0.0"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-production
+    hosts:
+      - host: admin.cg-dmf.example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: cg-dmf-admin-tls-secret
+        hosts:
+          - admin.cg-dmf.example.com
+  settings:
+    nextauthUrl: "https://admin.cg-dmf.example.com"
+    nextauthSecret: "your-nextauth-secret"
+    keycloakUrl: "https://auth.example.com"
+    keycloakRealm: "valtimo"
+    keycloakClientId: "dmf-dashboard"
+    keycloakClientSecret: "your-client-secret"
+    backendUrl: "https://cg-dmf.example.com"
+```
+
+### Admin Portal Secret
+
+The admin portal creates one Secret (unless `adminPortal.settings.existingSecret` is set):
+
+| Secret name                   | Keys                                        |
+| ----------------------------- | ------------------------------------------- |
+| `<fullname>-admin-portal`     | `NEXTAUTH_SECRET`, `KEYCLOAK_CLIENT_SECRET` |
+
+### Configuration reference: Admin Portal (`adminPortal`)
+
+| Key | Type | Default | Description |
+| --- | ---- | ------- | ----------- |
+| `adminPortal.enabled` | bool | `false` | Enable the admin portal deployment. |
+| `adminPortal.replicaCount` | int | `1` | Number of replicas. |
+| `adminPortal.image.repository` | string | `baseflow.azurecr.io/cg-dmf-admin-portal` | Image repository. |
+| `adminPortal.image.tag` | string | `""` | Image tag. Defaults to the chart's `appVersion`. |
+| `adminPortal.image.pullPolicy` | string | `IfNotPresent` | Image pull policy. |
+| `adminPortal.podAnnotations` | object | `{}` | Annotations on admin portal pods. |
+| `adminPortal.service.type` | string | `ClusterIP` | Service type. |
+| `adminPortal.service.port` | int | `80` | Service port. |
+| `adminPortal.service.nodePort` | int | `null` | NodePort (when type is `NodePort`). |
+| `adminPortal.ingress.enabled` | bool | `false` | Enable Ingress for the admin portal. |
+| `adminPortal.ingress.ingressClassName` | string | `nginx` | Ingress class name. |
+| `adminPortal.ingress.annotations` | object | `{}` | Ingress annotations. |
+| `adminPortal.ingress.hosts` | list | see values.yaml | Host/path rules. |
+| `adminPortal.ingress.tls` | list | `[]` | TLS configuration (secretName + hosts). |
+| `adminPortal.resources` | object | `{}` | CPU/memory requests and limits. |
+| `adminPortal.extraEnvVars` | list | `[]` | Extra environment variables injected into the container. Supports Helm templating via `tplvalues.render`. |
+| `adminPortal.extraVolumes` | list | `[]` | Extra volumes added to the pod spec. |
+| `adminPortal.extraVolumeMounts` | list | `[]` | Extra volume mounts added to the container. |
+| `adminPortal.settings.existingSecret` | string | `null` | Pre-existing Secret name. When set, the chart skips Secret creation and references this name. |
+| `adminPortal.settings.nextauthUrl` | string | `https://admin.cg-dmf.example.com` | Public URL of the admin portal, used by NextAuth for callback URLs. |
+| `adminPortal.settings.nextauthSecret` | string | **required** | Secret key for encrypting NextAuth session tokens. |
+| `adminPortal.settings.keycloakUrl` | string | `https://auth.example.com` | Base Keycloak URL without realm path. |
+| `adminPortal.settings.keycloakRealm` | string | `valtimo` | Keycloak realm name. |
+| `adminPortal.settings.keycloakClientId` | string | `dmf-dashboard` | Keycloak OAuth client ID. |
+| `adminPortal.settings.keycloakClientSecret` | string | **required** | Keycloak OAuth client secret. |
+| `adminPortal.settings.backendUrl` | string | `https://cg-dmf.example.com` | Backend API URL the admin portal proxies requests to. |

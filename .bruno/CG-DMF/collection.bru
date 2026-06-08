@@ -55,7 +55,7 @@ script:pre-request {
 
   const payload = {
     iss: clientId,
-    iat: Math.floor(Date.now() / 1000),
+    iat: Math.floor(Date.now() / 1000) - 7200,
     client_id: clientId,
     aud: "account",
     user_id: "bruno-gzac@example.com",

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.services
+package com.baseflow.shared.services
 
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.EnkelvoudigInformatieObjectResponse
-import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.config.NotificationConfig
-import com.baseflow.entities.IAuditContext
+import com.baseflow.shared.api.middleware.AuditContext
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectResponse
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.shared.api.models.ResourceSegments
+import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.shared.config.NotificationConfig
+import com.baseflow.shared.entities.IAuditContext
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.httpMethod

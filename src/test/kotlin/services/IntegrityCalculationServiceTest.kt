@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.services
+package com.baseflow.shared.services
 
 import com.baseflow.testutils.TestDataFactory
 import java.io.OutputStream
@@ -66,6 +66,25 @@ class IntegrityCalculationServiceTest {
         val result = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_1")
         assertEquals("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12", result.hash)
         assertEquals("SHA_1", result.algorithm)
+    }
+
+    @Test
+    fun `calculateIntegrity SHA_512 - produces known hash`() {
+        val result = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_512")
+        // Well-known SHA-512 of "The quick brown fox jumps over the lazy dog"
+        assertEquals(
+            "07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6",
+            result.hash,
+        )
+        assertEquals("SHA_512", result.algorithm)
+    }
+
+    @Test
+    fun `calculateIntegrity SHA_3 - produces known hash`() {
+        val result = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_3")
+        // Well-known SHA3-256 of "The quick brown fox jumps over the lazy dog"
+        assertEquals("69070dda01975c8c120c3aada1b282394e7f032fa9cf32f4cb2259a0897dfc04", result.hash)
+        assertEquals("SHA_3", result.algorithm)
     }
 
     @Test
@@ -138,6 +157,32 @@ class IntegrityCalculationServiceTest {
         ) { stream -> stream.copyTo(OutputStream.nullOutputStream()) }
 
         assertEquals(expected.hash, actual.hash)
+    }
+
+    @Test
+    fun `withIntegrity SHA_512 - hash matches calculateIntegrity`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_512")
+
+        val (_, actual) = IntegrityCalculationService.withIntegrity(
+            sampleBytes.inputStream(),
+            "SHA_512",
+        ) { stream -> stream.copyTo(OutputStream.nullOutputStream()) }
+
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("SHA_512", actual.algorithm)
+    }
+
+    @Test
+    fun `withIntegrity SHA_3 - hash matches calculateIntegrity`() {
+        val expected = IntegrityCalculationService.calculateIntegrity(sampleBytes, "SHA_3")
+
+        val (_, actual) = IntegrityCalculationService.withIntegrity(
+            sampleBytes.inputStream(),
+            "SHA_3",
+        ) { stream -> stream.copyTo(OutputStream.nullOutputStream()) }
+
+        assertEquals(expected.hash, actual.hash)
+        assertEquals("SHA_3", actual.algorithm)
     }
 
     @Test

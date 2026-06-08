@@ -2,33 +2,34 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 @file:Suppress("UnusedDataClassCopyResult")
 
-package com.baseflow.services
+package com.baseflow.shared.services
 
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
-import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.Integriteit
-import com.baseflow.api.models.Ondertekening
-import com.baseflow.api.models.OndertekeningSoort
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.config.ApplicationConfig
-import com.baseflow.config.BestandsDeelConfig
-import com.baseflow.config.OpenZaakConfig
-import com.baseflow.entities.BestandsDeelEntity
-import com.baseflow.entities.BestandsDelen
-import com.baseflow.entities.EIORecordEntity
-import com.baseflow.entities.EIOVersionTrefwoorden
-import com.baseflow.entities.Trefwoorden
-import com.baseflow.services.models.DeleteResult
-import com.baseflow.services.models.EIOOrdering
-import com.baseflow.services.models.LockResult
-import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
-import com.baseflow.services.models.UnlockResult
+import com.baseflow.shared.api.middleware.AuditContext
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectRequest
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.shared.api.models.Integriteit
+import com.baseflow.shared.api.models.IntegriteitAlgoritme
+import com.baseflow.shared.api.models.Ondertekening
+import com.baseflow.shared.api.models.OndertekeningSoort
+import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.shared.config.ApplicationConfig
+import com.baseflow.shared.config.BestandsDeelConfig
+import com.baseflow.shared.config.OpenZaakConfig
+import com.baseflow.shared.entities.BestandsDeelEntity
+import com.baseflow.shared.entities.BestandsDelen
+import com.baseflow.shared.entities.EIORecordEntity
+import com.baseflow.shared.entities.EIOVersionTrefwoorden
+import com.baseflow.shared.entities.Trefwoorden
+import com.baseflow.shared.services.models.DeleteResult
+import com.baseflow.shared.services.models.EIOOrdering
+import com.baseflow.shared.services.models.LockResult
+import com.baseflow.shared.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.shared.services.models.UnlockResult
+import com.baseflow.shared.tooling.AllTables
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT_ALT
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
-import com.baseflow.tooling.AllTables
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -248,12 +249,22 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         val chunkBytes1 = ByteArray(100) { it.toByte() }
         val chunkBytes2 = ByteArray(50) { (it + 100).toByte() }
+        val mergedBytes = chunkBytes1 + chunkBytes2
+        val expectedIntegrity = IntegrityCalculationService.calculateIntegrity(
+            mergedBytes,
+            IntegriteitAlgoritme.SHA_256.name,
+        ).hash
         val totalSize = (chunkBytes1.size + chunkBytes2.size).toLong()
 
         val req = generateTestDocument(bestandsnaam = "big.pdf").copy(
             bestandsomvang = totalSize,
             inhoud = null,
             formaat = "application/pdf",
+            integriteit = Integriteit(
+                algoritme = IntegriteitAlgoritme.SHA_256,
+                waarde = expectedIntegrity,
+                datum = LocalDate(2025, 1, 1),
+            ),
         )
         val created = serviceWithChunking.create(req)
         val id = UUID.fromString(created.id)
@@ -317,7 +328,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         verify { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) }
         val merged = mergedBytesSlot.first()
         assertEquals(totalSize.toInt(), merged.size)
-        assertContentEquals(chunkBytes1 + chunkBytes2, merged)
+        assertContentEquals(mergedBytes, merged)
 
         // Lock should be cleared
         transaction {
@@ -332,6 +343,100 @@ class EnkelvoudigInformatieObjectServiceTest {
                 .find { BestandsDelen.versionId eq latestVersion.id }
                 .count()
             assertEquals(0L, remaining)
+        }
+    }
+
+    @Test
+    fun `unlock should throw when merged bestandsdelen hash does not match expected integrity`() = runBlocking {
+        val smallChunkConfig = object : BestandsDeelConfig() {
+            override val triggerSizeBytes: Long = 1L
+            override val chunkSizeBytes: Long = 100L
+        }
+        val auditContext = AuditContext()
+        val serviceWithChunking = EnkelvoudigInformatieObjectService(
+            storageService = mockStorageService,
+            ApplicationConfig,
+            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            mockAuditTrailService,
+            auditContext,
+            BestandsDeelService(smallChunkConfig),
+        )
+
+        val chunkBytes1 = ByteArray(100) { it.toByte() }
+        val chunkBytes2 = ByteArray(50) { (it + 100).toByte() }
+        val totalSize = (chunkBytes1.size + chunkBytes2.size).toLong()
+
+        val req = generateTestDocument(bestandsnaam = "big.pdf").copy(
+            bestandsomvang = totalSize,
+            inhoud = null,
+            formaat = "application/pdf",
+            integriteit = Integriteit(
+                algoritme = IntegriteitAlgoritme.SHA_256,
+                waarde = "deadbeef",
+                datum = LocalDate(2025, 1, 1),
+            ),
+        )
+        val created = serviceWithChunking.create(req)
+        val id = UUID.fromString(created.id)
+
+        val token = transaction {
+            EIORecordEntity.findById(id)!!.lockToken!!
+        }
+
+        val latestVersion = transaction {
+            EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
+        }
+        val parts = transaction {
+            BestandsDeelEntity
+                .find { BestandsDelen.versionId eq latestVersion.id }
+                .sortedBy { it.volgnummer }
+        }
+        assertEquals(2, parts.size)
+
+        transaction {
+            parts[0].voltooid = true
+            parts[1].voltooid = true
+        }
+
+        val part1Key = bestandsDeelStorageKey(id, 1, parts[0].id.value)
+        val part2Key = bestandsDeelStorageKey(id, 1, parts[1].id.value)
+        every { mockStorageService.downloadFileTo(eq(part1Key), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            out.write(chunkBytes1)
+            CompletableFuture.completedFuture(null)
+        }
+        every { mockStorageService.downloadFileTo(eq(part2Key), any(), anyNullable()) } answers {
+            val out = secondArg<java.io.OutputStream>()
+            out.write(chunkBytes2)
+            CompletableFuture.completedFuture(null)
+        }
+
+        val mergedKey = "$id/1/big.pdf"
+        every {
+            mockStorageService.uploadFile(
+                eq(mergedKey),
+                any<java.io.InputStream>(),
+                any<Long>(),
+                anyNullable(),
+            )
+        } answers {
+            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            thirdArg<Long>()
+        }
+        every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
+
+        val exception = assertFailsWith<IllegalStateException> {
+            serviceWithChunking.unlock(id, token)
+        }
+        // Assert on stable substrings rather than exact wording to stay resilient to message changes.
+        assertContains(exception.message.orEmpty(), "Integrity check failed")
+        assertContains(exception.message.orEmpty(), "deadbeef")
+
+        // Lock must remain set after a failed integrity check.
+        transaction {
+            val rec = EIORecordEntity.findById(id)
+            assertNotNull(rec)
+            assertEquals(token, rec.lockToken)
         }
     }
 
@@ -575,7 +680,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals(false, putResp.indicatieGebruiksrecht)
         assertEquals("", putResp.verschijningsvorm)
         assertEquals(emptyList(), putResp.trefwoorden)
-        assertEquals(false, putResp.inhoudIsVervallen)
+        assertNull(putResp.inhoudIsVervallen)
     }
 
     @Test

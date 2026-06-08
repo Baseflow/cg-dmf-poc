@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.services
+package com.baseflow.shared.services
 
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.config.ApplicationConfig
-import com.baseflow.config.OpenZaakConfig
-import com.baseflow.services.models.EIOOrdering
-import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.shared.api.middleware.AuditContext
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.shared.config.ApplicationConfig
+import com.baseflow.shared.config.OpenZaakConfig
+import com.baseflow.shared.services.models.EIOOrdering
+import com.baseflow.shared.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.shared.tooling.AllTables
 import com.baseflow.testutils.TestDataFactory.VALID_INFORMATIEOBJECTTYPE_URL
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
-import com.baseflow.tooling.AllTables
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking

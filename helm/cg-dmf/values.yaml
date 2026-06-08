@@ -40,7 +40,7 @@ podSecurityContext:
 
 # -- Container-level security context.
 securityContext:
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
   allowPrivilegeEscalation: false
@@ -99,7 +99,6 @@ livenessProbe:
   httpGet:
     path: /health/liveness
     port: http
-  initialDelaySeconds: 10
   periodSeconds: 30
   failureThreshold: 3
 
@@ -107,7 +106,6 @@ readinessProbe:
   httpGet:
     path: /health/readiness
     port: http
-  initialDelaySeconds: 10
   periodSeconds: 20
   failureThreshold: 3
 
@@ -127,6 +125,17 @@ tolerations: []
 
 # -- Affinity rules for pod placement.
 affinity: {}
+
+# -- Topology spread constraints for pod placement.
+topologySpreadConstraints: []
+# e.g:
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: kubernetes.io/hostname
+#     whenUnsatisfiable: DoNotSchedule
+#     labelSelector:
+#       matchLabels:
+#         app.kubernetes.io/name: cg-dmf
 
 # -- Array with extra environment variables to add to the container.
 extraEnvVars: []
@@ -161,6 +170,23 @@ settings:
   # -- OIDC issuer URL for JWT validation.
   oidcIssuer: "https://auth.example.com/realms/valtimo"
   # ---------------------------------------------------------------------------
+  # Encryption (at-rest secrets for blob storage credentials)
+  # ---------------------------------------------------------------------------
+  encryption:
+    # -- Name of an existing Secret containing encryption keys (keys: ENCRYPTION_SECRET_KEY, ENCRYPTION_SALT).
+    # When set, the chart will not create a Secret and will reference this name instead.
+    # Leave empty/null to let the chart manage the Secret (named <fullname>-encryption).
+    existingSecret: null
+    # -- Passphrase used for AES-256-PBE-GCM encryption of stored credentials.
+    # Generate with: openssl rand -base64 32
+    # @sensitive
+    secretKey: ""
+    # -- Hex-encoded salt for key derivation (must be valid hex, e.g. 16+ hex characters).
+    # Generate with: openssl rand -hex 8
+    # @sensitive
+    salt: ""
+
+  # ---------------------------------------------------------------------------
   # Database
   # ---------------------------------------------------------------------------
   database:
@@ -179,29 +205,34 @@ settings:
     poolSize: null
 
   # ---------------------------------------------------------------------------
-  # S3 / MinIO object storage
+  # Blob storage (primary repository, mapped to BLOB_STORAGE_*1 env vars)
+  # Use extraEnvVars to configure additional repositories (BLOB_STORAGE_*2, etc.)
   # ---------------------------------------------------------------------------
-  s3:
-    # -- Name of an existing Secret containing S3/MinIO credentials (keys: S3_ACCESS_KEY, S3_SECRET_KEY).
+  blobStorage:
+    # -- Name of an existing Secret containing blob storage credentials (keys: BLOB_STORAGE_ACCESS_KEY1, BLOB_STORAGE_SECRET_KEY1).
     # When set, the chart will not create a Secret and will reference this name instead.
-    # Leave empty/null to let the chart manage the Secret (named <fullname>-s3).
+    # Leave empty/null to let the chart manage the Secret (named <fullname>-blob-storage).
     existingSecret: null
-    # -- S3/MinIO endpoint URL.
-    endpoint: "http://minio:9000"
-    # -- Bucket name used to store document files.
+    # -- Human-readable repository name shown in logs.
+    name: "default"
+    # -- Storage type. Supported values: S3, "Azure Blob Storage".
+    type: "S3"
+    # -- Endpoint URL of the blob storage service (S3: http://minio:9000, Azure: https://<account>.blob.core.windows.net).
+    url: "http://minio:9000"
+    # -- Bucket (S3) or container (Azure) name used to store document files.
     bucket: "cg-dmf"
-    # -- S3/MinIO access key.
+    # -- Access key (S3) or account name (Azure).
     accessKey: ""
-    # -- S3/MinIO secret key.
+    # -- Secret key (S3) or account key (Azure).
     # @sensitive
     secretKey: ""
-    # -- Disable automatic request/response checksum negotiation.
+    # -- Region (S3 only, optional).
+    region: ""
+    # -- Disable automatic request/response checksum negotiation (S3 only).
     # Set to true when the S3-compatible endpoint does not support AWS checksum extensions.
-    # Maps to the S3_DISABLE_CHECKSUMS environment variable.
     disableChecksums: false
-    # -- Disable chunked encoding on S3 requests.
+    # -- Disable chunked encoding on S3 requests (S3 only).
     # Set to true when the endpoint or an intermediate proxy does not support chunked transfer encoding.
-    # Maps to the S3_DISABLE_CHUNKED_ENCODING environment variable.
     disableChunkedEncoding: false
 
   # ---------------------------------------------------------------------------
@@ -221,3 +252,95 @@ settings:
     clientSecret: ""
     # -- Whether to validate OpenZaak responses.
     validationEnabled: false
+
+# ---------------------------------------------------------------------------
+# Admin Portal (Next.js frontend)
+# ---------------------------------------------------------------------------
+
+adminPortal:
+  # -- Enable the admin portal deployment.
+  enabled: false
+
+  # -- Number of admin portal pod replicas.
+  replicaCount: 1
+
+  image:
+    # -- Admin portal container image repository.
+    repository: baseflow.azurecr.io/cg-dmf-admin-portal
+    # -- Image pull policy.
+    pullPolicy: IfNotPresent
+    # -- Image tag.
+    tag: ""
+
+  # -- Annotations added to admin portal pods only.
+  podAnnotations: {}
+
+  # -- Pod-level security context for the admin portal.
+  podSecurityContext:
+    fsGroup: 1000
+
+  # -- Node selector for admin portal pod placement. Falls back to root nodeSelector when empty.
+  nodeSelector: {}
+
+  # -- Tolerations for admin portal pod placement. Falls back to root tolerations when empty.
+  tolerations: []
+
+  # -- Affinity rules for admin portal pod placement. Falls back to root affinity when empty.
+  affinity: {}
+
+  service:
+    # -- Kubernetes Service type for admin portal.
+    type: ClusterIP
+    # -- Port exposed by the Service.
+    port: 80
+    # -- NodePort to use when service.type is NodePort.
+    nodePort: null
+
+  ingress:
+    # -- Enable Ingress for the admin portal.
+    enabled: false
+    # -- Ingress class name.
+    ingressClassName: "nginx"
+    # -- Ingress annotations.
+    annotations: {}
+    hosts:
+      - host: admin.cg-dmf.example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    # -- TLS configuration.
+    tls: []
+
+  # -- Resources for the admin portal container.
+  resources: {}
+
+  # -- Array with extra environment variables to add to the admin portal container.
+  extraEnvVars: []
+
+  # -- Optionally specify extra volumes for the admin portal pod.
+  extraVolumes: []
+
+  # -- Optionally specify extra volume mounts for the admin portal container.
+  extraVolumeMounts: []
+
+  settings:
+    # -- Name of an existing Secret containing NEXTAUTH_SECRET and KEYCLOAK_CLIENT_SECRET.
+    # When set, the chart will not create a Secret for the admin portal.
+    existingSecret: null
+    # -- Public URL of the admin portal (used by NextAuth for callbacks).
+    nextauthUrl: "https://admin.cg-dmf.example.com"
+    # -- NextAuth secret key for encrypting session tokens.
+    # @sensitive
+    nextauthSecret: ""
+    # -- Base Keycloak URL without realm path (e.g. https://auth.example.com).
+    keycloakUrl: "https://auth.example.com"
+    # -- Keycloak realm name.
+    keycloakRealm: "valtimo"
+    # -- Keycloak OAuth client ID.
+    keycloakClientId: "dmf-dashboard"
+    # -- Keycloak OAuth client secret.
+    # @sensitive
+    keycloakClientSecret: ""
+    # -- Backend API URL the admin portal proxies requests to.
+    backendUrl: "https://cg-dmf.example.com"
+

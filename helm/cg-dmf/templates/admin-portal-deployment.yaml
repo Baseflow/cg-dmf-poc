@@ -1,0 +1,102 @@
+{{- if .Values.adminPortal.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cg-dmf.adminPortal.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cg-dmf.adminPortal.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.adminPortal.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "cg-dmf.adminPortal.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/admin-portal-configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/admin-portal-secret.yaml") . | sha256sum }}
+        {{- with .Values.adminPortal.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "cg-dmf.adminPortal.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cg-dmf.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.adminPortal.podSecurityContext | nindent 8 }}
+      containers:
+        - name: admin-portal
+          image: "{{ .Values.adminPortal.image.repository }}:{{ .Values.adminPortal.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.adminPortal.image.pullPolicy }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "cg-dmf.adminPortal.fullname" . }}
+            - secretRef:
+                name: {{ include "cg-dmf.adminPortal.secretName" . }}
+          {{- if .Values.adminPortal.extraEnvVars }}
+          env:
+            {{- include "cg-dmf.tplvalues.render" (dict "value" .Values.adminPortal.extraEnvVars "context" $) | nindent 12 }}
+          {{- end }}
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.adminPortal.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.adminPortal.extraVolumeMounts }}
+            {{- include "cg-dmf.tplvalues.render" (dict "value" .Values.adminPortal.extraVolumeMounts "context" $) | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.adminPortal.extraVolumes }}
+        {{- include "cg-dmf.tplvalues.render" (dict "value" .Values.adminPortal.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+      {{- with (coalesce .Values.adminPortal.nodeSelector .Values.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (coalesce .Values.adminPortal.tolerations .Values.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (coalesce .Values.adminPortal.affinity .Values.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

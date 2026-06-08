@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.services
+package com.baseflow.shared.services
 
 import java.time.Instant
 import java.util.Base64
@@ -14,6 +14,7 @@ import kotlin.test.assertNull
 class WopiSlatServiceTest {
 
     private val secret = "test-slat-secret-32-chars-minimum!"
+    private val issuerUserId = "test-user"
     private val service = WopiSlatService(secret = secret, ttlSeconds = 3600L)
 
     // ── Roundtrip ─────────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ class WopiSlatServiceTest {
     @Test
     fun `issue and validate returns the correct file UUID`() {
         val fileId = UUID.randomUUID()
-        val (token, _) = service.issue(fileId)
+        val (token, _) = service.issue(fileId, issuerUserId)
         val result = service.validate(token)
         assertEquals(fileId, result)
     }
@@ -29,7 +30,7 @@ class WopiSlatServiceTest {
     @Test
     fun `issued token TTL is approximately now plus ttlSeconds`() {
         val before = Instant.now().epochSecond
-        val (_, ttl) = service.issue(UUID.randomUUID())
+        val (_, ttl) = service.issue(UUID.randomUUID(), issuerUserId)
         val after = Instant.now().epochSecond
         assert(ttl in (before + 3600)..(after + 3600)) {
             "Expected TTL between ${before + 3600} and ${after + 3600}, got $ttl"
@@ -39,7 +40,7 @@ class WopiSlatServiceTest {
     @Test
     fun `validate returns same UUID for multiple consecutive calls`() {
         val fileId = UUID.randomUUID()
-        val (token, _) = service.issue(fileId)
+        val (token, _) = service.issue(fileId, issuerUserId)
         repeat(3) {
             assertEquals(fileId, service.validate(token))
         }
@@ -49,8 +50,8 @@ class WopiSlatServiceTest {
     fun `tokens issued for different UUIDs validate to their respective UUIDs`() {
         val id1 = UUID.randomUUID()
         val id2 = UUID.randomUUID()
-        val (token1, _) = service.issue(id1)
-        val (token2, _) = service.issue(id2)
+        val (token1, _) = service.issue(id1, issuerUserId)
+        val (token2, _) = service.issue(id2, issuerUserId)
         assertEquals(id1, service.validate(token1))
         assertEquals(id2, service.validate(token2))
     }
@@ -59,28 +60,31 @@ class WopiSlatServiceTest {
 
     @Test
     fun `tampered signature returns null`() {
-        val (token, _) = service.issue(UUID.randomUUID())
-        // Flip the last character of the token (the signature portion)
-        val tampered = token.dropLast(1) + if (token.last() == 'A') 'B' else 'A'
+        val (token, _) = service.issue(UUID.randomUUID(), issuerUserId)
+        // Flip the second-to-last character: the last base64 char of a 32-byte HMAC has 2
+        // padding bits that Java's decoder ignores, so flipping it can leave the decoded
+        // signature unchanged (~6% of the time). The second-to-last char has all 6 bits
+        // meaningful, so flipping it always produces a different signature.
+        val secondToLast = token[token.length - 2]
+        val tampered = token.dropLast(2) + (if (secondToLast == 'A') 'B' else 'A') + token.last()
         assertNull(service.validate(tampered))
     }
 
     @Test
     fun `token signed with a different secret returns null`() {
         val otherService = WopiSlatService(secret = "completely-different-secret-value", ttlSeconds = 3600L)
-        val (token, _) = otherService.issue(UUID.randomUUID())
+        val (token, _) = otherService.issue(UUID.randomUUID(), issuerUserId)
         assertNull(service.validate(token))
     }
 
     @Test
     fun `manually constructed token with wrong HMAC returns null`() {
         val fileId = UUID.randomUUID()
-        val expiresAt = Instant.now().epochSecond + 3600
+        val (validToken, _) = service.issue(fileId, issuerUserId)
+        val payloadEncoded = validToken.substringBeforeLast(".")
         val encoder = Base64.getUrlEncoder().withoutPadding()
-        val payload = "$fileId.$expiresAt"
         val fakeSig = ByteArray(32) { 0x00 } // all-zero signature
-        val token = "${encoder.encodeToString(payload.toByteArray())}." +
-            encoder.encodeToString(fakeSig)
+        val token = "$payloadEncoded.${encoder.encodeToString(fakeSig)}"
         assertNull(service.validate(token))
     }
 
@@ -89,7 +93,7 @@ class WopiSlatServiceTest {
     @Test
     fun `expired token returns null`() {
         val expiredService = WopiSlatService(secret = secret, ttlSeconds = -1L)
-        val (token, _) = expiredService.issue(UUID.randomUUID())
+        val (token, _) = expiredService.issue(UUID.randomUUID(), issuerUserId)
         assertNull(service.validate(token))
     }
 
@@ -140,14 +144,22 @@ class WopiSlatServiceTest {
 
     @Test
     fun `token payload with non-numeric expiry returns null`() {
-        val token = buildToken(fileId = null, expiresAt = 0, expiresAtOverride = "not-a-number")
+        val token = buildToken(
+            fileId = null,
+            expiresAt = 0,
+            rawPayloadOverride =
+            "{\"fileId\":\"${UUID.randomUUID()}\",\"expiresAt\":\"not-a-number\",\"userId\":\"$issuerUserId\"}",
+        )
         assertNull(service.validate(token))
     }
 
     @Test
-    fun `token payload with extra segments returns null`() {
-        // Three-part payload (too many dots after decoding)
-        val token = buildToken(fileId = UUID.randomUUID(), expiresAt = Instant.now().epochSecond + 3600, extraSegment = "extra")
+    fun `token payload missing userId returns null`() {
+        val token = buildToken(
+            fileId = UUID.randomUUID(),
+            expiresAt = Instant.now().epochSecond + 3600,
+            rawPayloadOverride = "{\"fileId\":\"${UUID.randomUUID()}\",\"expiresAt\":${Instant.now().epochSecond + 3600}}",
+        )
         assertNull(service.validate(token))
     }
 
@@ -162,11 +174,15 @@ class WopiSlatServiceTest {
         expiresAt: Long,
         fileIdOverride: String? = null,
         expiresAtOverride: String? = null,
-        extraSegment: String? = null,
+        userIdOverride: String? = null,
+        rawPayloadOverride: String? = null,
     ): String {
-        val id = fileIdOverride ?: fileId?.toString() ?: UUID.randomUUID().toString()
-        val exp = expiresAtOverride ?: expiresAt.toString()
-        val payload = if (extraSegment != null) "$id.$exp.$extraSegment" else "$id.$exp"
+        val payload = rawPayloadOverride ?: run {
+            val id = fileIdOverride ?: fileId?.toString() ?: UUID.randomUUID().toString()
+            val exp = expiresAtOverride ?: expiresAt.toString()
+            val userId = userIdOverride ?: issuerUserId
+            "{\"fileId\":\"$id\",\"expiresAt\":$exp,\"userId\":\"$userId\"}"
+        }
 
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))

@@ -2,7 +2,7 @@
 // Copyright (C) 2025 Gemeente Utrecht
 package com.baseflow.testutils
 
-import com.baseflow.api.models.*
+import com.baseflow.shared.api.models.*
 import kotlinx.datetime.LocalDate
 
 /**

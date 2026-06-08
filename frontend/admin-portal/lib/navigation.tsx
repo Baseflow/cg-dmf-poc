@@ -38,16 +38,10 @@ export const navigation: {
       requiresAuth: true,
       items: [
         {
-          name: "OIDC",
-          url: "/instellingen/oidc",
-          icon: <OidcIcon />,
-          description: "OpenID Connect authenticatieproviders",
-        },
-        {
-          name: "ZGW API",
-          url: "/instellingen/zgw-api",
-          icon: <Plug />,
-          description: "ZGW API koppelingsprofielen",
+          name: "Repositories",
+          url: "/instellingen/repositories",
+          icon: <Database />,
+          description: "Object store repositories",
         },
         {
           name: "DMF",
@@ -56,16 +50,22 @@ export const navigation: {
           description: "DMF systeeminstellingen",
         },
         {
-          name: "Repositories",
-          url: "/instellingen/repositories",
-          icon: <Database />,
-          description: "Object store repositories",
+          name: "ZGW API",
+          url: "/instellingen/zgw-api",
+          icon: <Plug />,
+          description: "ZGW API koppelingsprofielen",
         },
         {
           name: "Applicaties",
           url: "/instellingen/applicaties",
           icon: <AppWindow />,
           description: "Gekoppelde applicaties",
+        },
+        {
+          name: "OIDC",
+          url: "/instellingen/oidc",
+          icon: <OidcIcon />,
+          description: "OpenID Connect authenticatieproviders",
         },
       ],
     },

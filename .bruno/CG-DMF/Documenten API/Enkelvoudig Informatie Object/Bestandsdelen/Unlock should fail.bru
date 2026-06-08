@@ -1,0 +1,27 @@
+meta {
+  name: Unlock should fail
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{bestandsDelenEioID}}/unlock
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "lock": "{{lockId}}"
+  }
+}
+
+assert {
+  res.status: eq 500
+  res.body.detail: contains Integrity check failed for merged file
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

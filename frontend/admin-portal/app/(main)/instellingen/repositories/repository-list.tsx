@@ -194,10 +194,7 @@ export function RepositoryList({
               </Badge>
             )}
             {!row.original.enabled && (
-              <Badge
-                variant="secondary"
-                className="text-xs text-muted-foreground"
-              >
+              <Badge variant="secondary" className="text-xs text-muted-foreground">
                 Uitgeschakeld
               </Badge>
             )}
@@ -216,28 +213,22 @@ export function RepositoryList({
       {
         id: "locatie",
         header: "Locatie",
-        cell: ({ row }) => {
-          const { storageType, bucket, storageAccountName, url } = row.original
-          const label =
-            storageType === "S3"
-              ? bucket || "—"
-              : storageAccountName || url || "—"
-          return (
-            <span className="max-w-xs truncate text-muted-foreground">
-              {label}
-            </span>
-          )
-        },
+        cell: ({ row }) => (
+          <span className="max-w-xs truncate text-muted-foreground">
+            {row.original.url || "—"}
+          </span>
+        ),
       },
       {
-        accessorKey: "accessKey",
-        header: "Access key",
-        cell: ({ row }) => (
-          <SecretCell
-            value={row.original.accessKey}
-            hasSecret={!!row.original.accessKey}
-          />
-        ),
+        accessorKey: "bucket",
+        header: "Bucket",
+        cell: ({ row }) => {
+          const { storageType, bucket, storageAccountName } = row.original
+          const label = storageType === "S3" ? bucket : storageAccountName
+          return (
+            <span className="text-muted-foreground">{label || "—"}</span>
+          )
+        },
       },
       {
         accessorKey: "updatedAt",
@@ -475,8 +466,8 @@ function RepositoryForm({
 
   const isS3 = storageType === "S3"
   const isAzure = storageType === "Azure Blob Storage"
-  const hasExistingAccessKey = repo !== null && repo.accessKey === null
-  const hasExistingSecretKey = repo !== null && repo.secretKey === null
+  const hasExistingAccessKey = repo !== null && repo.accessKey !== null
+  const hasExistingSecretKey = repo !== null && repo.secretKey !== null
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -528,7 +519,7 @@ function RepositoryForm({
           <Select
             value={storageType}
             onValueChange={(v) => setStorageType(v as StorageType)}
-            disabled={saving}
+            disabled={saving || repo !== null}
           >
             <SelectTrigger id="repo-type">
               <SelectValue />
@@ -543,99 +534,84 @@ function RepositoryForm({
           <FieldDescription>Bepaalt welke verbindingsinstellingen nodig zijn.</FieldDescription>
         </Field>
 
+        <Field>
+          <FieldLabel htmlFor="repo-url">Locatie</FieldLabel>
+          <Input
+            id="repo-url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://mijnaccount.blob.core.windows.net"
+            disabled={saving}
+            copyable
+          />
+          <FieldDescription>Basis-URL van de object store.</FieldDescription>
+        </Field>
+
         {isS3 && (
-          <>
-            <Field>
-              <FieldLabel htmlFor="repo-access-key">Access Key</FieldLabel>
-              <SecretInput
-                id="repo-access-key"
-                value={accessKey}
-                onChange={(e) => setAccessKey(e.target.value)}
-                placeholder={
-                  hasExistingAccessKey
-                    ? "Laat leeg om huidige waarde te bewaren"
-                    : "Voer de access key in"
-                }
-                disabled={saving}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="repo-secret-key">Secret Key</FieldLabel>
-              <SecretInput
-                id="repo-secret-key"
-                value={secretKey}
-                onChange={(e) => setSecretKey(e.target.value)}
-                placeholder={
-                  hasExistingSecretKey
-                    ? "Laat leeg om huidige waarde te bewaren"
-                    : "Voer de secret key in"
-                }
-                disabled={saving}
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="repo-bucket">Bucket (optioneel)</FieldLabel>
-              <Input
-                id="repo-bucket"
-                value={bucket}
-                onChange={(e) => setBucket(e.target.value)}
-                placeholder="mijn-bucket"
-                disabled={saving}
-              />
-              <FieldDescription>De naam van de S3-bucket.</FieldDescription>
-            </Field>
-          </>
+          <Field>
+            <FieldLabel htmlFor="repo-bucket">Bucket (optioneel)</FieldLabel>
+            <Input
+              id="repo-bucket"
+              value={bucket}
+              onChange={(e) => setBucket(e.target.value)}
+              placeholder="mijn-bucket"
+              disabled={saving}
+            />
+            <FieldDescription>De naam van de S3-bucket.</FieldDescription>
+          </Field>
         )}
 
         {isAzure && (
-          <>
-            <Field>
-              <FieldLabel htmlFor="repo-storage-account-name">
-                Storage account name
-              </FieldLabel>
-              <Input
-                id="repo-storage-account-name"
-                value={storageAccountName}
-                onChange={(e) => setStorageAccountName(e.target.value)}
-                placeholder="mijnstorageaccount"
-                required={isAzure}
-                disabled={saving}
-              />
-              <FieldDescription>De naam van het Azure Storage-account.</FieldDescription>
-            </Field>
+          <Field>
+            <FieldLabel htmlFor="repo-storage-account-name">
+              Storage account name
+            </FieldLabel>
+            <Input
+              id="repo-storage-account-name"
+              value={storageAccountName}
+              onChange={(e) => setStorageAccountName(e.target.value)}
+              placeholder="mijnstorageaccount"
+              required={isAzure}
+              disabled={saving}
+            />
+            <FieldDescription>De naam van het Azure Storage-account.</FieldDescription>
+          </Field>
+        )}
 
-            <Field>
-              <FieldLabel htmlFor="repo-access-key-azure">
-                Access Key
-              </FieldLabel>
-              <SecretInput
-                id="repo-access-key-azure"
-                value={accessKey}
-                onChange={(e) => setAccessKey(e.target.value)}
-                placeholder={
-                  hasExistingAccessKey
-                    ? "Laat leeg om huidige waarde te bewaren"
-                    : "Voer de access key in"
-                }
-                disabled={saving}
-              />
-            </Field>
+        {(isS3 || isAzure) && (
+          <Field>
+            <FieldLabel htmlFor="repo-access-key">Access Key</FieldLabel>
+            <SecretInput
+              id="repo-access-key"
+              value={accessKey}
+              onChange={(e) => setAccessKey(e.target.value)}
+              placeholder={
+                hasExistingAccessKey
+                  ? "Laat leeg om huidige waarde te bewaren"
+                  : "Voer de access key in"
+              }
+              disabled={saving}
+              copyable
+            />
+          </Field>
+        )}
 
-            <Field>
-              <FieldLabel htmlFor="repo-url">Locatie URL</FieldLabel>
-              <Input
-                id="repo-url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://mijnaccount.blob.core.windows.net"
-                required={isAzure}
-                disabled={saving}
-              />
-              <FieldDescription>Basis-URL van het Azure Blob Storage-account.</FieldDescription>
-            </Field>
-          </>
+        {isS3 && (
+          <Field>
+            <FieldLabel htmlFor="repo-secret-key">Secret Key</FieldLabel>
+            <SecretInput
+              id="repo-secret-key"
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+              placeholder={
+                hasExistingSecretKey
+                  ? "Laat leeg om huidige waarde te bewaren"
+                  : "Voer de secret key in"
+              }
+              disabled={saving}
+              copyable
+            />
+          </Field>
         )}
 
         <Field orientation="horizontal">

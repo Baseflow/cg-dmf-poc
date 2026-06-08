@@ -56,7 +56,7 @@
 
 | Endpoint | Method | Beschrijving           | Status                                  | Opmerkingen |
 | -------- | ------ | --------------------- | --------------------------------------- | ------------ |
-| /{UUID}  | PUT    | Upload een bestandsdeel | $${\color{red}Not \space implemented}$$ |              |
+| /{UUID}  | PUT    | Upload een bestandsdeel | $${\color{green}Done}$$ |              |
 
 ## overig
 

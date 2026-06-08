@@ -13,11 +13,16 @@ data:
   {{- end }}
   # Authentication
   OIDC_ISSUER: {{ .Values.settings.oidcIssuer | quote }}
-  # S3 / MinIO (non-sensitive) — env var names kept as S3_* until app is migrated to S3_*
-  S3_ENDPOINT: {{ .Values.settings.s3.endpoint | quote }}
-  S3_BUCKET: {{ .Values.settings.s3.bucket | quote }}
-  S3_DISABLE_CHECKSUMS: {{ .Values.settings.s3.disableChecksums | quote }}
-  S3_DISABLE_CHUNKED_ENCODING: {{ .Values.settings.s3.disableChunkedEncoding | quote }}
+  # Blob storage (primary repository — index 1)
+  BLOB_STORAGE_NAME1: {{ .Values.settings.blobStorage.name | quote }}
+  BLOB_STORAGE_TYPE1: {{ .Values.settings.blobStorage.type | quote }}
+  BLOB_STORAGE_URL1: {{ .Values.settings.blobStorage.url | quote }}
+  BLOB_STORAGE_BUCKET1: {{ .Values.settings.blobStorage.bucket | quote }}
+  {{- if .Values.settings.blobStorage.region }}
+  BLOB_STORAGE_REGION1: {{ .Values.settings.blobStorage.region | quote }}
+  {{- end }}
+  BLOB_STORAGE_DISABLE_CHECKSUMS1: {{ .Values.settings.blobStorage.disableChecksums | quote }}
+  BLOB_STORAGE_DISABLE_CHUNKED_ENCODING1: {{ .Values.settings.blobStorage.disableChunkedEncoding | quote }}
   # OpenZaak (non-sensitive)
   OPENZAAK_ENDPOINT: {{ .Values.settings.openzaak.endpoint | quote }}
   OPENZAAK_CLIENT_ID: {{ .Values.settings.openzaak.clientId | quote }}

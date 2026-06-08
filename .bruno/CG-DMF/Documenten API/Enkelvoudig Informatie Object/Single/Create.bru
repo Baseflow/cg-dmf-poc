@@ -30,7 +30,8 @@ body:json {
     "beschrijving": "Test document uploaded by Bruno",
     "informatieobjecttype": "{{catalogusBaseUrl}}/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d",
     "status": "vastgesteld",
-    "trefwoorden": ["test", "test1", "test2"]
+    "trefwoorden": ["test", "test1", "test2"],
+    "inhoudIsVervallen": false
   }
 }
 
@@ -48,6 +49,7 @@ vars:post-response {
 
 assert {
   res.status: eq 201
+  res.body.inhoudIsVervallen: eq false
 }
 
 script:pre-request {
