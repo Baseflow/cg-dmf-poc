@@ -130,6 +130,7 @@ runs:
         docker buildx build \
           --cache-from type=gha \
           --cache-to type=gha,mode=max \
+          --load \
           --label time=$(date +%Y%m%d%H%M%S) \
           --label branch=${GITHUB_REF_NAME} \
           --label commit=${{ github.sha }} \
