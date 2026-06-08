@@ -51,7 +51,7 @@ describe("DynamicBreadcrumb", () => {
   it("maps all known route slugs to their labels", () => {
     const cases: [string, string][] = [
       ["/instellingen/oidc", "OIDC"],
-      ["/instellingen/zgw-api", "ZGW API"],
+      ["/instellingen/api-koppelingen", "API koppelingen"],
       ["/instellingen/dmf", "DMF"],
       ["/instellingen/repositories", "Repositories"],
       ["/instellingen/applicaties", "Applicaties"],
