@@ -114,6 +114,9 @@ runs:
 
         echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
     - name: Docker build image
       if: inputs.build == 'true'
       shell: bash
@@ -125,7 +128,8 @@ runs:
         CONTEXT: ${{ inputs.context }}
       run: |
         docker buildx build \
-          --no-cache \
+          --cache-from type=gha \
+          --cache-to type=gha,mode=max \
           --label time=$(date +%Y%m%d%H%M%S) \
           --label branch=${GITHUB_REF_NAME} \
           --label commit=${{ github.sha }} \
