@@ -66,7 +66,7 @@ function SecretInput({
           variant="outline"
           size="icon"
           onClick={() => typeof props.value === "string" && copy(props.value)}
-          disabled={!props.value}
+          disabled={typeof props.value !== "string" || !props.value}
           aria-label="Kopieer waarde"
         >
           {copied ? (

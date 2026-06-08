@@ -574,9 +574,18 @@ function AppForm({
 
   function generateSecret() {
     const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
-    const bytes = new Uint8Array(32)
-    crypto.getRandomValues(bytes)
-    setClientSecret(Array.from(bytes, (b) => alphabet[b % alphabet.length]).join(""))
+    // 256 % 36 (nr of chars) = 4, so bytes 252–255 are rejected (~1.5% of draws).
+    const limit = 256 - (256 % alphabet.length)
+    const result: string[] = []
+    while (result.length < 32) {
+      const bytes = new Uint8Array(64)
+      crypto.getRandomValues(bytes)
+      for (const b of bytes) {
+        if (result.length === 32) break
+        if (b < limit) result.push(alphabet[b % alphabet.length])
+      }
+    }
+    setClientSecret(result.join(""))
   }
 
   const isDirty =

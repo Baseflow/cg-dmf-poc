@@ -14,9 +14,13 @@ export function useCopy() {
 
   const copy = useCallback(async (value: string) => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    await navigator.clipboard.writeText(value)
-    setCopied(true)
-    timerRef.current = setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      timerRef.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // clipboard unavailable (non-secure context or permission denied)
+    }
   }, [])
 
   return { copied, copy }
