@@ -617,9 +617,8 @@ class ApiKoppelingenRoutesTest : SettingsTestBase("api_connection_settings") {
     }
 
     // -----------------------------------------------------------------------
-    // DELETE readonly (Fix 1)
+    // DELETE readonly
     // -----------------------------------------------------------------------
-
     @Test
     fun `DELETE returns 403 when profile is readonly`() = testApplication {
         application { setup() }
@@ -632,7 +631,7 @@ class ApiKoppelingenRoutesTest : SettingsTestBase("api_connection_settings") {
     }
 
     // -----------------------------------------------------------------------
-    // Input validation (Fixes 3, 5, 6, 7)
+    // Input validation
     // -----------------------------------------------------------------------
 
     @Test
@@ -771,9 +770,8 @@ class ApiKoppelingenRoutesTest : SettingsTestBase("api_connection_settings") {
     }
 
     // -----------------------------------------------------------------------
-    // authType persistence (Fix 15)
+    // authType persistence
     // -----------------------------------------------------------------------
-
     @Test
     fun `POST stores authType correctly`() = testApplication {
         application { setup() }
