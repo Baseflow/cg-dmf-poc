@@ -50,10 +50,10 @@ export const navigation: {
           description: "DMF systeeminstellingen",
         },
         {
-          name: "ZGW API",
-          url: "/instellingen/zgw-api",
+          name: "API koppelingen",
+          url: "/instellingen/api-koppelingen",
           icon: <Plug />,
-          description: "ZGW API koppelingsprofielen",
+          description: "API koppelingsprofielen",
         },
         {
           name: "Applicaties",
