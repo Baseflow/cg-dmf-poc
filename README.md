@@ -127,6 +127,56 @@ JWT_CLIENT_SECRET=your-secret docker compose -f docker-compose.integration-test.
 
 See [docs/DATABASE.md](docs/DATABASE.md) for detailed migration workflow.
 
+## Releasing
+
+Releases are driven by branch naming. The CI pipeline derives the version from the branch name — no version files need to be edited.
+
+### Creating a release
+
+1. Make sure `develop` is in the state you want to release.
+2. Prepare a `RELEASE_NOTES.md` file in the repo root describing what changed. Include sections for each component that changed: backend, admin portal, and/or Helm chart. For example:
+   ```markdown
+   ## Backend
+   - Initial release of the Documenten API v1.5.0 implementation
+
+   ## Admin Portal
+   - Initial release of the administrative interface
+
+   ## Helm Chart
+   - Initial release of the cg-dmf Helm chart (chart version 1.0.0)
+   ```
+3. Create and push a `release/X.Y.Z` branch from `develop`:
+   ```bash
+   git checkout develop
+   git pull
+   git checkout -b release/1.0.0
+   git push origin release/1.0.0
+   ```
+4. CI will automatically:
+   - Run the full test suite
+   - Build and publish Docker images tagged `1.0.0` and `latest` to both Azure Container Registry and Docker Hub
+   - Create a GitHub Release `v1.0.0` using the contents of `RELEASE_NOTES.md`
+5. Delete `RELEASE_NOTES.md` after the release and commit that to `develop`.
+6. Open a PR from `release/1.0.0` into `main` and merge it to keep `main` up to date.
+
+### Branch tagging behaviour
+
+| Branch | Docker image tag |
+|---|---|
+| `develop` | `develop-YYYYMMDDHHMM` |
+| `release/X.Y.Z` | `X.Y.Z` |
+| `hotfix/X.Y.Z` | `hotfix-X.Y.Z-YYYYMMDDHHMM` |
+| any other branch | branch name (no timestamp, no push) |
+
+### Hotfixes
+
+For a fix that needs to go to production without going through `develop`:
+
+1. Branch from `main`: `git checkout -b hotfix/1.0.1 main`
+2. Apply the fix and push — CI builds a timestamped image for testing.
+3. When ready, create a `release/1.0.1` branch from the hotfix branch and push it to trigger the full release.
+4. Merge `release/1.0.1` into both `main` and `develop`.
+
 ## Project Structure
 
 - `/src/main/kotlin` — Application source code
