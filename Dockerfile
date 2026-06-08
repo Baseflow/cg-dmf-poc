@@ -6,7 +6,8 @@ COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY src ./src
 COPY frontend ./frontend
 
-RUN gradle clean installDist --no-daemon
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle clean installDist --no-daemon
 
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
