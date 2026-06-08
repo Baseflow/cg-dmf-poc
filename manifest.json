@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27165741200",
+    "runNumber": "837",
+    "branch": "feat/api-koppelingen-routes",
+    "date": "2026-06-08T20:47:55Z",
+    "path": "integration/27165741200/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27165544072",
     "runNumber": "836",
     "branch": "feat/schema-api-connections",
