@@ -69,9 +69,9 @@ fun main() {
     // Register blob storage repositories from env vars into database
     BlobStorageRegistrar.initialise()
 
-    // Migrate OPENZAAK_* env vars into api_connection_settings (one-time, if no ZTC/ZRC entry exists)
+    // Upsert OPENZAAK_* env vars into api_connection_settings (ZTC + ZRC entries, idempotent)
     OpenZaakMigrator.migrateIfNeeded()
-    // Migrate NOTIFICATION_API_* env vars into api_connection_settings (one-time, if no NRC entry exists)
+    // Upsert NOTIFICATION_API_* env vars into api_connection_settings (NRC entry, idempotent)
     NotificatiesMigrator.migrateIfNeeded()
 
     // Initialize ZGW client secrets cache from both env config and database

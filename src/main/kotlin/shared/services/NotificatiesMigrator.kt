@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
 /**
- * One-time bootstrap: if NOTIFICATION_API_CLIENT_SECRET is set, finds any NRC entry in
+ * Bootstrap: if NOTIFICATION_API_CLIENT_SECRET is set, finds any NRC entry in
  * api_connection_settings whose base_url matches NOTIFICATION_API_URL and updates its credentials,
  * or inserts a new entry if no URL match exists. The entry is marked readonly so the admin UI
  * shows it as env-managed.
@@ -36,11 +36,20 @@ object NotificatiesMigrator {
         }
 
         val clientId = envOrSystem("NOTIFICATION_API_CLIENT_ID", "")
+        if (clientId.isBlank()) {
+            logger.debug("NOTIFICATION_API_CLIENT_ID not set, skipping Notificaties migration")
+            return
+        }
 
+        migrate(url, clientId, clientSecret)
+    }
+
+    internal fun migrate(url: String, clientId: String, clientSecret: String) {
+        val normalizedUrl = url.trimEnd('/')
         transaction {
             val existing = ApiConnectionSettingEntity.find {
                 ApiConnectionSettingsTable.apiType eq ApiConnectionType.NRC.value
-            }.firstOrNull { it.baseUrl.trimEnd('/') == url }
+            }.firstOrNull { it.baseUrl.trimEnd('/') == normalizedUrl }
 
             if (existing != null) {
                 existing.clientId = clientId
@@ -50,12 +59,12 @@ object NotificatiesMigrator {
                 logger.info(
                     "Updated NRC connection '{}' from NOTIFICATION_API_* env vars (url: {})",
                     existing.name,
-                    url,
+                    normalizedUrl,
                 )
             } else {
                 ApiConnectionSettingEntity.new {
                     name = "open-notificaties"
-                    baseUrl = url
+                    baseUrl = normalizedUrl
                     this.clientId = clientId
                     this.clientSecret = clientSecret
                     apiType = ApiConnectionType.NRC.value
@@ -66,7 +75,7 @@ object NotificatiesMigrator {
                 }
                 logger.info(
                     "Inserted NRC connection 'open-notificaties' from NOTIFICATION_API_* env vars (url: {})",
-                    url,
+                    normalizedUrl,
                 )
             }
         }

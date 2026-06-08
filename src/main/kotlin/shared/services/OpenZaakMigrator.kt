@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
 /**
- * One-time bootstrap: if OPENZAAK_CLIENT_SECRET is set, upserts two entries:
+ * Bootstrap: if OPENZAAK_CLIENT_SECRET is set, upserts two entries:
  *   - ZTC at <endpoint>/catalogi/api/v1
  *   - ZRC at <endpoint>/zaken/api/v1
  * Matches existing entries by base_url + api_type and updates credentials in place,
@@ -38,9 +38,14 @@ object OpenZaakMigrator {
         val clientId = envOrSystem("OPENZAAK_CLIENT_ID", "cg-dmf")
         val validationEnabled = envOrSystem("OPENZAAK_VALIDATION_ENABLED", "true").toBoolean()
 
+        migrate(endpoint, clientId, clientSecret, validationEnabled)
+    }
+
+    internal fun migrate(endpoint: String, clientId: String, clientSecret: String, validationEnabled: Boolean = true) {
+        val normalizedEndpoint = endpoint.trimEnd('/')
         val specs = listOf(
-            ConnectionSpec("openzaak-ztc", ApiConnectionType.ZTC, "$endpoint/catalogi/api/v1"),
-            ConnectionSpec("openzaak-zrc", ApiConnectionType.ZRC, "$endpoint/zaken/api/v1"),
+            ConnectionSpec("openzaak-ztc", ApiConnectionType.ZTC, "$normalizedEndpoint/catalogi/api/v1"),
+            ConnectionSpec("openzaak-zrc", ApiConnectionType.ZRC, "$normalizedEndpoint/zaken/api/v1"),
         )
 
         transaction {
