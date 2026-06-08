@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27142966951",
+    "runNumber": "833",
+    "branch": "gradle_caching",
+    "date": "2026-06-08T14:06:46Z",
+    "path": "integration/27142966951/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27138890592",
     "runNumber": "130",
