@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.settings.api
 
-import com.baseflow.settings.api.routes.apiKoppelingenRoutes
+import com.baseflow.settings.api.routes.apiConnectionSettingsRoutes
 import com.baseflow.settings.api.routes.applicationSettingsRoutes
 import com.baseflow.settings.api.routes.blobStorageRepositorySettingsRoutes
 import com.baseflow.settings.api.routes.dmfSettingsRoutes
@@ -143,7 +143,7 @@ fun Route.settingsRoutes(requireRoleCheck: Boolean = true) {
 
         applicationSettingsRoutes()
         dmfSettingsRoutes()
-        apiKoppelingenRoutes()
+        apiConnectionSettingsRoutes()
         blobStorageRepositorySettingsRoutes()
         oidcProviderSettingsRoutes()
     }
