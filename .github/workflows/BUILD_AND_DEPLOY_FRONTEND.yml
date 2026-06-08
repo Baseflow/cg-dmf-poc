@@ -6,9 +6,6 @@ on:
     branches:
       - develop
       - 'release/**'
-    paths:
-      - 'frontend/admin-portal/**'
-      - '.github/workflows/BUILD_AND_DEPLOY_FRONTEND.yml'
   pull_request:
     branches:
       - main
