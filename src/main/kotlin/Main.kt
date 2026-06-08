@@ -17,7 +17,9 @@ import com.baseflow.shared.config.authenticationModule
 import com.baseflow.shared.config.dmfKoinModule
 import com.baseflow.shared.services.ApplicationCredentialRegistrar
 import com.baseflow.shared.services.BlobStorageRegistrar
+import com.baseflow.shared.services.NotificatiesMigrator
 import com.baseflow.shared.services.NotificationService
+import com.baseflow.shared.services.OpenZaakMigrator
 import com.baseflow.wopi.api.wopiApiModule
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -66,6 +68,11 @@ fun main() {
 
     // Register blob storage repositories from env vars into database
     BlobStorageRegistrar.initialise()
+
+    // Migrate OPENZAAK_* env vars into api_connection_settings (one-time, if no ZTC/ZRC entry exists)
+    OpenZaakMigrator.migrateIfNeeded()
+    // Migrate NOTIFICATION_API_* env vars into api_connection_settings (one-time, if no NRC entry exists)
+    NotificatiesMigrator.migrateIfNeeded()
 
     // Initialize ZGW client secrets cache from both env config and database
     ApplicationCredentialRegistrar.initialise()
