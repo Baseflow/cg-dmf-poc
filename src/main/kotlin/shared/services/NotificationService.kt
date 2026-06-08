@@ -7,6 +7,9 @@ import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.api.models.getResourceSegment
 import com.baseflow.shared.config.JwtTokenProvider
 import com.baseflow.shared.config.NotificationConfig
+import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
+import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
+import com.baseflow.shared.entities.settings.ApiConnectionType
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -20,9 +23,13 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * Payload for creating a kanaal in the Open Notificaties API.
@@ -84,18 +91,12 @@ data class NotificationMessage(
  * Service responsible for sending notifications to the Open Notificaties API.
  * This service is request-scoped and works similarly to AuditTrailService.
  *
+ * The NRC connection (URL + credentials) is sourced from the api_connection_settings table.
  * Notifications are sent asynchronously after a successful mutation (create, update, delete)
  * to avoid blocking the response to the client.
  */
 @OptIn(ExperimentalTime::class)
 class NotificationService(private val context: AuditContext) {
-    private val logger = LoggerFactory.getLogger(NotificationService::class.java)
-
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
-
     companion object {
         private val logger = LoggerFactory.getLogger(NotificationService::class.java)
 
@@ -108,27 +109,68 @@ class NotificationService(private val context: AuditContext) {
             expectSuccess = false
         }
 
+        private data class NrcConnectionSnapshot(val name: String, val baseUrl: String, val clientId: String, val clientSecret: String?)
+
+        private val nrcCacheTtl = 30.seconds
+
+        private val nrcCache = java.util.concurrent.atomic.AtomicReference<Pair<NrcConnectionSnapshot?, Instant>?>(null)
+
+        @OptIn(ExperimentalTime::class)
+        private fun loadNrcConnection(): NrcConnectionSnapshot? {
+            val now = Clock.System.now()
+            nrcCache.get()?.let { (snapshot, expiresAt) -> if (expiresAt > now) return snapshot }
+            val fresh = transaction {
+                val enabled = ApiConnectionSettingEntity.find {
+                    ApiConnectionSettingsTable.apiType eq ApiConnectionType.NRC.value
+                }.filter { it.enabled }
+                if (enabled.size > 1) {
+                    logger.warn(
+                        "Multiple enabled NRC connections found ({}), using the first one. Disable the others.",
+                        enabled.joinToString { "'${it.name}'" },
+                    )
+                }
+                enabled.firstOrNull()?.let { e ->
+                    NrcConnectionSnapshot(
+                        name = e.name,
+                        baseUrl = e.baseUrl,
+                        clientId = e.clientId,
+                        clientSecret = try {
+                            e.clientSecret
+                        } catch (_: Exception) {
+                            null
+                        },
+                    )
+                }
+            }
+            nrcCache.set(Pair(fresh, now + nrcCacheTtl))
+            return fresh
+        }
+
         /**
          * Ensures that the notification kanaal exists in the Open Notificaties API.
-         * If the kanaal doesn't exist, it will be created.
+         * Sources the NRC connection from api_connection_settings.
          * This should be called during application startup.
          *
          * @return true if the kanaal exists or was created successfully, false otherwise.
          */
         suspend fun ensureKanaalExists(): Boolean {
-            if (!NotificationConfig.isEnabled) {
-                logger.debug("Notifications are disabled, skipping kanaal check")
+            val connection = loadNrcConnection()
+            if (connection == null) {
+                logger.debug("No NRC connection configured in api_connection_settings, skipping kanaal check")
                 return false
             }
 
-            val url = NotificationConfig.url ?: return false
-            val clientId = NotificationConfig.clientId ?: return false
-            val clientSecret = NotificationConfig.clientSecret ?: return false
+            val url = connection.baseUrl
+            val clientId = connection.clientId
+            val clientSecret = connection.clientSecret ?: run {
+                logger.warn("NRC connection '{}' has no client secret, skipping kanaal check", connection.name)
+                return false
+            }
+
             val token = JwtTokenProvider.generate(clientId, clientSecret)
             val kanaalName = NotificationConfig.kanaal
 
             try {
-                // First, check if the kanaal already exists
                 val checkResponse = httpClient.get("$url/kanaal") {
                     contentType(ContentType.Application.Json)
                     bearerAuth(token)
@@ -149,7 +191,6 @@ class NotificationService(private val context: AuditContext) {
                     }
                 }
 
-                // Kanaal doesn't exist, create it
                 logger.info("Creating kanaal '{}'", kanaalName)
 
                 val payload = KanaalPayload(
@@ -185,21 +226,20 @@ class NotificationService(private val context: AuditContext) {
 
     /**
      * Sends a notification for the current request context.
-     * This method checks if notifications are enabled and if the request
-     * resulted in a mutation that should trigger a notification.
+     * Checks for an NRC entry in api_connection_settings before sending.
      *
      * @param call The current pipeline call containing request information.
      */
     fun send(call: PipelineCall) {
-        if (!NotificationConfig.isEnabled) {
-            logger.debug("Notifications are disabled, skipping notification")
+        val connection = loadNrcConnection()
+        if (connection == null) {
+            logger.debug("No NRC connection configured, skipping notification")
             return
         }
 
         val method = call.request.httpMethod
         val action = httpMethodToNotificationAction[method]
 
-        // Only send notifications for mutation operations
         if (action == null) {
             logger.debug("No notification action for HTTP method: {}", method)
             return
@@ -231,20 +271,14 @@ class NotificationService(private val context: AuditContext) {
             ),
         )
 
-        // Send notification asynchronously to not block the response
         call.application.launch(Dispatchers.IO) {
-            sendNotification(message)
+            sendNotification(connection, message)
         }
     }
 
-    /**
-     * Actually sends the notification to the Open Notificaties API.
-     */
-    private suspend fun sendNotification(message: NotificationMessage) {
-        val url = NotificationConfig.url ?: return
-        val clientId = NotificationConfig.clientId ?: return
-        val clientSecret = NotificationConfig.clientSecret ?: return
-        val token = JwtTokenProvider.generate(clientId, clientSecret)
+    private suspend fun sendNotification(connection: NrcConnectionSnapshot, message: NotificationMessage) {
+        val clientSecret = connection.clientSecret ?: return
+        val token = JwtTokenProvider.generate(connection.clientId, clientSecret)
 
         try {
             logger.info(
@@ -255,7 +289,7 @@ class NotificationService(private val context: AuditContext) {
                 message.resourceUrl,
             )
 
-            val response = httpClient.post("$url/notificaties") {
+            val response = httpClient.post("${connection.baseUrl}/notificaties") {
                 contentType(ContentType.Application.Json)
                 bearerAuth(token)
                 setBody(json.encodeToString(message))
@@ -264,7 +298,6 @@ class NotificationService(private val context: AuditContext) {
             if (response.status.isSuccess()) {
                 logger.info("Notification sent successfully: {}", response.status)
             } else {
-                // Get message from response
                 val errorBody = response.bodyAsText()
                 logger.warn(
                     "Failed to send notification: status={}, resourceUrl={}, body={}",

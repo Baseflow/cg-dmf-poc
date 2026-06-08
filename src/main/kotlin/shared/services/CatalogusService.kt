@@ -4,7 +4,8 @@ package com.baseflow.shared.services
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.baseflow.shared.config.OpenZaakConfig
+import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
+import com.baseflow.shared.entities.settings.ApiConnectionType
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
@@ -13,10 +14,12 @@ import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -24,11 +27,12 @@ import kotlin.time.Instant
 data class InformatieObjectType(val url: String, val omschrijving: String, val vertrouwelijkheidaanduiding: String)
 
 /**
- * Service for interacting with the Catalogus API
+ * Service for interacting with the Catalogus API and other configured API connections.
  *
- * TODO: We should split this into a service per API type (Catalogus, Zaken, etc.) if more functionality is added.
+ * Credentials are sourced from the api_connection_settings table rather than environment variables.
+ * The correct entry is matched by URL prefix and api_type.
  */
-open class CatalogusService(private val config: OpenZaakConfig, private val httpClient: HttpClient = HttpClient(CIO)) {
+open class CatalogusService(private val httpClient: HttpClient = HttpClient(CIO)) {
     private val logger = LoggerFactory.getLogger(CatalogusService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -42,17 +46,75 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
     private val jsonCache = ConcurrentHashMap<String, CacheEntry<JsonObject>>()
 
     private val cacheTtl = 5.minutes
+    private val connectionCacheTtl = 30.seconds
+
+    private data class ConnectionSnapshot(
+        val name: String,
+        val baseUrl: String,
+        val clientId: String,
+        val clientSecret: String?,
+        val apiType: String,
+        val validationEnabled: Boolean,
+        val enabled: Boolean,
+    )
+
+    @OptIn(ExperimentalTime::class)
+    private val connectionListCache = ConcurrentHashMap<String, CacheEntry<List<ConnectionSnapshot>>>()
+
+    @OptIn(ExperimentalTime::class)
+    private fun allConnections(): List<ConnectionSnapshot> {
+        val now = Clock.System.now()
+        connectionListCache[""]?.let { cached ->
+            if (cached.expiresAt > now) return cached.value
+            connectionListCache.remove("")
+        }
+        val fresh = transaction {
+            ApiConnectionSettingEntity.all().map { e ->
+                ConnectionSnapshot(
+                    name = e.name,
+                    baseUrl = e.baseUrl,
+                    clientId = e.clientId,
+                    clientSecret = try {
+                        e.clientSecret
+                    } catch (_: Exception) {
+                        null
+                    },
+                    apiType = e.apiType,
+                    validationEnabled = e.validationEnabled,
+                    enabled = e.enabled,
+                )
+            }
+        }
+        connectionListCache[""] = CacheEntry(fresh, now + connectionCacheTtl)
+        return fresh
+    }
+
+    private fun findConnection(url: String, type: ApiConnectionType): ConnectionSnapshot? =
+        allConnections().firstOrNull { it.enabled && it.apiType == type.value && url.startsWith(normalizeBaseUrl(it.baseUrl)) }
+
+    private fun findAnyConnection(url: String): ConnectionSnapshot? =
+        allConnections().firstOrNull { it.enabled && url.startsWith(normalizeBaseUrl(it.baseUrl)) }
+
+    private fun normalizeBaseUrl(baseUrl: String) = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
 
     /**
-     * Validates if the given informatieobjecttype URL exists in the Catalogus API
+     * Validates if the given informatieobjecttype URL exists in the Catalogus API.
      *
-     * @param url The full URL to the informatieobjecttype in the Catalogus
-     * @return The InformatieObjectType if found, null otherwise
-     * @throws Exception if validation fails and validation is enabled in config
+     * Looks up a ZTC entry in api_connection_settings whose base_url is a prefix of the URL.
+     * If no matching ZTC entry exists, or validation_enabled is false on that entry, validation is skipped.
+     *
+     * @return The InformatieObjectType if found, null if validation is skipped
+     * @throws Exception if validation is enabled and the request fails
      */
+    @OptIn(ExperimentalTime::class)
     suspend fun validateInformatieobjecttype(url: String): InformatieObjectType? {
-        if (!config.validationEnabled) {
-            logger.debug("Informatieobjecttype validation is disabled, skipping validation for: {}", url)
+        val connection = findConnection(url, ApiConnectionType.ZTC)
+        if (connection == null) {
+            logger.debug("No ZTC connection found for URL '{}', skipping informatieobjecttype validation", url)
+            return null
+        }
+        if (!connection.validationEnabled) {
+            logger.debug("Validation disabled for ZTC connection '{}', skipping validation for: {}", connection.name, url)
             return null
         }
 
@@ -66,7 +128,7 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
             }
         }
 
-        val jwtToken = generateJwtToken()
+        val jwtToken = generateJwtToken(connection.clientId, connection.clientSecret ?: "")
         logger.debug("Validating informatieobjecttype at endpoint: {}", url)
 
         try {
@@ -102,19 +164,20 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
     }
 
     /**
-     * Fetches a URL that starts with the configured OpenZaak endpoint and returns the raw JSON response.
-     * Uses JWT authentication with the configured OPENZAAK_CLIENT_ID and OPENZAAK_CLIENT_SECRET.
+     * Fetches a URL from a configured API connection and returns the raw JSON response.
+     * Matches the connection by URL prefix across all api_type values.
      *
-     * @param url The full URL to fetch, must start with the configured OpenZaak endpoint
+     * @param url The full URL to fetch
      * @return The raw JSON response as a JsonObject
-     * @throws IllegalArgumentException if the URL does not start with the configured endpoint
+     * @throws IllegalArgumentException if no connection matches the URL prefix
      * @throws Exception if the request fails
      */
+    @OptIn(ExperimentalTime::class)
     suspend fun fetchJsonFromUrl(url: String): JsonObject {
-        val endpoint = if (config.endpoint.endsWith("/")) config.endpoint else "${config.endpoint}/"
-        require(url.startsWith(endpoint)) {
-            "URL must start with the configured OpenZaak endpoint: ${config.endpoint}"
-        }
+        val connection = findAnyConnection(url)
+            ?: throw IllegalArgumentException(
+                "No API connection found whose base_url is a prefix of '$url'. Check api_connection_settings.",
+            )
 
         val now = Clock.System.now()
         jsonCache[url]?.let { cached ->
@@ -126,7 +189,7 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
             }
         }
 
-        val jwtToken = generateJwtToken()
+        val jwtToken = generateJwtToken(connection.clientId, connection.clientSecret ?: "")
         logger.debug("Fetching JSON from URL: {}", url)
 
         try {
@@ -138,7 +201,7 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
 
             if (response.status.value != 200) {
                 val errorMessage = """
-                    Error fetching resource from OpenZaak.
+                    Error fetching resource from API connection '${connection.name}'.
                     Status: ${response.status.value}
                     Endpoint: $url
                     Response: ${response.bodyAsText()}
@@ -160,25 +223,19 @@ open class CatalogusService(private val config: OpenZaakConfig, private val http
         }
     }
 
-    /**
-     * Closes the underlying HTTP client
-     */
     fun close() {
         httpClient.close()
     }
 
-    /**
-     * Generates a JWT token for Catalogus authentication
-     */
     @OptIn(ExperimentalTime::class)
-    fun generateJwtToken(): String {
+    fun generateJwtToken(clientId: String, clientSecret: String): String {
         val now = Clock.System.now().epochSeconds
         return JWT.create()
-            .withIssuer(config.clientId) // iss
-            .withClaim("client_id", config.clientId)
-            .withClaim("user_id", config.clientId)
-            .withClaim("user_representation", config.clientId)
-            .withClaim("iat", now) // seconds
-            .sign(Algorithm.HMAC256(config.clientSecret))
+            .withIssuer(clientId)
+            .withClaim("client_id", clientId)
+            .withClaim("user_id", clientId)
+            .withClaim("user_representation", clientId)
+            .withClaim("iat", now)
+            .sign(Algorithm.HMAC256(clientSecret))
     }
 }

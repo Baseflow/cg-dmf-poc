@@ -5,7 +5,6 @@ package com.baseflow.shared.services
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
 import com.baseflow.shared.config.BestandsDeelConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.entities.BestandsDeelEntity
 import com.baseflow.shared.tooling.AllTables
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
@@ -119,7 +118,7 @@ class BestandsDeelServiceTest {
         eioService = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             applicationConfig = ApplicationConfig,
-            catalogusService = CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            catalogusService = CatalogusService(),
             auditTrailService = AuditTrailService(auditContext),
             auditContext = auditContext,
             bestandsDeelService = bestandsDeelService,

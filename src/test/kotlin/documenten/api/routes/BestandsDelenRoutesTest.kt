@@ -6,7 +6,6 @@ import com.baseflow.shared.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
 import com.baseflow.shared.config.BestandsDeelConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.CatalogusService
@@ -58,7 +57,6 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
      * Uses the small config so we don't need actual gigabyte-sized files in tests.
      */
     private fun createBestandsdeelInDb(): Pair<UUID, String> = runBlocking {
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val auditContext = AuditContext()
         val bestandsDeelService = BestandsDeelService(SMALL_CHUNK_CONFIG)
         val storageService = mockk<StorageService>().also {
@@ -68,7 +66,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
         val service = EnkelvoudigInformatieObjectService(
             storageService = storageService,
             applicationConfig = ApplicationConfig,
-            catalogusService = CatalogusService(openZaakConfig),
+            catalogusService = CatalogusService(),
             auditTrailService = AuditTrailService(auditContext),
             auditContext = auditContext,
             bestandsDeelService = bestandsDeelService,
