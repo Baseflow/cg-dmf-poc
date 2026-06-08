@@ -1,9 +1,20 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { useCopy } from "@/hooks/use-copy"
+import { cn } from "@/lib/utils"
+import { Check, Copy } from "lucide-react"
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+function Input({
+  className,
+  type,
+  copyable,
+  ...props
+}: React.ComponentProps<"input"> & { copyable?: boolean }) {
+  const { copied, copy } = useCopy()
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return (
+  const input = (
     <input
       type={type}
       data-slot="input"
@@ -13,6 +24,28 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       )}
       {...props}
     />
+  )
+
+  if (!copyable) return input
+
+  return (
+    <div className="flex gap-2">
+      <div className="flex-1">{input}</div>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={() => typeof props.value === "string" && copy(props.value)}
+        disabled={typeof props.value !== "string" || !props.value}
+        aria-label="Kopieer waarde"
+      >
+        {copied ? (
+          <Check className="size-4 text-green-600" />
+        ) : (
+          <Copy className="size-4" />
+        )}
+      </Button>
+    </div>
   )
 }
 
