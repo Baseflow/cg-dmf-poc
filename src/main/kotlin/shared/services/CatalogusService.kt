@@ -89,11 +89,13 @@ open class CatalogusService(private val httpClient: HttpClient = HttpClient(CIO)
         return fresh
     }
 
-    private fun findConnection(url: String, type: ApiConnectionType): ConnectionSnapshot? =
-        allConnections().firstOrNull { it.enabled && it.apiType == type.value && url.startsWith(normalizeBaseUrl(it.baseUrl)) }
+    private fun findConnection(url: String, type: ApiConnectionType): ConnectionSnapshot? = allConnections()
+        .filter { it.enabled && it.apiType == type.value && url.startsWith(normalizeBaseUrl(it.baseUrl)) }
+        .maxByOrNull { it.baseUrl.length }
 
-    private fun findAnyConnection(url: String): ConnectionSnapshot? =
-        allConnections().firstOrNull { it.enabled && url.startsWith(normalizeBaseUrl(it.baseUrl)) }
+    private fun findAnyConnection(url: String): ConnectionSnapshot? = allConnections()
+        .filter { it.enabled && url.startsWith(normalizeBaseUrl(it.baseUrl)) }
+        .maxByOrNull { it.baseUrl.length }
 
     private fun normalizeBaseUrl(baseUrl: String) = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
 
@@ -128,7 +130,11 @@ open class CatalogusService(private val httpClient: HttpClient = HttpClient(CIO)
             }
         }
 
-        val jwtToken = generateJwtToken(connection.clientId, connection.clientSecret ?: "")
+        val clientSecret = connection.clientSecret ?: run {
+            logger.warn("ZTC connection '{}' has no client secret configured, skipping validation", connection.name)
+            return null
+        }
+        val jwtToken = generateJwtToken(connection.clientId, clientSecret)
         logger.debug("Validating informatieobjecttype at endpoint: {}", url)
 
         try {
@@ -189,7 +195,11 @@ open class CatalogusService(private val httpClient: HttpClient = HttpClient(CIO)
             }
         }
 
-        val jwtToken = generateJwtToken(connection.clientId, connection.clientSecret ?: "")
+        val clientSecret = connection.clientSecret
+            ?: throw IllegalStateException(
+                "API connection '${connection.name}' has no client secret configured.",
+            )
+        val jwtToken = generateJwtToken(connection.clientId, clientSecret)
         logger.debug("Fetching JSON from URL: {}", url)
 
         try {

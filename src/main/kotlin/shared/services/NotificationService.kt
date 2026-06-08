@@ -23,6 +23,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -121,8 +122,9 @@ class NotificationService(private val context: AuditContext) {
             nrcCache.get()?.let { (snapshot, expiresAt) -> if (expiresAt > now) return snapshot }
             val fresh = transaction {
                 val enabled = ApiConnectionSettingEntity.find {
-                    ApiConnectionSettingsTable.apiType eq ApiConnectionType.NRC.value
-                }.filter { it.enabled }
+                    (ApiConnectionSettingsTable.apiType eq ApiConnectionType.NRC.value) and
+                        (ApiConnectionSettingsTable.enabled eq true)
+                }.toList()
                 if (enabled.size > 1) {
                     logger.warn(
                         "Multiple enabled NRC connections found ({}), using the first one. Disable the others.",
@@ -132,7 +134,7 @@ class NotificationService(private val context: AuditContext) {
                 enabled.firstOrNull()?.let { e ->
                     NrcConnectionSnapshot(
                         name = e.name,
-                        baseUrl = e.baseUrl,
+                        baseUrl = e.baseUrl.trimEnd('/'),
                         clientId = e.clientId,
                         clientSecret = try {
                             e.clientSecret
@@ -277,7 +279,10 @@ class NotificationService(private val context: AuditContext) {
     }
 
     private suspend fun sendNotification(connection: NrcConnectionSnapshot, message: NotificationMessage) {
-        val clientSecret = connection.clientSecret ?: return
+        val clientSecret = connection.clientSecret ?: run {
+            logger.warn("NRC connection '{}' has no client secret configured, notification not sent", connection.name)
+            return
+        }
         val token = JwtTokenProvider.generate(connection.clientId, clientSecret)
 
         try {

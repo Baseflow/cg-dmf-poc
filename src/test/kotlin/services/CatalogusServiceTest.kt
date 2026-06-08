@@ -223,6 +223,7 @@ class CatalogusServiceTest {
         val result = service.fetchJsonFromUrl(url)
 
         assertNotNull(result)
+        assertEquals("value", result["key"].toString().trim('"'))
         service.close()
     }
 
@@ -241,6 +242,7 @@ class CatalogusServiceTest {
         val result = service.fetchJsonFromUrl(url)
 
         assertNotNull(result)
+        assertEquals("value", result["key"].toString().trim('"'))
         service.close()
     }
 
