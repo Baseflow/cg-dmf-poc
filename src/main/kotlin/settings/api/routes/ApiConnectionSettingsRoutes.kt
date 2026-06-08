@@ -38,7 +38,7 @@ import kotlin.time.Clock
  * - `PUT    /{id}`  — update a setting
  * - `DELETE /{id}`  — delete a setting
  */
-fun Route.apiKoppelingenRoutes() {
+fun Route.apiConnectionSettingsRoutes() {
     route("/api-connection-settings") {
         get {
             val all = transaction {
@@ -168,7 +168,7 @@ fun Route.apiKoppelingenRoutes() {
     }
 }
 
-private val logger = LoggerFactory.getLogger("com.baseflow.settings.api.routes.ApiKoppelingenRoutes")
+private val logger = LoggerFactory.getLogger("com.baseflow.settings.api.routes.ApiConnectionSettingsRoutes")
 
 private fun ApiConnectionSettingEntity.toResponse(): ApiConnectionSettingResponse {
     val decryptedSecret = try {

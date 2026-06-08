@@ -25,7 +25,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
-class ApiKoppelingenRoutesTest : SettingsTestBase("api_connection_settings") {
+class ApiConnectionSettingsRoutesTest : SettingsTestBase("api_connection_settings") {
 
     private val json = apiJsonConfig()
 
