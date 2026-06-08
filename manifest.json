@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27165544072",
+    "runNumber": "836",
+    "branch": "feat/schema-api-connections",
+    "date": "2026-06-08T20:44:06Z",
+    "path": "integration/27165544072/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27162914353",
     "runNumber": "131",
