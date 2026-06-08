@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.services
+package com.baseflow.shared.services
 
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.CreateOIORequest
-import com.baseflow.api.models.ResourceSegments
-import com.baseflow.api.models.SubjectType
-import com.baseflow.entities.EIORecordEntity
-import com.baseflow.entities.EIOVersionEntity
-import com.baseflow.entities.OIORecordEntity
-import com.baseflow.services.models.CreateOIOResult
-import com.baseflow.services.models.DeleteOIOResult
-import com.baseflow.services.models.QueryObjectInformatieObjectenFilter
-import com.baseflow.tooling.AllTables
+import com.baseflow.shared.api.middleware.AuditContext
+import com.baseflow.shared.api.models.CreateOIORequest
+import com.baseflow.shared.api.models.ResourceSegments
+import com.baseflow.shared.api.models.SubjectType
+import com.baseflow.shared.entities.EIORecordEntity
+import com.baseflow.shared.entities.EIOVersionEntity
+import com.baseflow.shared.entities.OIORecordEntity
+import com.baseflow.shared.services.models.CreateOIOResult
+import com.baseflow.shared.services.models.DeleteOIOResult
+import com.baseflow.shared.services.models.QueryObjectInformatieObjectenFilter
+import com.baseflow.shared.tooling.AllTables
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

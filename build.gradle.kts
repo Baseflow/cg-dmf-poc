@@ -245,7 +245,7 @@ tasks.register<JavaExec>("flywayMigrate") {
     group = "flyway"
     description = "Migrates the database"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("migrate")
 }
 
@@ -253,7 +253,7 @@ tasks.register<JavaExec>("flywayInfo") {
     group = "flyway"
     description = "Prints the details and status information about all migrations"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("info")
 }
 
@@ -261,7 +261,7 @@ tasks.register<JavaExec>("flywayUndo") {
     group = "flyway"
     description = "Undoes the most recently applied versioned migration"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("undo")
 }
 
@@ -269,7 +269,7 @@ tasks.register<JavaExec>("flywayClean") {
     group = "flyway"
     description = "Drops all objects in the configured schemas"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("clean")
 }
 
@@ -277,7 +277,7 @@ tasks.register<JavaExec>("flywayValidate") {
     group = "flyway"
     description = "Validates the applied migrations against the available ones"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.FlywayMigrationKt")
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("validate")
 }
 
@@ -285,7 +285,7 @@ tasks.register<JavaExec>("generateMigration") {
     group = "flyway"
     description = "Generate a Flyway migration script from Exposed table definitions"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.MigrationGeneratorKt")
+    mainClass.set("com.baseflow.shared.tooling.MigrationGeneratorKt")
     // Pass command-line args through
     if (project.hasProperty("args")) {
         args((project.property("args") as String).split("\\s+".toRegex()))
@@ -296,7 +296,7 @@ tasks.register<JavaExec>("addStubData") {
     group = "database"
     description = "Load stub/seed data into the database for development and testing"
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("com.baseflow.tooling.StubDataLoaderKt")
+    mainClass.set("com.baseflow.shared.tooling.StubDataLoaderKt")
 }
 
 // Prefer stable versions

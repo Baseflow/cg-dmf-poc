@@ -19,21 +19,20 @@ with additional filtering for new relations between non-Zaken objects.
 ## Directory Structure
 
 - `/src/main/kotlin` — Application source code
-  - `api/` — HTTP layer, split by domain (package `com.baseflow.api`)
-    - `documenten/` — Documenten API 1.5.0 routes and module (`com.baseflow.api.documenten`)
-      - `routes/` — Individual route handlers (EIO, OIO, SIO, BestandsDelen, AuditTrail)
-    - `admin/` — Internal management endpoints (`com.baseflow.api.admin`)
-      - `routes/` — BlobStorageRepository management routes
-    - `infra/` — Health checks and OpenAPI spec endpoints (`com.baseflow.api.infra`)
-    - `wopi/` — WOPI protocol support (planned, not yet implemented) (`com.baseflow.api.wopi`)
-    - `middleware/` — Shared Ktor plugins (AuditTrail, Notification, ConditionalHeaders, etc.)
-    - `models/` — Shared request/response models (not yet domain-split)
-  - `config/` — Application configuration and dependency injection
-  - `entities/` — Exposed ORM table definitions
-  - `services/` — Business logic services
-  - `tooling/` — Gradle tasks (migration generator, OpenAPI export)
-- `/src/main/resources/db/migration` — Database migration scripts (Flyway)
-- `/docs` — Documentation, including OAS spec
+  - `documenten/` — Documenten API 1.5.0 routes and module (`com.baseflow.documenten`)
+  - `infra/` — Health checks and OpenAPI spec endpoints (`com.baseflow.infra`)
+  - `settings/` — Internal management endpoints (`com.baseflow.settings`)
+  - `wopi/` — WOPI protocol support (planned, not yet implemented) (`com.baseflow.wopi`)
+  - `shared/` - Consolidated shared code that is used across multiple domains
+    - `middleware/` — Shared Ktor plugins (auth, audit trail, notifications, etc.)
+    - `models/` — Shared request/response models
+    - `config/` — Application configuration and dependency injection
+    - `entities/` — Exposed ORM table definitions
+    - `services/` — Business logic
+    - `tooling/` — Gradle tasks (migration generator, OpenAPI export)
+- `/src/main/resources/db/migration` — Flyway migration scripts
+- `/docs` — Documentation
+- `/docker` — Docker configuration
 
 ## Database Migrations
 

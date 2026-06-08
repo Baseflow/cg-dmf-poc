@@ -2,34 +2,34 @@
 // Copyright (C) 2025-2026 Gemeente Utrecht
 @file:Suppress("UnusedDataClassCopyResult")
 
-package com.baseflow.services
+package com.baseflow.shared.services
 
-import com.baseflow.api.middleware.AuditContext
-import com.baseflow.api.models.EnkelvoudigInformatieObjectRequest
-import com.baseflow.api.models.EnkelvoudigInformatieObjectStatus
-import com.baseflow.api.models.Integriteit
-import com.baseflow.api.models.IntegriteitAlgoritme
-import com.baseflow.api.models.Ondertekening
-import com.baseflow.api.models.OndertekeningSoort
-import com.baseflow.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.config.ApplicationConfig
-import com.baseflow.config.BestandsDeelConfig
-import com.baseflow.config.OpenZaakConfig
-import com.baseflow.entities.BestandsDeelEntity
-import com.baseflow.entities.BestandsDelen
-import com.baseflow.entities.EIORecordEntity
-import com.baseflow.entities.EIOVersionTrefwoorden
-import com.baseflow.entities.Trefwoorden
-import com.baseflow.services.models.DeleteResult
-import com.baseflow.services.models.EIOOrdering
-import com.baseflow.services.models.LockResult
-import com.baseflow.services.models.QueryEnkelvoudigeInformatieObjectenFilter
-import com.baseflow.services.models.UnlockResult
+import com.baseflow.shared.api.middleware.AuditContext
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectRequest
+import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectStatus
+import com.baseflow.shared.api.models.Integriteit
+import com.baseflow.shared.api.models.IntegriteitAlgoritme
+import com.baseflow.shared.api.models.Ondertekening
+import com.baseflow.shared.api.models.OndertekeningSoort
+import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
+import com.baseflow.shared.config.ApplicationConfig
+import com.baseflow.shared.config.BestandsDeelConfig
+import com.baseflow.shared.config.OpenZaakConfig
+import com.baseflow.shared.entities.BestandsDeelEntity
+import com.baseflow.shared.entities.BestandsDelen
+import com.baseflow.shared.entities.EIORecordEntity
+import com.baseflow.shared.entities.EIOVersionTrefwoorden
+import com.baseflow.shared.entities.Trefwoorden
+import com.baseflow.shared.services.models.DeleteResult
+import com.baseflow.shared.services.models.EIOOrdering
+import com.baseflow.shared.services.models.LockResult
+import com.baseflow.shared.services.models.QueryEnkelvoudigeInformatieObjectenFilter
+import com.baseflow.shared.services.models.UnlockResult
+import com.baseflow.shared.tooling.AllTables
 import com.baseflow.testutils.TestDataFactory
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT
 import com.baseflow.testutils.TestDataFactory.PDF_CONTENT_ALT
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
-import com.baseflow.tooling.AllTables
 import io.mockk.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
