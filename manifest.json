@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27127177229",
+    "runNumber": "827",
+    "branch": "issue/CGDMF-169",
+    "date": "2026-06-08T09:10:55Z",
+    "path": "integration/27127177229/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27124364201",
     "runNumber": "826",
     "branch": "dependabot/gradle/jvm-2.4.0",
