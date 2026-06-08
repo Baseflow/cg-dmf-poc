@@ -9,8 +9,8 @@ import com.baseflow.shared.api.models.respondProblem
 import com.baseflow.shared.api.models.settings.CreateZgwApiSettingsRequest
 import com.baseflow.shared.api.models.settings.UpdateZgwApiSettingsRequest
 import com.baseflow.shared.api.models.settings.ZgwApiSettingsResponse
-import com.baseflow.shared.entities.settings.ZgwApiSettingEntity
-import com.baseflow.shared.entities.settings.ZgwApiSettingsTable
+import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
+import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -38,7 +38,7 @@ fun Route.zgwApiSettingsRoutes() {
     route("/zgw-api-settings") {
         get {
             val all = transaction {
-                ZgwApiSettingEntity.all().map { it.toResponse() }
+                ApiConnectionSettingEntity.all().map { it.toResponse() }
             }
             call.respond(all)
         }
@@ -69,11 +69,11 @@ fun Route.zgwApiSettingsRoutes() {
             }
 
             val created = transaction {
-                val exists = ZgwApiSettingEntity.find {
-                    ZgwApiSettingsTable.name eq body.name
+                val exists = ApiConnectionSettingEntity.find {
+                    ApiConnectionSettingsTable.name eq body.name
                 }.firstOrNull()
                 if (exists != null) return@transaction null
-                ZgwApiSettingEntity.new {
+                ApiConnectionSettingEntity.new {
                     name = body.name
                     baseUrl = body.baseUrl
                     clientId = body.clientId
@@ -121,10 +121,10 @@ fun Route.zgwApiSettingsRoutes() {
                 }
 
                 val updated = transaction {
-                    val existing = ZgwApiSettingEntity.findById(id)
+                    val existing = ApiConnectionSettingEntity.findById(id)
                         ?: return@transaction null
                     val nameConflict = existing.name != body.name &&
-                        ZgwApiSettingEntity.find { ZgwApiSettingsTable.name eq body.name }.firstOrNull() != null
+                        ApiConnectionSettingEntity.find { ApiConnectionSettingsTable.name eq body.name }.firstOrNull() != null
                     if (nameConflict) return@transaction "conflict"
                     existing.name = body.name
                     existing.baseUrl = body.baseUrl
@@ -157,7 +157,7 @@ fun Route.zgwApiSettingsRoutes() {
                     )
 
                 val deleted = transaction {
-                    val existing = ZgwApiSettingEntity.findById(id) ?: return@transaction false
+                    val existing = ApiConnectionSettingEntity.findById(id) ?: return@transaction false
                     existing.delete()
                     true
                 }
@@ -177,7 +177,7 @@ fun Route.zgwApiSettingsRoutes() {
 
 private val logger = LoggerFactory.getLogger("com.baseflow.settings.api.routes.ZgwApiSettingsRoutes")
 
-private fun ZgwApiSettingEntity.toResponse(): ZgwApiSettingsResponse {
+private fun ApiConnectionSettingEntity.toResponse(): ZgwApiSettingsResponse {
     val decryptedSecret = try {
         clientSecret
     } catch (e: Exception) {
