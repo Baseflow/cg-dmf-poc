@@ -6,7 +6,7 @@ import com.baseflow.shared.api.apiJsonConfig
 import com.baseflow.shared.api.models.settings.CreateZgwApiSettingsRequest
 import com.baseflow.shared.api.models.settings.UpdateZgwApiSettingsRequest
 import com.baseflow.shared.api.models.settings.ZgwApiSettingsResponse
-import com.baseflow.shared.entities.settings.ZgwApiSettingEntity
+import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -33,7 +33,7 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
         clientId: String = "client-id",
         clientSecret: String? = null,
     ): UUID = transaction {
-        ZgwApiSettingEntity.new {
+        ApiConnectionSettingEntity.new {
             this.name = name
             this.baseUrl = baseUrl
             this.clientId = clientId
@@ -352,7 +352,7 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
         assertEquals(HttpStatusCode.OK, response.status)
 
         transaction {
-            val entity = ZgwApiSettingEntity.findById(id)!!
+            val entity = ApiConnectionSettingEntity.findById(id)!!
             assertNotNull(entity.clientSecret)
             assertEquals("original-secret", entity.clientSecret)
         }
@@ -370,7 +370,7 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
         val response = client.delete("/settings/zgw-api-settings/$id")
 
         assertEquals(HttpStatusCode.NoContent, response.status)
-        transaction { assertEquals(null, ZgwApiSettingEntity.findById(id)) }
+        transaction { assertEquals(null, ApiConnectionSettingEntity.findById(id)) }
     }
 
     @Test
@@ -413,7 +413,7 @@ class ZgwApiSettingsRoutesTest : SettingsTestBase("zgw_api_settings") {
         assertEquals(HttpStatusCode.OK, response.status)
 
         transaction {
-            val entity = ZgwApiSettingEntity.findById(id)!!
+            val entity = ApiConnectionSettingEntity.findById(id)!!
             assertEquals("new-working-secret", entity.clientSecret)
             assertEquals("recovered-profile", entity.name)
         }

@@ -9,11 +9,11 @@ import com.baseflow.shared.entities.EIOVersionTrefwoorden
 import com.baseflow.shared.entities.EIOVersions
 import com.baseflow.shared.entities.OIORecords
 import com.baseflow.shared.entities.Trefwoorden
+import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import com.baseflow.shared.entities.settings.ApplicationSettingsTable
 import com.baseflow.shared.entities.settings.BlobStorageRepositorySettingsTable
 import com.baseflow.shared.entities.settings.DmfSettingsTable
 import com.baseflow.shared.entities.settings.OidcProviderSettingsTable
-import com.baseflow.shared.entities.settings.ZgwApiSettingsTable
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -32,7 +32,7 @@ object AllTables {
         BlobStorageRepositorySettingsTable,
         OidcProviderSettingsTable,
         ApplicationSettingsTable,
-        ZgwApiSettingsTable,
+        ApiConnectionSettingsTable,
         DmfSettingsTable,
     )
 
