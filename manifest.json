@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27207172907",
+    "runNumber": "864",
+    "branch": "feat/api-connections-importers",
+    "date": "2026-06-09T12:52:37Z",
+    "path": "integration/27207172907/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27206990865",
     "runNumber": "135",
