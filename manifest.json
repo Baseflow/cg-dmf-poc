@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27209282772",
+    "runNumber": "865",
+    "branch": "task/remove-oidc-from-admin-portal",
+    "date": "2026-06-09T13:29:34Z",
+    "path": "integration/27209282772/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27207408451",
     "runNumber": "136",
