@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27206082985",
+    "runNumber": "861",
+    "branch": "feat/api-connections-frontend-v2",
+    "date": "2026-06-09T12:32:50Z",
+    "path": "integration/27206082985/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27205659097",
     "runNumber": "134",
