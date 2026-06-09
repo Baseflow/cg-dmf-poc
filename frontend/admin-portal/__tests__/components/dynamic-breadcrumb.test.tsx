@@ -33,24 +33,23 @@ describe("DynamicBreadcrumb", () => {
   })
 
   it("renders intermediate segments as links", () => {
-    setPathname("/instellingen/oidc")
+    setPathname("/instellingen/dmf")
     render(<DynamicBreadcrumb />)
     const link = screen.getByRole("link", { name: "Instellingen" })
     expect(link).toHaveAttribute("href", "/instellingen")
   })
 
   it("renders the last segment as a non-link page item", () => {
-    setPathname("/instellingen/oidc")
+    setPathname("/instellingen/dmf")
     render(<DynamicBreadcrumb />)
     // BreadcrumbPage renders with aria-current="page" and aria-disabled="true"
-    const page = screen.getByText("OIDC")
+    const page = screen.getByText("DMF")
     expect(page).toHaveAttribute("aria-current", "page")
     expect(page.tagName).not.toBe("A")
   })
 
   it("maps all known route slugs to their labels", () => {
     const cases: [string, string][] = [
-      ["/instellingen/oidc", "OIDC"],
       ["/instellingen/api-koppelingen", "API koppelingen"],
       ["/instellingen/dmf", "DMF"],
       ["/instellingen/repositories", "Repositories"],

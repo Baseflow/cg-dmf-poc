@@ -13,7 +13,6 @@ import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import com.baseflow.shared.entities.settings.ApplicationSettingsTable
 import com.baseflow.shared.entities.settings.BlobStorageRepositorySettingsTable
 import com.baseflow.shared.entities.settings.DmfSettingsTable
-import com.baseflow.shared.entities.settings.OidcProviderSettingsTable
 import org.jetbrains.exposed.v1.core.ExperimentalDatabaseMigrationApi
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -30,7 +29,6 @@ object AllTables {
         AuditTrails,
         BestandsDelen,
         BlobStorageRepositorySettingsTable,
-        OidcProviderSettingsTable,
         ApplicationSettingsTable,
         ApiConnectionSettingsTable,
         DmfSettingsTable,

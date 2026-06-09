@@ -1,4 +1,4 @@
-import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
+import { DockerIcon, GitHubIcon } from "@/components/icons"
 import {
   AppWindow,
   BookOpen,
@@ -60,12 +60,6 @@ export const navigation: {
           url: "/instellingen/applicaties",
           icon: <AppWindow />,
           description: "Gekoppelde applicaties",
-        },
-        {
-          name: "OIDC",
-          url: "/instellingen/oidc",
-          icon: <OidcIcon />,
-          description: "OpenID Connect authenticatieproviders",
         },
       ],
     },
