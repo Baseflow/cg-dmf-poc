@@ -23,9 +23,8 @@ import org.koin.module.requestScope
 val dmfKoinModule = module {
     // Configuration objects (singletons)
     single { ApplicationConfig }
-    single { CatalogusService(get()) }
+    single { CatalogusService() }
     single { HealthCheckService() }
-    single { OpenZaakConfig.fromEnv() }
     single { StorageService() }
     single { WopiConfig.fromEnv() }
 

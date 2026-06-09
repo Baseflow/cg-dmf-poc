@@ -14,7 +14,6 @@ import com.baseflow.shared.api.models.OndertekeningSoort
 import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.shared.config.ApplicationConfig
 import com.baseflow.shared.config.BestandsDeelConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.entities.BestandsDeelEntity
 import com.baseflow.shared.entities.BestandsDelen
 import com.baseflow.shared.entities.EIORecordEntity
@@ -62,7 +61,6 @@ class EnkelvoudigInformatieObjectServiceTest {
             // Create all tables
             AllTables.createMissing()
         }
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any<String>(), any<ByteArray>(), anyNullable()) } answers
             { secondArg<ByteArray>().size.toLong() }
@@ -84,7 +82,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
-            CatalogusService(openZaakConfig),
+            CatalogusService(),
             mockAuditTrailService,
             auditContext,
             BestandsDeelService(),
@@ -241,7 +239,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val serviceWithChunking = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
-            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            CatalogusService(),
             mockAuditTrailService,
             auditContext,
             BestandsDeelService(smallChunkConfig),
@@ -356,7 +354,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val serviceWithChunking = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
-            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            CatalogusService(),
             mockAuditTrailService,
             auditContext,
             BestandsDeelService(smallChunkConfig),
@@ -450,7 +448,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val serviceWithChunking = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
-            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            CatalogusService(),
             mockAuditTrailService,
             auditContext,
             BestandsDeelService(smallChunkConfig),

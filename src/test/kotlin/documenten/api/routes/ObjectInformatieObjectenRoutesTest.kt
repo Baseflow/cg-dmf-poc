@@ -11,7 +11,6 @@ import com.baseflow.shared.api.models.ProblemDetailsResponse
 import com.baseflow.shared.api.models.ResourceSegments
 import com.baseflow.shared.api.models.SubjectType
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.CatalogusService
@@ -39,12 +38,11 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
     // Helper to create an EIO record using the service
     private fun createTestEIO(): String = runBlocking {
-        val openZaakConfig = OpenZaakConfig(validationEnabled = false)
         val auditContext = AuditContext()
         val service = EnkelvoudigInformatieObjectService(
             mockk<StorageService>(relaxed = true),
             ApplicationConfig,
-            CatalogusService(openZaakConfig),
+            CatalogusService(),
             AuditTrailService(auditContext),
             auditContext,
             BestandsDeelService(),

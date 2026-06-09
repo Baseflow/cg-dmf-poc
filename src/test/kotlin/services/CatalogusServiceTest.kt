@@ -3,36 +3,70 @@
 package com.baseflow.shared.services
 
 import com.auth0.jwt.JWT
-import com.baseflow.shared.config.OpenZaakConfig
+import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
+import com.baseflow.shared.entities.settings.ApiConnectionType
+import com.baseflow.shared.tooling.AllTables
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.UUID
 import kotlin.test.*
+import kotlin.time.Clock
 
 class CatalogusServiceTest {
 
-    private val defaultConfig = OpenZaakConfig(
-        clientId = "test-client",
-        clientSecret = "test-secret",
-        validationEnabled = true,
-    )
-
-    private fun createMockService(
-        config: OpenZaakConfig = defaultConfig,
-        handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
-    ): CatalogusService {
-        val mockEngine = MockEngine(handler)
-        val httpClient = HttpClient(mockEngine)
-        return CatalogusService(config, httpClient)
+    @BeforeTest
+    fun setUp() {
+        val dbName = "catalogus_service_${UUID.randomUUID()}"
+        Database.connect(
+            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver",
+            user = "root",
+            password = "",
+        )
+        transaction { AllTables.createMissing() }
     }
 
+    private fun insertConnection(
+        name: String = "test-connection",
+        baseUrl: String = "https://example.com",
+        clientId: String = "test-client",
+        clientSecret: String = "test-secret",
+        apiType: ApiConnectionType = ApiConnectionType.ZTC,
+        validationEnabled: Boolean = true,
+    ): UUID = transaction {
+        ApiConnectionSettingEntity.new {
+            this.name = name
+            this.baseUrl = baseUrl
+            this.clientId = clientId
+            this.clientSecret = clientSecret
+            this.apiType = apiType.value
+            this.validationEnabled = validationEnabled
+            this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        }.id.value
+    }
+
+    private fun createMockService(handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): CatalogusService {
+        val mockEngine = MockEngine(handler)
+        val httpClient = HttpClient(mockEngine)
+        return CatalogusService(httpClient)
+    }
+
+    // -----------------------------------------------------------------------
+    // generateJwtToken
+    // -----------------------------------------------------------------------
+
     @Test
-    fun `test generateJwtToken contains expected claims`() {
-        val service = CatalogusService(defaultConfig)
-        val jwtToken = service.generateJwtToken()
+    fun `generateJwtToken contains expected claims`() {
+        val service = CatalogusService()
+        val jwtToken = service.generateJwtToken("test-client", "test-secret")
 
         assertNotNull(jwtToken)
         val decoded = JWT.decode(jwtToken)
@@ -43,32 +77,67 @@ class CatalogusServiceTest {
         assertNotNull(decoded.getClaim("iat").asLong())
     }
 
+    // -----------------------------------------------------------------------
+    // validateInformatieobjecttype
+    // -----------------------------------------------------------------------
+
     @Test
-    fun `test validateInformatieobjecttype success`() = runBlocking {
+    fun `validateInformatieobjecttype returns null when no ZTC connection exists`() = runBlocking {
+        val service = createMockService { fail("Should not be called") }
+
+        val result = service.validateInformatieobjecttype("https://example.com/api/v1/types/1")
+
+        assertNull(result)
+        service.close()
+    }
+
+    @Test
+    fun `validateInformatieobjecttype skips when validationEnabled is false`() = runBlocking {
+        insertConnection(baseUrl = "https://example.com", validationEnabled = false)
+        val service = createMockService { fail("Should not be called when validation is disabled") }
+
+        val result = service.validateInformatieobjecttype("https://example.com/api/v1/types/1")
+
+        assertNull(result)
+        service.close()
+    }
+
+    @Test
+    fun `validateInformatieobjecttype skips when URL does not match any ZTC connection`() = runBlocking {
+        insertConnection(baseUrl = "https://other.example.com")
+        val service = createMockService { fail("Should not be called") }
+
+        val result = service.validateInformatieobjecttype("https://example.com/api/v1/types/1")
+
+        assertNull(result)
+        service.close()
+    }
+
+    @Test
+    fun `validateInformatieobjecttype success`() = runBlocking {
+        insertConnection(baseUrl = "https://example.com", clientId = "test-client", clientSecret = "test-secret")
         val url = "https://example.com/api/v1/types/1"
         val service = createMockService { request ->
             assertEquals(url, request.url.toString())
             assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
-            val jsonResponse = """
-{
-    "url": "$url",
-    "omschrijving": "Test Type",
-    "vertrouwelijkheidaanduiding": "openbaar"
-}
-            """
             respond(
-                content = ByteReadChannel(jsonResponse),
+                content = ByteReadChannel("""{"url": "$url", "omschrijving": "Test Type", "vertrouwelijkheidaanduiding": "openbaar"}"""),
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
 
-        service.validateInformatieobjecttype(url)
+        val result = service.validateInformatieobjecttype(url)
+
+        assertNotNull(result)
+        assertEquals(url, result.url)
+        assertEquals("Test Type", result.omschrijving)
         service.close()
     }
 
     @Test
-    fun `test validateInformatieobjecttype handles 404 error`() = runBlocking {
+    fun `validateInformatieobjecttype handles 404 error`() = runBlocking {
+        insertConnection(baseUrl = "https://example.com")
         val url = "https://example.com/api/v1/types/404"
         val service = createMockService {
             respond(
@@ -88,12 +157,11 @@ class CatalogusServiceTest {
     }
 
     @Test
-    fun `test validateInformatieobjecttype handles connection exception`() = runBlocking {
+    fun `validateInformatieobjecttype handles connection exception`() = runBlocking {
+        insertConnection(baseUrl = "https://example.com")
         val url = "https://example.com/api/v1/types/error"
-        val mockEngine = MockEngine {
-            throw Exception("Connection refused")
-        }
-        val service = CatalogusService(defaultConfig, HttpClient(mockEngine))
+        val mockEngine = MockEngine { throw Exception("Connection refused") }
+        val service = CatalogusService(HttpClient(mockEngine))
 
         val exception = assertFailsWith<Exception> {
             service.validateInformatieobjecttype(url)
@@ -104,29 +172,26 @@ class CatalogusServiceTest {
         service.close()
     }
 
-    @Test
-    fun `test validateInformatieobjecttype skips when disabled`() = runBlocking {
-        val config = OpenZaakConfig(validationEnabled = false)
-        val mockEngine = MockEngine {
-            fail("Should not be called when validation is disabled")
-        }
-        val service = CatalogusService(config, HttpClient(mockEngine))
+    // -----------------------------------------------------------------------
+    // fetchJsonFromUrl
+    // -----------------------------------------------------------------------
 
-        service.validateInformatieobjecttype("https://any-url.com")
+    @Test
+    fun `fetchJsonFromUrl throws when no connection matches URL`() = runBlocking {
+        val service = createMockService { respondOk() }
+
+        assertFailsWith<IllegalArgumentException> {
+            service.fetchJsonFromUrl("https://other-host.example.com/api/v1/resource/1")
+        }
+
         service.close()
     }
 
-    // --- fetchJsonFromUrl tests ---
-
     @Test
-    fun `test fetchJsonFromUrl success returns parsed JsonObject`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
+    fun `fetchJsonFromUrl success returns parsed JsonObject`() = runBlocking {
+        insertConnection(baseUrl = "https://openzaak.example.com", clientId = "test-client", clientSecret = "test-secret")
         val url = "https://openzaak.example.com/api/v1/resource/1"
-        val service = createMockService(config) { request ->
+        val service = createMockService { request ->
             assertEquals(url, request.url.toString())
             assertTrue(request.headers["Authorization"]!!.startsWith("Bearer "))
             respond(
@@ -144,14 +209,10 @@ class CatalogusServiceTest {
     }
 
     @Test
-    fun `test fetchJsonFromUrl succeeds when endpoint has no trailing slash`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
+    fun `fetchJsonFromUrl succeeds when baseUrl has no trailing slash`() = runBlocking {
+        insertConnection(baseUrl = "https://openzaak.example.com")
         val url = "https://openzaak.example.com/api/v1/resource/1"
-        val service = createMockService(config) {
+        val service = createMockService {
             respond(
                 content = ByteReadChannel("""{"key": "value"}"""),
                 status = HttpStatusCode.OK,
@@ -167,14 +228,10 @@ class CatalogusServiceTest {
     }
 
     @Test
-    fun `test fetchJsonFromUrl succeeds when endpoint has trailing slash`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com/",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
+    fun `fetchJsonFromUrl succeeds when baseUrl has trailing slash`() = runBlocking {
+        insertConnection(baseUrl = "https://openzaak.example.com/")
         val url = "https://openzaak.example.com/api/v1/resource/1"
-        val service = createMockService(config) {
+        val service = createMockService {
             respond(
                 content = ByteReadChannel("""{"key": "value"}"""),
                 status = HttpStatusCode.OK,
@@ -190,30 +247,10 @@ class CatalogusServiceTest {
     }
 
     @Test
-    fun `test fetchJsonFromUrl throws when URL does not start with configured endpoint`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
-        val service = createMockService(config) { respondOk() }
-
-        assertFailsWith<IllegalArgumentException> {
-            service.fetchJsonFromUrl("https://other-host.example.com/api/v1/resource/1")
-        }
-
-        service.close()
-    }
-
-    @Test
-    fun `test fetchJsonFromUrl throws on non-200 status`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
+    fun `fetchJsonFromUrl throws on non-200 status`() = runBlocking {
+        insertConnection(baseUrl = "https://openzaak.example.com")
         val url = "https://openzaak.example.com/api/v1/resource/missing"
-        val service = createMockService(config) {
+        val service = createMockService {
             respond(
                 content = ByteReadChannel("Not Found"),
                 status = HttpStatusCode.NotFound,
@@ -225,21 +262,17 @@ class CatalogusServiceTest {
             service.fetchJsonFromUrl(url)
         }
 
-        assertTrue(exception.message!!.contains("Error fetching resource from OpenZaak"))
+        assertTrue(exception.message!!.contains("Error fetching resource"))
         assertTrue(exception.message!!.contains("Status: 404"))
         service.close()
     }
 
     @Test
-    fun `test fetchJsonFromUrl wraps connection exception`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
+    fun `fetchJsonFromUrl wraps connection exception`() = runBlocking {
+        insertConnection(baseUrl = "https://openzaak.example.com")
         val url = "https://openzaak.example.com/api/v1/resource/1"
         val mockEngine = MockEngine { throw Exception("Network unreachable") }
-        val service = CatalogusService(config, HttpClient(mockEngine))
+        val service = CatalogusService(HttpClient(mockEngine))
 
         val exception = assertFailsWith<Exception> {
             service.fetchJsonFromUrl(url)
@@ -251,15 +284,11 @@ class CatalogusServiceTest {
     }
 
     @Test
-    fun `test fetchJsonFromUrl includes bearer token in request`() = runBlocking {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.example.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-        )
+    fun `fetchJsonFromUrl includes bearer token in request`() = runBlocking {
+        insertConnection(baseUrl = "https://openzaak.example.com", clientId = "test-client", clientSecret = "test-secret")
         val url = "https://openzaak.example.com/api/v1/resource/1"
         var capturedAuthHeader: String? = null
-        val service = createMockService(config) { request ->
+        val service = createMockService { request ->
             capturedAuthHeader = request.headers["Authorization"]
             respond(
                 content = ByteReadChannel("""{"result": "ok"}"""),
@@ -279,10 +308,10 @@ class CatalogusServiceTest {
     }
 
     @Test
-    fun `test close method closes client`() {
+    fun `close method closes client`() {
         val mockEngine = MockEngine { respondOk() }
         val httpClient = HttpClient(mockEngine)
-        val service = CatalogusService(defaultConfig, httpClient)
+        val service = CatalogusService(httpClient)
 
         service.close()
 

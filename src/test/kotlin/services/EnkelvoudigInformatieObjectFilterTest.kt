@@ -6,7 +6,6 @@ import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.services.models.EIOOrdering
 import com.baseflow.shared.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.shared.tooling.AllTables
@@ -49,7 +48,7 @@ class EnkelvoudigInformatieObjectFilterTest {
         service = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             ApplicationConfig,
-            CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            CatalogusService(),
             AuditTrailService(auditContext),
             auditContext,
             BestandsDeelService(),
