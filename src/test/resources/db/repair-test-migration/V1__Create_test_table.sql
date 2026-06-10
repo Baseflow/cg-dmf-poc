@@ -1,0 +1,1 @@
+CREATE TABLE repair_test (id INT PRIMARY KEY);

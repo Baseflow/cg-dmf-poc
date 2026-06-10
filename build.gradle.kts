@@ -271,6 +271,9 @@ tasks.register<JavaExec>("flywayClean") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("clean")
+    if (project.hasProperty("args")) {
+        args((project.property("args") as String).split("\\s+".toRegex()))
+    }
 }
 
 tasks.register<JavaExec>("flywayValidate") {
@@ -279,6 +282,17 @@ tasks.register<JavaExec>("flywayValidate") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("validate")
+}
+
+tasks.register<JavaExec>("flywayRepair") {
+    group = "flyway"
+    description = "Repairs the Flyway schema history (updates checksums, removes failed migrations)"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
+    args("repair")
+    if (project.hasProperty("args")) {
+        args((project.property("args") as String).split("\\s+".toRegex()))
+    }
 }
 
 tasks.register<JavaExec>("generateMigration") {

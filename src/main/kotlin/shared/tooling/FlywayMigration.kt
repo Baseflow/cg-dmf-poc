@@ -92,11 +92,7 @@ fun main(args: Array<String>) {
             )
         }
 
-        "clean" -> {
-            println("Cleaning database...")
-            flyway.clean()
-            println("Database cleaned successfully")
-        }
+        "clean" -> runCleanCommand(flyway, args)
 
         "validate" -> {
             println("Validating migrations...")
@@ -104,14 +100,77 @@ fun main(args: Array<String>) {
             println("Migrations are valid")
         }
 
+        "repair" -> runRepairCommand(flyway, args)
+
         else -> {
-            println("Usage: gradle run --args='<command>'")
-            println("Commands:")
-            println("  migrate  - Apply pending migrations")
-            println("  info     - Show migration status")
-            println("  undo     - Undo last migration")
-            println("  clean    - Clean database (remove all objects)")
-            println("  validate - Validate applied migrations")
+            println("Usage: ./gradlew <task> [-Pargs='--force']")
+            println("Tasks:")
+            println("  flywayMigrate  - Apply pending migrations")
+            println("  flywayInfo     - Show migration status")
+            println("  flywayUndo     - Undo last migration")
+            println("  flywayValidate - Validate applied migrations")
+            println("  flywayRepair   - Repair migration checksums in schema history")
+            println("  flywayClean    - Drop all objects in the database (DESTRUCTIVE)")
+            println()
+            println("Pass --force to skip interactive confirmation:")
+            println("  ./gradlew flywayRepair -Pargs='--force'")
+            println("  ./gradlew flywayClean  -Pargs='--force'")
         }
+    }
+}
+
+internal fun runCleanCommand(flyway: Flyway, args: Array<String>, readLine: () -> String? = { System.console()?.readLine() }) {
+    val force = args.contains("--force")
+
+    val confirmed = force || run {
+        print("This will drop ALL objects in the database and cannot be undone. Proceed? [y/N] ")
+        readLine()?.trim()?.lowercase() == "y"
+    }
+
+    if (confirmed) {
+        println("Cleaning database...")
+        flyway.clean()
+        println("Database cleaned successfully")
+    } else {
+        println("Clean cancelled.")
+    }
+}
+
+internal fun runRepairCommand(flyway: Flyway, args: Array<String>, readLine: () -> String? = { System.console()?.readLine() }) {
+    val force = args.contains("--force")
+
+    // Also include MISSING_SUCCESS/MISSING_FAILED: orphaned history rows with no matching file on disk.
+    // isChecksumMatching returns true for those (resolvedChecksum is null → short-circuits), so they
+    // would escape both conditions without the explicit applied-but-unresolved check.
+    val failing = flyway.info().all().filter {
+        !it.isChecksumMatching || it.state.isFailed || (it.state.isApplied && !it.state.isResolved)
+    }
+    if (failing.isEmpty()) {
+        println("No failing migrations detected. Nothing to repair.")
+        return
+    }
+
+    println("Failing migrations:")
+    failing.forEach { m ->
+        val reason = when {
+            !m.isChecksumMatching -> "checksum mismatch (applied: ${m.appliedChecksum}, resolved: ${m.resolvedChecksum})"
+            m.state.isApplied && !m.state.isResolved -> "orphaned (no migration file found)"
+            else -> "state: ${m.state}"
+        }
+        println("  ${m.version ?: "baseline"} - ${m.description} [$reason]")
+    }
+    println()
+
+    val confirmed = force || run {
+        print("Repair will update the schema history table. Proceed? [y/N] ")
+        readLine()?.trim()?.lowercase() == "y"
+    }
+
+    if (confirmed) {
+        println("Repairing migration checksums...")
+        flyway.repair()
+        println("Repair complete.")
+    } else {
+        println("Repair cancelled.")
     }
 }
