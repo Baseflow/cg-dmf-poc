@@ -1,0 +1,1 @@
+CREATE TABLE undo_items (id INT PRIMARY KEY);

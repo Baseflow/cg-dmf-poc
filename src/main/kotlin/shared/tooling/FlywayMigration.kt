@@ -4,6 +4,9 @@ package com.baseflow.shared.tooling
 
 import com.baseflow.shared.config.DatabaseConfig
 import org.flywaydb.core.Flyway
+import java.io.File
+import java.sql.Connection
+import java.sql.DriverManager
 
 /**
  * Flyway Migration Runner
@@ -20,6 +23,7 @@ import org.flywaydb.core.Flyway
  * ./gradlew flywayMigrate   # Apply pending migrations
  * ./gradlew flywayInfo      # Show migration status
  * ./gradlew flywayValidate  # Validate migrations
+ * ./gradlew flywayUndo      # Undo last migration (or -Pargs=<version>)
  * ```
  *
  * ### Direct execution:
@@ -31,18 +35,6 @@ import org.flywaydb.core.Flyway
  * ```
  * docker exec dmf-app java -cp /app/app.jar com.baseflow.shared.tooling.FlywayMigrationKt migrate
  * ```
- *
- * ## Important Limitations
- *
- * **Flyway Community Edition does NOT support automatic undo operations.**
- *
- * - The `undo` command in this tool only shows instructions
- * - To revert a migration, you must:
- *   1. Manually execute the corresponding U*.sql file
- *   2. Remove the migration record from flyway_schema_history
- *   3. Use the helper script: `./flyway-undo.sh <version>`
- *
- * See docs/DATABASE.md for detailed migration workflows and undo procedures.
  *
  * ## Environment Variables
  *
@@ -82,15 +74,7 @@ fun main(args: Array<String>) {
             }
         }
 
-        "undo" -> {
-            println("Undoing last migration...")
-            println("Note: Undo is not available in Flyway Community Edition.")
-            println("You need to manually execute the undo script or use Flyway Teams/Enterprise.")
-            println("\nTo manually undo, connect to the database and run:")
-            println(
-                "  psql -h localhost -U documenten -d documenten -f src/main/resources/db/migration/U1__Drop_EIO_tables.sql",
-            )
-        }
+        "undo" -> runUndoCommand(flyway, args)
 
         "clean" -> runCleanCommand(flyway, args)
 
@@ -107,25 +91,95 @@ fun main(args: Array<String>) {
             println("Tasks:")
             println("  flywayMigrate  - Apply pending migrations")
             println("  flywayInfo     - Show migration status")
-            println("  flywayUndo     - Undo last migration")
+            println("  flywayUndo     - Undo last migration (or -Pargs=<version>)")
             println("  flywayValidate - Validate applied migrations")
             println("  flywayRepair   - Repair migration checksums in schema history")
             println("  flywayClean    - Drop all objects in the database (DESTRUCTIVE)")
             println()
             println("Pass --force to skip interactive confirmation:")
+            println("  ./gradlew flywayUndo   -Pargs='--force'")
             println("  ./gradlew flywayRepair -Pargs='--force'")
             println("  ./gradlew flywayClean  -Pargs='--force'")
         }
     }
 }
 
+internal fun runUndoCommand(
+    flyway: Flyway,
+    args: Array<String>,
+    readLine: () -> String? = { System.console()?.readLine() },
+    migrationDir: File = File("src/main/resources/db/migration"),
+    getConnection: () -> Connection = {
+        DriverManager.getConnection(DatabaseConfig.url, DatabaseConfig.user, DatabaseConfig.password)
+    },
+) {
+    val force = args.contains("--force")
+    val versionArg = args.drop(1).filterNot { it == "--force" }.firstOrNull()
+
+    val allApplied = flyway.info().applied().filter { it.version != null }
+    if (allApplied.isEmpty()) {
+        println("No applied migrations found. Nothing to undo.")
+        return
+    }
+
+    val target = if (versionArg != null) {
+        allApplied.find { it.version!!.version == versionArg }
+            ?: run {
+                println("Error: Version $versionArg not found in applied migrations.")
+                return
+            }
+    } else {
+        allApplied.last()
+    }
+
+    val version = target.version!!.version
+
+    val undoFiles = migrationDir.listFiles { f ->
+        f.name.matches(Regex("U${Regex.escape(version)}__.*\\.sql"))
+    } ?: emptyArray()
+
+    if (undoFiles.isEmpty()) {
+        println("Error: No undo file found for version $version")
+        println("Expected: U${version}__*.sql in ${migrationDir.path}")
+        return
+    }
+
+    val undoFile = undoFiles.first()
+    println("Found undo file: ${undoFile.name}")
+
+    val confirmed = force ||
+        run {
+            print("Undo V$version - ${target.description}? [y/N] ")
+            readLine()?.trim()?.lowercase() == "y"
+        }
+
+    if (!confirmed) {
+        println("Undo cancelled.")
+        return
+    }
+
+    val sql = undoFile.readText()
+    getConnection().use { conn ->
+        conn.createStatement().use { stmt ->
+            stmt.execute(sql)
+        }
+        conn.prepareStatement("""DELETE FROM "flyway_schema_history" WHERE "version" = ?""").use { stmt ->
+            stmt.setString(1, version)
+            stmt.executeUpdate()
+        }
+    }
+
+    println("Successfully undone V$version - ${target.description}")
+}
+
 internal fun runCleanCommand(flyway: Flyway, args: Array<String>, readLine: () -> String? = { System.console()?.readLine() }) {
     val force = args.contains("--force")
 
-    val confirmed = force || run {
-        print("This will drop ALL objects in the database and cannot be undone. Proceed? [y/N] ")
-        readLine()?.trim()?.lowercase() == "y"
-    }
+    val confirmed = force ||
+        run {
+            print("This will drop ALL objects in the database and cannot be undone. Proceed? [y/N] ")
+            readLine()?.trim()?.lowercase() == "y"
+        }
 
     if (confirmed) {
         println("Cleaning database...")
@@ -161,10 +215,11 @@ internal fun runRepairCommand(flyway: Flyway, args: Array<String>, readLine: () 
     }
     println()
 
-    val confirmed = force || run {
-        print("Repair will update the schema history table. Proceed? [y/N] ")
-        readLine()?.trim()?.lowercase() == "y"
-    }
+    val confirmed = force ||
+        run {
+            print("Repair will update the schema history table. Proceed? [y/N] ")
+            readLine()?.trim()?.lowercase() == "y"
+        }
 
     if (confirmed) {
         println("Repairing migration checksums...")

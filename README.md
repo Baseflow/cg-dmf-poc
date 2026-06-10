@@ -119,7 +119,10 @@ JWT_CLIENT_SECRET=your-secret docker compose -f docker-compose.integration-test.
 ./gradlew flywayMigrate
 
 # Undo last migration
-./flyway-undo.sh <version>
+./gradlew flywayUndo
+
+# Undo a specific version
+./gradlew flywayUndo -Pargs=<version>
 
 # Generate migration from Exposed models
 ./gradlew generateMigration -Pargs="V2__Description"

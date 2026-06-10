@@ -259,10 +259,14 @@ tasks.register<JavaExec>("flywayInfo") {
 
 tasks.register<JavaExec>("flywayUndo") {
     group = "flyway"
-    description = "Undoes the most recently applied versioned migration"
+    description = "Undoes the most recently applied versioned migration (or -Pargs=<version>)"
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.baseflow.shared.tooling.FlywayMigrationKt")
     args("undo")
+    if (project.hasProperty("args")) {
+        args((project.property("args") as String).split("\\s+".toRegex()))
+    }
+    standardInput = System.`in`
 }
 
 tasks.register<JavaExec>("flywayClean") {
@@ -274,6 +278,7 @@ tasks.register<JavaExec>("flywayClean") {
     if (project.hasProperty("args")) {
         args((project.property("args") as String).split("\\s+".toRegex()))
     }
+    standardInput = System.`in`
 }
 
 tasks.register<JavaExec>("flywayValidate") {
@@ -293,6 +298,7 @@ tasks.register<JavaExec>("flywayRepair") {
     if (project.hasProperty("args")) {
         args((project.property("args") as String).split("\\s+".toRegex()))
     }
+    standardInput = System.`in`
 }
 
 tasks.register<JavaExec>("generateMigration") {

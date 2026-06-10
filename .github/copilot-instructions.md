@@ -36,7 +36,7 @@ with additional filtering for new relations between non-Zaken objects.
 
 ## Database Migrations
 
-The project uses Flyway for managing database schema changes. We use Exposed 1.0.0-rc-4 with migration utilities.
+The project uses Flyway for managing database schema changes. We use Exposed 1.3.0 with migration utilities.
 
 All tables should be listed in `src/main/kotlin/tooling/AllTables.kt`.
 
@@ -44,13 +44,14 @@ All tables should be listed in `src/main/kotlin/tooling/AllTables.kt`.
 - **Apply migrations:** `./gradlew flywayMigrate`
 - **Check status:** `./gradlew flywayInfo`
 - **Validate:** `./gradlew flywayValidate`
-- **Undo migration:** `./flyway-undo.sh <version>` (manual script, Community Edition limitation)
+- **Undo migration:** `./gradlew flywayUndo -Pargs="<version>"`
+- **Repair:** `./gradlew flywayRepair`
 
 ### Creating Migrations from Exposed Models
 1. Update your Exposed `Table` definition in `src/main/kotlin/entities/`
-2. Generate migration: `./gradlew generateMigration -Pargs="V2__Description"`
+2. Generate migration: `./gradlew generateMigration -Pargs="V<n>__Description"`
 3. Review generated SQL (may need manual enhancement)
-4. Create matching undo script: `U2__Description.sql`
+4. Create matching undo script: `U<n>__Description.sql`
 5. Apply: `./gradlew flywayMigrate`
 
 **Important:** The migration generator provides a starting point but may not detect all changes. Always review and test generated SQL.

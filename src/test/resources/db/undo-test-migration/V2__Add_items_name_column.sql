@@ -1,0 +1,1 @@
+ALTER TABLE undo_items ADD COLUMN name VARCHAR(100);

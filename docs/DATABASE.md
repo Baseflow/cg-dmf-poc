@@ -21,8 +21,11 @@
 # Validate migrations
 ./gradlew flywayValidate
 
-# Undo a migration (manual)
-./flyway-undo.sh <version>
+# Undo last migration
+./gradlew flywayUndo
+
+# Undo a specific version
+./gradlew flywayUndo -Pargs=<version>
 
 # Generate migration from Exposed models
 ./gradlew generateMigration -Pargs="V2__Description"
@@ -71,7 +74,7 @@
 
 6. **Test Undo**
    ```bash
-   ./flyway-undo.sh 2
+   ./gradlew flywayUndo -Pargs=2
    ./gradlew flywayInfo
    ```
 
@@ -129,7 +132,5 @@ For complex migrations that need data transformation:
 
 - Migration generator: `src/main/kotlin/tooling/MigrationGenerator.kt`
 - Flyway runner: `src/main/kotlin/tooling/FlywayMigration.kt`
-- Undo helper: `flyway-undo.sh`
 - Entity definitions: `src/main/kotlin/entities/`
 - Migration scripts: `src/main/resources/db/migration/`
-
