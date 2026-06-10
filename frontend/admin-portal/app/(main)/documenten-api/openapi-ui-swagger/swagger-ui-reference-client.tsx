@@ -9,5 +9,9 @@ const SwaggerUI = dynamic(() => import("swagger-ui-react"), {
 })
 
 export function SwaggerUiReferenceClient({ spec }: { spec: object }) {
-  return <SwaggerUI spec={spec} />
+  return (
+    <div className="bg-white text-[#3b4151]" style={{ colorScheme: "light" }}>
+      <SwaggerUI spec={spec} />
+    </div>
+  )
 }
