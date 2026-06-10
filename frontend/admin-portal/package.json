@@ -49,7 +49,7 @@
   "name": "cg-dmf-admin-portal",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "next build --webpack",
     "dev": "next dev --webpack",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "lint": "eslint",
