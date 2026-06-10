@@ -20,6 +20,7 @@ import com.baseflow.wopi.api.models.WopiLockResult
 import com.baseflow.wopi.api.models.WopiPutFileResult
 import com.baseflow.wopi.api.models.WopiPutRelativeFileResult
 import com.baseflow.wopi.api.models.WopiRenameResult
+import com.baseflow.wopi.api.models.WopiUnlockAndRelockResult
 import com.baseflow.wopi.api.models.WopiUnlockResult
 import com.baseflow.wopi.services.WopiDocumentService
 import io.mockk.Runs
@@ -127,6 +128,39 @@ class WopiDocumentServiceTest {
             subjectType = "zaak"
             createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
         }
+    }
+
+    // ── wopiUnlockAndRelock ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `wopiUnlockAndRelock - returns null for unknown id`() {
+        val result = service.wopiUnlockAndRelock(UUID.randomUUID(), "old-lock", "new-lock")
+        assertNull(result)
+    }
+
+    @Test
+    fun `wopiUnlockAndRelock - succeeds on locked file`() {
+        val id = createEio()
+        val lockResult = service.wopiLock(id, "old-lock")
+        assertIs<WopiLockResult.Success>(lockResult)
+        val result = service.wopiUnlockAndRelock(id, "old-lock", "new-lock")
+        assertIs<WopiUnlockAndRelockResult.Success>(result)
+    }
+
+    @Test
+    fun `wopiUnlockAndRelock - returns NotLocked when lock is missing for the file`() {
+        val id = createEio()
+        val result = service.wopiUnlockAndRelock(id, "old-lock", "new-lock")
+        assertIs<WopiUnlockAndRelockResult.NotLocked>(result)
+    }
+
+    @Test
+    fun `wopiUnlockAndRelock - returns LockMismatch when different lock is supplied`() {
+        val id = createEio()
+        service.wopiLock(id, "any-lock")
+        val result = service.wopiUnlockAndRelock(id, "old-lock", "new-lock")
+        assertIs<WopiUnlockAndRelockResult.LockMismatch>(result)
+        assertEquals("any-lock", result.currentFileLock.lock)
     }
 
     // ── wopiLock ──────────────────────────────────────────────────────────────

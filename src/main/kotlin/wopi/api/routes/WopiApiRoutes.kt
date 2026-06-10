@@ -359,7 +359,7 @@ private suspend fun RoutingContext.lockFile() {
     val oldLock = call.request.headers["X-WOPI-OldLock"]
     val fileId = call.attributes[WopiValidatedFileIdKey]
 
-    if (oldLock != null) {
+    if (oldLock?.ifBlank { null } != null) {
         // UnlockAndRelock: replace oldLock with the new lock value.
         when (val response = wopiService.wopiUnlockAndRelock(fileId, oldLock, lock)) {
             null -> {

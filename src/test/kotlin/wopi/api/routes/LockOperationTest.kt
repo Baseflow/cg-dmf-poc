@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
 package wopi.api.routes
 
 import com.baseflow.shared.api.WOPI_API_BASE_PATH
 import com.baseflow.shared.api.apiJsonConfig
 import com.baseflow.shared.api.middleware.AuditContext
+import com.baseflow.shared.api.middleware.configureStatusPages
 import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.config.authenticationModule
@@ -10,7 +13,6 @@ import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.WopiSlatService
 import com.baseflow.wopi.api.models.WopiLockPayload
 import com.baseflow.wopi.api.models.WopiLockResult
-import com.baseflow.shared.api.middleware.configureStatusPages
 import com.baseflow.wopi.api.wopiApiModule
 import com.baseflow.wopi.services.WopiDocumentService
 import io.ktor.client.request.header
@@ -90,24 +92,23 @@ class LockOperationTest {
     }
 
     @Test
-    fun `the LOCK operation should return 400 Bad Request when X-WOPI-Lock was not provided or was empty`() =
-        testApplication {
-            application {
-                setup()
-            }
-
-            mockEnkelvoudigInformatieObjectService.also {
-                coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
-            }
-
-            coEvery { mockWopiDocumentService.wopiLock(dummyFileId, "lock-value") } returns WopiLockResult.Success
-
-            val response: HttpResponse =
-                client.post("$WOPI_API_BASE_PATH/files/$dummyFileId?access_token=$dummyAccessToken") {
-                    header("X-WOPI-Override", "LOCK")
-                }
-            assertEquals(400, response.status.value)
+    fun `the LOCK operation should return 400 Bad Request when X-WOPI-Lock was not provided or was empty`() = testApplication {
+        application {
+            setup()
         }
+
+        mockEnkelvoudigInformatieObjectService.also {
+            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+        }
+
+        coEvery { mockWopiDocumentService.wopiLock(dummyFileId, "lock-value") } returns WopiLockResult.Success
+
+        val response: HttpResponse =
+            client.post("$WOPI_API_BASE_PATH/files/$dummyFileId?access_token=$dummyAccessToken") {
+                header("X-WOPI-Override", "LOCK")
+            }
+        assertEquals(400, response.status.value)
+    }
 
     @Test
     fun `the LOCK operation should return 401 Unauthorized when the access token is invalid`() = testApplication {
