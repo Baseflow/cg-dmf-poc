@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - develop
-    paths:
-      - 'src/**'
-      - 'Dockerfile'
-      - '.github/workflows/BUILD_AND_DEPLOY_BACKEND.yml'
+      - 'release/**'
   pull_request:
     branches:
       - main
@@ -27,15 +23,12 @@ jobs:
     name: Build docker image
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
         name: Checkout
-
-      - name: Get project version from build.gradle.kts
-        id: get_version
-        run: |
-          version=$(grep '^version' build.gradle.kts | head -n 1 | cut -d '"' -f2)
-          echo "version=$version" >> $GITHUB_OUTPUT
 
       - uses: ./.github/actions/docker
         name: Build and push to Azure Container Registry
@@ -46,7 +39,6 @@ jobs:
           registry: 'commongroundacr.azurecr.io'
           push: ${{ github.event_name != 'pull_request' }}
           vulnerability_scan: false
-          version: ${{ steps.get_version.outputs.version }}
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -64,3 +56,31 @@ jobs:
           docker tag ${SOURCE_TAG} ${DEST_TAG}
           docker push baseflow/cg-dmf-poc --all-tags
 
+      - name: Create GitHub Release
+        if: github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#release/}"
+          if [[ -f RELEASE_NOTES.md ]]; then
+            NOTES_ARG="--notes-file RELEASE_NOTES.md"
+          else
+            NOTES_ARG="--notes 'Release ${VERSION}.'"
+          fi
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            ${NOTES_ARG} \
+            --target ${{ github.sha }}
+
+      - name: Open PR to merge release into main
+        if: github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#release/}"
+          gh pr create \
+            --base main \
+            --head "${GITHUB_REF_NAME}" \
+            --title "Release v${VERSION} → main" \
+            --body "Merges release \`${GITHUB_REF_NAME}\` into \`main\` after a successful build and publish of v${VERSION}." \
+            || echo "PR already exists, skipping."

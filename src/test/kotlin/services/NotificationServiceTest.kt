@@ -7,13 +7,16 @@ import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectResponse
 import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectStatus
 import com.baseflow.shared.api.models.ResourceSegments
 import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
-import com.baseflow.shared.config.NotificationConfig
 import com.baseflow.shared.entities.IAuditContext
+import com.baseflow.shared.tooling.AllTables
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.httpMethod
 import io.mockk.*
 import kotlinx.datetime.LocalDate
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.UUID
 import kotlin.test.*
 
 class NotificationServiceTest {
@@ -22,18 +25,23 @@ class NotificationServiceTest {
 
     @BeforeTest
     fun setup() {
+        // Set up an empty in-memory DB — no NRC entry means notifications are disabled.
+        val dbName = "notification_service_${UUID.randomUUID()}"
+        Database.connect(
+            "jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver",
+            user = "root",
+            password = "",
+        )
+        transaction { AllTables.createMissing() }
+
         auditContext = AuditContext()
         service = NotificationService(auditContext)
-
-        // Mock NotificationConfig to ensure notifications are disabled in tests
-        mockkObject(NotificationConfig)
-        every { NotificationConfig.isEnabled } returns false
     }
 
     @AfterTest
     fun teardown() {
         clearAllMocks()
-        unmockkObject(NotificationConfig)
     }
 
     // Test data class implementing IAuditContext for testing

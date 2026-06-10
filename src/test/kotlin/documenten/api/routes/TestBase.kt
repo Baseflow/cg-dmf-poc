@@ -8,7 +8,6 @@ import com.baseflow.shared.api.apiJsonConfig
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
 import com.baseflow.shared.config.BestandsDeelConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.CatalogusService
@@ -92,8 +91,7 @@ open class TestBase(dbNamePrefix: String) {
                 module {
                     // Configuration objects (singletons)
                     single { ApplicationConfig }
-                    single { CatalogusService(get()) }
-                    single { OpenZaakConfig.fromEnv() }
+                    single { CatalogusService() }
                     single<StorageService> { mockStorageService }
 
                     requestScope {

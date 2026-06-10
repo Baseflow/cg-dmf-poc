@@ -4,11 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - develop
-    paths:
-      - 'frontend/admin-portal/**'
-      - '.github/workflows/BUILD_AND_DEPLOY_FRONTEND.yml'
+      - 'release/**'
   pull_request:
     branches:
       - main
@@ -20,15 +17,11 @@ jobs:
   docker-build:
     name: Build docker image
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
         name: Checkout
-
-      - name: Get project version from admin-portal package.json file
-        id: get_version
-        run: |
-          VERSION=$(jq -r '.version' frontend/admin-portal/package.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - uses: ./.github/actions/docker
         name: Build and push to Azure Container Registry
@@ -42,7 +35,6 @@ jobs:
           dockerfile: frontend/admin-portal/Dockerfile
           context: frontend/admin-portal
           repository: cg-dmf-admin-portal
-          version: ${{ steps.get_version.outputs.version }}
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -59,4 +51,3 @@ jobs:
           DEST_TAG="baseflow/cg-dmf-admin-portal:${SOURCE_TAG##*:}"
           docker tag ${SOURCE_TAG} ${DEST_TAG}
           docker push baseflow/cg-dmf-admin-portal --all-tags
-

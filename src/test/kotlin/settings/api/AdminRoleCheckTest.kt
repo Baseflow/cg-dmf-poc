@@ -10,7 +10,6 @@ import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.api.middleware.configureStatusPages
 import com.baseflow.shared.config.ApplicationConfig
 import com.baseflow.shared.config.BestandsDeelConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.BlobStorageRegistrar
@@ -130,8 +129,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
             modules(
                 module {
                     single { ApplicationConfig }
-                    single { CatalogusService(get()) }
-                    single { OpenZaakConfig.fromEnv() }
+                    single { CatalogusService() }
                     single<StorageService> { mockStorageService }
 
                     requestScope {

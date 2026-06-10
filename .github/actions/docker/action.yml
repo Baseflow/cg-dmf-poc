@@ -49,6 +49,9 @@ outputs:
   tag:
     description: "Full image tag that was built"
     value: ${{ steps.determine-tag.outputs.tag }}
+  extra_tag:
+    description: "Additional tag (e.g. latest) applied on release builds"
+    value: ${{ steps.determine-tag.outputs.extra_tag }}
 
 runs:
   using: "composite"
@@ -85,34 +88,32 @@ runs:
       id: determine-tag
       env:
         INPUT_TAG: ${{ inputs.tag }}
-        VERSION: ${{ inputs.version }}
         IMAGE_NAME: ${{ steps.info.outputs.image}}
       run: |
-        BRANCH_NAME="${GITHUB_REF##*/}"
+        BRANCH_NAME="${GITHUB_REF_NAME}"
         DATE=$(date +%y%m%d%H%M)
+        EXTRA_TAG=""
 
         echo "Branch name: $BRANCH_NAME"
-        echo "Release version: $VERSION"
 
         if [[ $INPUT_TAG != '' ]]; then
           TAG="${IMAGE_NAME}:${INPUT_TAG}"
+        elif [[ "$BRANCH_NAME" == release/* ]]; then
+          SEMVER="${BRANCH_NAME#release/}"
+          TAG="${IMAGE_NAME}:${SEMVER}"
+        elif [[ "$BRANCH_NAME" == "develop" ]] || [[ "$BRANCH_NAME" == hotfix/* ]]; then
+          TAG="${IMAGE_NAME}:${BRANCH_NAME//\//-}-${DATE}"
         elif [[ "$BRANCH_NAME" == "main" ]]; then
-          if [[ $VERSION == '' ]]; then
-              printf '%s\n' "Test case x failed" >&2
-              exit 1
-          fi
-          TAG="${IMAGE_NAME}:${VERSION}"
-        elif [[ "$BRANCH_NAME" == "develop" ]] || [[ "$BRANCH_NAME" == release-* ]] || [[ "$BRANCH_NAME" == hotfix-* ]]; then
-          TAG="${IMAGE_NAME}:${BRANCH_NAME}-${DATE}"
-        # temporary
-        elif [[ "$BRANCH_NAME" == "develop-admin-portal" ]]; then
-          TAG="${IMAGE_NAME}:${BRANCH_NAME}-${DATE}"
-        # / temporary
+          TAG="${IMAGE_NAME}:main"
         else
-          TAG="${IMAGE_NAME}:${BRANCH_NAME}"
+          TAG="${IMAGE_NAME}:${BRANCH_NAME//\//-}"
         fi
 
         echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "extra_tag=${EXTRA_TAG}" >> $GITHUB_OUTPUT
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Docker build image
       if: inputs.build == 'true'
@@ -121,11 +122,14 @@ runs:
       env:
         DOCKERFILE: ${{ steps.info.outputs.dockerfile }}
         TAG: ${{ steps.determine-tag.outputs.tag }}
+        EXTRA_TAG: ${{ steps.determine-tag.outputs.extra_tag }}
         ARGS: ${{ inputs.buildArgs }}
         CONTEXT: ${{ inputs.context }}
       run: |
         docker buildx build \
-          --no-cache \
+          --cache-from type=gha \
+          --cache-to type=gha,mode=max \
+          --load \
           --label time=$(date +%Y%m%d%H%M%S) \
           --label branch=${GITHUB_REF_NAME} \
           --label commit=${{ github.sha }} \
@@ -133,6 +137,7 @@ runs:
           --build-arg "BRANCH=${{ github.ref_name }}" \
           --build-arg "COMMIT=${{ github.sha }}" \
           --tag ${TAG} \
+          ${EXTRA_TAG:+--tag ${EXTRA_TAG}} \
           ${ARGS} \
           ${CONTEXT}
 

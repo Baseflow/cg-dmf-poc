@@ -1,4 +1,4 @@
-import { DockerIcon, GitHubIcon, OidcIcon } from "@/components/icons"
+import { DockerIcon, GitHubIcon } from "@/components/icons"
 import {
   AppWindow,
   BookOpen,
@@ -50,22 +50,16 @@ export const navigation: {
           description: "DMF systeeminstellingen",
         },
         {
-          name: "ZGW API",
-          url: "/instellingen/zgw-api",
+          name: "API koppelingen",
+          url: "/instellingen/api-koppelingen",
           icon: <Plug />,
-          description: "ZGW API koppelingsprofielen",
+          description: "API koppelingsprofielen",
         },
         {
           name: "Applicaties",
           url: "/instellingen/applicaties",
           icon: <AppWindow />,
           description: "Gekoppelde applicaties",
-        },
-        {
-          name: "OIDC",
-          url: "/instellingen/oidc",
-          icon: <OidcIcon />,
-          description: "OpenID Connect authenticatieproviders",
         },
       ],
     },

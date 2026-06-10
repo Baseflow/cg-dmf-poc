@@ -4,7 +4,6 @@ package wopi.services
 
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.OpenZaakConfig
 import com.baseflow.shared.entities.EIORecordEntity
 import com.baseflow.shared.entities.OIORecordEntity
 import com.baseflow.shared.services.AuditTrailService
@@ -96,7 +95,7 @@ class WopiDocumentServiceTest {
         eioService = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
             applicationConfig = ApplicationConfig,
-            catalogusService = CatalogusService(OpenZaakConfig(validationEnabled = false)),
+            catalogusService = CatalogusService(),
             auditTrailService = mockAuditTrailService,
             auditContext = AuditContext(),
             bestandsDeelService = BestandsDeelService(),

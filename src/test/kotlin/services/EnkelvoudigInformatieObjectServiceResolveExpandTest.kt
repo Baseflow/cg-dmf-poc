@@ -4,7 +4,8 @@ package com.baseflow.shared.services
 
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.OpenZaakConfig
+import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
+import com.baseflow.shared.entities.settings.ApiConnectionType
 import com.baseflow.shared.services.models.QueryEnkelvoudigeInformatieObjectenFilter
 import com.baseflow.shared.tooling.AllTables
 import com.baseflow.testutils.TestDataFactory
@@ -18,6 +19,8 @@ import io.ktor.utils.io.ByteReadChannel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -29,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 /**
  * Tests for resolveExpand behaviour, exercised via the public getById / getAll surface.
@@ -52,13 +56,7 @@ class EnkelvoudigInformatieObjectServiceResolveExpandTest {
 
     /** Builds the service with a CatalogusService backed by the given MockEngine. */
     private fun buildService(mockEngine: MockEngine): EnkelvoudigInformatieObjectService {
-        val config = OpenZaakConfig(
-            endpoint = "https://openzaak.dev.baseflow.com",
-            clientId = "test-client",
-            clientSecret = "test-secret",
-            validationEnabled = false,
-        )
-        val catalogusService = CatalogusService(config, HttpClient(mockEngine))
+        val catalogusService = CatalogusService(HttpClient(mockEngine))
         val mockStorageService = mockk<StorageService>()
         every { mockStorageService.uploadFile(any(), any()) } answers { secondArg<ByteArray>().size.toLong() }
         val auditContext = AuditContext()
@@ -80,7 +78,18 @@ class EnkelvoudigInformatieObjectServiceResolveExpandTest {
             user = "root",
             password = "",
         )
-        transaction { AllTables.createMissing() }
+        transaction {
+            AllTables.createMissing()
+            ApiConnectionSettingEntity.new {
+                name = "openzaak-test"
+                baseUrl = "https://openzaak.dev.baseflow.com"
+                clientId = "test-client"
+                clientSecret = "test-secret"
+                apiType = ApiConnectionType.ZTC.value
+                validationEnabled = false
+                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            }
+        }
 
         val mockEngine = MockEngine.Companion {
             respond(

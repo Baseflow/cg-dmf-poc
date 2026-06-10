@@ -2,11 +2,10 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.settings.api
 
+import com.baseflow.settings.api.routes.apiConnectionSettingsRoutes
 import com.baseflow.settings.api.routes.applicationSettingsRoutes
 import com.baseflow.settings.api.routes.blobStorageRepositorySettingsRoutes
 import com.baseflow.settings.api.routes.dmfSettingsRoutes
-import com.baseflow.settings.api.routes.oidcProviderSettingsRoutes
-import com.baseflow.settings.api.routes.zgwApiSettingsRoutes
 import com.baseflow.shared.api.middleware.ForbiddenException
 import com.baseflow.shared.config.AuthenticationConfig
 import io.ktor.server.application.Application
@@ -114,9 +113,8 @@ private fun ApplicationCall.jwtRoles(): Set<String> {
  * Endpoints:
  * - /settings/application-settings — manage application credential configurations
  * - /settings/storage-repositories — manage blob storage repositories
- * - /settings/oidc-providers — manage OIDC provider configurations
  * - /settings/dmf-settings — manage DMF settings
- * - /settings/zgw-api-settings — manage ZGW API settings
+ * - /settings/api-connection-settings — manage API connection settings (API koppelingen)
  */
 fun Route.settingsRoutes(requireRoleCheck: Boolean = true) {
     val requiredRole = AuthenticationConfig.adminRole
@@ -143,9 +141,8 @@ fun Route.settingsRoutes(requireRoleCheck: Boolean = true) {
 
         applicationSettingsRoutes()
         dmfSettingsRoutes()
-        zgwApiSettingsRoutes()
+        apiConnectionSettingsRoutes()
         blobStorageRepositorySettingsRoutes()
-        oidcProviderSettingsRoutes()
     }
 }
 
