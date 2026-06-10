@@ -48,7 +48,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SecretInput } from "@/components/ui/secret-input"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
-import { AlertTriangle, AppWindow, Check, MoreHorizontal, RefreshCw, X } from "lucide-react"
+import {
+  AlertTriangle,
+  AppWindow,
+  Check,
+  MoreHorizontal,
+  RefreshCw,
+  X,
+} from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -78,6 +85,7 @@ export function ApplicationList({
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editing, setEditing] = useState<ApplicationSetting | null>(null)
+  const [drawerReadOnly, setDrawerReadOnly] = useState(false)
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
 
@@ -113,6 +121,7 @@ export function ApplicationList({
 
   const openAdd = useCallback(() => {
     setEditing(null)
+    setDrawerReadOnly(false)
     setDrawerError(null)
     setDrawerDirty(false)
     setDrawerOpen(true)
@@ -120,6 +129,7 @@ export function ApplicationList({
 
   const openEdit = useCallback((app: ApplicationSetting) => {
     setEditing(app)
+    setDrawerReadOnly(app.readonly ?? false)
     setDrawerError(null)
     setDrawerDirty(false)
     setDrawerOpen(true)
@@ -275,7 +285,7 @@ export function ApplicationList({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => openEdit(row.original)}>
-                  Bewerken
+                  {row.original.readonly ? "Bekijken" : "Bewerken"}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => openRotate(row.original)}>
                   Secret roteren
@@ -322,6 +332,7 @@ export function ApplicationList({
           <AppForm
             key={editing?.id ?? "new"}
             app={editing}
+            readOnly={drawerReadOnly}
             saving={isSaving}
             error={drawerError}
             onSave={handleSave}
@@ -550,6 +561,7 @@ type AppFormErrors = Partial<Record<keyof AppFormFields, string>>
 
 function AppForm({
   app,
+  readOnly = false,
   saving,
   error,
   onSave,
@@ -557,6 +569,7 @@ function AppForm({
   onDirtyChange,
 }: {
   app: ApplicationSetting | null
+  readOnly?: boolean
   saving: boolean
   error: string | null
   onSave: (data: {
@@ -618,9 +631,11 @@ function AppForm({
       <DrawerHeader>
         <DrawerTitle>{app ? app.name : "Applicatie toevoegen"}</DrawerTitle>
         <DrawerDescription>
-          {app
-            ? "Bewerk de applicatie-instellingen."
-            : "Voeg een nieuwe applicatie toe."}
+          {readOnly
+            ? "Bekijk de applicatie-instellingen."
+            : app
+              ? "Bewerk de applicatie-instellingen."
+              : "Voeg een nieuwe applicatie toe."}
         </DrawerDescription>
       </DrawerHeader>
       <form
@@ -636,7 +651,7 @@ function AppForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Mijn applicatie"
-            disabled={saving}
+            disabled={saving || readOnly}
           />
           <FieldDescription>
             Herkenbare naam voor deze applicatie.
@@ -650,7 +665,7 @@ function AppForm({
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             placeholder="my-client-id"
-            disabled={saving}
+            disabled={saving || readOnly}
             copyable
           />
           <FieldDescription>
@@ -669,27 +684,35 @@ function AppForm({
                 ? "Laat leeg om huidig secret te bewaren"
                 : "Voer het client secret in"
             }
-            disabled={saving}
+            disabled={saving || readOnly}
             onGenerate={generateSecret}
             copyable
           />
         </Field>
       </form>
       <DrawerFooter>
-        <Button type="submit" form="app-form" size="sm" disabled={saving}>
-          <Check />
-          {saving ? "Opslaan..." : "Opslaan"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          disabled={saving}
-        >
-          <X />
-          Annuleren
-        </Button>
+        {readOnly ? (
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+            Sluiten
+          </Button>
+        ) : (
+          <>
+            <Button type="submit" form="app-form" size="sm" disabled={saving}>
+              <Check />
+              {saving ? "Opslaan..." : "Opslaan"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              <X />
+              Annuleren
+            </Button>
+          </>
+        )}
       </DrawerFooter>
     </>
   )

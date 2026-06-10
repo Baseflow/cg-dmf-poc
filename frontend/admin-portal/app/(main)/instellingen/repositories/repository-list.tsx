@@ -27,7 +27,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { SecretInput } from "@/components/ui/secret-input"
 import {
@@ -42,7 +48,14 @@ import { SettingsTable } from "@/components/settings-table"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Check, Database, MoreHorizontal, X } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState, useTransition, type FormEvent } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react"
 import {
   createRepository,
   deleteRepositories,
@@ -61,14 +74,13 @@ export function RepositoryList({
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null)
+  const [drawerReadOnly, setDrawerReadOnly] = useState(false)
   const [isSaving, startSave] = useTransition()
   const [drawerError, setDrawerError] = useState<string | null>(null)
   const [drawerDirty, setDrawerDirty] = useState(false)
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<Repository | null>(
-    null
-  )
+  const [deleteTarget, setDeleteTarget] = useState<Repository | null>(null)
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [isDeleting, startDelete] = useTransition()
@@ -85,6 +97,7 @@ export function RepositoryList({
 
   const openAdd = useCallback(() => {
     setEditingRepo(null)
+    setDrawerReadOnly(false)
     setDrawerError(null)
     setDrawerDirty(false)
     setDrawerOpen(true)
@@ -92,6 +105,7 @@ export function RepositoryList({
 
   const openEdit = useCallback((repo: Repository) => {
     setEditingRepo(repo)
+    setDrawerReadOnly(repo.readonly ?? false)
     setDrawerError(null)
     setDrawerDirty(false)
     setDrawerOpen(true)
@@ -194,7 +208,10 @@ export function RepositoryList({
               </Badge>
             )}
             {!row.original.enabled && (
-              <Badge variant="secondary" className="text-xs text-muted-foreground">
+              <Badge
+                variant="secondary"
+                className="text-xs text-muted-foreground"
+              >
                 Uitgeschakeld
               </Badge>
             )}
@@ -225,9 +242,7 @@ export function RepositoryList({
         cell: ({ row }) => {
           const { storageType, bucket, storageAccountName } = row.original
           const label = storageType === "S3" ? bucket : storageAccountName
-          return (
-            <span className="text-muted-foreground">{label || "—"}</span>
-          )
+          return <span className="text-muted-foreground">{label || "—"}</span>
         },
       },
       {
@@ -256,7 +271,7 @@ export function RepositoryList({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => openEdit(row.original)}>
-                  Bewerken
+                  {row.original.readonly ? "Bekijken" : "Bewerken"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
@@ -301,6 +316,7 @@ export function RepositoryList({
           <RepositoryForm
             key={editingRepo?.id ?? "new"}
             repo={editingRepo}
+            readOnly={drawerReadOnly}
             saving={isSaving}
             error={drawerError}
             onSave={handleSave}
@@ -412,6 +428,7 @@ export function RepositoryList({
 
 function RepositoryForm({
   repo,
+  readOnly = false,
   saving,
   error,
   onSave,
@@ -419,6 +436,7 @@ function RepositoryForm({
   onDirtyChange,
 }: {
   repo: Repository | null
+  readOnly?: boolean
   saving: boolean
   error: string | null
   onSave: (data: {
@@ -489,9 +507,11 @@ function RepositoryForm({
       <DrawerHeader>
         <DrawerTitle>{repo ? repo.name : "Repository toevoegen"}</DrawerTitle>
         <DrawerDescription>
-          {repo
-            ? "Bewerk de repository-instellingen."
-            : "Configureer een nieuwe object store repository."}
+          {readOnly
+            ? "Bekijk de repository-instellingen."
+            : repo
+              ? "Bewerk de repository-instellingen."
+              : "Configureer een nieuwe object store repository."}
         </DrawerDescription>
       </DrawerHeader>
       <form
@@ -509,9 +529,11 @@ function RepositoryForm({
             onChange={(e) => setName(e.target.value)}
             placeholder="mijn-repository"
             required
-            disabled={saving}
+            disabled={saving || readOnly}
           />
-          <FieldDescription>Herkenbare naam voor deze repository.</FieldDescription>
+          <FieldDescription>
+            Herkenbare naam voor deze repository.
+          </FieldDescription>
         </Field>
 
         <Field>
@@ -531,7 +553,9 @@ function RepositoryForm({
               </SelectItem>
             </SelectContent>
           </Select>
-          <FieldDescription>Bepaalt welke verbindingsinstellingen nodig zijn.</FieldDescription>
+          <FieldDescription>
+            Bepaalt welke verbindingsinstellingen nodig zijn.
+          </FieldDescription>
         </Field>
 
         <Field>
@@ -541,7 +565,7 @@ function RepositoryForm({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://mijnaccount.blob.core.windows.net"
-            disabled={saving}
+            disabled={saving || readOnly}
             copyable
           />
           <FieldDescription>Basis-URL van de object store.</FieldDescription>
@@ -555,7 +579,7 @@ function RepositoryForm({
               value={bucket}
               onChange={(e) => setBucket(e.target.value)}
               placeholder="mijn-bucket"
-              disabled={saving}
+              disabled={saving || readOnly}
             />
             <FieldDescription>De naam van de S3-bucket.</FieldDescription>
           </Field>
@@ -572,9 +596,11 @@ function RepositoryForm({
               onChange={(e) => setStorageAccountName(e.target.value)}
               placeholder="mijnstorageaccount"
               required={isAzure}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
-            <FieldDescription>De naam van het Azure Storage-account.</FieldDescription>
+            <FieldDescription>
+              De naam van het Azure Storage-account.
+            </FieldDescription>
           </Field>
         )}
 
@@ -590,7 +616,7 @@ function RepositoryForm({
                   ? "Laat leeg om huidige waarde te bewaren"
                   : "Voer de access key in"
               }
-              disabled={saving}
+              disabled={saving || readOnly}
               copyable
             />
           </Field>
@@ -608,7 +634,7 @@ function RepositoryForm({
                   ? "Laat leeg om huidige waarde te bewaren"
                   : "Voer de secret key in"
               }
-              disabled={saving}
+              disabled={saving || readOnly}
               copyable
             />
           </Field>
@@ -619,11 +645,13 @@ function RepositoryForm({
             id="repo-default"
             checked={isDefault}
             onCheckedChange={(v) => setIsDefault(v === true)}
-            disabled={saving}
+            disabled={saving || readOnly}
           />
           <FieldContent>
             <FieldLabel htmlFor="repo-default">Standaard repository</FieldLabel>
-            <FieldDescription>Gebruik deze repository standaard voor nieuwe uploads.</FieldDescription>
+            <FieldDescription>
+              Gebruik deze repository standaard voor nieuwe uploads.
+            </FieldDescription>
           </FieldContent>
         </Field>
 
@@ -632,29 +660,39 @@ function RepositoryForm({
             id="repo-enabled"
             checked={enabled}
             onCheckedChange={(v) => setEnabled(v === true)}
-            disabled={saving}
+            disabled={saving || readOnly}
           />
           <FieldContent>
             <FieldLabel htmlFor="repo-enabled">Ingeschakeld</FieldLabel>
-            <FieldDescription>Schakel deze repository in of uit voor gebruik.</FieldDescription>
+            <FieldDescription>
+              Schakel deze repository in of uit voor gebruik.
+            </FieldDescription>
           </FieldContent>
         </Field>
       </form>
       <DrawerFooter>
-        <Button type="submit" form="repo-form" size="sm" disabled={saving}>
-          <Check />
-          {saving ? "Opslaan..." : "Opslaan"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          disabled={saving}
-        >
-          <X />
-          Annuleren
-        </Button>
+        {readOnly ? (
+          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+            Sluiten
+          </Button>
+        ) : (
+          <>
+            <Button type="submit" form="repo-form" size="sm" disabled={saving}>
+              <Check />
+              {saving ? "Opslaan..." : "Opslaan"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              <X />
+              Annuleren
+            </Button>
+          </>
+        )}
       </DrawerFooter>
     </>
   )

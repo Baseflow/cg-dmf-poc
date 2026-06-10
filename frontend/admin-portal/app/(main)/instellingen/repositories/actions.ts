@@ -13,6 +13,7 @@ export interface Repository {
   url: string
   bucket: string
   isDefault: boolean
+  readonly?: boolean
   enabled: boolean
   accessKey: string | null
   secretKey: string | null
