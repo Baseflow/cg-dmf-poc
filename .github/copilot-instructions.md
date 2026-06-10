@@ -10,10 +10,12 @@ with additional filtering for new relations between non-Zaken objects.
 
 - Language: Kotlin
 - Java: version 21 (LTS)
-- ORM: Exposed v1.0.0 (or the rc version)
+- Web Framework: Ktor 3.x
+- ORM: Exposed 1.3.0
+- Dependency Injection: Koin 4.x
 - Build Tool: Gradle
 - Database: PostgreSQL
-- Migration Tool: Flyway
+- Migration Tool: Flyway 12
 - Containerization: Docker, Docker Compose (development), Kubernetes (production)
 
 ## Directory Structure
@@ -24,8 +26,8 @@ with additional filtering for new relations between non-Zaken objects.
   - `settings/` — Internal management endpoints (`com.baseflow.settings`)
   - `wopi/` — WOPI protocol support (planned, not yet implemented) (`com.baseflow.wopi`)
   - `shared/` - Consolidated shared code that is used across multiple domains
-    - `middleware/` — Shared Ktor plugins (auth, audit trail, notifications, etc.)
-    - `models/` — Shared request/response models
+    - `api/middleware/` — Shared Ktor plugins (auth, audit trail, notifications, etc.)
+    - `api/models/` — Shared request/response models
     - `config/` — Application configuration and dependency injection
     - `entities/` — Exposed ORM table definitions
     - `services/` — Business logic
@@ -38,7 +40,7 @@ with additional filtering for new relations between non-Zaken objects.
 
 The project uses Flyway for managing database schema changes. We use Exposed 1.3.0 with migration utilities.
 
-All tables should be listed in `src/main/kotlin/tooling/AllTables.kt`.
+All tables should be listed in `src/main/kotlin/shared/tooling/AllTables.kt`.
 
 ### Quick Commands
 - **Apply migrations:** `./gradlew flywayMigrate`
