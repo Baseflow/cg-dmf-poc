@@ -11,6 +11,7 @@ export interface ApplicationSetting {
   hasSecret: boolean
   clientSecret: string | null
   updatedAt: string
+  readonly?: boolean
 }
 
 type ApplicationInput = {

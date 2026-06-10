@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+
 "use client"
 
 import { CopyableCell } from "@/components/copyable-cell"
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog"
 import { SecretCell } from "@/components/secret-cell"
 import { SettingsTable } from "@/components/settings-table"
 import {
@@ -23,13 +27,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Drawer,
-  DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import { DrawerFormFooter } from "@/components/ui/drawer-form-footer"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,10 +47,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ResponsiveDrawer } from "@/components/ui/responsive-drawer"
 import { SecretInput } from "@/components/ui/secret-input"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useDeleteState } from "@/hooks/use-delete-state"
+import { useDrawerState } from "@/hooks/use-drawer-state"
+import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
-import { AlertTriangle, AppWindow, Check, MoreHorizontal, RefreshCw, X } from "lucide-react"
+import {
+  AlertTriangle,
+  AppWindow,
+  MoreHorizontal,
+  RefreshCw,
+} from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -74,23 +84,40 @@ export function ApplicationList({
 }: {
   applications: ApplicationSetting[]
 }) {
-  const isMobile = useIsMobile()
+  const {
+    open: drawerOpen,
+    item: editing,
+    readOnly: drawerReadOnly,
+    saving: isSaving,
+    error: drawerError,
+    setDirty: setDrawerDirty,
+    closeConfirmOpen,
+    dismissCloseConfirm,
+    confirmClose,
+    handleCloseAttempt: handleDrawerCloseAttempt,
+    openAdd,
+    openEdit: openEditBase,
+    save,
+  } = useDrawerState<ApplicationSetting>()
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editing, setEditing] = useState<ApplicationSetting | null>(null)
-  const [isSaving, startSave] = useTransition()
-  const [drawerError, setDrawerError] = useState<string | null>(null)
-
-  const [deleteTarget, setDeleteTarget] = useState<ApplicationSetting | null>(
-    null
+  const openEdit = useCallback(
+    (app: ApplicationSetting) => openEditBase(app, app.readonly ?? false),
+    [openEditBase]
   )
-  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [isDeleting, startDelete] = useTransition()
-  const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  const [drawerDirty, setDrawerDirty] = useState(false)
-  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
+  const {
+    deleteTarget,
+    setDeleteTarget,
+    bulkDeleteIds,
+    setBulkDeleteIds,
+    bulkDeleteOpen,
+    setBulkDeleteOpen,
+    isDeleting,
+    deleteError,
+    setDeleteError,
+    deleteOne,
+    deleteBulk,
+  } = useDeleteState<ApplicationSetting>()
 
   const [rotateTarget, setRotateTarget] = useState<ApplicationSetting | null>(
     null
@@ -101,29 +128,6 @@ export function ApplicationList({
   const [rotatedSecret, setRotatedSecret] = useState("")
   const [rotateError, setRotateError] = useState<string | null>(null)
   const [isRotating, startRotate] = useTransition()
-
-  const handleDrawerCloseAttempt = useCallback(() => {
-    if (isSaving) return
-    if (drawerDirty) {
-      setCloseConfirmOpen(true)
-    } else {
-      setDrawerOpen(false)
-    }
-  }, [isSaving, drawerDirty])
-
-  const openAdd = useCallback(() => {
-    setEditing(null)
-    setDrawerError(null)
-    setDrawerDirty(false)
-    setDrawerOpen(true)
-  }, [])
-
-  const openEdit = useCallback((app: ApplicationSetting) => {
-    setEditing(app)
-    setDrawerError(null)
-    setDrawerDirty(false)
-    setDrawerOpen(true)
-  }, [])
 
   const openRotate = useCallback((app: ApplicationSetting) => {
     setRotateTarget(app)
@@ -144,59 +148,16 @@ export function ApplicationList({
     clientId: string
     clientSecret: string
   }) {
-    setDrawerError(null)
     const body = {
       name: data.name,
       clientId: data.clientId,
       ...(data.clientSecret ? { clientSecret: data.clientSecret } : {}),
     }
-    startSave(async () => {
-      try {
-        if (editing) {
-          await updateApplication(editing.id, body)
-        } else {
-          await createApplication(body)
-        }
-        setDrawerOpen(false)
-      } catch (e) {
-        setDrawerError(
-          e instanceof Error
-            ? e.message
-            : "Opslaan mislukt. Probeer het opnieuw."
-        )
-      }
-    })
-  }
-
-  function handleDelete() {
-    if (!deleteTarget) return
-    setDeleteError(null)
-    startDelete(async () => {
-      try {
-        await deleteApplication(deleteTarget.id)
-        setDeleteTarget(null)
-      } catch (e) {
-        setDeleteError(
-          e instanceof Error
-            ? e.message
-            : "Verwijderen mislukt. Probeer het opnieuw."
-        )
-      }
-    })
-  }
-
-  function handleDeleteBulk() {
-    setDeleteError(null)
-    startDelete(async () => {
-      try {
-        await deleteApplications(bulkDeleteIds)
-        setBulkDeleteOpen(false)
-      } catch (e) {
-        setDeleteError(
-          e instanceof Error
-            ? e.message
-            : "Verwijderen mislukt. Probeer het opnieuw."
-        )
+    save(async () => {
+      if (editing) {
+        await updateApplication(editing.id, body)
+      } else {
+        await createApplication(body)
       }
     })
   }
@@ -254,11 +215,7 @@ export function ApplicationList({
         header: "Bijgewerkt",
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {new Intl.DateTimeFormat("nl-NL", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }).format(new Date(row.original.updatedAt))}
+            {formatNlDate(row.original.updatedAt)}
           </span>
         ),
       },
@@ -275,7 +232,7 @@ export function ApplicationList({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => openEdit(row.original)}>
-                  Bewerken
+                  {row.original.readonly ? "Bekijken" : "Bewerken"}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => openRotate(row.original)}>
                   Secret roteren
@@ -292,7 +249,7 @@ export function ApplicationList({
         ),
       },
     ],
-    [openEdit, openRotate]
+    [openEdit, openRotate, setDeleteTarget]
   )
 
   return (
@@ -311,53 +268,29 @@ export function ApplicationList({
         }}
       />
 
-      <Drawer
+      <ResponsiveDrawer
         open={drawerOpen}
         onOpenChange={(open) => {
           if (!open) handleDrawerCloseAttempt()
         }}
-        direction={isMobile ? "bottom" : "right"}
       >
-        <DrawerContent>
-          <AppForm
-            key={editing?.id ?? "new"}
-            app={editing}
-            saving={isSaving}
-            error={drawerError}
-            onSave={handleSave}
-            onCancel={handleDrawerCloseAttempt}
-            onDirtyChange={setDrawerDirty}
-          />
-        </DrawerContent>
-      </Drawer>
+        <AppForm
+          key={editing?.id ?? "new"}
+          app={editing}
+          readOnly={drawerReadOnly}
+          saving={isSaving}
+          error={drawerError}
+          onSave={handleSave}
+          onCancel={handleDrawerCloseAttempt}
+          onDirtyChange={setDrawerDirty}
+        />
+      </ResponsiveDrawer>
 
-      <AlertDialog
+      <DiscardChangesDialog
         open={closeConfirmOpen}
-        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
-              sluiten?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Terug</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                setCloseConfirmOpen(false)
-                setDrawerOpen(false)
-                setDrawerDirty(false)
-              }}
-            >
-              Sluiten
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onDismiss={dismissCloseConfirm}
+        onConfirm={confirmClose}
+      />
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -383,7 +316,11 @@ export function ApplicationList({
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={handleDelete}
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteOne(() => deleteApplication(deleteTarget.id))
+                }
+              }}
               disabled={isDeleting}
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
@@ -417,7 +354,9 @@ export function ApplicationList({
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={handleDeleteBulk}
+              onClick={() =>
+                deleteBulk(() => deleteApplications(bulkDeleteIds))
+              }
               disabled={isDeleting}
             >
               {isDeleting
@@ -550,6 +489,7 @@ type AppFormErrors = Partial<Record<keyof AppFormFields, string>>
 
 function AppForm({
   app,
+  readOnly = false,
   saving,
   error,
   onSave,
@@ -557,6 +497,7 @@ function AppForm({
   onDirtyChange,
 }: {
   app: ApplicationSetting | null
+  readOnly?: boolean
   saving: boolean
   error: string | null
   onSave: (data: {
@@ -618,9 +559,11 @@ function AppForm({
       <DrawerHeader>
         <DrawerTitle>{app ? app.name : "Applicatie toevoegen"}</DrawerTitle>
         <DrawerDescription>
-          {app
-            ? "Bewerk de applicatie-instellingen."
-            : "Voeg een nieuwe applicatie toe."}
+          {readOnly
+            ? "Bekijk de applicatie-instellingen."
+            : app
+              ? "Bewerk de applicatie-instellingen."
+              : "Voeg een nieuwe applicatie toe."}
         </DrawerDescription>
       </DrawerHeader>
       <form
@@ -636,7 +579,7 @@ function AppForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Mijn applicatie"
-            disabled={saving}
+            disabled={saving || readOnly}
           />
           <FieldDescription>
             Herkenbare naam voor deze applicatie.
@@ -650,7 +593,7 @@ function AppForm({
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             placeholder="my-client-id"
-            disabled={saving}
+            disabled={saving || readOnly}
             copyable
           />
           <FieldDescription>
@@ -669,28 +612,18 @@ function AppForm({
                 ? "Laat leeg om huidig secret te bewaren"
                 : "Voer het client secret in"
             }
-            disabled={saving}
+            disabled={saving || readOnly}
             onGenerate={generateSecret}
             copyable
           />
         </Field>
       </form>
-      <DrawerFooter>
-        <Button type="submit" form="app-form" size="sm" disabled={saving}>
-          <Check />
-          {saving ? "Opslaan..." : "Opslaan"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          disabled={saving}
-        >
-          <X />
-          Annuleren
-        </Button>
-      </DrawerFooter>
+      <DrawerFormFooter
+        readOnly={readOnly}
+        saving={saving}
+        formId="app-form"
+        onCancel={onCancel}
+      />
     </>
   )
 }

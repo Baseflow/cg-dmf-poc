@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+
 "use client"
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog"
 import { SettingsTable } from "@/components/settings-table"
 import {
   AlertDialog,
@@ -11,16 +15,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Drawer,
-  DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import { DrawerFormFooter } from "@/components/ui/drawer-form-footer"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +37,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { ResponsiveDrawer } from "@/components/ui/responsive-drawer"
 import { SecretInput } from "@/components/ui/secret-input"
 import {
   Select,
@@ -42,16 +46,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useDeleteState } from "@/hooks/use-delete-state"
+import { useDrawerState } from "@/hooks/use-drawer-state"
+import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
 import { Check, Lock, MoreHorizontal, Plug, X } from "lucide-react"
 import {
   useCallback,
   useEffect,
   useMemo,
   useState,
-  useTransition,
   type FormEvent,
 } from "react"
 import {
@@ -84,51 +88,46 @@ const API_TYPE_OPTIONS = [
 
 function apiTypeLabel(value: string): string {
   return (
-    API_TYPE_OPTIONS.find((o) => o.value === value)
-      ?.label.split(" — ")[0] ?? value.toUpperCase()
+    API_TYPE_OPTIONS.find((o) => o.value === value)?.label.split(" — ")[0] ??
+    value.toUpperCase()
   )
 }
 
 export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
-  const isMobile = useIsMobile()
+  const {
+    open: drawerOpen,
+    item: editingSetting,
+    readOnly: drawerReadOnly,
+    saving: isSaving,
+    error: drawerError,
+    setDirty: setDrawerDirty,
+    closeConfirmOpen,
+    dismissCloseConfirm,
+    confirmClose,
+    handleCloseAttempt: handleDrawerCloseAttempt,
+    openAdd,
+    openEdit: openEditBase,
+    save,
+  } = useDrawerState<ApiKoppeling>()
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editingSetting, setEditingSetting] = useState<ApiKoppeling | null>(
-    null
+  const openDetails = useCallback(
+    (setting: ApiKoppeling) => openEditBase(setting, setting.readonly),
+    [openEditBase]
   )
-  const [isSaving, startSave] = useTransition()
-  const [drawerError, setDrawerError] = useState<string | null>(null)
-  const [drawerDirty, setDrawerDirty] = useState(false)
-  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<ApiKoppeling | null>(null)
-  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [isDeleting, startDelete] = useTransition()
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-
-  const handleDrawerCloseAttempt = useCallback(() => {
-    if (isSaving) return
-    if (drawerDirty) {
-      setCloseConfirmOpen(true)
-    } else {
-      setDrawerOpen(false)
-    }
-  }, [isSaving, drawerDirty])
-
-  const openAdd = useCallback(() => {
-    setEditingSetting(null)
-    setDrawerError(null)
-    setDrawerDirty(false)
-    setDrawerOpen(true)
-  }, [])
-
-  const openDetails = useCallback((setting: ApiKoppeling) => {
-    setEditingSetting(setting)
-    setDrawerError(null)
-    setDrawerDirty(false)
-    setDrawerOpen(true)
-  }, [])
+  const {
+    deleteTarget,
+    setDeleteTarget,
+    bulkDeleteIds,
+    setBulkDeleteIds,
+    bulkDeleteOpen,
+    setBulkDeleteOpen,
+    isDeleting,
+    deleteError,
+    setDeleteError,
+    deleteOne,
+    deleteBulk,
+  } = useDeleteState<ApiKoppeling>()
 
   function handleSave(data: {
     name: string
@@ -140,7 +139,6 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
     validationEnabled: boolean
     enabled: boolean
   }) {
-    setDrawerError(null)
     const body = {
       name: data.name,
       baseUrl: data.baseUrl,
@@ -151,53 +149,11 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
       enabled: data.enabled,
       ...(data.clientSecret ? { clientSecret: data.clientSecret } : {}),
     }
-    startSave(async () => {
-      try {
-        if (editingSetting) {
-          await updateApiKoppeling(editingSetting.id, body)
-        } else {
-          await createApiKoppeling(body)
-        }
-        setDrawerOpen(false)
-      } catch (e) {
-        setDrawerError(
-          e instanceof Error
-            ? e.message
-            : "Opslaan mislukt. Probeer het opnieuw."
-        )
-      }
-    })
-  }
-
-  function handleDeleteSingle() {
-    if (!deleteTarget) return
-    setDeleteError(null)
-    startDelete(async () => {
-      try {
-        await deleteApiKoppeling(deleteTarget.id)
-        setDeleteTarget(null)
-      } catch (e) {
-        setDeleteError(
-          e instanceof Error
-            ? e.message
-            : "Verwijderen mislukt. Probeer het opnieuw."
-        )
-      }
-    })
-  }
-
-  function handleDeleteBulk() {
-    setDeleteError(null)
-    startDelete(async () => {
-      try {
-        await deleteApiKoppelingen(bulkDeleteIds)
-        setBulkDeleteOpen(false)
-      } catch (e) {
-        setDeleteError(
-          e instanceof Error
-            ? e.message
-            : "Verwijderen mislukt. Probeer het opnieuw."
-        )
+    save(async () => {
+      if (editingSetting) {
+        await updateApiKoppeling(editingSetting.id, body)
+      } else {
+        await createApiKoppeling(body)
       }
     })
   }
@@ -211,7 +167,10 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
           <div className="flex items-center gap-2">
             <span className="font-medium">{row.original.name}</span>
             {!row.original.enabled && (
-              <Badge variant="secondary" className="text-xs text-muted-foreground">
+              <Badge
+                variant="secondary"
+                className="text-xs text-muted-foreground"
+              >
                 Uitgeschakeld
               </Badge>
             )}
@@ -266,11 +225,7 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
         header: "Bijgewerkt",
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {new Intl.DateTimeFormat("nl-NL", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }).format(new Date(row.original.updatedAt))}
+            {formatNlDate(row.original.updatedAt)}
           </span>
         ),
       },
@@ -286,11 +241,8 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => openDetails(row.original)}
-                  disabled={row.original.readonly}
-                >
-                  Bewerken
+                <DropdownMenuItem onClick={() => openDetails(row.original)}>
+                  {row.original.readonly ? "Bekijken" : "Bewerken"}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
@@ -304,7 +256,7 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
         ),
       },
     ],
-    [openDetails]
+    [openDetails, setDeleteTarget]
   )
 
   return (
@@ -323,54 +275,29 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
         }}
       />
 
-      <Drawer
-        key={isMobile ? "bottom" : "right"}
+      <ResponsiveDrawer
         open={drawerOpen}
         onOpenChange={(open) => {
           if (!open) handleDrawerCloseAttempt()
         }}
-        direction={isMobile ? "bottom" : "right"}
       >
-        <DrawerContent>
-          <SettingForm
-            key={editingSetting?.id ?? "new"}
-            setting={editingSetting}
-            saving={isSaving}
-            error={drawerError}
-            onSave={handleSave}
-            onCancel={handleDrawerCloseAttempt}
-            onDirtyChange={setDrawerDirty}
-          />
-        </DrawerContent>
-      </Drawer>
+        <SettingForm
+          key={editingSetting?.id ?? "new"}
+          setting={editingSetting}
+          readOnly={drawerReadOnly}
+          saving={isSaving}
+          error={drawerError}
+          onSave={handleSave}
+          onCancel={handleDrawerCloseAttempt}
+          onDirtyChange={setDrawerDirty}
+        />
+      </ResponsiveDrawer>
 
-      <AlertDialog
+      <DiscardChangesDialog
         open={closeConfirmOpen}
-        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
-              sluiten?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Terug</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                setCloseConfirmOpen(false)
-                setDrawerOpen(false)
-                setDrawerDirty(false)
-              }}
-            >
-              Sluiten
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onDismiss={dismissCloseConfirm}
+        onConfirm={confirmClose}
+      />
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -396,7 +323,11 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={handleDeleteSingle}
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteOne(() => deleteApiKoppeling(deleteTarget.id))
+                }
+              }}
               disabled={isDeleting}
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
@@ -430,7 +361,9 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={handleDeleteBulk}
+              onClick={() =>
+                deleteBulk(() => deleteApiKoppelingen(bulkDeleteIds))
+              }
               disabled={isDeleting}
             >
               {isDeleting
@@ -446,6 +379,7 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
 
 function SettingForm({
   setting,
+  readOnly = false,
   saving,
   error,
   onSave,
@@ -453,6 +387,7 @@ function SettingForm({
   onDirtyChange,
 }: {
   setting: ApiKoppeling | null
+  readOnly?: boolean
   saving: boolean
   error: string | null
   onSave: (data: {
@@ -472,7 +407,9 @@ function SettingForm({
   const [baseUrl, setBaseUrl] = useState(setting?.baseUrl ?? "")
   const [clientId, setClientId] = useState(setting?.clientId ?? "")
   const [clientSecret, setClientSecret] = useState("")
-  const [apiType, setApiType] = useState(setting?.apiType ?? API_TYPE_OPTIONS[0].value)
+  const [apiType, setApiType] = useState(
+    setting?.apiType ?? API_TYPE_OPTIONS[0].value
+  )
   const [authType, setAuthType] = useState(setting?.authType ?? "zgw-auth")
   const [validationEnabled, setValidationEnabled] = useState(
     setting?.validationEnabled ?? true
@@ -514,7 +451,8 @@ function SettingForm({
           "Voer een geldige URL in (bijv. https://openzaak.example.com)."
       }
     }
-    if (authType !== "none" && authType !== "bearer" && !clientId.trim()) errors.clientId = "Client ID is verplicht."
+    if (authType !== "none" && authType !== "bearer" && !clientId.trim())
+      errors.clientId = "Client ID is verplicht."
     if (!apiType) errors.apiType = "Type is verplicht."
 
     if (Object.keys(errors).length > 0) {
@@ -523,7 +461,16 @@ function SettingForm({
     }
 
     setFieldErrors({})
-    onSave({ name, baseUrl, clientId, clientSecret, apiType, authType, validationEnabled, enabled })
+    onSave({
+      name,
+      baseUrl,
+      clientId,
+      clientSecret,
+      apiType,
+      authType,
+      validationEnabled,
+      enabled,
+    })
   }
 
   return (
@@ -533,9 +480,11 @@ function SettingForm({
           {setting ? setting.name : "Koppeling toevoegen"}
         </DrawerTitle>
         <DrawerDescription>
-          {setting
-            ? "Bewerk de API koppelingsinstelling."
-            : "Configureer een nieuwe API koppeling."}
+          {readOnly
+            ? "Bekijk de API koppelingsinstelling."
+            : setting
+              ? "Bewerk de API koppelingsinstelling."
+              : "Configureer een nieuwe API koppeling."}
         </DrawerDescription>
       </DrawerHeader>
       <form
@@ -552,7 +501,7 @@ function SettingForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="OpenZaak productie"
-            disabled={saving}
+            disabled={saving || readOnly}
           />
           <FieldDescription>
             Herkenbare naam voor dit koppelingsprofile.
@@ -564,7 +513,7 @@ function SettingForm({
           <Select
             value={apiType}
             onValueChange={setApiType}
-            disabled={saving}
+            disabled={saving || readOnly}
           >
             <SelectTrigger id="setting-api-type">
               <SelectValue placeholder="Selecteer een type" />
@@ -587,10 +536,12 @@ function SettingForm({
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://openzaak.example.com"
-            disabled={saving}
+            disabled={saving || readOnly}
             copyable
           />
-          <FieldDescription>Basis-URL van de API-implementatie.</FieldDescription>
+          <FieldDescription>
+            Basis-URL van de API-implementatie.
+          </FieldDescription>
           <FieldError>{fieldErrors.baseUrl}</FieldError>
         </Field>
         <Field>
@@ -598,7 +549,7 @@ function SettingForm({
           <Select
             value={authType}
             onValueChange={setAuthType}
-            disabled={saving}
+            disabled={saving || readOnly}
           >
             <SelectTrigger id="setting-auth-type">
               <SelectValue placeholder="Selecteer authenticatietype" />
@@ -611,7 +562,9 @@ function SettingForm({
               ))}
             </SelectContent>
           </Select>
-          <FieldDescription>Authenticatiemethode voor deze koppeling.</FieldDescription>
+          <FieldDescription>
+            Authenticatiemethode voor deze koppeling.
+          </FieldDescription>
         </Field>
         {authType !== "none" && authType !== "bearer" && (
           <Field>
@@ -621,16 +574,20 @@ function SettingForm({
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               placeholder="client-id"
-              disabled={saving}
+              disabled={saving || readOnly}
               copyable
             />
-            <FieldDescription>Client-ID voor JWT-authenticatie.</FieldDescription>
+            <FieldDescription>
+              Client-ID voor JWT-authenticatie.
+            </FieldDescription>
             <FieldError>{fieldErrors.clientId}</FieldError>
           </Field>
         )}
         {authType !== "none" && (
           <Field>
-            <FieldLabel htmlFor="setting-client-secret">Client secret</FieldLabel>
+            <FieldLabel htmlFor="setting-client-secret">
+              Client secret
+            </FieldLabel>
             <SecretInput
               id="setting-client-secret"
               value={clientSecret}
@@ -640,7 +597,7 @@ function SettingForm({
                   ? "Laat leeg om huidig secret te bewaren"
                   : "Voer het client secret in"
               }
-              disabled={saving}
+              disabled={saving || readOnly}
               copyable
             />
           </Field>
@@ -653,7 +610,7 @@ function SettingForm({
               onCheckedChange={(checked) =>
                 setValidationEnabled(checked === true)
               }
-              disabled={saving}
+              disabled={saving || readOnly}
             />
             <FieldLabel htmlFor="setting-validation-enabled">
               Validatie ingeschakeld
@@ -670,7 +627,7 @@ function SettingForm({
               id="setting-enabled"
               checked={enabled}
               onCheckedChange={(checked) => setEnabled(checked === true)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
             <FieldLabel htmlFor="setting-enabled">Actief</FieldLabel>
           </div>
@@ -679,22 +636,12 @@ function SettingForm({
           </FieldDescription>
         </Field>
       </form>
-      <DrawerFooter>
-        <Button type="submit" form="setting-form" size="sm" disabled={saving}>
-          <Check />
-          {saving ? "Opslaan..." : "Opslaan"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          disabled={saving}
-        >
-          <X />
-          Annuleren
-        </Button>
-      </DrawerFooter>
+      <DrawerFormFooter
+        readOnly={readOnly}
+        saving={saving}
+        formId="setting-form"
+        onCancel={onCancel}
+      />
     </>
   )
 }
