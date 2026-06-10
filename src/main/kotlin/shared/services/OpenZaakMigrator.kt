@@ -48,8 +48,9 @@ object OpenZaakMigrator {
             ConnectionSpec("openzaak-zrc", ApiConnectionType.ZRC, "$normalizedEndpoint/zaken/api/v1"),
         )
 
-        transaction {
-            for (spec in specs) {
+        for (spec in specs) {
+            transaction {
+                maxAttempts = 1
                 upsert(spec, clientId, clientSecret, validationEnabled)
             }
         }
@@ -59,19 +60,33 @@ object OpenZaakMigrator {
         val existing = ApiConnectionSettingEntity.find {
             ApiConnectionSettingsTable.apiType eq spec.apiType.value
         }.firstOrNull { it.baseUrl.trimEnd('/') == spec.baseUrl.trimEnd('/') }
+            ?: ApiConnectionSettingEntity.find {
+                ApiConnectionSettingsTable.name eq spec.name
+            }.firstOrNull { it.apiType == spec.apiType.value }
 
         if (existing != null) {
+            val urlChanged = existing.baseUrl.trimEnd('/') != spec.baseUrl.trimEnd('/')
+            existing.baseUrl = spec.baseUrl
             existing.clientId = clientId
             existing.clientSecret = clientSecret
             existing.validationEnabled = validationEnabled
             existing.readonly = true
             existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            logger.info(
-                "Updated {} connection '{}' from OPENZAAK_* env vars (url: {})",
-                spec.apiType.value.uppercase(),
-                existing.name,
-                spec.baseUrl,
-            )
+            if (urlChanged) {
+                logger.info(
+                    "Updated {} connection '{}' from OPENZAAK_* env vars (url changed to: {})",
+                    spec.apiType.value.uppercase(),
+                    existing.name,
+                    spec.baseUrl,
+                )
+            } else {
+                logger.info(
+                    "Updated {} connection '{}' from OPENZAAK_* env vars (url: {})",
+                    spec.apiType.value.uppercase(),
+                    existing.name,
+                    spec.baseUrl,
+                )
+            }
         } else {
             ApiConnectionSettingEntity.new {
                 name = spec.name
