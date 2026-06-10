@@ -94,17 +94,12 @@ dependencies {
     // Open-API specification generation + routing annotations
     implementation("io.ktor:ktor-server-routing-openapi:3.5.0")
 
-    // Security. override to secure versions to fix CVEs in transitive dependencies
-    constraints {
-        // dependency of flyway-core and ktor-server-auth-jwt
-        implementation("tools.jackson.core:jackson-core:3.1.4") {
-            because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
-        }
-        // dependency of ktor-server-auth-jwt
-        implementation("com.fasterxml.jackson.core:jackson-core:2.22.0") {
-            because("Minimum version from transitive dependencies")
-        }
-    }
+    // To override a transitive dependency version to fix a CVE, use a constraint block like this:
+    // constraints {
+    //     implementation("tools.jackson.core:jackson-core:3.1.4") {
+    //         because("Fixes CVE GHSA-72hv-8253-57qq - Number Length Constraint Bypass in Async Parser")
+    //     }
+    // }
 }
 
 kotlin {
