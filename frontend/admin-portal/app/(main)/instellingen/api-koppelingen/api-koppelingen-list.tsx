@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (C) 2026 Gemeente Utrecht
+
 "use client"
 
+import { DiscardChangesDialog } from "@/components/discard-changes-dialog"
 import { SettingsTable } from "@/components/settings-table"
 import {
   AlertDialog,
@@ -11,16 +15,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Drawer,
-  DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import { DrawerFormFooter } from "@/components/ui/drawer-form-footer"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +37,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { ResponsiveDrawer } from "@/components/ui/responsive-drawer"
 import { SecretInput } from "@/components/ui/secret-input"
 import {
   Select,
@@ -42,16 +46,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useDeleteState } from "@/hooks/use-delete-state"
+import { useDrawerState } from "@/hooks/use-drawer-state"
+import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
 import { Check, Lock, MoreHorizontal, Plug, X } from "lucide-react"
 import {
   useCallback,
   useEffect,
   useMemo,
   useState,
-  useTransition,
   type FormEvent,
 } from "react"
 import {
@@ -90,48 +94,40 @@ function apiTypeLabel(value: string): string {
 }
 
 export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
-  const isMobile = useIsMobile()
+  const {
+    open: drawerOpen,
+    item: editingSetting,
+    readOnly: drawerReadOnly,
+    saving: isSaving,
+    error: drawerError,
+    setDirty: setDrawerDirty,
+    closeConfirmOpen,
+    dismissCloseConfirm,
+    confirmClose,
+    handleCloseAttempt: handleDrawerCloseAttempt,
+    openAdd,
+    openEdit: openEditBase,
+    save,
+  } = useDrawerState<ApiKoppeling>()
 
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editingSetting, setEditingSetting] = useState<ApiKoppeling | null>(
-    null
+  const openDetails = useCallback(
+    (setting: ApiKoppeling) => openEditBase(setting, setting.readonly),
+    [openEditBase]
   )
-  const [drawerReadOnly, setDrawerReadOnly] = useState(false)
-  const [isSaving, startSave] = useTransition()
-  const [drawerError, setDrawerError] = useState<string | null>(null)
-  const [drawerDirty, setDrawerDirty] = useState(false)
-  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<ApiKoppeling | null>(null)
-  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([])
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const [isDeleting, startDelete] = useTransition()
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-
-  const handleDrawerCloseAttempt = useCallback(() => {
-    if (isSaving) return
-    if (drawerDirty) {
-      setCloseConfirmOpen(true)
-    } else {
-      setDrawerOpen(false)
-    }
-  }, [isSaving, drawerDirty])
-
-  const openAdd = useCallback(() => {
-    setEditingSetting(null)
-    setDrawerReadOnly(false)
-    setDrawerError(null)
-    setDrawerDirty(false)
-    setDrawerOpen(true)
-  }, [])
-
-  const openDetails = useCallback((setting: ApiKoppeling) => {
-    setEditingSetting(setting)
-    setDrawerReadOnly(setting.readonly)
-    setDrawerError(null)
-    setDrawerDirty(false)
-    setDrawerOpen(true)
-  }, [])
+  const {
+    deleteTarget,
+    setDeleteTarget,
+    bulkDeleteIds,
+    setBulkDeleteIds,
+    bulkDeleteOpen,
+    setBulkDeleteOpen,
+    isDeleting,
+    deleteError,
+    setDeleteError,
+    deleteOne,
+    deleteBulk,
+  } = useDeleteState<ApiKoppeling>()
 
   function handleSave(data: {
     name: string
@@ -143,7 +139,6 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
     validationEnabled: boolean
     enabled: boolean
   }) {
-    setDrawerError(null)
     const body = {
       name: data.name,
       baseUrl: data.baseUrl,
@@ -154,53 +149,11 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
       enabled: data.enabled,
       ...(data.clientSecret ? { clientSecret: data.clientSecret } : {}),
     }
-    startSave(async () => {
-      try {
-        if (editingSetting) {
-          await updateApiKoppeling(editingSetting.id, body)
-        } else {
-          await createApiKoppeling(body)
-        }
-        setDrawerOpen(false)
-      } catch (e) {
-        setDrawerError(
-          e instanceof Error
-            ? e.message
-            : "Opslaan mislukt. Probeer het opnieuw."
-        )
-      }
-    })
-  }
-
-  function handleDeleteSingle() {
-    if (!deleteTarget) return
-    setDeleteError(null)
-    startDelete(async () => {
-      try {
-        await deleteApiKoppeling(deleteTarget.id)
-        setDeleteTarget(null)
-      } catch (e) {
-        setDeleteError(
-          e instanceof Error
-            ? e.message
-            : "Verwijderen mislukt. Probeer het opnieuw."
-        )
-      }
-    })
-  }
-
-  function handleDeleteBulk() {
-    setDeleteError(null)
-    startDelete(async () => {
-      try {
-        await deleteApiKoppelingen(bulkDeleteIds)
-        setBulkDeleteOpen(false)
-      } catch (e) {
-        setDeleteError(
-          e instanceof Error
-            ? e.message
-            : "Verwijderen mislukt. Probeer het opnieuw."
-        )
+    save(async () => {
+      if (editingSetting) {
+        await updateApiKoppeling(editingSetting.id, body)
+      } else {
+        await createApiKoppeling(body)
       }
     })
   }
@@ -272,11 +225,7 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
         header: "Bijgewerkt",
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {new Intl.DateTimeFormat("nl-NL", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }).format(new Date(row.original.updatedAt))}
+            {formatNlDate(row.original.updatedAt)}
           </span>
         ),
       },
@@ -307,7 +256,7 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
         ),
       },
     ],
-    [openDetails]
+    [openDetails, setDeleteTarget]
   )
 
   return (
@@ -326,55 +275,29 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
         }}
       />
 
-      <Drawer
-        key={isMobile ? "bottom" : "right"}
+      <ResponsiveDrawer
         open={drawerOpen}
         onOpenChange={(open) => {
           if (!open) handleDrawerCloseAttempt()
         }}
-        direction={isMobile ? "bottom" : "right"}
       >
-        <DrawerContent>
-          <SettingForm
-            key={editingSetting?.id ?? "new"}
-            setting={editingSetting}
-            readOnly={drawerReadOnly}
-            saving={isSaving}
-            error={drawerError}
-            onSave={handleSave}
-            onCancel={handleDrawerCloseAttempt}
-            onDirtyChange={setDrawerDirty}
-          />
-        </DrawerContent>
-      </Drawer>
+        <SettingForm
+          key={editingSetting?.id ?? "new"}
+          setting={editingSetting}
+          readOnly={drawerReadOnly}
+          saving={isSaving}
+          error={drawerError}
+          onSave={handleSave}
+          onCancel={handleDrawerCloseAttempt}
+          onDirtyChange={setDrawerDirty}
+        />
+      </ResponsiveDrawer>
 
-      <AlertDialog
+      <DiscardChangesDialog
         open={closeConfirmOpen}
-        onOpenChange={(open) => !open && setCloseConfirmOpen(false)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Wijzigingen verlaten?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Je hebt niet-opgeslagen wijzigingen. Weet je zeker dat je wilt
-              sluiten?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Terug</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                setCloseConfirmOpen(false)
-                setDrawerOpen(false)
-                setDrawerDirty(false)
-              }}
-            >
-              Sluiten
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onDismiss={dismissCloseConfirm}
+        onConfirm={confirmClose}
+      />
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -400,7 +323,11 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={handleDeleteSingle}
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteOne(() => deleteApiKoppeling(deleteTarget.id))
+                }
+              }}
               disabled={isDeleting}
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
@@ -434,7 +361,9 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={handleDeleteBulk}
+              onClick={() =>
+                deleteBulk(() => deleteApiKoppelingen(bulkDeleteIds))
+              }
               disabled={isDeleting}
             >
               {isDeleting
@@ -707,35 +636,12 @@ function SettingForm({
           </FieldDescription>
         </Field>
       </form>
-      <DrawerFooter>
-        {readOnly ? (
-          <Button type="button" variant="outline" size="sm" onClick={onCancel}>
-            Sluiten
-          </Button>
-        ) : (
-          <>
-            <Button
-              type="submit"
-              form="setting-form"
-              size="sm"
-              disabled={saving}
-            >
-              <Check />
-              {saving ? "Opslaan..." : "Opslaan"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onCancel}
-              disabled={saving}
-            >
-              <X />
-              Annuleren
-            </Button>
-          </>
-        )}
-      </DrawerFooter>
+      <DrawerFormFooter
+        readOnly={readOnly}
+        saving={saving}
+        formId="setting-form"
+        onCancel={onCancel}
+      />
     </>
   )
 }
