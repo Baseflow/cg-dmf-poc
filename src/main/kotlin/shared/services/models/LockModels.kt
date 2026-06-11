@@ -3,11 +3,12 @@
 package com.baseflow.shared.services.models
 
 import io.ktor.openapi.JsonSchema
+import kotlinx.serialization.Serializable
 
 @JsonSchema.Title("LockToken")
 @JsonSchema.Description("Het vergrendel-token dat ontvangen wordt na het vergrendelen (lock/checkout) van een informatieobject.")
 @JsonSchema.Example("""{"lock": "c7d72de0-2ba1-4e73-8a4a-9b6de2f1d3e0"}""")
-@kotlinx.serialization.Serializable
+@Serializable
 data class LockPayload(
     @JsonSchema.Description("Het vergrendel-token (UUID). Bewaar dit token — het is nodig voor PUT/PATCH en voor unlock.")
     @JsonSchema.Format("uuid")

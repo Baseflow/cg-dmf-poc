@@ -19,6 +19,7 @@ import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.util.UUID
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -463,7 +464,7 @@ class EnkelvoudigInformatieObjectFilterTest {
     @Test
     fun `filter locked=true geeft alleen vergrendelde documenten terug`() = runBlocking {
         val locked = service.create(generateTestDocument(titel = "Vergrendeld"))
-        service.lock(java.util.UUID.fromString(locked.id))
+        service.lock(UUID.fromString(locked.id))
         service.create(generateTestDocument(titel = "Niet vergrendeld"))
 
         val (results, count) = service.getAll(
@@ -477,7 +478,7 @@ class EnkelvoudigInformatieObjectFilterTest {
     @Test
     fun `filter locked=false geeft alleen niet-vergrendelde documenten terug`() = runBlocking {
         val locked = service.create(generateTestDocument(titel = "Vergrendeld"))
-        service.lock(java.util.UUID.fromString(locked.id))
+        service.lock(UUID.fromString(locked.id))
         service.create(generateTestDocument(titel = "Niet vergrendeld"))
 
         val (results, count) = service.getAll(
@@ -491,7 +492,7 @@ class EnkelvoudigInformatieObjectFilterTest {
     @Test
     fun `filter zonder locked geeft alle documenten terug ongeacht vergrendeling`() = runBlocking {
         val locked = service.create(generateTestDocument(titel = "Vergrendeld"))
-        service.lock(java.util.UUID.fromString(locked.id))
+        service.lock(UUID.fromString(locked.id))
         service.create(generateTestDocument(titel = "Niet vergrendeld"))
 
         val (results, count) = service.getAll(

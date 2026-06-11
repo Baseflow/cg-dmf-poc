@@ -56,7 +56,7 @@ class NotificationServiceTest {
      * Helper function to create a test entity response.
      */
     private fun createTestEntity(
-        entityId: String = java.util.UUID.randomUUID().toString(),
+        entityId: String = UUID.randomUUID().toString(),
         name: String = "test",
     ): EnkelvoudigInformatieObjectResponse = EnkelvoudigInformatieObjectResponse(
         id = entityId,

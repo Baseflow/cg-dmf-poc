@@ -27,6 +27,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
@@ -114,7 +115,7 @@ class NotificationService(private val context: AuditContext) {
 
         private val nrcCacheTtl = 30.seconds
 
-        private val nrcCache = java.util.concurrent.atomic.AtomicReference<Pair<NrcConnectionSnapshot?, Instant>?>(null)
+        private val nrcCache = AtomicReference<Pair<NrcConnectionSnapshot?, Instant>?>(null)
 
         @OptIn(ExperimentalTime::class)
         private fun loadNrcConnection(): NrcConnectionSnapshot? {

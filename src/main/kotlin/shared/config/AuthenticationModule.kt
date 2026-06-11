@@ -6,6 +6,7 @@ import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
+import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.interfaces.JWTVerifier
 import com.baseflow.shared.services.ApplicationCredentialRegistrar
 import io.ktor.http.HttpStatusCode
@@ -77,7 +78,7 @@ fun Application.authenticationModule() {
 
             verifier(
                 object : JWTVerifier {
-                    override fun verify(token: String): com.auth0.jwt.interfaces.DecodedJWT {
+                    override fun verify(token: String): DecodedJWT {
                         val decoded = JWT.decode(token)
                         val clientId = decoded.getClaim("client_id").asString()
                         val issuerToken = decoded.getClaim("iss").asString()
@@ -109,7 +110,7 @@ fun Application.authenticationModule() {
                         }
                     }
 
-                    override fun verify(jwt: com.auth0.jwt.interfaces.DecodedJWT): com.auth0.jwt.interfaces.DecodedJWT =
+                    override fun verify(jwt: DecodedJWT): DecodedJWT =
                         throw JWTVerificationException("Decoded JWT verification without raw token is not supported")
                 },
             )

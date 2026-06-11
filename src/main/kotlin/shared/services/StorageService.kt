@@ -3,6 +3,7 @@
 package com.baseflow.shared.services
 
 import org.slf4j.LoggerFactory
+import java.io.BufferedInputStream
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -199,7 +200,7 @@ open class StorageService {
          * Callers MUST use the returned [InputStream] for subsequent reads.
          */
         internal fun detectFileFormat(stream: InputStream): Pair<String?, InputStream> {
-            val buffered = if (stream.markSupported()) stream else java.io.BufferedInputStream(stream, FORMAT_DETECTION_BUFFER_SIZE + 1)
+            val buffered = if (stream.markSupported()) stream else BufferedInputStream(stream, FORMAT_DETECTION_BUFFER_SIZE + 1)
             buffered.mark(FORMAT_DETECTION_BUFFER_SIZE)
             val header = buffered.readNBytes(FORMAT_DETECTION_BUFFER_SIZE)
             buffered.reset()

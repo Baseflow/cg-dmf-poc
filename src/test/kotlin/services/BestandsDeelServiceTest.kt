@@ -14,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.InputStream
 import java.util.UUID
 import kotlin.test.*
 
@@ -109,7 +110,7 @@ class BestandsDeelServiceTest {
         every {
             mockStorageService.uploadFile(
                 any<String>(),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 anyNullable(),
             )
@@ -179,7 +180,7 @@ class BestandsDeelServiceTest {
         val bytes = ByteArray(4) { it.toByte() }
 
         val capturedKeys = mutableListOf<String>()
-        val capturedContent = mutableListOf<java.io.InputStream>()
+        val capturedContent = mutableListOf<InputStream>()
         every {
             mockStorageService.uploadFile(
                 capture(capturedKeys),
@@ -215,7 +216,7 @@ class BestandsDeelServiceTest {
         io.mockk.verify(exactly = 0) {
             mockStorageService.uploadFile(
                 any<String>(),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 anyNullable(),
             )
@@ -252,7 +253,7 @@ class BestandsDeelServiceTest {
         // Mock uploadFile to return the wrong byte count — the service checks the return value
         // against part.omvang and must return OmvangMismatch without marking the part voltooid.
         every {
-            mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable())
+            mockStorageService.uploadFile(any<String>(), any<InputStream>(), any<Long>(), anyNullable())
         } returns wrongSizeBytes.size.toLong()
 
         val result = bestandsDeelService.uploadFilePart(uuid, part.lock, wrongSizeBytes.inputStream(), mockStorageService)
@@ -264,7 +265,7 @@ class BestandsDeelServiceTest {
         io.mockk.verify(exactly = 1) {
             mockStorageService.uploadFile(
                 any<String>(),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 anyNullable(),
             )
@@ -338,7 +339,7 @@ class BestandsDeelServiceTest {
         every {
             mockStorageService.uploadFile(
                 any(),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 captureNullable(capturedRepos),
             )

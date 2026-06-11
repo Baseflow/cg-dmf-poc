@@ -7,6 +7,7 @@ import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.services.WopiSlatService
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.util.AttributeKey
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
 import java.util.UUID
@@ -51,4 +52,4 @@ private fun getWopiSlatService(call: ApplicationCall): WopiSlatService = call.sc
 }
 
 /** Attribute key to retrieve the validated WOPI file UUID inside a route handler. */
-val WopiValidatedFileIdKey = io.ktor.util.AttributeKey<UUID>("WopiValidatedFileId")
+val WopiValidatedFileIdKey = AttributeKey<UUID>("WopiValidatedFileId")

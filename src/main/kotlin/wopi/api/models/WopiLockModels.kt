@@ -5,6 +5,7 @@ package com.baseflow.wopi.api.models
 import com.baseflow.shared.api.models.EnkelvoudigInformatieObjectResponse
 import io.ktor.openapi.JsonSchema
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 @JsonSchema.Title("WopiLockToken")
 @JsonSchema.Example("""{"lock": "cool-lock12345678"}""")
@@ -78,7 +79,7 @@ sealed class WopiPutRelativeFileResult {
      * [resolvedName] is the actual file name used (may differ from the requested name if an
      * exact-overwrite was not requested and a collision was resolved).
      */
-    data class Success(val fileId: java.util.UUID, val resolvedName: String) : WopiPutRelativeFileResult()
+    data class Success(val fileId: UUID, val resolvedName: String) : WopiPutRelativeFileResult()
 
     /** The source document with the given id does not exist. */
     data object SourceNotFound : WopiPutRelativeFileResult()

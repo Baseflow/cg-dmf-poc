@@ -38,10 +38,13 @@ import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.io.encoding.Base64
 import kotlin.test.*
+import java.util.Base64 as JavaBase64
 
 class EnkelvoudigInformatieObjectServiceTest {
     private lateinit var service: EnkelvoudigInformatieObjectService
@@ -67,12 +70,12 @@ class EnkelvoudigInformatieObjectServiceTest {
         every {
             mockStorageService.uploadFile(
                 any<String>(),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 anyNullable(),
             )
         } answers {
-            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            secondArg<InputStream>().copyTo(OutputStream.nullOutputStream())
             thirdArg<Long>()
         }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
@@ -292,12 +295,12 @@ class EnkelvoudigInformatieObjectServiceTest {
         val part1Key = bestandsDeelStorageKey(id, 1, parts[0].id.value)
         val part2Key = bestandsDeelStorageKey(id, 1, parts[1].id.value)
         every { mockStorageService.downloadFileTo(eq(part1Key), any(), anyNullable()) } answers {
-            val out = secondArg<java.io.OutputStream>()
+            val out = secondArg<OutputStream>()
             out.write(chunkBytes1)
             CompletableFuture.completedFuture(null)
         }
         every { mockStorageService.downloadFileTo(eq(part2Key), any(), anyNullable()) } answers {
-            val out = secondArg<java.io.OutputStream>()
+            val out = secondArg<OutputStream>()
             out.write(chunkBytes2)
             CompletableFuture.completedFuture(null)
         }
@@ -307,13 +310,13 @@ class EnkelvoudigInformatieObjectServiceTest {
         every {
             mockStorageService.uploadFile(
                 eq(mergedKey),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 anyNullable(),
             )
         } answers {
             // Read the stream eagerly so we can assert on its contents later.
-            val captured = secondArg<java.io.InputStream>().readBytes()
+            val captured = secondArg<InputStream>().readBytes()
             mergedBytesSlot.add(captured)
             thirdArg<Long>() // return contentLength to satisfy the Long return type
         }
@@ -323,7 +326,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertTrue(unlockRes is UnlockResult.Success)
 
         // Verify merged content was uploaded via the streaming overload
-        verify { mockStorageService.uploadFile(eq(mergedKey), any<java.io.InputStream>(), any<Long>(), anyNullable()) }
+        verify { mockStorageService.uploadFile(eq(mergedKey), any<InputStream>(), any<Long>(), anyNullable()) }
         val merged = mergedBytesSlot.first()
         assertEquals(totalSize.toInt(), merged.size)
         assertContentEquals(mergedBytes, merged)
@@ -399,12 +402,12 @@ class EnkelvoudigInformatieObjectServiceTest {
         val part1Key = bestandsDeelStorageKey(id, 1, parts[0].id.value)
         val part2Key = bestandsDeelStorageKey(id, 1, parts[1].id.value)
         every { mockStorageService.downloadFileTo(eq(part1Key), any(), anyNullable()) } answers {
-            val out = secondArg<java.io.OutputStream>()
+            val out = secondArg<OutputStream>()
             out.write(chunkBytes1)
             CompletableFuture.completedFuture(null)
         }
         every { mockStorageService.downloadFileTo(eq(part2Key), any(), anyNullable()) } answers {
-            val out = secondArg<java.io.OutputStream>()
+            val out = secondArg<OutputStream>()
             out.write(chunkBytes2)
             CompletableFuture.completedFuture(null)
         }
@@ -413,12 +416,12 @@ class EnkelvoudigInformatieObjectServiceTest {
         every {
             mockStorageService.uploadFile(
                 eq(mergedKey),
-                any<java.io.InputStream>(),
+                any<InputStream>(),
                 any<Long>(),
                 anyNullable(),
             )
         } answers {
-            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            secondArg<InputStream>().copyTo(OutputStream.nullOutputStream())
             thirdArg<Long>()
         }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit
@@ -517,7 +520,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `create should derive bestandsomvang from content if not provided`() = runBlocking {
         val content = "Hello World"
-        val base64Content = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
+        val base64Content = JavaBase64.getEncoder().encodeToString(content.toByteArray())
         val req = generateTestDocument().copy(
             inhoud = base64Content,
             bestandsomvang = null,
@@ -531,7 +534,7 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `create should use provided bestandsomvang even if content is present`() = runBlocking {
         val content = "Hello World"
-        val base64Content = java.util.Base64.getEncoder().encodeToString(content.toByteArray())
+        val base64Content = JavaBase64.getEncoder().encodeToString(content.toByteArray())
         val req = generateTestDocument().copy(
             inhoud = base64Content,
             bestandsomvang = 100L, // Intentionally different from content size
@@ -1064,7 +1067,7 @@ class EnkelvoudigInformatieObjectServiceTest {
         val req = generateTestDocument(withContent = true)
         val response = service.create(req)
 
-        verify { mockStorageService.uploadFile(any(), any<java.io.InputStream>(), any<Long>(), eq("default-repo")) }
+        verify { mockStorageService.uploadFile(any(), any<InputStream>(), any<Long>(), eq("default-repo")) }
         transaction {
             val latest = EIORecordEntity.findById(UUID.fromString(response.id))!!.versions.maxByOrNull { it.versie }!!
             assertEquals("default-repo", latest.bestandsRepository)
@@ -1100,7 +1103,7 @@ class EnkelvoudigInformatieObjectServiceTest {
 
         service.update(id, generateTestDocument(withContent = true))
 
-        verify { mockStorageService.uploadFile(any(), any<java.io.InputStream>(), any<Long>(), eq("repo-a")) }
+        verify { mockStorageService.uploadFile(any(), any<InputStream>(), any<Long>(), eq("repo-a")) }
         transaction {
             val v2 = EIORecordEntity.findById(id)!!.versions.maxByOrNull { it.versie }!!
             assertEquals(2, v2.versie)

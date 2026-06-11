@@ -6,6 +6,7 @@ import io.ktor.openapi.JsonSchema
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -494,7 +495,7 @@ data class EnkelvoudigInformatieObjectResponse(
 
     @JsonSchema.Description("Lijst van BESTANDSDELen voor chunked upload. Gevuld wanneer het bestand via BESTANDSDELen wordt geüpload.")
     @JsonSchema.ReadOnly
-    @kotlinx.serialization.EncodeDefault
+    @EncodeDefault
     val bestandsdelen: List<BestandsDeelResponse> = emptyList(),
 
     @JsonSchema.Description("Het huidige vergrendel-token (lock). Leeg wanneer het INFORMATIEOBJECT niet vergrendeld is.")
@@ -505,7 +506,7 @@ data class EnkelvoudigInformatieObjectResponse(
         "Geeft aan of het document gelocked is. Alleen als een document gelocked is, mogen er aanpassingen gemaakt worden.",
     )
     @JsonSchema.ReadOnly
-    @kotlinx.serialization.EncodeDefault
+    @EncodeDefault
     val locked: Boolean,
 
     @SerialName("_expand")

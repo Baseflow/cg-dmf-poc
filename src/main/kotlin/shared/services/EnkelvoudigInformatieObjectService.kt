@@ -13,14 +13,19 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import java.util.Base64 as JavaBase64
@@ -613,7 +618,7 @@ class EnkelvoudigInformatieObjectService(
     ): EnkelvoudigInformatieObjectResponse {
         if (expand.isEmpty()) return response
 
-        val expandFields = mutableMapOf<String, kotlinx.serialization.json.JsonElement>()
+        val expandFields = mutableMapOf<String, JsonElement>()
 
         if ("informatieobjecttype" in expand) {
             val informatieobjecttypeUrl = response.informatieobjecttype
@@ -622,7 +627,7 @@ class EnkelvoudigInformatieObjectService(
                 expandFields["informatieobjecttype"] = jsonObj
             } catch (e: Exception) {
                 // Log but don't fail the response if expand fails
-                org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
+                LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
                     .warn("Failed to expand informatieobjecttype for URL {}: {}", informatieobjecttypeUrl, e.message)
             }
         }
@@ -912,7 +917,7 @@ class EnkelvoudigInformatieObjectService(
         // Blob I/O: merge parts → upload → delete part blobs – all outside any DB transaction.
         val ctx = mergeCtx
         if (ctx != null) {
-            val logger = org.slf4j.LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
+            val logger = LoggerFactory.getLogger(EnkelvoudigInformatieObjectService::class.java)
             try {
                 // Stream downloads directly into the upload via a piped stream pair,
                 // avoiding any intermediate temp file on local disk.
@@ -920,9 +925,9 @@ class EnkelvoudigInformatieObjectService(
                 // the main thread reads from the pipe through an integrity-computing
                 // filter and feeds the bytes into the blob storage upload call.
                 val pipeSize = 256 * 1024 // 256 KB buffer between producer and consumer
-                val pipedOut = java.io.PipedOutputStream()
-                val pipedIn = java.io.PipedInputStream(pipedOut, pipeSize)
-                val downloadFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
+                val pipedOut = PipedOutputStream()
+                val pipedIn = PipedInputStream(pipedOut, pipeSize)
+                val downloadFailure = AtomicReference<Throwable?>(null)
 
                 val downloadThread = Thread({
                     try {

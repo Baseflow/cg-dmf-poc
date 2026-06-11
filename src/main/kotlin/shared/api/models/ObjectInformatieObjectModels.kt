@@ -6,6 +6,7 @@ import io.ktor.openapi.JsonSchema
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -144,7 +145,7 @@ value class SubjectType private constructor(val value: String) {
 }
 
 object SubjectTypeSerializer : KSerializer<SubjectType> {
-    override val descriptor = PrimitiveSerialDescriptor("SubjectType", kotlinx.serialization.descriptors.PrimitiveKind.STRING)
+    override val descriptor = PrimitiveSerialDescriptor("SubjectType", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: SubjectType) {
         encoder.encodeString(value.value)

@@ -22,6 +22,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import kotlin.test.Test
@@ -373,7 +375,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
 
         // Mock each part download to return arbitrary bytes that differ from the declared integrity hash.
         every { mockStorageService.downloadFileTo(any(), any(), anyNullable()) } answers {
-            val out = secondArg<java.io.OutputStream>()
+            val out = secondArg<OutputStream>()
             // Write a small arbitrary byte so the merged content won't match the integrity hash.
             out.write(byteArrayOf(0x42))
             CompletableFuture.completedFuture(null)
@@ -381,9 +383,9 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         // Explicitly stub uploadFile and deleteFiles for the merge path so the test
         // fails due to integrity mismatch (not a missing MockK answer).
         every {
-            mockStorageService.uploadFile(any<String>(), any<java.io.InputStream>(), any<Long>(), anyNullable())
+            mockStorageService.uploadFile(any<String>(), any<InputStream>(), any<Long>(), anyNullable())
         } answers {
-            secondArg<java.io.InputStream>().copyTo(java.io.OutputStream.nullOutputStream())
+            secondArg<InputStream>().copyTo(OutputStream.nullOutputStream())
             thirdArg<Long>()
         }
         every { mockStorageService.deleteFiles(any(), anyNullable()) } returns Unit

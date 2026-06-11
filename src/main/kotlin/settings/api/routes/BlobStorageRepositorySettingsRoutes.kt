@@ -17,6 +17,7 @@ import com.baseflow.shared.entities.settings.BlobStorageRepositorySettingEntity
 import com.baseflow.shared.entities.settings.BlobStorageRepositorySettingsTable
 import com.baseflow.shared.services.BlobStorageRegistrar
 import io.ktor.http.*
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -363,7 +364,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
 
 private val logger = LoggerFactory.getLogger("com.baseflow.settings.api.routes.BlobStorageRepositorySettingsRoutes")
 
-private suspend fun io.ktor.server.application.ApplicationCall.respondWithUpdateResult(result: Any?, path: String) {
+private suspend fun ApplicationCall.respondWithUpdateResult(result: Any?, path: String) {
     when (result) {
         null -> respondProblem(HttpStatusCode.NotFound, notFound("Repository not found.", path))
         "conflict" -> respondProblem(HttpStatusCode.Conflict, conflict("A repository with this name already exists.", path))
