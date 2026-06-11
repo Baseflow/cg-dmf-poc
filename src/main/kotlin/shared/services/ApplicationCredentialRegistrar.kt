@@ -88,6 +88,7 @@ object ApplicationCredentialRegistrar {
                         name = clientId
                         this.clientId = clientId
                         clientSecret = secret
+                        readonly = true
                         updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     }
                     importedCount++

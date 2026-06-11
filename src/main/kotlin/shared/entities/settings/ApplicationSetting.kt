@@ -18,6 +18,7 @@ object ApplicationSettingsTable : UUIDTable("application_settings") {
     val name = varchar("name", 100).uniqueIndex()
     val clientId = text("client_id")
     val clientSecret = encryptedVarchar("client_secret_encrypted", 512, lazyEncryptor).nullable()
+    val readonly = bool("readonly").default(false)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
 }
@@ -28,6 +29,7 @@ class ApplicationSettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var name by ApplicationSettingsTable.name
     var clientId by ApplicationSettingsTable.clientId
     var clientSecret by ApplicationSettingsTable.clientSecret
+    var readonly by ApplicationSettingsTable.readonly
     var createdAt by ApplicationSettingsTable.createdAt
     var updatedAt by ApplicationSettingsTable.updatedAt
 }

@@ -4,6 +4,7 @@ package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.badRequest
 import com.baseflow.shared.api.models.conflict
+import com.baseflow.shared.api.models.forbidden
 import com.baseflow.shared.api.models.notFound
 import com.baseflow.shared.api.models.respondProblem
 import com.baseflow.shared.api.models.settings.ApplicationSettingsResponse
@@ -119,6 +120,7 @@ fun Route.applicationSettingsRoutes() {
                 val updated = transaction {
                     val existing = ApplicationSettingEntity.findById(id)
                         ?: return@transaction null
+                    if (existing.readonly) return@transaction "readonly"
                     previousClientId = existing.clientId
                     val nameConflict = existing.name != body.name &&
                         ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
@@ -136,6 +138,11 @@ fun Route.applicationSettingsRoutes() {
                     null -> return@put call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
+                    )
+
+                    "readonly" -> return@put call.respondProblem(
+                        HttpStatusCode.Forbidden,
+                        forbidden("This application setting is read-only and cannot be modified.", call.request.path()),
                     )
 
                     "conflict" -> return@put call.respondProblem(
@@ -166,6 +173,7 @@ fun Route.applicationSettingsRoutes() {
 
                 val deletedClientId = transaction {
                     val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
+                    if (existing.readonly) return@transaction "readonly"
                     val clientId = existing.clientId
                     existing.delete()
                     clientId
@@ -175,6 +183,11 @@ fun Route.applicationSettingsRoutes() {
                     null -> return@delete call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
+                    )
+
+                    "readonly" -> return@delete call.respondProblem(
+                        HttpStatusCode.Forbidden,
+                        forbidden("This application setting is read-only and cannot be deleted.", call.request.path()),
                     )
 
                     else -> {
@@ -198,6 +211,7 @@ fun Route.applicationSettingsRoutes() {
 
                 val clientId = transaction {
                     val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
+                    if (existing.readonly) return@transaction "readonly"
                     existing.clientSecret = plaintext
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                     existing.clientId
@@ -207,6 +221,13 @@ fun Route.applicationSettingsRoutes() {
                     return@post call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
+                    )
+                }
+
+                if (clientId == "readonly") {
+                    return@post call.respondProblem(
+                        HttpStatusCode.Forbidden,
+                        forbidden("This application setting is read-only and cannot be modified.", call.request.path()),
                     )
                 }
 
@@ -245,6 +266,7 @@ private fun ApplicationSettingEntity.toResponse(): ApplicationSettingsResponse {
         clientId = clientId,
         hasSecret = decryptedSecret != null,
         clientSecret = decryptedSecret,
+        readonly = readonly,
         updatedAt = updatedAt.toString(),
     )
 }
