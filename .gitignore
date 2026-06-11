@@ -83,3 +83,8 @@ package-lock.json
 docs/.swagger-codegen-ignore
 docs/index.html
 docs/.swagger-codegen/VERSION
+
+# AI related
+**/.playwright-mcp
+**/.claude/settings.local.json
+**/.junie
