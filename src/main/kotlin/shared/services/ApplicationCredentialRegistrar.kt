@@ -44,12 +44,17 @@ object ApplicationCredentialRegistrar {
      * briefly see an empty cache. Currently safe because [initialise] is only called before
      * the server starts listening.
      */
-    fun initialise() {
+    fun initialise() = initialise(AuthenticationConfig.clientCredentials)
+
+    /**
+     * Internal overload used by tests to inject credentials without relying on environment variables.
+     */
+    internal fun initialise(envCredentials: Map<String, String>) {
         secrets.clear()
 
         // Load env config first, outside the transaction — it has no DB dependency, and loading
         // it inside would leave the cache empty if the transaction fails (e.g. DB unreachable).
-        secrets.putAll(AuthenticationConfig.clientCredentials)
+        secrets.putAll(envCredentials)
 
         var dbSecretCount = 0
         var importedCount = 0
@@ -84,7 +89,7 @@ object ApplicationCredentialRegistrar {
                 existingNames += entity.name
             }
 
-            for ((clientId, secret) in AuthenticationConfig.clientCredentials) {
+            for ((clientId, secret) in envCredentials) {
                 if (clientId in existingClientIds) continue
 
                 val name = uniqueNameFor(clientId, existingNames)
@@ -112,7 +117,7 @@ object ApplicationCredentialRegistrar {
 
         logger.info(
             "Client secrets initialized: {} from env config, {} from database ({} newly imported), {} total",
-            AuthenticationConfig.clientCredentials.size,
+            envCredentials.size,
             dbSecretCount,
             importedCount,
             secrets.size,
