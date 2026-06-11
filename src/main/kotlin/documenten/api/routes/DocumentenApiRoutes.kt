@@ -77,12 +77,6 @@ fun Route.documentenApiRoutes() {
             objectInformatieObjectenRoutes()
         }
 
-        // EXPERIMENTAL: SubjectInformatieObject endpoints
-        // These handle relations between documents and subject objects
-        route("/${ResourceSegments.SUBJECT_INFORMATIE_OBJECTEN}") {
-            subjectInformatieObjectenRoutes()
-        }
-
         // BestandsDeel endpoints
         // These handle uploads for large files (>4GB support)
         route("/bestandsdelen") {

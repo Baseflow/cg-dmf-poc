@@ -54,7 +54,6 @@ internal class DocumentenOpenApiSpecification : OpenApiSpecification {
     override val tags: List<Tag> get() = listOf(
         Tag("enkelvoudiginformatieobjecten", "Beheer van document registraties, bestanden en hun metadata"),
         Tag("objectinformatieobjecten", "Koppelen van documenten aan objecten"),
-        Tag("subjectinformatieobjecten", "Uitbreiding voor niet-Zaken objecten"),
         Tag("bestandsdelen", "Chunked upload voor grote bestanden"),
         Tag("audittrail", "Audit log regels per INFORMATIEOBJECT"),
         Tag("admin", "Interne beheerfuncties voor opslagconfiguratie (niet onderdeel van de publieke API)"),

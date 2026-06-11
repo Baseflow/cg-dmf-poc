@@ -24,8 +24,12 @@ import io.ktor.server.testing.*
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.*
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -62,6 +66,60 @@ class ObjectInformatieObjectenRoutesTest : TestBase("oio_routes") {
 
         val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(response.bodyAsText())
         assertTrue(items.isEmpty())
+    }
+
+    @Test
+    fun `test list with page param returns paginated response`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+
+        for (i in 1..12) {
+            val request = CreateOIORequest(
+                informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
+                subjectObject = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}",
+                subjectType = SubjectType("zaak"),
+            )
+            client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+            }
+        }
+
+        val resp = client.get("$API_BASE/$RESOURCE_SEGMENT?page=1&pageSize=5")
+        assertEquals(HttpStatusCode.OK, resp.status)
+        val body = Json.parseToJsonElement(resp.bodyAsText()).jsonObject
+        assertEquals(12, body["count"]?.jsonPrimitive?.content?.toInt())
+        assertEquals(5, body["results"]?.jsonArray?.size)
+        val next = body["next"]?.jsonPrimitive?.content
+        assertNotNull(next)
+        assertContains(next, "page=2")
+
+        val resp2 = client.get("$API_BASE/$RESOURCE_SEGMENT?page=3&pageSize=5")
+        val body2 = Json.parseToJsonElement(resp2.bodyAsText()).jsonObject
+        assertEquals(2, body2["results"]?.jsonArray?.size)
+    }
+
+    @Test
+    fun `test list without page param returns flat array`() = testApplication {
+        application { setup() }
+        val eioId = createTestEIO()
+
+        repeat(3) {
+            val request = CreateOIORequest(
+                informatieobject = "$API_BASE/${ResourceSegments.ENKELVOUDIG_INFORMATIE_OBJECTEN}/$eioId",
+                subjectObject = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}",
+                subjectType = SubjectType("zaak"),
+            )
+            client.post("$API_BASE/$RESOURCE_SEGMENT") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(CreateOIORequest.serializer(), request))
+            }
+        }
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val items = Json.decodeFromString<List<ObjectInformatieObjectResponse>>(response.bodyAsText())
+        assertEquals(3, items.size)
     }
 
     @Test
