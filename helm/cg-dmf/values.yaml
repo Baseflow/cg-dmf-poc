@@ -259,7 +259,7 @@ settings:
 
 adminPortal:
   # -- Enable the admin portal deployment.
-  enabled: false
+  enabled: true
 
   # -- Number of admin portal pod replicas.
   replicaCount: 1
