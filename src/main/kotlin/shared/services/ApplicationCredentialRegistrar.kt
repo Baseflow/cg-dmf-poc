@@ -79,21 +79,40 @@ object ApplicationCredentialRegistrar {
 
             // Import env credentials that are not yet present in the database (matched by clientId).
             for ((clientId, secret) in AuthenticationConfig.clientCredentials) {
+                if (clientId.length > 100) {
+                    logger.warn(
+                        "Skipping env credential import for client_id='{}': cannot be used as name (exceeds 100 chars).",
+                        clientId,
+                    )
+                    continue
+                }
+
                 val alreadyExists = ApplicationSettingEntity
                     .find { ApplicationSettingsTable.clientId eq clientId }
                     .firstOrNull() != null
+                if (alreadyExists) continue
 
-                if (!alreadyExists) {
-                    ApplicationSettingEntity.new {
-                        name = clientId
-                        this.clientId = clientId
-                        clientSecret = secret
-                        readonly = true
-                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    }
-                    importedCount++
-                    logger.info("Imported env credential into database for client_id='{}'", clientId)
+                val nameConflict = ApplicationSettingEntity
+                    .find { ApplicationSettingsTable.name eq clientId }
+                    .firstOrNull() != null
+                if (nameConflict) {
+                    logger.warn(
+                        "Skipping env credential import for client_id='{}': an application_setting with name='{}' already exists.",
+                        clientId,
+                        clientId,
+                    )
+                    continue
                 }
+
+                ApplicationSettingEntity.new {
+                    name = clientId
+                    this.clientId = clientId
+                    clientSecret = secret
+                    readonly = true
+                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                }
+                importedCount++
+                logger.info("Imported env credential into database for client_id='{}'", clientId)
             }
         }
 
