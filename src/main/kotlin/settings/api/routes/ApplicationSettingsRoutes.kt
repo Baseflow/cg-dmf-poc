@@ -119,39 +119,39 @@ fun Route.applicationSettingsRoutes() {
                 var previousClientId = ""
                 val updated = transaction {
                     val existing = ApplicationSettingEntity.findById(id)
-                        ?: return@transaction null
-                    if (existing.readonly) return@transaction "readonly"
+                        ?: return@transaction UpdateResult.NotFound
+                    if (existing.readonly) return@transaction UpdateResult.ReadOnly
                     previousClientId = existing.clientId
                     val nameConflict = existing.name != body.name &&
                         ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
                             .firstOrNull() != null
-                    if (nameConflict) return@transaction "conflict"
+                    if (nameConflict) return@transaction UpdateResult.Conflict
                     existing.name = body.name
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
                         existing.clientSecret = body.clientSecret
                     }
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing.toResponse()
+                    UpdateResult.Success(existing.toResponse())
                 }
                 when (updated) {
-                    null -> return@put call.respondProblem(
+                    UpdateResult.NotFound -> return@put call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
 
-                    "readonly" -> return@put call.respondProblem(
+                    UpdateResult.ReadOnly -> return@put call.respondProblem(
                         HttpStatusCode.Forbidden,
                         forbidden("This application setting is read-only and cannot be modified.", call.request.path()),
                     )
 
-                    "conflict" -> return@put call.respondProblem(
+                    UpdateResult.Conflict -> return@put call.respondProblem(
                         HttpStatusCode.Conflict,
                         conflict("An application with this name already exists.", call.request.path()),
                     )
 
-                    else -> {
-                        val response = updated as ApplicationSettingsResponse
+                    is UpdateResult.Success -> {
+                        val response = updated.response
                         if (previousClientId != response.clientId) {
                             ApplicationCredentialRegistrar.unregisterSecret(previousClientId)
                         }
@@ -171,28 +171,27 @@ fun Route.applicationSettingsRoutes() {
                         badRequest("Invalid UUID.", call.request.path()),
                     )
 
-                val deletedClientId = transaction {
-                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
-                    if (existing.readonly) return@transaction "readonly"
+                val result = transaction {
+                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction DeleteResult.NotFound
+                    if (existing.readonly) return@transaction DeleteResult.ReadOnly
                     val clientId = existing.clientId
                     existing.delete()
-                    clientId
+                    DeleteResult.Deleted(clientId)
                 }
 
-                when (deletedClientId) {
-                    null -> return@delete call.respondProblem(
+                when (result) {
+                    DeleteResult.NotFound -> return@delete call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
 
-                    "readonly" -> return@delete call.respondProblem(
+                    DeleteResult.ReadOnly -> return@delete call.respondProblem(
                         HttpStatusCode.Forbidden,
                         forbidden("This application setting is read-only and cannot be deleted.", call.request.path()),
                     )
 
-                    else -> {
-                        // Remove the secret from cache
-                        ApplicationCredentialRegistrar.unregisterSecret(deletedClientId)
+                    is DeleteResult.Deleted -> {
+                        ApplicationCredentialRegistrar.unregisterSecret(result.clientId)
                         call.respond(HttpStatusCode.NoContent)
                     }
                 }
@@ -209,33 +208,54 @@ fun Route.applicationSettingsRoutes() {
 
                 val plaintext = body.newSecret?.takeIf { it.isNotBlank() } ?: generateSecret()
 
-                val clientId = transaction {
-                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction null
-                    if (existing.readonly) return@transaction "readonly"
+                val rotateResult = transaction {
+                    val existing = ApplicationSettingEntity.findById(id) ?: return@transaction RotateResult.NotFound
+                    if (existing.readonly) return@transaction RotateResult.ReadOnly
                     existing.clientSecret = plaintext
                     existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                    existing.clientId
+                    RotateResult.Success(existing.clientId)
                 }
 
-                if (clientId == null) {
-                    return@post call.respondProblem(
+                when (rotateResult) {
+                    RotateResult.NotFound -> return@post call.respondProblem(
                         HttpStatusCode.NotFound,
                         notFound("Application not found.", call.request.path()),
                     )
-                }
 
-                if (clientId == "readonly") {
-                    return@post call.respondProblem(
+                    RotateResult.ReadOnly -> return@post call.respondProblem(
                         HttpStatusCode.Forbidden,
                         forbidden("This application setting is read-only and cannot be modified.", call.request.path()),
                     )
-                }
 
-                ApplicationCredentialRegistrar.registerSecret(clientId, plaintext)
-                call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
+                    is RotateResult.Success -> {
+                        ApplicationCredentialRegistrar.registerSecret(rotateResult.clientId, plaintext)
+                        call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
+                    }
+                }
             }
         }
     }
+}
+
+// ── Typed transaction results ─────────────────────────────────────────────────
+
+private sealed interface UpdateResult {
+    data object NotFound : UpdateResult
+    data object ReadOnly : UpdateResult
+    data object Conflict : UpdateResult
+    data class Success(val response: ApplicationSettingsResponse) : UpdateResult
+}
+
+private sealed interface DeleteResult {
+    data object NotFound : DeleteResult
+    data object ReadOnly : DeleteResult
+    data class Deleted(val clientId: String) : DeleteResult
+}
+
+private sealed interface RotateResult {
+    data object NotFound : RotateResult
+    data object ReadOnly : RotateResult
+    data class Success(val clientId: String) : RotateResult
 }
 
 private val secureRandom = SecureRandom()
