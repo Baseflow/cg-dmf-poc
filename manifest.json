@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27334273466",
+    "runNumber": "873",
+    "branch": "task/remove-subjectinformatieobjecten",
+    "date": "2026-06-11T08:35:46Z",
+    "path": "integration/27334273466/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27333254616",
     "runNumber": "872",
     "branch": "task/remove-subjectinformatieobjecten",
