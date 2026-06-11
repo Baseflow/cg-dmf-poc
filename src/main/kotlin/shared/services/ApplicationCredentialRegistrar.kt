@@ -4,9 +4,14 @@ package com.baseflow.shared.services
 
 import com.baseflow.shared.config.AuthenticationConfig
 import com.baseflow.shared.entities.settings.ApplicationSettingEntity
+import com.baseflow.shared.entities.settings.ApplicationSettingsTable
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Clock
 
 /**
  * Manages client secrets cache for JWT signature verification.
@@ -49,7 +54,9 @@ object ApplicationCredentialRegistrar {
         secrets.putAll(AuthenticationConfig.clientCredentials)
 
         var dbSecretCount = 0
+        var importedCount = 0
         transaction {
+            // Load existing DB entries and update the in-memory cache.
             for (entity in ApplicationSettingEntity.all()) {
                 val secret = runCatching { entity.clientSecret }
                     .onFailure {
@@ -69,12 +76,31 @@ object ApplicationCredentialRegistrar {
                     dbSecretCount++
                 }
             }
+
+            // Import env credentials that are not yet present in the database (matched by clientId).
+            for ((clientId, secret) in AuthenticationConfig.clientCredentials) {
+                val alreadyExists = ApplicationSettingEntity
+                    .find { ApplicationSettingsTable.clientId eq clientId }
+                    .firstOrNull() != null
+
+                if (!alreadyExists) {
+                    ApplicationSettingEntity.new {
+                        name = clientId
+                        this.clientId = clientId
+                        clientSecret = secret
+                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    }
+                    importedCount++
+                    logger.info("Imported env credential into database for client_id='{}'", clientId)
+                }
+            }
         }
 
         logger.info(
-            "Client secrets initialized: {} from env config, {} from database, {} total",
+            "Client secrets initialized: {} from env config, {} from database ({} newly imported), {} total",
             AuthenticationConfig.clientCredentials.size,
             dbSecretCount,
+            importedCount,
             secrets.size,
         )
     }
@@ -83,11 +109,6 @@ object ApplicationCredentialRegistrar {
      * Returns the secret for the given [clientId], or null if not found.
      */
     fun getSecret(clientId: String): String? = secrets[clientId]
-
-    /**
-     * Returns all cached client IDs.
-     */
-    fun getAllClientIds(): Set<String> = secrets.keys.toSet()
 
     /**
      * Registers or updates a secret for [clientId].
