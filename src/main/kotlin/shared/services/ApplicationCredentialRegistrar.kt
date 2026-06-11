@@ -4,10 +4,8 @@ package com.baseflow.shared.services
 
 import com.baseflow.shared.config.AuthenticationConfig
 import com.baseflow.shared.entities.settings.ApplicationSettingEntity
-import com.baseflow.shared.entities.settings.ApplicationSettingsTable
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
@@ -78,41 +76,37 @@ object ApplicationCredentialRegistrar {
             }
 
             // Import env credentials that are not yet present in the database (matched by clientId).
+            // Preload existing clientIds and names in one query to avoid N+1 lookups.
+            val existingClientIds = mutableSetOf<String>()
+            val existingNames = mutableSetOf<String>()
+            for (entity in ApplicationSettingEntity.all()) {
+                existingClientIds += entity.clientId
+                existingNames += entity.name
+            }
+
             for ((clientId, secret) in AuthenticationConfig.clientCredentials) {
-                if (clientId.length > 100) {
-                    logger.warn(
-                        "Skipping env credential import for client_id='{}': cannot be used as name (exceeds 100 chars).",
-                        clientId,
-                    )
-                    continue
-                }
+                if (clientId in existingClientIds) continue
 
-                val alreadyExists = ApplicationSettingEntity
-                    .find { ApplicationSettingsTable.clientId eq clientId }
-                    .firstOrNull() != null
-                if (alreadyExists) continue
-
-                val nameConflict = ApplicationSettingEntity
-                    .find { ApplicationSettingsTable.name eq clientId }
-                    .firstOrNull() != null
-                if (nameConflict) {
+                val name = uniqueNameFor(clientId, existingNames)
+                if (name == null) {
                     logger.warn(
-                        "Skipping env credential import for client_id='{}': an application_setting with name='{}' already exists.",
-                        clientId,
+                        "Skipping env credential import for client_id='{}': could not derive a unique name.",
                         clientId,
                     )
                     continue
                 }
 
                 ApplicationSettingEntity.new {
-                    name = clientId
+                    this.name = name
                     this.clientId = clientId
                     clientSecret = secret
                     readonly = true
                     updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
                 }
+                existingClientIds += clientId
+                existingNames += name
                 importedCount++
-                logger.info("Imported env credential into database for client_id='{}'", clientId)
+                logger.info("Imported env credential into database for client_id='{}' as name='{}'", clientId, name)
             }
         }
 
@@ -158,4 +152,29 @@ object ApplicationCredentialRegistrar {
     internal fun resetForTesting() {
         secrets.clear()
     }
+}
+
+/**
+ * Derives a unique `name`-column-compatible string for [clientId].
+ *
+ * Rules enforced by the table:
+ * - `name` is `VARCHAR(100)` with a `UNIQUE` index.
+ *
+ * Strategy:
+ * 1. Truncate [clientId] to at most 100 characters as the base candidate.
+ * 2. If the candidate is already in [existingNames], append a numeric suffix
+ *    (`-1`, `-2`, …) — shrinking the base as needed to keep the total ≤ 100 chars.
+ * 3. Return `null` if no unique name can be found within 999 attempts
+ *    (practically impossible; guards against degenerate inputs).
+ */
+private fun uniqueNameFor(clientId: String, existingNames: Set<String>): String? {
+    val base = clientId.take(100)
+    if (base !in existingNames) return base
+
+    for (i in 1..999) {
+        val suffix = "-$i"
+        val candidate = clientId.take(100 - suffix.length) + suffix
+        if (candidate !in existingNames) return candidate
+    }
+    return null
 }
