@@ -1,47 +1,47 @@
-# Database Migration Guide
+# Handleiding Databasemigraties
 
 ## Tooling
 
-- **Migration Tool:** Flyway (Community Edition)
-- **ORM:** Exposed 1.0.0-rc-4
+- **Migratietool:** Flyway (Community Edition)
+- **ORM:** Exposed 1.3.0
 - **Database:** PostgreSQL 16
-- **Migration Generator:** `exposed-migration-jdbc`
+- **Migratiegenerator:** `exposed-migration-jdbc`
 
-## Quick Reference
+## Overzicht commando's
 
-### Commands
+### Commando's
 
 ```bash
-# Check migration status
+# Controleer migratiestatus
 ./gradlew flywayInfo
 
-# Apply pending migrations
+# Pas openstaande migraties toe
 ./gradlew flywayMigrate
 
-# Validate migrations
+# Valideer migraties
 ./gradlew flywayValidate
 
-# Undo last migration
+# Maak de laatste migratie ongedaan
 ./gradlew flywayUndo
 
-# Undo a specific version
-./gradlew flywayUndo -Pargs=<version>
+# Maak een specifieke versie ongedaan
+./gradlew flywayUndo -Pargs=<versie>
 
-# Generate migration from Exposed models
+# Genereer migratie van Exposed-modellen
 ./gradlew generateMigration -Pargs="V2__Description"
 ```
 
-### Environment Variables
+### Omgevingsvariabelen
 
-- `DB_URL` (default: `jdbc:postgresql://localhost:5432/documenten`)
-- `DB_USER` (default: `documenten`)
-- `DB_PASSWORD` (default: `documenten`)
+- `DB_URL` (standaard: `jdbc:postgresql://localhost:5432/documenten`)
+- `DB_USER` (standaard: `documenten`)
+- `DB_PASSWORD` (standaard: `documenten`)
 
-## Creating Migrations
+## Migraties aanmaken
 
 ### Workflow
 
-1. **Update Exposed Table Definition**
+1. **Pas de Exposed-tabeldefinitie aan**
    ```kotlin
    // src/main/kotlin/entities/EIORecord.kt
    object EIORecords : UUIDTable("eio_records") {
@@ -49,88 +49,117 @@
    }
    ```
 
-2. **Generate Migration Script**
+2. **Genereer de migratie**
    ```bash
    ./gradlew generateMigration -Pargs="V2__Add_title_column"
    ```
 
-3. **Review Generated SQL**
+3. **Controleer de gegenereerde SQL**
    ```bash
    cat src/main/resources/db/migration/V2__Add_title_column.sql
    ```
-   **Important:** Always review and test. The generator is pretty new and may not detect all changes to the schema.
+   **Belangrijk:** Controleer en test altijd het gegenereerde script.
 
-4. **Create Undo Script** (manual)
+4. **Maak een undo-script aan**
+
+   Hier is helaas geen generator voor beschikbaar
    ```sql
    -- src/main/resources/db/migration/U2__Drop_title_column.sql
    ALTER TABLE eio_records DROP COLUMN title;
    ```
 
-5. **Test Migration**
+5. **Test de migratie**
    ```bash
    ./gradlew flywayMigrate
    ./gradlew flywayInfo
    ```
 
-6. **Test Undo**
+6. **Test het ongedaan maken**
    ```bash
    ./gradlew flywayUndo -Pargs=2
    ./gradlew flywayInfo
    ```
 
-### File Naming Convention
+### Bestandsnaamconventie
 
-- **Upgrade:** `V<version>__<Description>.sql` (e.g., `V2__Add_user_table.sql`)
-- **Undo:** `U<version>__<Description>.sql` (e.g., `U2__Drop_user_table.sql`)
+| Prefix | Gebruik                                                   | Voorbeeld                 |
+|--------|-----------------------------------------------------------|---------------------------|
+| `V`    | Versioned upgrade — normale schemawijziging               | `V2__Add_user_table.sql`  |
+| `U`    | Undo — maakt de bijbehorende versie ongedaan              | `U2__Drop_user_table.sql` |
+| `B`    | Baseline — volledige schemadefinitie op een rollup-versie | `B10__Baseline_v10.sql`   |
 
-## Troubleshooting
+### Baselines en rollups
 
-### Migration Shows SUCCESS but Tables Don't Exist
+Na verloop van tijd groeit het aantal migratiebestanden. Met een **baseline rollup** consolideer je alle voorgaande migraties tot één enkel script dat het volledige schema beschrijft op een bepaald versienummer. Flyway past de baseline-migratie toe op een lege database in plaats van alle eerdere versies opnieuw te doorlopen.
 
-Re-run the migration:
+**Wanneer te gebruiken:** als het aantal migratiebestanden onhandelbaar wordt, of bij een major release waarbij oude undo-scripts toch niet meer relevant zijn.
+
+**Workflow voor een rollup:**
+
+1. **Kies een rollup-versienummer** — typisch een rond getal dat hoger ligt dan de huidige versie, bijv. `B10` als de laatste migratie `V9` is.
+
+2. **Genereer het volledige schema** — dump het huidige schema uit een bijgewerkte database:
+   ```bash
+   pg_dump --schema-only --no-owner --no-acl -d documenten > B10__Baseline_v10.sql
+   ```
+
+3. **Bewerk het script** — verwijder `CREATE EXTENSION`, `SET`-statements en andere databasespecifieke configuratie die niet in de migratie thuishoren. Voeg de Flyway-schematabel niet op.
+
+4. **Verwijder de geconsolideerde V- en U-bestanden** — bewaar de bestanden in de git-history, maar verwijder ze uit `src/main/resources/db/migration/`. Flyway slaat versies over die lager zijn dan het baseline-versienummer.
+
+5. **Pas de baseline toe op bestaande omgevingen:**
+   ```bash
+   ./gradlew flywayBaseline -Pargs=10
+   ```
+   Dit markeert versie 10 als startpunt in de `flyway_schema_history`-tabel. Flyway voert `B10` dan niet opnieuw uit op databases die al bijgewerkt zijn.
+
+6. **Test op een lege database** — verifieer dat `./gradlew flywayMigrate` op een lege database het volledige schema correct aanmaakt.
+
+> Let op: na een rollup zijn de bijbehorende undo-scripts van de geconsolideerde versies niet meer bruikbaar. Zorg dat alle omgevingen up-to-date zijn vóór je de rollup uitvoert.
+
+## Probleemoplossing
+
+### Migratie toont SUCCESS maar tabellen bestaan niet
+
+Voer de migratie opnieuw uit:
 ```bash
 ./gradlew flywayMigrate
 ```
 
-### Need to Reset Database
+### Database resetten
 
 ```bash
 # Stop containers
 docker-compose down
 
-# Remove volume
+# Verwijder volume
 docker volume rm dmf-poc_postgres_data
 
-# Start fresh
+# Start opnieuw
 docker-compose up -d postgres
 
-# Apply migrations
+# Pas migraties toe
 ./gradlew flywayMigrate
 ```
 
-## Advanced Usage
+## Geavanceerd gebruik
 
-### Programmatic Migrations
+### Migraties in Docker of CI
 
-The `FlywayMigration.kt` class can be used directly:
+De klasse `FlywayMigration.kt` in `src/main/kotlin/shared/tooling/` wordt ook direct uitgevoerd in omgevingen waar Gradle niet beschikbaar is, zoals Docker-containers of CI-pipelines. Gebruik dan de `java`-aanroep rechtstreeks op de gepackagede jar:
 
 ```bash
-./gradlew run --args='migrate'
-./gradlew run --args='info'
-./gradlew run --args='validate'
+# In een draaiende container
+docker exec dmf-app java -cp /app/app.jar com.baseflow.shared.tooling.FlywayMigrationKt migrate
+
+# Beschikbare subcommando's: migrate | info | validate | undo | repair | clean
 ```
 
-### Custom Migration Logic
+De Gradle-taken (`./gradlew flywayMigrate` etc.) zijn wrappers hieromheen en zijn de aanbevolen manier voor lokale ontwikkeling.
 
-For complex migrations that need data transformation:
+## Gerelateerde bestanden
 
-1. Create standard `V*.sql` file with schema changes
-2. Add Kotlin code in transaction if needed
-3. Keep data transformations in separate scripts
-
-## Related Files
-
-- Migration generator: `src/main/kotlin/tooling/MigrationGenerator.kt`
-- Flyway runner: `src/main/kotlin/tooling/FlywayMigration.kt`
-- Entity definitions: `src/main/kotlin/entities/`
-- Migration scripts: `src/main/resources/db/migration/`
+- Migratiegenerator: `src/main/kotlin/tooling/MigrationGenerator.kt`
+- Flyway-runner: `src/main/kotlin/tooling/FlywayMigration.kt`
+- Entiteitsdefinities: `src/main/kotlin/entities/`
+- Migratiescripts: `src/main/resources/db/migration/`
