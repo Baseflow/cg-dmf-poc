@@ -5,7 +5,6 @@ package com.baseflow.shared.api.models
 enum class ResourceSegments(val value: String, val title: String = value) {
     ENKELVOUDIG_INFORMATIE_OBJECTEN("enkelvoudiginformatieobjecten", "EnkelvoudigInformatieObjecten"),
     OBJECT_INFORMATIE_OBJECTEN("objectinformatieobjecten", "ObjectInformatieObject"),
-    SUBJECT_INFORMATIE_OBJECTEN("subjectinformatieobjecten", "SubjectInformatieObject"),
     UNKNOWN("unknown"),
     ;
 

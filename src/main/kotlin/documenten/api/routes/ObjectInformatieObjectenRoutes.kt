@@ -12,6 +12,8 @@ import com.baseflow.shared.services.models.CreateOIOResult
 import com.baseflow.shared.services.models.DeleteOIOResult
 import com.baseflow.shared.services.models.QueryObjectInformatieObjectenFilter
 import io.ktor.http.*
+import io.ktor.openapi.JsonSchema
+import io.ktor.openapi.ReferenceOr
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -35,15 +37,7 @@ import java.util.*
  * This PoC extends the standard to support additional object types beyond Zaken.
  */
 
-/**
- * Common implementation for ObjectInformatieObject routes.
- * Used by both ObjectInformatieObjecten and SubjectInformatieObjecten.
- */
-open class ObjectInformatieObjectenRoutes(
-    private val route: Route,
-    private val resourceSegment: ResourceSegments,
-    private val experimental: Boolean = false,
-) {
+open class ObjectInformatieObjectenRoutes(private val route: Route, private val resourceSegment: ResourceSegments) {
     @OptIn(ExperimentalKtorApi::class)
     fun register() {
         with(route) {
@@ -95,8 +89,19 @@ open class ObjectInformatieObjectenRoutes(
                     }
                     responses {
                         response(200) {
-                            description = "Lijst van ${resourceSegment.title} relaties."
-                            ContentType.Application.Json { schema = jsonSchema<List<ObjectInformatieObjectResponse>>() }
+                            description =
+                                "Lijst van ${resourceSegment.title} relaties. " +
+                                "Wanneer de query-parameter `page` aanwezig is, wordt een gepagineerde envelop " +
+                                "(`count`, `next`, `previous`, `results`) teruggegeven. " +
+                                "Zonder `page` wordt een platte array teruggegeven."
+                            ContentType.Application.Json {
+                                schema = JsonSchema(
+                                    oneOf = listOf(
+                                        ReferenceOr.Value(jsonSchema<PaginatedResponse<ObjectInformatieObjectResponse>>()),
+                                        ReferenceOr.Value(jsonSchema<List<ObjectInformatieObjectResponse>>()),
+                                    ),
+                                )
+                            }
                         }
                         response(400) { description = "Bad request." }
                         response(401) { description = "Unauthorized." }
@@ -315,7 +320,8 @@ open class ObjectInformatieObjectenRoutes(
         val informatieobject = call.request.queryParameters["informatieobject"]
         val subjectObject = call.request.queryParameters["object"]
         val expand = call.request.queryParameters.getAll("expand") ?: emptyList()
-        val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+        val pageParam = call.request.queryParameters["page"]
+        val page = pageParam?.toIntOrNull() ?: 1
         val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 100
 
         val filter = QueryObjectInformatieObjectenFilter(
@@ -328,7 +334,7 @@ open class ObjectInformatieObjectenRoutes(
 
         val (items, totalCount) = service.getAll(filter)
 
-        if (experimental) {
+        if (pageParam != null) {
             call.respond(PaginatedResponse.from(call, resourceSegment.value, items, totalCount, page, pageSize))
         } else {
             // Note: ObjectInformatieObjecten are not paginated in the specification,
@@ -510,5 +516,5 @@ open class ObjectInformatieObjectenRoutes(
 }
 
 fun Route.objectInformatieObjectenRoutes() {
-    ObjectInformatieObjectenRoutes(this, ResourceSegments.OBJECT_INFORMATIE_OBJECTEN, experimental = false).register()
+    ObjectInformatieObjectenRoutes(this, ResourceSegments.OBJECT_INFORMATIE_OBJECTEN).register()
 }
