@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27347701386",
+    "runNumber": "876",
+    "branch": "CGDMF-172-show-env-vars",
+    "date": "2026-06-11T12:50:14Z",
+    "path": "integration/27347701386/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27345615453",
     "runNumber": "875",
     "branch": "CGDMF-172-show-env-vars",
