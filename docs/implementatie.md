@@ -1,16 +1,17 @@
 # Documenten API — Implementatiestatus
 
 Implementatiestatus van de [VNG Documenten API 1.5.0](https://vng-realisatie.github.io/gemma-zaken/standaard/documenten/) endpoints.
+De draaiende applicatie heeft op OpenAPI gebaseerd API-verkenner op `/docs` en/of vanuit de admin portal.
 
-De draaiende applicatie host een interactieve API-verkenner op `/docs`. Beschikbare endpoints:
+Beschikbare endpoints:
 
-| URL | Inhoud |
-|---|---|
-| `/docs` | Overzichtspagina met links naar alle specs |
-| `/docs/swaggerui/documenten-api.html` | Swagger UI — Documenten API |
-| `/docs/swaggerui/wopi-api.html` | Swagger UI — WOPI API |
-| `/docs/openapi/documenten.json` | Gegenereerde OpenAPI spec (JSON) |
-| `/docs/openapi/wopi.json` | Gegenereerde OpenAPI spec (JSON) |
+| URL                                   | Inhoud                                     |
+|---------------------------------------|--------------------------------------------|
+| `/docs`                               | Overzichtspagina met links naar alle specs |
+| `/docs/swaggerui/documenten-api.html` | Swagger UI — Documenten API                |
+| `/docs/swaggerui/wopi-api.html`       | Swagger UI — WOPI API                      |
+| `/docs/openapi/documenten.json`       | Gegenereerde OpenAPI spec (JSON)           |
+| `/docs/openapi/wopi.json`             | Gegenereerde OpenAPI spec (JSON)           |
 
 ## enkelvoudiginformatieobjecten
 
@@ -32,14 +33,14 @@ De draaiende applicatie host een interactieve API-verkenner op `/docs`. Beschikb
 
 ## objectinformatieobject
 
-| Endpoint  | Method | Beschrijving          | Status |
-|-----------|--------|-----------------------|--------|
-| `/`       | GET    | Lijst opvragen        | ✅ |
-| `/`       | POST   | Relatie aanmaken      | ✅ |
+| Endpoint  | Method | Beschrijving               | Status          |
+|-----------|--------|----------------------------|-----------------|
+| `/`       | GET    | Lijst opvragen             | ✅               |
+| `/`       | POST   | Relatie aanmaken           | ✅               |
 | `/`       | DELETE | Bulk-verwijderen op filter | ✅ experimenteel |
-| `/{uuid}` | GET    | Enkel record opvragen | ✅ |
-| `/{uuid}` | DELETE | Verwijderen           | ✅ |
-| `/{uuid}` | HEAD   | Headers opvragen      | ✅ |
+| `/{uuid}` | GET    | Enkel record opvragen      | ✅               |
+| `/{uuid}` | DELETE | Verwijderen                | ✅               |
+| `/{uuid}` | HEAD   | Headers opvragen           | ✅               |
 
 ## bestandsdelen
 
@@ -55,21 +56,21 @@ Deze functies zijn geïmplementeerd maar vallen buiten de VNG Documenten API 1.5
 
 De standaard API definieert een beperkte set queryfilters. De volgende parameters zijn als uitbreiding toegevoegd:
 
-| Parameter | Beschrijving |
-|---|---|
-| `informatieobjecttype` | Filter op URL-referentie naar het informatieobjecttype |
-| `vertrouwelijkheidaanduiding` | Filter op vertrouwelijkheidaanduiding |
-| `titel` | Filter op titel (hoofdletterongevoelig, bevat) |
-| `auteur` | Filter op auteur (hoofdletterongevoelig, bevat) |
-| `status` | Filter op status |
-| `beschrijving` | Filter op beschrijving (hoofdletterongevoelig, bevat) |
-| `trefwoorden__overlap` | Filter op trefwoorden (overlap, kommagescheiden) |
-| `locked` | Filter op vergrendeld (`true`) of ontgrendeld (`false`) |
-| `creatiedatum__gte` / `creatiedatum__lte` | Filter op creatiedatum (datum) |
-| `registratiedatum__gte` / `registratiedatum__lte` | Filter op beginRegistratie (datum-tijd) |
-| `ordering` | Sortering op één of meer velden (kommagescheiden) |
-| `objectinformatieobjecten__object` | Filter op URL-referentie naar het gerelateerde object |
-| `objectinformatieobjecten__objectType` | Filter op objecttype van het gerelateerde object |
+| Parameter                                         | Beschrijving                                            |
+|---------------------------------------------------|---------------------------------------------------------|
+| `informatieobjecttype`                            | Filter op URL-referentie naar het informatieobjecttype  |
+| `vertrouwelijkheidaanduiding`                     | Filter op vertrouwelijkheidaanduiding                   |
+| `titel`                                           | Filter op titel (hoofdletterongevoelig, bevat)          |
+| `auteur`                                          | Filter op auteur (hoofdletterongevoelig, bevat)         |
+| `status`                                          | Filter op status                                        |
+| `beschrijving`                                    | Filter op beschrijving (hoofdletterongevoelig, bevat)   |
+| `trefwoorden__overlap`                            | Filter op trefwoorden (overlap, kommagescheiden)        |
+| `locked`                                          | Filter op vergrendeld (`true`) of ontgrendeld (`false`) |
+| `creatiedatum__gte` / `creatiedatum__lte`         | Filter op creatiedatum (datum)                          |
+| `registratiedatum__gte` / `registratiedatum__lte` | Filter op beginRegistratie (datum-tijd)                 |
+| `ordering`                                        | Sortering op één of meer velden (kommagescheiden)       |
+| `objectinformatieobjecten__object`                | Filter op URL-referentie naar het gerelateerde object   |
+| `objectinformatieobjecten__objectType`            | Filter op objecttype van het gerelateerde object        |
 
 ### objectinformatieobject — paginering op `GET /`
 
