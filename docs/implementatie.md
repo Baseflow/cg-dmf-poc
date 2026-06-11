@@ -1,66 +1,96 @@
-# Document API Implementatie voortgang
+# Documenten API — Implementatiestatus
+
+Implementatiestatus van de [VNG Documenten API 1.5.0](https://vng-realisatie.github.io/gemma-zaken/standaard/documenten/) endpoints.
+
+De draaiende applicatie host een interactieve API-verkenner op `/docs`. Beschikbare endpoints:
+
+| URL | Inhoud |
+|---|---|
+| `/docs` | Overzichtspagina met links naar alle specs |
+| `/docs/swaggerui/documenten-api.html` | Swagger UI — Documenten API |
+| `/docs/swaggerui/wopi-api.html` | Swagger UI — WOPI API |
+| `/docs/openapi/documenten.json` | Gegenereerde OpenAPI spec (JSON) |
+| `/docs/openapi/wopi.json` | Gegenereerde OpenAPI spec (JSON) |
 
 ## enkelvoudiginformatieobjecten
 
-| Endpoint                     | Method | Beschrijving                                                                               | Status                  | Opmerkingen |
-| ---------------------------- | ------ | ----------------------------------------------------------------------------------------- | ----------------------- | ------------ |
-| /                            | GET    | Haal een lijst van enkelvoudiginformatieobjecten op op basis van de opgegeven queryparameters | $${\color{green}Done}$$ |              |
-| /                            | POST   | Maak een enkelvoudiginformatieobject                                                      | $${\color{green}Done}$$ |              |
-| /{UUID}/audittrail           | GET    | Haal alle audittrailrecords op voor een enkelvoudiginformatieobject                       | $${\color{green}Done}$$ |              |
-| /{UUID}/audittrail/{at_UUID} | GET    | Haal een enkele audittrailrecord op op basis van enkelvoudiginformatieobject-id en audittrail-id | $${\color{green}Done}$$ |              |
-| /{UUID}                      | GET    | Haal een enkel enkelvoudigInformatieObject op                                             | $${\color{green}Done}$$ |              |
-| /{UUID}                      | PUT    | Werk een enkelvoudiginformatieobject volledig bij                                         | $${\color{green}Done}$$ |              |
-| /{UUID}                      | PATCH  | Werk een enkelvoudiginformatieobject gedeeltelijk bij                                     | $${\color{green}Done}$$ |              |
-| /{UUID}                      | DELETE | Verwijder een enkelvoudiginformatieobject                                                 | $${\color{green}Done}$$ |              |
-| /{UUID}                      | HEAD   | Haal headers op voor een specifiek enkelvoudiginformatieobject                            | $${\color{green}Done}$$ |              |
-| /{UUID}/download             | GET    | Download de binaire gegevens van het enkelvoudiginformatieobject                          | $${\color{green}Done}$$ |              |
-| /{UUID}/lock                 | POST   | Vergrendel een enkelvoudiginformatieobject                                                | $${\color{green}Done}$$ |              |
-| /{UUID}/unlock               | POST   | Ontgrendel een enkelvoudiginformatieobject                                                | $${\color{green}Done}$$ |              |
-| /{UUID}/_zoek                | POST   | Zoek naar enkelvoudiginformatieobjectrecords op basis van de zoekinhoud van het verzoek   | $${\color{green}Done}$$ |              |
-
-## gebruiksrechten
-
-| Endpoint | Method | Beschrijving                                                        | Status                                  | Opmerkingen                         |
-| -------- | ------ | ------------------------------------------------------------------ | --------------------------------------- | ----------------------------------- |
-| /        | GET    | Haal een lijst van gebruiksrechten op op basis van de opgegeven queryparameters | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /        | POST   | Maak gebruiksrechten                                               | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | GET    | Haal een enkel gebruiksrechtenrecord op op basis van Id            | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | PUT    | Werk een enkel gebruiksrechtenrecord volledig bij op basis van Id  | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | PATCH  | Werk een enkel gebruiksrechtenrecord gedeeltelijk bij op basis van Id | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | DELETE | Verwijder een enkel gebruiksrechtenrecord op basis van Id          | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | HEAD   | Haal headers op voor een enkel gebruiksrechtenrecord op basis van Id | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
+| Endpoint                       | Method | Beschrijving                      | Status |
+|--------------------------------|--------|-----------------------------------|--------|
+| `/`                            | GET    | Lijst opvragen (met filters)      | ✅      |
+| `/`                            | POST   | Nieuw object aanmaken             | ✅      |
+| `/{uuid}`                      | GET    | Enkel object opvragen             | ✅      |
+| `/{uuid}`                      | PUT    | Volledig bijwerken                | ✅      |
+| `/{uuid}`                      | PATCH  | Gedeeltelijk bijwerken            | ✅      |
+| `/{uuid}`                      | DELETE | Verwijderen                       | ✅      |
+| `/{uuid}`                      | HEAD   | Headers opvragen                  | ✅      |
+| `/{uuid}/download`             | GET    | Binaire inhoud downloaden         | ✅      |
+| `/{uuid}/lock`                 | POST   | Vergrendelen                      | ✅      |
+| `/{uuid}/unlock`               | POST   | Ontgrendelen                      | ✅      |
+| `/{uuid}/_zoek`                | POST   | Zoeken op basis van verzoekinhoud | ✅      |
+| `/{uuid}/audittrail`           | GET    | Audittrail opvragen               | ✅      |
+| `/{uuid}/audittrail/{at_uuid}` | GET    | Enkel audittrailrecord opvragen   | ✅      |
 
 ## objectinformatieobject
 
-| Endpoint | Method | Beschrijving                                                                      | Status                  | Opmerkingen |
-| -------- | ------ | -------------------------------------------------------------------------------- | ----------------------- | ------------ |
-| /        | GET    | Haal een lijst van objectinformatieobjectrecords op op basis van de opgegeven queryparameters | $${\color{green}Done}$$ |              |
-| /        | POST   | Maak een objectinformatieobjectrelatie                                           | $${\color{green}Done}$$ |              |
-| /{UUID}  | GET    | Haal een enkel objectinformatieobjectrelatie op op basis van Id                  | $${\color{green}Done}$$ |              |
-| /{UUID}  | DELETE | Verwijder een enkel objectinformatieobjectrelatie op basis van Id                | $${\color{green}Done}$$ |              |
-| /{UUID}  | HEAD   | Haal headers op voor een enkel objectinformatieobjectrelatie op basis van Id     | $${\color{green}Done}$$ |              |
-
-## verzendingen
-
-| Endpoint | Method | Beschrijving                                                    | Status                                  | Opmerkingen                         |
-| -------- | ------ | -------------------------------------------------------------- | --------------------------------------- | ----------------------------------- |
-| /        | GET    | Haal een lijst van verzendingen op op basis van de opgegeven queryparameters | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /        | POST   | Maak verzending                                                | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | GET    | Haal een enkele verzending op op basis van Id                  | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | PUT    | Werk een enkele verzending volledig bij op basis van Id        | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | PATCH  | Werk een enkele verzending gedeeltelijk bij op basis van Id    | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | DELETE | Verwijder een enkele verzending op op basis van Id             | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
-| /{UUID}  | HEAD   | Haal headers op voor een enkele verzending op op basis van Id  | $${\color{red}Not \space implemented}$$ | Buiten scope voor onze PoC tot nu toe |
+| Endpoint  | Method | Beschrijving          | Status |
+|-----------|--------|-----------------------|--------|
+| `/`       | GET    | Lijst opvragen        | ✅ |
+| `/`       | POST   | Relatie aanmaken      | ✅ |
+| `/`       | DELETE | Bulk-verwijderen op filter | ✅ experimenteel |
+| `/{uuid}` | GET    | Enkel record opvragen | ✅ |
+| `/{uuid}` | DELETE | Verwijderen           | ✅ |
+| `/{uuid}` | HEAD   | Headers opvragen      | ✅ |
 
 ## bestandsdelen
 
-| Endpoint | Method | Beschrijving           | Status                                  | Opmerkingen |
-| -------- | ------ | --------------------- | --------------------------------------- | ------------ |
-| /{UUID}  | PUT    | Upload een bestandsdeel | $${\color{green}Done}$$ |              |
+| Endpoint  | Method | Beschrijving          | Status |
+|-----------|--------|-----------------------|--------|
+| `/{uuid}` | PUT    | Bestandsdeel uploaden | ✅      |
 
-## overig
+## Experimentele uitbreidingen
 
-| Functionaliteit | Status                          | Opmerkingen |
-| --------------- | ------------------------------- | ------------ |
-| Notificaties    | Buiten scope voor onze PoC tot nu toe |              |
-| API scopes      | Buiten scope voor onze PoC tot nu toe |              |
+Deze functies zijn geïmplementeerd maar vallen buiten de VNG Documenten API 1.5.0 specificatie. Ze kunnen zonder aankondiging wijzigen.
+
+### enkelvoudiginformatieobjecten — extra filterparameters op `GET /`
+
+De standaard API definieert een beperkte set queryfilters. De volgende parameters zijn als uitbreiding toegevoegd:
+
+| Parameter | Beschrijving |
+|---|---|
+| `informatieobjecttype` | Filter op URL-referentie naar het informatieobjecttype |
+| `vertrouwelijkheidaanduiding` | Filter op vertrouwelijkheidaanduiding |
+| `titel` | Filter op titel (hoofdletterongevoelig, bevat) |
+| `auteur` | Filter op auteur (hoofdletterongevoelig, bevat) |
+| `status` | Filter op status |
+| `beschrijving` | Filter op beschrijving (hoofdletterongevoelig, bevat) |
+| `trefwoorden__overlap` | Filter op trefwoorden (overlap, kommagescheiden) |
+| `locked` | Filter op vergrendeld (`true`) of ontgrendeld (`false`) |
+| `creatiedatum__gte` / `creatiedatum__lte` | Filter op creatiedatum (datum) |
+| `registratiedatum__gte` / `registratiedatum__lte` | Filter op beginRegistratie (datum-tijd) |
+| `ordering` | Sortering op één of meer velden (kommagescheiden) |
+| `objectinformatieobjecten__object` | Filter op URL-referentie naar het gerelateerde object |
+| `objectinformatieobjecten__objectType` | Filter op objecttype van het gerelateerde object |
+
+### objectinformatieobject — paginering op `GET /`
+
+De standaard levert een platte array zonder paginering. Met de experimentele parameters `page` en `pageSize` wordt een gepagineerde response teruggegeven. Dit werkt op dezelfde manier als bij het `enkelvoudiginformatieobjecten` endpoint.
+
+### objectinformatieobject — bulk-verwijderen op `DELETE /`
+
+Niet-standaard endpoint dat alle relaties verwijdert die voldoen aan een filter. Verplicht precies één van de queryparameters `informatieobject` (URL naar een EIO) of `object` (URL naar een willekeurig object). Geeft 204 bij succes, 404 als er geen overeenkomende relaties zijn.
+
+## Niet ondersteund
+
+De volgende onderdelen van de Documenten API zijn buiten scope en niet geïmplementeerd:
+
+- **gebruiksrechten** — autorisatieregels per document
+- **verzendingen** — registratie van fysieke en digitale verzendingen
+- **API scopes** — autorisatie op basis van OAuth-scopes
+
+## Overig
+
+| Functionaliteit   | Status                                                                                |
+|-------------------|---------------------------------------------------------------------------------------|
+| Open Notificaties | Optioneel — zie [configuratie.md](configuratie.md#notificaties-open-notificaties-api) |
+| WOPI-host         | Optioneel — zie [wopi/wopi.md](wopi/wopi.md)                                          |
+| NLX               | Niet ondersteund                                                                      |
