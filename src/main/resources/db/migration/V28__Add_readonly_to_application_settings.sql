@@ -5,5 +5,5 @@
 --      Env-imported credentials are marked readonly = true to prevent accidental modification.
 
 ALTER TABLE application_settings
-    ADD COLUMN readonly BOOLEAN NOT NULL DEFAULT FALSE;
+    ADD COLUMN IF NOT EXISTS readonly BOOLEAN NOT NULL DEFAULT FALSE;
 

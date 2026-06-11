@@ -234,12 +234,16 @@ export function ApplicationList({
                 <DropdownMenuItem onClick={() => openEdit(row.original)}>
                   {row.original.readonly ? "Bekijken" : "Bewerken"}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openRotate(row.original)}>
+                <DropdownMenuItem
+                  onClick={() => openRotate(row.original)}
+                  disabled={row.original.readonly}
+                >
                   Secret roteren
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => setDeleteTarget(row.original)}
+                  disabled={row.original.readonly}
                 >
                   Verwijderen
                 </DropdownMenuItem>
