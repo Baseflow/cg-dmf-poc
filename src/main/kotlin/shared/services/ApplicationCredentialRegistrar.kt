@@ -98,12 +98,22 @@ object ApplicationCredentialRegistrar {
                     continue
                 }
 
-                ApplicationSettingEntity.new {
-                    this.name = name
-                    this.clientId = clientId
-                    clientSecret = secret
-                    readonly = true
-                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                val inserted = runCatching {
+                    ApplicationSettingEntity.new {
+                        this.name = name
+                        this.clientId = clientId
+                        clientSecret = secret
+                        readonly = true
+                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    }
+                }.isSuccess
+                if (!inserted) {
+                    // Another pod inserted the same clientId concurrently; skip.
+                    logger.info(
+                        "Skipping env credential import for client_id='{}': already inserted by another instance.",
+                        clientId,
+                    )
+                    continue
                 }
                 existingClientIds += clientId
                 existingNames += name
