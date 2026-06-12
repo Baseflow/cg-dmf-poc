@@ -16,7 +16,7 @@ private val lazyEncryptor = multiAlgorithmEncryptor()
 
 object ApplicationSettingsTable : UUIDTable("application_settings") {
     val name = varchar("name", 100).uniqueIndex()
-    val clientId = text("client_id")
+    val clientId = text("client_id").uniqueIndex()
     val clientSecret = encryptedVarchar("client_secret_encrypted", 512, lazyEncryptor).nullable()
     val readonly = bool("readonly").default(false)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)

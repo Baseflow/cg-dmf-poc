@@ -31,16 +31,15 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
     private val json = apiJsonConfig()
 
-    private fun insertApp(name: String, clientId: String = "client-id", clientSecret: String? = null, readonly: Boolean = false): UUID =
-        transaction {
-            ApplicationSettingEntity.new {
-                this.name = name
-                this.clientId = clientId
-                this.clientSecret = clientSecret
-                this.readonly = readonly
-                this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            }.id.value
-        }
+    private fun insertApp(name: String, clientId: String, clientSecret: String? = null, readonly: Boolean = false): UUID = transaction {
+        ApplicationSettingEntity.new {
+            this.name = name
+            this.clientId = clientId
+            this.clientSecret = clientSecret
+            this.readonly = readonly
+            this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        }.id.value
+    }
 
     // -----------------------------------------------------------------------
     // GET /settings/application-settings
@@ -60,8 +59,8 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `GET returns all applications`() = testApplication {
         application { setup() }
-        insertApp("app-a")
-        insertApp("app-b")
+        insertApp("app-a", "client-a")
+        insertApp("app-b", "client-b")
 
         val response = client.get("/settings/application-settings")
 
@@ -74,7 +73,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `GET hasSecret is false when no secret stored`() = testApplication {
         application { setup() }
-        insertApp("no-secret-app")
+        insertApp("no-secret-app", "no-secret-client")
 
         val response = client.get("/settings/application-settings")
 
@@ -85,7 +84,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `GET hasSecret is true when secret is stored`() = testApplication {
         application { setup() }
-        insertApp("secret-app", clientSecret = "my-secret")
+        insertApp("secret-app", "secret-client", clientSecret = "my-secret")
 
         val response = client.get("/settings/application-settings")
 
@@ -167,7 +166,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `POST returns 409 when name already exists`() = testApplication {
         application { setup() }
-        insertApp("duplicate-app")
+        insertApp("duplicate-app", "dup-client")
 
         val response = client.post("/settings/application-settings") {
             contentType(ContentType.Application.Json)
@@ -182,6 +181,24 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
         assertEquals(HttpStatusCode.Conflict, response.status)
     }
 
+    @Test
+    fun `POST returns 409 when clientId already exists`() = testApplication {
+        application { setup() }
+        insertApp("existing-app", "existing-client")
+
+        val response = client.post("/settings/application-settings") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "new-app", clientId = "existing-client"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
     // -----------------------------------------------------------------------
     // PUT /settings/application-settings/{id}
     // -----------------------------------------------------------------------
@@ -189,7 +206,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `PUT updates application and returns 200`() = testApplication {
         application { setup() }
-        val id = insertApp("original-name")
+        val id = insertApp("original-name", "original-client")
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
@@ -227,7 +244,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `PUT returns 400 when name is blank`() = testApplication {
         application { setup() }
-        val id = insertApp("app")
+        val id = insertApp("app", "app-client")
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
@@ -245,7 +262,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `PUT returns 400 when clientId is blank`() = testApplication {
         application { setup() }
-        val id = insertApp("app")
+        val id = insertApp("app", "app-client")
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
@@ -280,8 +297,8 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `PUT returns 409 when renaming to an existing name`() = testApplication {
         application { setup() }
-        insertApp("app-a")
-        val idB = insertApp("app-b")
+        insertApp("app-a", "client-a")
+        val idB = insertApp("app-b", "client-b")
 
         val response = client.put("/settings/application-settings/$idB") {
             contentType(ContentType.Application.Json)
@@ -297,9 +314,28 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     }
 
     @Test
+    fun `PUT returns 409 when updating to a clientId already used by another application`() = testApplication {
+        application { setup() }
+        insertApp("app-a", "client-a")
+        val idB = insertApp("app-b", "client-b")
+
+        val response = client.put("/settings/application-settings/$idB") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "app-b", clientId = "client-a"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    @Test
     fun `PUT does not overwrite secret when clientSecret is omitted`() = testApplication {
         application { setup() }
-        val id = insertApp("app", clientSecret = "original-secret")
+        val id = insertApp("app", "app-client", clientSecret = "original-secret")
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
@@ -429,7 +465,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `DELETE removes application and returns 204`() = testApplication {
         application { setup() }
-        val id = insertApp("to-delete")
+        val id = insertApp("to-delete", "delete-client")
 
         val response = client.delete("/settings/application-settings/$id")
 
@@ -462,7 +498,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `rotate-secret returns 200 with 64-char hex secret when newSecret is omitted`() = testApplication {
         application { setup() }
-        val id = insertApp("app")
+        val id = insertApp("app", "app-client")
 
         val response = client.post("/settings/application-settings/$id/rotate-secret") {
             contentType(ContentType.Application.Json)
@@ -478,7 +514,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `rotate-secret returns 200 and returns the caller-supplied secret`() = testApplication {
         application { setup() }
-        val id = insertApp("app")
+        val id = insertApp("app", "app-client")
 
         val response = client.post("/settings/application-settings/$id/rotate-secret") {
             contentType(ContentType.Application.Json)
@@ -521,7 +557,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `PUT can recover an application with a new secret`() = testApplication {
         application { setup() }
-        val id = insertApp("corrupted-app", clientSecret = "some-secret")
+        val id = insertApp("corrupted-app", "corrupted-client", clientSecret = "some-secret")
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
@@ -552,7 +588,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `PUT returns 403 when application is readonly`() = testApplication {
         application { setup() }
-        val id = insertApp("env-app", readonly = true)
+        val id = insertApp("env-app", "env-client", readonly = true)
 
         val response = client.put("/settings/application-settings/$id") {
             contentType(ContentType.Application.Json)
@@ -570,7 +606,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `DELETE returns 403 when application is readonly`() = testApplication {
         application { setup() }
-        val id = insertApp("env-app", readonly = true)
+        val id = insertApp("env-app", "env-client", readonly = true)
 
         val response = client.delete("/settings/application-settings/$id")
 
@@ -580,7 +616,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
     @Test
     fun `rotate-secret returns 403 when application is readonly`() = testApplication {
         application { setup() }
-        val id = insertApp("env-app", readonly = true)
+        val id = insertApp("env-app", "env-client", readonly = true)
 
         val response = client.post("/settings/application-settings/$id/rotate-secret") {
             contentType(ContentType.Application.Json)
