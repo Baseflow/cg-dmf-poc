@@ -1,4 +1,5 @@
 import { auth } from "@/auth"
+import { NetworkError } from "@/lib/errors"
 
 export const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080"
 
@@ -11,15 +12,19 @@ export async function apiFetch(
     ? { Authorization: `Bearer ${session.accessToken}` }
     : {}
 
-  return fetch(`${BACKEND_URL}${path}`, {
-    cache: "no-store",
-    ...init,
-    headers: {
-      ...authHeaders,
-      ...(init.body !== undefined
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...init.headers,
-    },
-  })
+  try {
+    return await fetch(`${BACKEND_URL}${path}`, {
+      cache: "no-store",
+      ...init,
+      headers: {
+        ...authHeaders,
+        ...(init.body !== undefined
+          ? { "Content-Type": "application/json" }
+          : {}),
+        ...init.headers,
+      },
+    })
+  } catch {
+    throw new NetworkError()
+  }
 }

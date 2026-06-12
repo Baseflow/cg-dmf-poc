@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/select"
 import { useDeleteState } from "@/hooks/use-delete-state"
 import { useDrawerState } from "@/hooks/use-drawer-state"
+import { parseActionError } from "@/lib/errors"
 import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Check, Lock, MoreHorizontal, Plug, X } from "lucide-react"
@@ -436,6 +437,13 @@ function SettingForm({
     onDirtyChange?.(isDirty)
   }, [isDirty, onDirtyChange])
 
+  const serverError = parseActionError(error)
+  const generalError = serverError.field ? null : serverError.message || null
+  const allFieldErrors = {
+    ...fieldErrors,
+    ...(serverError.field ? { [serverError.field]: serverError.message } : {}),
+  }
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
@@ -493,7 +501,7 @@ function SettingForm({
         noValidate
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
-        <FieldError>{error}</FieldError>
+        <FieldError>{generalError}</FieldError>
         <Field>
           <FieldLabel htmlFor="setting-name">Naam</FieldLabel>
           <Input
@@ -506,7 +514,7 @@ function SettingForm({
           <FieldDescription>
             Herkenbare naam voor dit koppelingsprofile.
           </FieldDescription>
-          <FieldError>{fieldErrors.name}</FieldError>
+          <FieldError>{allFieldErrors.name}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-api-type">Type</FieldLabel>
@@ -527,7 +535,7 @@ function SettingForm({
             </SelectContent>
           </Select>
           <FieldDescription>Het type API koppeling.</FieldDescription>
-          <FieldError>{fieldErrors.apiType}</FieldError>
+          <FieldError>{allFieldErrors.apiType}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-base-url">Base URL</FieldLabel>
@@ -542,7 +550,7 @@ function SettingForm({
           <FieldDescription>
             Basis-URL van de API-implementatie.
           </FieldDescription>
-          <FieldError>{fieldErrors.baseUrl}</FieldError>
+          <FieldError>{allFieldErrors.baseUrl}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="setting-auth-type">Authenticatie</FieldLabel>
@@ -580,7 +588,7 @@ function SettingForm({
             <FieldDescription>
               Client-ID voor JWT-authenticatie.
             </FieldDescription>
-            <FieldError>{fieldErrors.clientId}</FieldError>
+            <FieldError>{allFieldErrors.clientId}</FieldError>
           </Field>
         )}
         {authType !== "none" && (

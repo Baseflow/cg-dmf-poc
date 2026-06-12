@@ -82,7 +82,18 @@ describe("repository actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 500 })
       )
-      await expect(createRepository(baseInput)).rejects.toThrow("HTTP 500")
+      await expect(createRepository(baseInput)).rejects.toThrow(
+        "Er is een fout opgetreden. Probeer het opnieuw."
+      )
+    })
+
+    it("throws with a network error message when fetch fails", async () => {
+      vi.mocked(global.fetch).mockRejectedValueOnce(
+        new TypeError("fetch failed")
+      )
+      await expect(createRepository(baseInput)).rejects.toThrow(
+        "Geen verbinding met de server."
+      )
     })
   })
 
@@ -106,7 +117,7 @@ describe("repository actions", () => {
         new Response(null, { status: 400 })
       )
       await expect(updateRepository("id", baseInput)).rejects.toThrow(
-        "HTTP 400"
+        "Er is een fout opgetreden. Probeer het opnieuw."
       )
     })
   })
@@ -129,7 +140,9 @@ describe("repository actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 404 })
       )
-      await expect(deleteRepository("id")).rejects.toThrow("HTTP 404")
+      await expect(deleteRepository("id")).rejects.toThrow(
+        "Niet gevonden. Ververs de pagina en probeer opnieuw."
+      )
     })
   })
 
@@ -157,7 +170,7 @@ describe("repository actions", () => {
         .mockResolvedValueOnce(new Response(null, { status: 200 }))
         .mockResolvedValueOnce(new Response(null, { status: 500 }))
       await expect(deleteRepositories(["r-1", "r-2"])).rejects.toThrow(
-        "HTTP 500"
+        "1 van 2 repositories konden niet worden verwijderd."
       )
     })
   })
