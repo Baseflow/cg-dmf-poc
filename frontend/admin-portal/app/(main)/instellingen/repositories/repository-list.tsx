@@ -115,7 +115,6 @@ export function RepositoryList({
     url: string
     accessKey: string
     secretKey: string
-    storageAccountName: string
     bucket: string
     isDefault: boolean
     enabled: boolean
@@ -132,7 +131,6 @@ export function RepositoryList({
       if (data.accessKey) body.accessKey = data.accessKey
       if (data.secretKey) body.secretKey = data.secretKey
     } else {
-      body.storageAccountName = data.storageAccountName
       if (data.accessKey) body.accessKey = data.accessKey
       if (data.secretKey) body.secretKey = data.secretKey
     }
@@ -195,9 +193,8 @@ export function RepositoryList({
         accessorKey: "bucket",
         header: "Bucket",
         cell: ({ row }) => {
-          const { storageType, bucket, storageAccountName } = row.original
-          const label = storageType === "S3" ? bucket : storageAccountName
-          return <span className="text-muted-foreground">{label || "—"}</span>
+          const { bucket } = row.original
+          return <span className="text-muted-foreground">{bucket || "—"}</span>
         },
       },
       {
@@ -376,7 +373,6 @@ function RepositoryForm({
     url: string
     accessKey: string
     secretKey: string
-    storageAccountName: string
     bucket: string
     isDefault: boolean
     enabled: boolean
@@ -391,7 +387,6 @@ function RepositoryForm({
   const [url, setUrl] = useState(repo?.url ?? "")
   const [accessKey, setAccessKey] = useState(repo?.accessKey ?? "")
   const [secretKey, setSecretKey] = useState(repo?.secretKey ?? "")
-  const [storageAccountName] = useState(repo?.storageAccountName ?? "")
   const [bucket, setBucket] = useState(repo?.bucket ?? "")
   const [isDefault, setIsDefault] = useState(repo?.isDefault ?? false)
   const [enabled, setEnabled] = useState(repo?.enabled ?? true)
@@ -402,7 +397,6 @@ function RepositoryForm({
     url !== (repo?.url ?? "") ||
     accessKey !== (repo?.accessKey ?? "") ||
     secretKey !== "" ||
-    storageAccountName !== (repo?.storageAccountName ?? "") ||
     bucket !== (repo?.bucket ?? "") ||
     isDefault !== (repo?.isDefault ?? false) ||
     enabled !== (repo?.enabled ?? true)
@@ -424,7 +418,6 @@ function RepositoryForm({
       url,
       accessKey,
       secretKey,
-      storageAccountName,
       bucket,
       isDefault,
       enabled,
