@@ -181,6 +181,24 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
         assertEquals(HttpStatusCode.Conflict, response.status)
     }
 
+    @Test
+    fun `POST returns 409 when clientId already exists`() = testApplication {
+        application { setup() }
+        insertApp("existing-app", "existing-client")
+
+        val response = client.post("/settings/application-settings") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    CreateApplicationSettingsRequest.serializer(),
+                    CreateApplicationSettingsRequest(name = "new-app", clientId = "existing-client"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
     // -----------------------------------------------------------------------
     // PUT /settings/application-settings/{id}
     // -----------------------------------------------------------------------
@@ -288,6 +306,25 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
                 Json.encodeToString(
                     UpdateApplicationSettingsRequest.serializer(),
                     UpdateApplicationSettingsRequest(name = "app-a", clientId = "client"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Conflict, response.status)
+    }
+
+    @Test
+    fun `PUT returns 409 when updating to a clientId already used by another application`() = testApplication {
+        application { setup() }
+        insertApp("app-a", "client-a")
+        val idB = insertApp("app-b", "client-b")
+
+        val response = client.put("/settings/application-settings/$idB") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "app-b", clientId = "client-a"),
                 ),
             )
         }

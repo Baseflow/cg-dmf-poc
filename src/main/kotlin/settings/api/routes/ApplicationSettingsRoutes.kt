@@ -69,25 +69,37 @@ fun Route.applicationSettingsRoutes() {
             }
 
             val created = transaction {
-                val exists = ApplicationSettingEntity.find {
-                    ApplicationSettingsTable.name eq body.name
-                }.firstOrNull()
-                if (exists != null) return@transaction null
-                ApplicationSettingEntity.new {
-                    name = body.name
-                    clientId = body.clientId
-                    clientSecret = body.clientSecret
-                        ?.takeIf { it.isNotBlank() }
-                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                }.toResponse()
-            } ?: return@post call.respondProblem(
-                HttpStatusCode.Conflict,
-                conflict("An application with this name already exists.", call.request.path()),
-            )
-            if (created.clientSecret != null) {
-                ApplicationCredentialRegistrar.registerSecret(created.clientId, created.clientSecret)
+                if (ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }.firstOrNull() != null) {
+                    return@transaction CreateResult.NameConflict
+                }
+                if (ApplicationSettingEntity.find { ApplicationSettingsTable.clientId eq body.clientId }.firstOrNull() != null) {
+                    return@transaction CreateResult.ClientIdConflict
+                }
+                CreateResult.Success(
+                    ApplicationSettingEntity.new {
+                        name = body.name
+                        clientId = body.clientId
+                        clientSecret = body.clientSecret?.takeIf { it.isNotBlank() }
+                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    }.toResponse(),
+                )
             }
-            call.respond(HttpStatusCode.Created, created)
+            when (created) {
+                CreateResult.NameConflict -> return@post call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("An application with this name already exists.", call.request.path()),
+                )
+                CreateResult.ClientIdConflict -> return@post call.respondProblem(
+                    HttpStatusCode.Conflict,
+                    conflict("An application with this clientId already exists.", call.request.path()),
+                )
+                is CreateResult.Success -> {
+                    if (created.response.clientSecret != null) {
+                        ApplicationCredentialRegistrar.registerSecret(created.response.clientId, created.response.clientSecret)
+                    }
+                    call.respond(HttpStatusCode.Created, created.response)
+                }
+            }
         }
 
         route("/{id}") {
@@ -125,7 +137,11 @@ fun Route.applicationSettingsRoutes() {
                     val nameConflict = existing.name != body.name &&
                         ApplicationSettingEntity.find { ApplicationSettingsTable.name eq body.name }
                             .firstOrNull() != null
-                    if (nameConflict) return@transaction UpdateResult.Conflict
+                    if (nameConflict) return@transaction UpdateResult.NameConflict
+                    val clientIdConflict = existing.clientId != body.clientId &&
+                        ApplicationSettingEntity.find { ApplicationSettingsTable.clientId eq body.clientId }
+                            .firstOrNull() != null
+                    if (clientIdConflict) return@transaction UpdateResult.ClientIdConflict
                     existing.name = body.name
                     existing.clientId = body.clientId
                     if (!body.clientSecret.isNullOrBlank()) {
@@ -145,9 +161,14 @@ fun Route.applicationSettingsRoutes() {
                         forbidden("This application setting is read-only and cannot be modified.", call.request.path()),
                     )
 
-                    UpdateResult.Conflict -> return@put call.respondProblem(
+                    UpdateResult.NameConflict -> return@put call.respondProblem(
                         HttpStatusCode.Conflict,
                         conflict("An application with this name already exists.", call.request.path()),
+                    )
+
+                    UpdateResult.ClientIdConflict -> return@put call.respondProblem(
+                        HttpStatusCode.Conflict,
+                        conflict("An application with this clientId already exists.", call.request.path()),
                     )
 
                     is UpdateResult.Success -> {
@@ -239,10 +260,17 @@ fun Route.applicationSettingsRoutes() {
 
 // ── Typed transaction results ─────────────────────────────────────────────────
 
+private sealed interface CreateResult {
+    data object NameConflict : CreateResult
+    data object ClientIdConflict : CreateResult
+    data class Success(val response: ApplicationSettingsResponse) : CreateResult
+}
+
 private sealed interface UpdateResult {
     data object NotFound : UpdateResult
     data object ReadOnly : UpdateResult
-    data object Conflict : UpdateResult
+    data object NameConflict : UpdateResult
+    data object ClientIdConflict : UpdateResult
     data class Success(val response: ApplicationSettingsResponse) : UpdateResult
 }
 
