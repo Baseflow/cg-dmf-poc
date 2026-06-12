@@ -59,8 +59,14 @@ object ApplicationCredentialRegistrar {
         var dbSecretCount = 0
         var importedCount = 0
         transaction {
-            // Load existing DB entries and update the in-memory cache.
+            // Load existing DB entries into the cache and collect clientId/name sets
+            // needed for the import step below.
+            val existingClientIds = mutableSetOf<String>()
+            val existingNames = mutableSetOf<String>()
             for (entity in ApplicationSettingEntity.all()) {
+                existingClientIds += entity.clientId
+                existingNames += entity.name
+
                 val secret = runCatching { entity.clientSecret }
                     .onFailure {
                         logger.error(
@@ -78,15 +84,6 @@ object ApplicationCredentialRegistrar {
                     secrets[entity.clientId] = secret
                     dbSecretCount++
                 }
-            }
-
-            // Import env credentials that are not yet present in the database (matched by clientId).
-            // Preload existing clientIds and names in one query to avoid N+1 lookups.
-            val existingClientIds = mutableSetOf<String>()
-            val existingNames = mutableSetOf<String>()
-            for (entity in ApplicationSettingEntity.all()) {
-                existingClientIds += entity.clientId
-                existingNames += entity.name
             }
 
             for ((clientId, secret) in envCredentials) {
