@@ -136,6 +136,20 @@ object BlobStorageRegistrar {
             providers[cfg.name] = createProvider(cfg)
         }
 
+        // Also register any repositories that exist in the DB but are not in the env config
+        // (e.g. created via the admin UI). Use loadConfigsFromDatabase() so they go through
+        // the same decryption and validation logic; skip names already handled above.
+        val envNames = envConfigs.map { it.name }.toSet()
+        val dbConfigs = transaction { loadConfigsFromDatabase() }
+        for (cfg in dbConfigs) {
+            if (cfg.name !in envNames) {
+                providers[cfg.name] = createProvider(cfg)
+                logger.info("Registered additional DB-only blob storage provider '{}'", cfg.name)
+            }
+        }
+
+        defaultProviderName = defaultProviderName?.takeIf { providers.containsKey(it) } ?: providers.keys.firstOrNull()
+
         logger.info(
             "Registered {} blob storage provider(s): {} — default: {}",
             providers.size,

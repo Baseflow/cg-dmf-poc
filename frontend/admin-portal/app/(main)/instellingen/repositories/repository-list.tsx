@@ -115,7 +115,6 @@ export function RepositoryList({
     url: string
     accessKey: string
     secretKey: string
-    storageAccountName: string
     bucket: string
     isDefault: boolean
     enabled: boolean
@@ -132,8 +131,8 @@ export function RepositoryList({
       if (data.accessKey) body.accessKey = data.accessKey
       if (data.secretKey) body.secretKey = data.secretKey
     } else {
-      body.storageAccountName = data.storageAccountName
       if (data.accessKey) body.accessKey = data.accessKey
+      if (data.secretKey) body.secretKey = data.secretKey
     }
 
     save(async () => {
@@ -194,9 +193,8 @@ export function RepositoryList({
         accessorKey: "bucket",
         header: "Bucket",
         cell: ({ row }) => {
-          const { storageType, bucket, storageAccountName } = row.original
-          const label = storageType === "S3" ? bucket : storageAccountName
-          return <span className="text-muted-foreground">{label || "—"}</span>
+          const { bucket } = row.original
+          return <span className="text-muted-foreground">{bucket || "—"}</span>
         },
       },
       {
@@ -375,7 +373,6 @@ function RepositoryForm({
     url: string
     accessKey: string
     secretKey: string
-    storageAccountName: string
     bucket: string
     isDefault: boolean
     enabled: boolean
@@ -390,9 +387,6 @@ function RepositoryForm({
   const [url, setUrl] = useState(repo?.url ?? "")
   const [accessKey, setAccessKey] = useState(repo?.accessKey ?? "")
   const [secretKey, setSecretKey] = useState(repo?.secretKey ?? "")
-  const [storageAccountName, setStorageAccountName] = useState(
-    repo?.storageAccountName ?? ""
-  )
   const [bucket, setBucket] = useState(repo?.bucket ?? "")
   const [isDefault, setIsDefault] = useState(repo?.isDefault ?? false)
   const [enabled, setEnabled] = useState(repo?.enabled ?? true)
@@ -403,7 +397,6 @@ function RepositoryForm({
     url !== (repo?.url ?? "") ||
     accessKey !== (repo?.accessKey ?? "") ||
     secretKey !== "" ||
-    storageAccountName !== (repo?.storageAccountName ?? "") ||
     bucket !== (repo?.bucket ?? "") ||
     isDefault !== (repo?.isDefault ?? false) ||
     enabled !== (repo?.enabled ?? true)
@@ -425,7 +418,6 @@ function RepositoryForm({
       url,
       accessKey,
       secretKey,
-      storageAccountName,
       bucket,
       isDefault,
       enabled,
@@ -501,35 +493,22 @@ function RepositoryForm({
           <FieldDescription>Basis-URL van de object store.</FieldDescription>
         </Field>
 
-        {isS3 && (
+        {(isS3 || isAzure) && (
           <Field>
-            <FieldLabel htmlFor="repo-bucket">Bucket (optioneel)</FieldLabel>
+            <FieldLabel htmlFor="repo-bucket">
+              {isAzure ? "Container" : "Bucket (optioneel)"}
+            </FieldLabel>
             <Input
               id="repo-bucket"
               value={bucket}
               onChange={(e) => setBucket(e.target.value)}
-              placeholder="mijn-bucket"
-              disabled={saving || readOnly}
-            />
-            <FieldDescription>De naam van de S3-bucket.</FieldDescription>
-          </Field>
-        )}
-
-        {isAzure && (
-          <Field>
-            <FieldLabel htmlFor="repo-storage-account-name">
-              Storage account name
-            </FieldLabel>
-            <Input
-              id="repo-storage-account-name"
-              value={storageAccountName}
-              onChange={(e) => setStorageAccountName(e.target.value)}
-              placeholder="mijnstorageaccount"
-              required={isAzure}
+              placeholder={isAzure ? "documenten" : "mijn-bucket"}
               disabled={saving || readOnly}
             />
             <FieldDescription>
-              De naam van het Azure Storage-account.
+              {isAzure
+                ? "De naam van de Azure Blob Storage container."
+                : "De naam van de S3-bucket."}
             </FieldDescription>
           </Field>
         )}
@@ -552,9 +531,11 @@ function RepositoryForm({
           </Field>
         )}
 
-        {isS3 && (
+        {(isS3 || isAzure) && (
           <Field>
-            <FieldLabel htmlFor="repo-secret-key">Secret Key</FieldLabel>
+            <FieldLabel htmlFor="repo-secret-key">
+              {isAzure ? "Storage account key" : "Secret Key"}
+            </FieldLabel>
             <SecretInput
               id="repo-secret-key"
               value={secretKey}
@@ -562,7 +543,9 @@ function RepositoryForm({
               placeholder={
                 hasExistingSecretKey
                   ? "Laat leeg om huidige waarde te bewaren"
-                  : "Voer de secret key in"
+                  : isAzure
+                    ? "Voer de storage account key in"
+                    : "Voer de secret key in"
               }
               disabled={saving || readOnly}
               copyable
