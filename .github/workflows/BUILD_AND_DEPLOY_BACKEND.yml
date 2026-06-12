@@ -63,14 +63,16 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#release/}"
           if [[ -f RELEASE_NOTES.md ]]; then
-            NOTES_ARG="--notes-file RELEASE_NOTES.md"
+            gh release create "v${VERSION}" \
+              --title "v${VERSION}" \
+              --notes-file RELEASE_NOTES.md \
+              --target ${{ github.sha }}
           else
-            NOTES_ARG="--notes 'Release ${VERSION}.'"
+            gh release create "v${VERSION}" \
+              --title "v${VERSION}" \
+              --notes "Release ${VERSION}." \
+              --target ${{ github.sha }}
           fi
-          gh release create "v${VERSION}" \
-            --title "v${VERSION}" \
-            ${NOTES_ARG} \
-            --target ${{ github.sha }}
 
       - name: Open PR to merge release into main
         if: github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/')
