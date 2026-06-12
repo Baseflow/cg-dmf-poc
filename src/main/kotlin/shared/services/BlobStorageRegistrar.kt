@@ -148,6 +148,8 @@ object BlobStorageRegistrar {
             }
         }
 
+        defaultProviderName = defaultProviderName?.takeIf { providers.containsKey(it) } ?: providers.keys.firstOrNull()
+
         logger.info(
             "Registered {} blob storage provider(s): {} — default: {}",
             providers.size,
