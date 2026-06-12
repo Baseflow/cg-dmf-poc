@@ -74,7 +74,11 @@ describe("DmfSettingsForm", () => {
 
     render(
       <DmfSettingsForm
-        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: false }}
+        initialSettings={{
+          triggerSize: 100,
+          chunkSize: 50,
+          validationEnabled: false,
+        }}
       />
     )
 
@@ -98,7 +102,11 @@ describe("DmfSettingsForm", () => {
 
     render(
       <DmfSettingsForm
-        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: true }}
+        initialSettings={{
+          triggerSize: 100,
+          chunkSize: 50,
+          validationEnabled: true,
+        }}
       />
     )
 
@@ -117,7 +125,11 @@ describe("DmfSettingsForm", () => {
 
     render(
       <DmfSettingsForm
-        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: false }}
+        initialSettings={{
+          triggerSize: 100,
+          chunkSize: 50,
+          validationEnabled: false,
+        }}
       />
     )
 
@@ -133,7 +145,11 @@ describe("DmfSettingsForm", () => {
 
     render(
       <DmfSettingsForm
-        initialSettings={{ triggerSize: 100, chunkSize: 50, validationEnabled: false }}
+        initialSettings={{
+          triggerSize: 100,
+          chunkSize: 50,
+          validationEnabled: false,
+        }}
       />
     )
 

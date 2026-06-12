@@ -9,7 +9,13 @@ function Drawer({
   handleOnly = true,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" handleOnly={handleOnly} {...props} />
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      handleOnly={handleOnly}
+      {...props}
+    />
+  )
 }
 
 function DrawerTrigger({

@@ -5,8 +5,7 @@ import "@scalar/api-reference-react/style.css"
 import { useMemo } from "react"
 
 const ApiReferenceReact = dynamic(
-  () =>
-    import("@scalar/api-reference-react").then((m) => m.ApiReferenceReact),
+  () => import("@scalar/api-reference-react").then((m) => m.ApiReferenceReact),
   { ssr: false }
 )
 

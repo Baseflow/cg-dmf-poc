@@ -7,7 +7,11 @@ export function OpenapiLoadingSkeleton() {
         <Skeleton className="h-5 w-32" />
         <div className="flex flex-col gap-2 pt-2">
           {[80, 64, 72, 56, 68, 48, 76].map((w, i) => (
-            <Skeleton key={i} className="h-3.5" style={{ width: `${w * 0.25}rem` }} />
+            <Skeleton
+              key={i}
+              className="h-3.5"
+              style={{ width: `${w * 0.25}rem` }}
+            />
           ))}
         </div>
       </div>

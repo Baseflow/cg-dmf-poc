@@ -17,7 +17,9 @@ describe("DrawerFormFooter", () => {
           onCancel={vi.fn()}
         />
       )
-      expect(screen.getByRole("button", { name: "Sluiten" })).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Sluiten" })
+      ).toBeInTheDocument()
       expect(
         screen.queryByRole("button", { name: /opslaan/i })
       ).not.toBeInTheDocument()
@@ -102,7 +104,9 @@ describe("DrawerFormFooter", () => {
           onCancel={vi.fn()}
         />
       )
-      expect(screen.getByRole("button", { name: /opslaan\.\.\./i })).toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: /opslaan\.\.\./i })
+      ).toBeDisabled()
       expect(screen.getByRole("button", { name: /annuleren/i })).toBeDisabled()
     })
   })

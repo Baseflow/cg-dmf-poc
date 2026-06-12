@@ -71,9 +71,7 @@ describe("useDeleteState", () => {
       const { result } = renderHook(() => useDeleteState())
       act(() => result.current.setBulkDeleteOpen(true))
       await act(async () =>
-        result.current.deleteBulk(() =>
-          Promise.reject(new Error("Bulk fout"))
-        )
+        result.current.deleteBulk(() => Promise.reject(new Error("Bulk fout")))
       )
       expect(result.current.bulkDeleteOpen).toBe(true)
       expect(result.current.deleteError).toBe("Bulk fout")

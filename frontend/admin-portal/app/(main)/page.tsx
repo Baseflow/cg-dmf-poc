@@ -81,7 +81,9 @@ export default async function Page() {
                         <span className="text-muted-foreground transition-colors group-hover:text-foreground [&>svg]:h-4 [&>svg]:w-4">
                           {icon}
                         </span>
-                        <span className="flex-1 text-sm font-medium">{name}</span>
+                        <span className="flex-1 text-sm font-medium">
+                          {name}
+                        </span>
                         {isExternal && (
                           <ExternalLink className="size-3 shrink-0 text-muted-foreground/60" />
                         )}

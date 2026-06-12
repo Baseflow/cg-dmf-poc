@@ -12,7 +12,9 @@ describe("SecretCell", () => {
 
   it("renders a toggle button with correct aria-label when hidden", () => {
     render(<SecretCell value="my-secret" />)
-    expect(screen.getByRole("button", { name: "Toon waarde" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Toon waarde" })
+    ).toBeInTheDocument()
   })
 
   it("reveals the value when the toggle button is clicked", async () => {
@@ -27,7 +29,9 @@ describe("SecretCell", () => {
     const user = userEvent.setup()
     render(<SecretCell value="my-secret" />)
     await user.click(screen.getByRole("button", { name: "Toon waarde" }))
-    expect(screen.getByRole("button", { name: "Verberg waarde" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Verberg waarde" })
+    ).toBeInTheDocument()
   })
 
   it("hides the value again when the toggle button is clicked a second time", async () => {

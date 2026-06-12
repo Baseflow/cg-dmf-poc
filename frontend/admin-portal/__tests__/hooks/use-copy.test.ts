@@ -47,7 +47,9 @@ describe("useCopy", () => {
   })
 
   it("does not set copied when clipboard.writeText rejects", async () => {
-    vi.mocked(navigator.clipboard.writeText).mockRejectedValue(new Error("denied"))
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValue(
+      new Error("denied")
+    )
     const { result } = renderHook(() => useCopy())
     await act(() => result.current.copy("hello"))
     expect(result.current.copied).toBe(false)

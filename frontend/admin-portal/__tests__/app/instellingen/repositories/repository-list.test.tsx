@@ -28,11 +28,20 @@ const base: Repository = {
   readonly: false,
 }
 
-const readonlyItem: Repository = { ...base, id: "2", name: "Omgeving S3", readonly: true }
+const readonlyItem: Repository = {
+  ...base,
+  id: "2",
+  name: "Omgeving S3",
+  readonly: true,
+}
 
-async function openActionsMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
+async function openActionsMenu(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string
+) {
   const row = screen.getByText(name).closest("tr")!
-  const trigger = row.querySelector("button[aria-haspopup]") ?? row.querySelector("button")
+  const trigger =
+    row.querySelector("button[aria-haspopup]") ?? row.querySelector("button")
   await user.click(trigger as HTMLElement)
 }
 
@@ -41,14 +50,18 @@ describe("RepositoryList — readonly behaviour", () => {
     const user = userEvent.setup()
     render(<RepositoryList repositories={[base]} />)
     await openActionsMenu(user, base.name)
-    expect(screen.getByRole("menuitem", { name: "Bewerken" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("menuitem", { name: "Bewerken" })
+    ).toBeInTheDocument()
   })
 
   it("shows 'Bekijken' for a readonly item", async () => {
     const user = userEvent.setup()
     render(<RepositoryList repositories={[readonlyItem]} />)
     await openActionsMenu(user, readonlyItem.name)
-    expect(screen.getByRole("menuitem", { name: "Bekijken" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("menuitem", { name: "Bekijken" })
+    ).toBeInTheDocument()
   })
 
   it("opens view mode when clicking 'Bekijken' on a readonly item", async () => {
@@ -56,7 +69,9 @@ describe("RepositoryList — readonly behaviour", () => {
     render(<RepositoryList repositories={[readonlyItem]} />)
     await openActionsMenu(user, readonlyItem.name)
     await user.click(screen.getByRole("menuitem", { name: "Bekijken" }))
-    expect(screen.getByText("Bekijk de repository-instellingen.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Bekijk de repository-instellingen.")
+    ).toBeInTheDocument()
   })
 
   it("shows only 'Sluiten' button in view mode", async () => {
@@ -65,8 +80,12 @@ describe("RepositoryList — readonly behaviour", () => {
     await openActionsMenu(user, readonlyItem.name)
     await user.click(screen.getByRole("menuitem", { name: "Bekijken" }))
     expect(screen.getByRole("button", { name: "Sluiten" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /opslaan/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /annuleren/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /opslaan/i })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /annuleren/i })
+    ).not.toBeInTheDocument()
   })
 
   it("disables all form inputs in view mode", async () => {
@@ -86,7 +105,11 @@ describe("RepositoryList — readonly behaviour", () => {
     await openActionsMenu(user, base.name)
     await user.click(screen.getByRole("menuitem", { name: "Bewerken" }))
     expect(screen.getByRole("button", { name: /opslaan/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /annuleren/i })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Sluiten" })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /annuleren/i })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Sluiten" })
+    ).not.toBeInTheDocument()
   })
 })
