@@ -11,6 +11,7 @@ data class ApplicationSettingsResponse(
     val clientId: String,
     val hasSecret: Boolean,
     val clientSecret: String?,
+    val readonly: Boolean,
     val updatedAt: String,
 )
 

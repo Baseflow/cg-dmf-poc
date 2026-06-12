@@ -31,14 +31,16 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
 
     private val json = apiJsonConfig()
 
-    private fun insertApp(name: String, clientId: String = "client-id", clientSecret: String? = null): UUID = transaction {
-        ApplicationSettingEntity.new {
-            this.name = name
-            this.clientId = clientId
-            this.clientSecret = clientSecret
-            this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-        }.id.value
-    }
+    private fun insertApp(name: String, clientId: String = "client-id", clientSecret: String? = null, readonly: Boolean = false): UUID =
+        transaction {
+            ApplicationSettingEntity.new {
+                this.name = name
+                this.clientId = clientId
+                this.clientSecret = clientSecret
+                this.readonly = readonly
+                this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            }.id.value
+        }
 
     // -----------------------------------------------------------------------
     // GET /settings/application-settings
@@ -541,5 +543,50 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
             assertEquals("new-working-secret", entity.clientSecret)
             assertEquals("recovered-app", entity.name)
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // readonly guard — PUT / DELETE / rotate-secret must return 403
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `PUT returns 403 when application is readonly`() = testApplication {
+        application { setup() }
+        val id = insertApp("env-app", readonly = true)
+
+        val response = client.put("/settings/application-settings/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateApplicationSettingsRequest.serializer(),
+                    UpdateApplicationSettingsRequest(name = "env-app", clientId = "client"),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `DELETE returns 403 when application is readonly`() = testApplication {
+        application { setup() }
+        val id = insertApp("env-app", readonly = true)
+
+        val response = client.delete("/settings/application-settings/$id")
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun `rotate-secret returns 403 when application is readonly`() = testApplication {
+        application { setup() }
+        val id = insertApp("env-app", readonly = true)
+
+        val response = client.post("/settings/application-settings/$id/rotate-secret") {
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
     }
 }
