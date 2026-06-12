@@ -83,7 +83,11 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
               {navigation.secondary.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       {item.icon}
                       <span>{item.name}</span>
                     </a>

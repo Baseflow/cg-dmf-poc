@@ -16,7 +16,9 @@ export async function apiFetch(
     ...init,
     headers: {
       ...authHeaders,
-      ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...(init.body !== undefined
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...init.headers,
     },
   })

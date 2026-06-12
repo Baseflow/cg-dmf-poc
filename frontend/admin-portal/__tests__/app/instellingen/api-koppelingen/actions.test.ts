@@ -77,9 +77,9 @@ describe("API koppeling actions", () => {
         string,
         RequestInit,
       ]
-      expect(
-        (options.headers as Record<string, string>)["Authorization"]
-      ).toBe("Bearer test-token")
+      expect((options.headers as Record<string, string>)["Authorization"]).toBe(
+        "Bearer test-token"
+      )
     })
 
     it("throws on non-ok response", async () => {
@@ -109,9 +109,9 @@ describe("API koppeling actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 403 })
       )
-      await expect(
-        updateApiKoppeling("id", baseInput)
-      ).rejects.toThrow("HTTP 403")
+      await expect(updateApiKoppeling("id", baseInput)).rejects.toThrow(
+        "HTTP 403"
+      )
     })
   })
 

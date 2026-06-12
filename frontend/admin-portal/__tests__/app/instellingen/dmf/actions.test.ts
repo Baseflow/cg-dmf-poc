@@ -19,7 +19,8 @@ function makeFormData(values: {
   const fd = new FormData()
   fd.append("triggerSize", values.triggerSize)
   fd.append("chunkSize", values.chunkSize)
-  if (values.validationEnabled) fd.append("validationEnabled", values.validationEnabled)
+  if (values.validationEnabled)
+    fd.append("validationEnabled", values.validationEnabled)
   return fd
 }
 
@@ -40,7 +41,11 @@ describe("saveDmfSettings", () => {
 
     await saveDmfSettings(
       {},
-      makeFormData({ triggerSize: "1024", chunkSize: "512", validationEnabled: "on" })
+      makeFormData({
+        triggerSize: "1024",
+        chunkSize: "512",
+        validationEnabled: "on",
+      })
     )
 
     expect(global.fetch).toHaveBeenCalledOnce()

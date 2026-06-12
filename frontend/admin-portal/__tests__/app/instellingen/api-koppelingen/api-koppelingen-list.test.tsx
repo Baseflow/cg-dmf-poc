@@ -27,11 +27,20 @@ const base: ApiKoppeling = {
   readonly: false,
 }
 
-const readonlyItem: ApiKoppeling = { ...base, id: "2", name: "OpenZaak Omgeving", readonly: true }
+const readonlyItem: ApiKoppeling = {
+  ...base,
+  id: "2",
+  name: "OpenZaak Omgeving",
+  readonly: true,
+}
 
-async function openActionsMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
+async function openActionsMenu(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string
+) {
   const row = screen.getByText(name).closest("tr")!
-  const trigger = row.querySelector("button[aria-haspopup]") ?? row.querySelector("button")
+  const trigger =
+    row.querySelector("button[aria-haspopup]") ?? row.querySelector("button")
   await user.click(trigger as HTMLElement)
 }
 
@@ -40,14 +49,18 @@ describe("ApiKoppelingenList — readonly behaviour", () => {
     const user = userEvent.setup()
     render(<ApiKoppelingenList settings={[base]} />)
     await openActionsMenu(user, base.name)
-    expect(screen.getByRole("menuitem", { name: "Bewerken" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("menuitem", { name: "Bewerken" })
+    ).toBeInTheDocument()
   })
 
   it("shows 'Bekijken' for a readonly item", async () => {
     const user = userEvent.setup()
     render(<ApiKoppelingenList settings={[readonlyItem]} />)
     await openActionsMenu(user, readonlyItem.name)
-    expect(screen.getByRole("menuitem", { name: "Bekijken" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("menuitem", { name: "Bekijken" })
+    ).toBeInTheDocument()
   })
 
   it("does not show a disabled 'Bewerken' for a readonly item", async () => {
@@ -63,7 +76,9 @@ describe("ApiKoppelingenList — readonly behaviour", () => {
     render(<ApiKoppelingenList settings={[readonlyItem]} />)
     await openActionsMenu(user, readonlyItem.name)
     await user.click(screen.getByRole("menuitem", { name: "Bekijken" }))
-    expect(screen.getByText("Bekijk de API koppelingsinstelling.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Bekijk de API koppelingsinstelling.")
+    ).toBeInTheDocument()
   })
 
   it("shows only 'Sluiten' button in view mode", async () => {
@@ -72,8 +87,12 @@ describe("ApiKoppelingenList — readonly behaviour", () => {
     await openActionsMenu(user, readonlyItem.name)
     await user.click(screen.getByRole("menuitem", { name: "Bekijken" }))
     expect(screen.getByRole("button", { name: "Sluiten" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /opslaan/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /annuleren/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /opslaan/i })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /annuleren/i })
+    ).not.toBeInTheDocument()
   })
 
   it("disables all form inputs in view mode", async () => {
@@ -92,7 +111,9 @@ describe("ApiKoppelingenList — readonly behaviour", () => {
     render(<ApiKoppelingenList settings={[base]} />)
     await openActionsMenu(user, base.name)
     await user.click(screen.getByRole("menuitem", { name: "Bewerken" }))
-    expect(screen.getByText("Bewerk de API koppelingsinstelling.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Bewerk de API koppelingsinstelling.")
+    ).toBeInTheDocument()
   })
 
   it("shows 'Opslaan' and 'Annuleren' buttons in edit mode", async () => {
@@ -101,7 +122,11 @@ describe("ApiKoppelingenList — readonly behaviour", () => {
     await openActionsMenu(user, base.name)
     await user.click(screen.getByRole("menuitem", { name: "Bewerken" }))
     expect(screen.getByRole("button", { name: /opslaan/i })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /annuleren/i })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Sluiten" })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /annuleren/i })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Sluiten" })
+    ).not.toBeInTheDocument()
   })
 })

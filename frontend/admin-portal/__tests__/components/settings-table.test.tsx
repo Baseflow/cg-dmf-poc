@@ -43,7 +43,9 @@ describe("SettingsTable", () => {
         onAdd={vi.fn()}
       />
     )
-    expect(screen.getByRole("button", { name: /toevoegen/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /toevoegen/i })
+    ).toBeInTheDocument()
   })
 
   it("renders the add button with a custom label", () => {
@@ -57,7 +59,9 @@ describe("SettingsTable", () => {
         addLabel="Nieuw aanmaken"
       />
     )
-    expect(screen.getByRole("button", { name: /nieuw aanmaken/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /nieuw aanmaken/i })
+    ).toBeInTheDocument()
   })
 
   it("calls onAdd when the add button is clicked", async () => {
@@ -160,10 +164,16 @@ describe("SettingsTable", () => {
         onBulkDelete={vi.fn()}
       />
     )
-    expect(screen.queryByRole("button", { name: /verwijderen/i })).not.toBeInTheDocument()
-    const rowCheckboxes = screen.getAllByRole("checkbox", { name: /selecteer rij/i })
+    expect(
+      screen.queryByRole("button", { name: /verwijderen/i })
+    ).not.toBeInTheDocument()
+    const rowCheckboxes = screen.getAllByRole("checkbox", {
+      name: /selecteer rij/i,
+    })
     await user.click(rowCheckboxes[0])
-    expect(screen.getByRole("button", { name: /verwijderen/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /verwijderen/i })
+    ).toBeInTheDocument()
   })
 
   it("calls onBulkDelete with the selected row ids", async () => {
@@ -179,7 +189,9 @@ describe("SettingsTable", () => {
         onBulkDelete={onBulkDelete}
       />
     )
-    const rowCheckboxes = screen.getAllByRole("checkbox", { name: /selecteer rij/i })
+    const rowCheckboxes = screen.getAllByRole("checkbox", {
+      name: /selecteer rij/i,
+    })
     await user.click(rowCheckboxes[0])
     await user.click(screen.getByRole("button", { name: /verwijderen/i }))
     expect(onBulkDelete).toHaveBeenCalledWith(["1"])
@@ -200,6 +212,8 @@ describe("SettingsTable", () => {
     )
     await user.click(screen.getByRole("checkbox", { name: /selecteer alles/i }))
     await user.click(screen.getByRole("button", { name: /verwijderen/i }))
-    expect(onBulkDelete).toHaveBeenCalledWith(expect.arrayContaining(["1", "2"]))
+    expect(onBulkDelete).toHaveBeenCalledWith(
+      expect.arrayContaining(["1", "2"])
+    )
   })
 })

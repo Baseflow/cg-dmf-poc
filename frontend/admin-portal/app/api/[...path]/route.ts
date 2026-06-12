@@ -26,8 +26,23 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   })
 }
 
-export const GET = (req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => proxy(req, params)
-export const POST = (req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => proxy(req, params)
-export const PUT = (req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => proxy(req, params)
-export const PATCH = (req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => proxy(req, params)
-export const DELETE = (req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) => proxy(req, params)
+export const GET = (
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) => proxy(req, params)
+export const POST = (
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) => proxy(req, params)
+export const PUT = (
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) => proxy(req, params)
+export const PATCH = (
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) => proxy(req, params)
+export const DELETE = (
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) => proxy(req, params)
