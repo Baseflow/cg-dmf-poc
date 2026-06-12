@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27407530126",
+    "runNumber": "879",
+    "branch": "CGDMF-168-test-azure-container",
+    "date": "2026-06-12T09:40:24Z",
+    "path": "integration/27407530126/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27404677671",
     "runNumber": "146",
