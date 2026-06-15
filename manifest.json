@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27533698296",
+    "runNumber": "893",
+    "branch": "dependabot/gradle/com.azure-azure-storage-blob-12.35.0",
+    "date": "2026-06-15T08:31:26Z",
+    "path": "integration/27533698296/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27516888389",
     "runNumber": "152",
