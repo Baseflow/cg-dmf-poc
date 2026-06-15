@@ -77,7 +77,7 @@ dependencies {
     implementation("software.amazon.awssdk:netty-nio-client:2.46.9")
 
     // Azure Blob Storage
-    implementation("com.azure:azure-storage-blob:12.34.0")
+    implementation("com.azure:azure-storage-blob:12.35.0")
     implementation("com.azure:azure-storage-blob-batch:12.31.0")
 
     // Utilities
