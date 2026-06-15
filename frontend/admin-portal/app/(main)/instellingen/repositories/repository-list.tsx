@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/select"
 import { useDeleteState } from "@/hooks/use-delete-state"
 import { useDrawerState } from "@/hooks/use-drawer-state"
-import { ValidationError } from "@/lib/errors"
+import { parseActionError, ValidationError } from "@/lib/errors"
 import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
 import { Database, MoreHorizontal } from "lucide-react"
@@ -410,6 +410,11 @@ function RepositoryForm({
   const hasExistingAccessKey = repo !== null && repo.accessKey !== null
   const hasExistingSecretKey = repo !== null && repo.secretKey !== null
 
+  const serverError = parseActionError(error)
+  const generalError = serverError.field ? null : serverError.message || null
+  const nameFieldError =
+    serverError.field === "name" ? serverError.message : null
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onSave({
@@ -441,7 +446,7 @@ function RepositoryForm({
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
-        <FieldError>{error}</FieldError>
+        <FieldError>{generalError}</FieldError>
 
         <Field>
           <FieldLabel htmlFor="repo-name">Naam</FieldLabel>
@@ -456,6 +461,7 @@ function RepositoryForm({
           <FieldDescription>
             Herkenbare naam voor deze repository.
           </FieldDescription>
+          <FieldError>{nameFieldError}</FieldError>
         </Field>
 
         <Field>

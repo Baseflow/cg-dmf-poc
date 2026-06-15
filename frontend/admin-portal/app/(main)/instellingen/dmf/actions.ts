@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { NetworkError, readDetail } from "@/lib/errors"
 import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -48,12 +49,25 @@ export async function saveDmfSettings(
     return { errors }
   }
 
-  const res = await apiFetch("/settings/dmf-settings", {
-    method: "PUT",
-    body: JSON.stringify(result.data),
-  })
+  let res: Response
+  try {
+    res = await apiFetch("/settings/dmf-settings", {
+      method: "PUT",
+      body: JSON.stringify(result.data),
+    })
+  } catch (e) {
+    return {
+      error:
+        e instanceof NetworkError
+          ? e.message
+          : "Opslaan mislukt. Probeer het opnieuw.",
+    }
+  }
 
-  if (!res.ok) return { error: "Opslaan mislukt. Probeer het opnieuw." }
+  if (!res.ok) {
+    const detail = await readDetail(res)
+    return { error: detail ?? "Opslaan mislukt. Probeer het opnieuw." }
+  }
   revalidatePath(ROUTES.instellingen.dmf)
   return { saved: true }
 }

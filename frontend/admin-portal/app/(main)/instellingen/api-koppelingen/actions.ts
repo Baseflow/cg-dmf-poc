@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { throwOnError } from "@/lib/errors"
 import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
@@ -31,12 +32,17 @@ type ApiKoppelingInput = {
   enabled: boolean
 }
 
+const READONLY_MSG =
+  "Deze koppeling kan niet worden gewijzigd omdat het een omgevingsvariabele betreft."
+
+const on409 = () => "field:name:Deze naam is al in gebruik."
+
 export async function createApiKoppeling(data: ApiKoppelingInput) {
   const res = await apiFetch("/settings/api-connection-settings", {
     method: "POST",
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) await throwOnError(res, { on409, on403: READONLY_MSG })
   revalidatePath(ROUTES.instellingen.apiKoppelingen)
 }
 
@@ -45,7 +51,7 @@ export async function updateApiKoppeling(id: string, data: ApiKoppelingInput) {
     method: "PUT",
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) await throwOnError(res, { on409, on403: READONLY_MSG })
   revalidatePath(ROUTES.instellingen.apiKoppelingen)
 }
 
@@ -53,7 +59,11 @@ export async function deleteApiKoppeling(id: string) {
   const res = await apiFetch(`/settings/api-connection-settings/${id}`, {
     method: "DELETE",
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok)
+    await throwOnError(res, {
+      on403:
+        "Deze koppeling kan niet worden verwijderd omdat het een omgevingsvariabele betreft.",
+    })
   revalidatePath(ROUTES.instellingen.apiKoppelingen)
 }
 

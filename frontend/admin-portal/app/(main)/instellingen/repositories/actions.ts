@@ -1,6 +1,7 @@
 "use server"
 
 import { apiFetch } from "@/lib/backend"
+import { throwOnError } from "@/lib/errors"
 import { ROUTES } from "@/lib/routes"
 import { revalidatePath } from "next/cache"
 
@@ -33,12 +34,17 @@ type RepositoryInput = {
   storageAccountName?: string
 }
 
+const READONLY_MSG =
+  "Deze repository kan niet worden gewijzigd omdat het een omgevingsvariabele betreft."
+
+const on409 = () => "field:name:Deze naam is al in gebruik."
+
 export async function createRepository(data: RepositoryInput) {
   const res = await apiFetch("/settings/storage-repositories", {
     method: "POST",
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) await throwOnError(res, { on409, on403: READONLY_MSG })
   revalidatePath(ROUTES.instellingen.repositories)
 }
 
@@ -47,7 +53,7 @@ export async function updateRepository(id: string, data: RepositoryInput) {
     method: "PUT",
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) await throwOnError(res, { on409, on403: READONLY_MSG })
   revalidatePath(ROUTES.instellingen.repositories)
 }
 
@@ -55,12 +61,16 @@ export async function deleteRepository(id: string) {
   const res = await apiFetch(`/settings/storage-repositories/${id}`, {
     method: "DELETE",
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok)
+    await throwOnError(res, {
+      on403:
+        "Deze repository kan niet worden verwijderd omdat het een omgevingsvariabele betreft.",
+    })
   revalidatePath(ROUTES.instellingen.repositories)
 }
 
 export async function deleteRepositories(ids: string[]) {
-  await Promise.all(
+  const results = await Promise.allSettled(
     ids.map(async (id) => {
       const res = await apiFetch(`/settings/storage-repositories/${id}`, {
         method: "DELETE",
@@ -69,4 +79,12 @@ export async function deleteRepositories(ids: string[]) {
     })
   )
   revalidatePath(ROUTES.instellingen.repositories)
+  const failed = results.filter(
+    (r): r is PromiseRejectedResult => r.status === "rejected"
+  )
+  if (failed.length > 0) {
+    throw new Error(
+      `${failed.length} van ${ids.length} repositories konden niet worden verwijderd.`
+    )
+  }
 }

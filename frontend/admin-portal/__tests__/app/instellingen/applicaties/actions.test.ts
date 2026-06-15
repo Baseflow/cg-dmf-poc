@@ -81,7 +81,16 @@ describe("application actions", () => {
       )
       await expect(
         createApplication({ name: "App", clientId: "c1" })
-      ).rejects.toThrow("HTTP 500")
+      ).rejects.toThrow("Er is een fout opgetreden. Probeer het opnieuw.")
+    })
+
+    it("throws with a network error message when fetch fails", async () => {
+      vi.mocked(global.fetch).mockRejectedValueOnce(
+        new TypeError("fetch failed")
+      )
+      await expect(
+        createApplication({ name: "App", clientId: "c1" })
+      ).rejects.toThrow("Geen verbinding met de server.")
     })
   })
 
@@ -109,7 +118,7 @@ describe("application actions", () => {
       )
       await expect(
         updateApplication("id", { name: "X", clientId: "c" })
-      ).rejects.toThrow("HTTP 404")
+      ).rejects.toThrow("Niet gevonden. Ververs de pagina en probeer opnieuw.")
     })
   })
 
@@ -131,7 +140,9 @@ describe("application actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 404 })
       )
-      await expect(deleteApplication("id")).rejects.toThrow("HTTP 404")
+      await expect(deleteApplication("id")).rejects.toThrow(
+        "Niet gevonden. Ververs de pagina en probeer opnieuw."
+      )
     })
   })
 
@@ -159,7 +170,7 @@ describe("application actions", () => {
         .mockResolvedValueOnce(new Response(null, { status: 200 }))
         .mockResolvedValueOnce(new Response(null, { status: 500 }))
       await expect(deleteApplications(["id-1", "id-2"])).rejects.toThrow(
-        "HTTP 500"
+        "1 van 2 applicaties konden niet worden verwijderd."
       )
     })
   })
@@ -213,7 +224,9 @@ describe("application actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 500 })
       )
-      await expect(rotateApplicationSecret("id")).rejects.toThrow("HTTP 500")
+      await expect(rotateApplicationSecret("id")).rejects.toThrow(
+        "Er is een fout opgetreden. Probeer het opnieuw."
+      )
     })
   })
 })
