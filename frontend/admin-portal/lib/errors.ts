@@ -10,9 +10,10 @@ export class ValidationError extends Error {
 
 /** Thrown when a fetch fails due to a network problem (no connection, DNS failure, etc.). */
 export class NetworkError extends Error {
-  constructor() {
+  constructor(cause?: unknown) {
     super(
-      "Geen verbinding met de server. Controleer uw internetverbinding en probeer het opnieuw."
+      "Geen verbinding met de server. Controleer je internetverbinding en probeer het opnieuw.",
+      { cause }
     )
     this.name = "NetworkError"
   }
@@ -38,7 +39,7 @@ export async function readDetail(res: Response): Promise<string | null> {
  * - `on403`: message for Forbidden (e.g. read-only resource).
  * - `on404`: message for Not Found (defaults to generic).
  *
- * Falls back to the backend `detail` text, or a generic Dutch message.
+ * Falls back to a generic Dutch message; backend `detail` is not surfaced to avoid leaking English technical strings.
  */
 export async function throwOnError(
   res: Response,
@@ -64,7 +65,7 @@ export async function throwOnError(
       options.on404 ?? "Niet gevonden. Ververs de pagina en probeer opnieuw."
     )
   }
-  throw new Error(detail ?? "Er is een fout opgetreden. Probeer het opnieuw.")
+  throw new Error("Er is een fout opgetreden. Probeer het opnieuw.")
 }
 
 /**

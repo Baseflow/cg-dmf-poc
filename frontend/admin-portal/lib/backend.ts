@@ -24,7 +24,7 @@ export async function apiFetch(
         ...init.headers,
       },
     })
-  } catch {
-    throw new NetworkError()
+  } catch (e) {
+    throw new NetworkError(e)
   }
 }
