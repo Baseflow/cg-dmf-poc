@@ -51,6 +51,7 @@ import { ResponsiveDrawer } from "@/components/ui/responsive-drawer"
 import { SecretInput } from "@/components/ui/secret-input"
 import { useDeleteState } from "@/hooks/use-delete-state"
 import { useDrawerState } from "@/hooks/use-drawer-state"
+import { parseActionError } from "@/lib/errors"
 import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
 import {
@@ -542,6 +543,15 @@ function AppForm({
     onDirtyChange?.(isDirty)
   }, [isDirty, onDirtyChange])
 
+  const serverError = parseActionError(error)
+  const generalError = serverError.field ? null : serverError.message || null
+  const allFieldErrors: AppFormErrors = {
+    ...fieldErrors,
+    ...(serverError.field
+      ? { [serverError.field as keyof AppFormErrors]: serverError.message }
+      : {}),
+  }
+
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setFieldErrors({})
@@ -575,7 +585,7 @@ function AppForm({
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 overflow-y-auto px-4"
       >
-        <FieldError>{error}</FieldError>
+        <FieldError>{generalError}</FieldError>
         <Field>
           <FieldLabel htmlFor="app-name">Naam</FieldLabel>
           <Input
@@ -588,7 +598,7 @@ function AppForm({
           <FieldDescription>
             Herkenbare naam voor deze applicatie.
           </FieldDescription>
-          <FieldError>{fieldErrors.name}</FieldError>
+          <FieldError>{allFieldErrors.name}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="app-client-id">Client ID</FieldLabel>
@@ -603,7 +613,7 @@ function AppForm({
           <FieldDescription>
             De unieke identifier van de applicatie.
           </FieldDescription>
-          <FieldError>{fieldErrors.clientId}</FieldError>
+          <FieldError>{allFieldErrors.clientId}</FieldError>
         </Field>
         <Field>
           <FieldLabel htmlFor="app-client-secret">Client secret</FieldLabel>

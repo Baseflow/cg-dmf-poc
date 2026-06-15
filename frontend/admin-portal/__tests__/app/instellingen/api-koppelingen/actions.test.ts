@@ -86,7 +86,18 @@ describe("API koppeling actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 500 })
       )
-      await expect(createApiKoppeling(baseInput)).rejects.toThrow("HTTP 500")
+      await expect(createApiKoppeling(baseInput)).rejects.toThrow(
+        "Er is een fout opgetreden. Probeer het opnieuw."
+      )
+    })
+
+    it("throws with a network error message when fetch fails", async () => {
+      vi.mocked(global.fetch).mockRejectedValueOnce(
+        new TypeError("fetch failed")
+      )
+      await expect(createApiKoppeling(baseInput)).rejects.toThrow(
+        "Geen verbinding met de server."
+      )
     })
   })
 
@@ -110,7 +121,7 @@ describe("API koppeling actions", () => {
         new Response(null, { status: 403 })
       )
       await expect(updateApiKoppeling("id", baseInput)).rejects.toThrow(
-        "HTTP 403"
+        "Deze koppeling kan niet worden gewijzigd omdat het een omgevingsvariabele betreft."
       )
     })
   })
@@ -133,7 +144,9 @@ describe("API koppeling actions", () => {
       vi.mocked(global.fetch).mockResolvedValueOnce(
         new Response(null, { status: 404 })
       )
-      await expect(deleteApiKoppeling("id")).rejects.toThrow("HTTP 404")
+      await expect(deleteApiKoppeling("id")).rejects.toThrow(
+        "Niet gevonden. Ververs de pagina en probeer opnieuw."
+      )
     })
   })
 
