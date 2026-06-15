@@ -134,7 +134,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={() => signOut({ callbackUrl: "/admin" })}
             >
               <LogOutIcon />
               Uitloggen
