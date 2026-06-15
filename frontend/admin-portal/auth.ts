@@ -9,7 +9,6 @@ const keycloakRealm = process.env.KEYCLOAK_REALM!
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  basePath: "/admin/api/auth",
   providers: [
     Keycloak({
       clientId: keycloakClientId,
