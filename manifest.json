@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27539097201",
+    "runNumber": "896",
+    "branch": "tast/admin-subpath",
+    "date": "2026-06-15T10:13:54Z",
+    "path": "integration/27539097201/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27534075670",
     "runNumber": "894",
     "branch": "feat/settings-error-handling",
