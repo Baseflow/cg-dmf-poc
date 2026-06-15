@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27534075670",
+    "runNumber": "894",
+    "branch": "feat/settings-error-handling",
+    "date": "2026-06-15T08:38:29Z",
+    "path": "integration/27534075670/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27533698296",
     "runNumber": "893",
     "branch": "dependabot/gradle/com.azure-azure-storage-blob-12.35.0",
