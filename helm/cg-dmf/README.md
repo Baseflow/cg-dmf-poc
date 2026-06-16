@@ -382,5 +382,5 @@ The admin portal creates one Secret (unless `adminPortal.settings.existingSecret
 | `adminPortal.settings.keycloakUrl` | string | `https://auth.example.com` | Base Keycloak URL without realm path. |
 | `adminPortal.settings.keycloakRealm` | string | `valtimo` | Keycloak realm name. |
 | `adminPortal.settings.keycloakClientId` | string | `dmf-dashboard` | Keycloak OAuth client ID. |
-| `adminPortal.settings.keycloakClientSecret` | string | **required** | Keycloak OAuth client secret. |
+| `adminPortal.settings.keycloakClientSecret` | string | `""` | Keycloak OAuth client secret. Leave empty when using public clients (no secret required). |
 | `adminPortal.settings.backendUrl` | string | `https://cg-dmf.example.com` | Backend API URL the admin portal proxies requests to. |
