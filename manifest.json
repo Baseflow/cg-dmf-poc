@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27602526233",
+    "runNumber": "898",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/vite-8.0.16",
+    "date": "2026-06-16T07:54:17Z",
+    "path": "integration/27602526233/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27585668946",
     "runNumber": "153",
