@@ -10,7 +10,7 @@ export default async function Page() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Repositories</h1>
+      <h1 className="text-2xl font-semibold">Opslag repositories</h1>
       <RepositoryList repositories={repositories} />
     </div>
   )

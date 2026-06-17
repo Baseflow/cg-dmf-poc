@@ -265,7 +265,7 @@ export function ApiKoppelingenList({ settings }: { settings: ApiKoppeling[] }) {
       <SettingsTable
         data={settings}
         columns={columns}
-        description="API koppelingsprofielen voor het DMF-systeem."
+        description="Beheer de profielen van verbindingen naar externe API's waarmee de DMF gegevens uitwisselt. Dit kunnen ZGW API's zijn van bv. OpenZaak of externe APIs zoals vastgelegd in de objectinformatieobjecten."
         emptyMessage="Nog geen API koppelingen geconfigureerd."
         emptyAddLabel="Koppeling toevoegen"
         emptyIcon={<Plug />}

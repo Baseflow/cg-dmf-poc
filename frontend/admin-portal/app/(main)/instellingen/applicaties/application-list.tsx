@@ -262,7 +262,7 @@ export function ApplicationList({
       <SettingsTable
         data={applications}
         columns={columns}
-        description="Applicatie-instellingen voor client credentials."
+        description="Beheer de applicaties die toegang nodig hebben tot dit systeem, zoals OpenZaak en GZAC om de DRC te gebruiken."
         emptyMessage="Nog geen applicaties geconfigureerd."
         emptyAddLabel="Applicatie toevoegen"
         emptyIcon={<AppWindow />}

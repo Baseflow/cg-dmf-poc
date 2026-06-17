@@ -52,6 +52,18 @@ function buildCrumbs(pathname: string): Crumb[] {
     return crumbs
   }
 
+  // Check verkenner items (breadcrumb: Documentatie > API verkenner > item name)
+  const verkennerMatch = navigation.verkenner.find(
+    (item) => pathname === item.url || pathname.startsWith(item.url + "/")
+  )
+  if (verkennerMatch) {
+    return [
+      { type: "label", label: "Documentatie" },
+      { type: "link", label: "API verkenner", href: "/documenten-verkenner" },
+      { type: "page", label: verkennerMatch.name },
+    ]
+  }
+
   // Fallback for paths not in the navigation object
   const segments = pathname.split("/").filter(Boolean)
   return segments.map((seg, i) => {

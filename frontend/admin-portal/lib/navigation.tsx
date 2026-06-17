@@ -29,6 +29,7 @@ export type NavGroup = {
 export const navigation: {
   primary: NavGroup[]
   secondary: NavItem[]
+  verkenner: NavItem[]
 } = {
   primary: [
     {
@@ -38,28 +39,30 @@ export const navigation: {
       requiresAuth: true,
       items: [
         {
-          name: "Repositories",
+          name: "Opslag repositories",
           url: "/instellingen/repositories",
           icon: <Database />,
-          description: "Object store repositories",
+          description:
+            "Objectopslag configureren voor het opslaan van documenten",
         },
         {
-          name: "DMF",
+          name: "DMF instellingen",
           url: "/instellingen/dmf",
           icon: <FileCog />,
-          description: "DMF systeeminstellingen",
+          description: "Configureer systeeminstellingen",
         },
         {
           name: "API koppelingen",
           url: "/instellingen/api-koppelingen",
           icon: <Plug />,
-          description: "API koppelingsprofielen",
+          description: "Configureer verbindingen en toegang tot externe APIs",
         },
         {
           name: "Applicaties",
           url: "/instellingen/applicaties",
           icon: <AppWindow />,
-          description: "Gekoppelde applicaties",
+          description:
+            "Configureer externe applicaties die toegang tot dit systeem benodigd zijn",
         },
       ],
     },
@@ -68,24 +71,17 @@ export const navigation: {
       label: "Documentatie",
       items: [
         {
-          name: "OpenAPI UI",
-          url: "/documenten-api/openapi-ui",
+          name: "Handleiding",
+          url: "/docs",
           icon: <BookOpen />,
+          description:
+            "Installatie, configuratie en ontwikkeling handleiding van de DMF DRC implementatie",
         },
         {
-          name: "OpenAPI (Swagger UI)",
-          url: "/documenten-api/openapi-ui-swagger",
+          name: "API verkenner",
+          url: "/documenten-verkenner",
           icon: <FileCode />,
-        },
-        {
-          name: "OpenAPI JSON",
-          url: "/api/docs/openapi/documenten.json",
-          icon: <Braces />,
-        },
-        {
-          name: "OpenAPI YAML",
-          url: "/api/docs/openapi/documenten.yaml",
-          icon: <Braces />,
+          description: "API browsers en OpenAPI specificaties",
         },
       ],
     },
@@ -111,6 +107,54 @@ export const navigation: {
       name: "Problemen melden",
       url: "https://github.com/Baseflow/cg-dmf-poc/issues",
       icon: <LucideFileExclamationPoint />,
+    },
+  ],
+  verkenner: [
+    {
+      name: "Documenten API",
+      url: "/documenten-api/openapi-ui",
+      icon: <FileCode />,
+      description:
+        "Verkenner van de Common Ground Documenten API zoals geïmplementeerd",
+    },
+    {
+      name: "Documenten API (Swagger)",
+      url: "/documenten-api/openapi-ui-swagger",
+      icon: <FileCode />,
+      description:
+        "Swagger UI verkenner van Common Ground Documenten API zoals geïmplementeerd",
+    },
+    {
+      name: "WOPI API",
+      url: "/wopi/openapi-ui",
+      icon: <FileCode />,
+      description: "Scalar verkenner WOPI API",
+    },
+    {
+      name: "Documenten API JSON",
+      url: "/api/docs/openapi/documenten.json",
+      icon: <Braces />,
+      description:
+        "OpenAPI JSON specificatie van de Common Ground Documenten API zoals geïmplementeerd",
+    },
+    {
+      name: "Documenten API YAML",
+      url: "/api/docs/openapi/documenten.yaml",
+      icon: <Braces />,
+      description:
+        "OpenAPI YAML specificatie van de Common Ground Documenten API zoals geïmplementeerd",
+    },
+    {
+      name: "WOPI API JSON",
+      url: "/api/docs/openapi/wopi.json",
+      icon: <Braces />,
+      description: "OpenAPI JSON specificatie van de WOPI API",
+    },
+    {
+      name: "WOPI API YAML",
+      url: "/api/docs/openapi/wopi.yaml",
+      icon: <Braces />,
+      description: "OpenAPI YAML specificatie van de WOPI API",
     },
   ],
 }

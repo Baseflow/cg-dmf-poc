@@ -26,7 +26,6 @@ export default function DmfSettingsForm({
 
   return (
     <div className="flex w-full max-w-sm flex-col gap-6">
-      <p className="text-sm text-muted-foreground">DMF systeeminstellingen.</p>
       <form action={formAction} className="flex flex-col gap-4">
         <Field>
           <FieldLabel htmlFor="trigger-size">Trigger grootte</FieldLabel>
