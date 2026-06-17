@@ -19,7 +19,7 @@ Deze handleiding beschrijft hoe u CG-DMF DRC in productie installeert. Voor loka
 In een typische Common Ground opstelling neemt CG-DMF de rol van DRC (Document Registratie Component) op zich naast OpenZaak:
 
 
-![Componentendiagram](docs/dmf-componenten.png)
+![Componentendiagram](images/dmf-componenten.png)
 
 
 CG-DMF hoeft niet samen te worden geïnstalleerd met OpenZaak — het kan ook als standalone DRC fungeren voor systemen die geen Zaken gebruiken.

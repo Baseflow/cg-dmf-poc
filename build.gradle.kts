@@ -211,6 +211,38 @@ tasks.named("processResources") {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Docs Viewer (docsify) ──────────────────────────────────────────────────
+// Copy docsify.min.js and hand-written viewer files into build resources so
+// they are bundled with the JAR and served at /docs/<filename>.
+
+val docsViewerDest = layout.buildDirectory.dir("generated/docs-viewer/static/docs-viewer")
+
+val copyDocsViewerAssets by tasks.registering(Copy::class) {
+    group = "documentation"
+    description = "Copy docsify.min.js and viewer config files into build resources"
+    from(layout.projectDirectory.dir("frontend/node_modules/docsify/lib")) {
+        include("docsify.min.js")
+    }
+    from(layout.projectDirectory.dir("frontend/docs-viewer"))
+    into(docsViewerDest)
+}
+
+val copyDocsMarkdown by tasks.registering(Copy::class) {
+    group = "documentation"
+    description = "Copy docs/*.md files into build resources for docsify"
+    from(layout.projectDirectory.dir("docs")) {
+        include("*.md", "wopi/*.md", "images/*")
+    }
+    into(docsViewerDest)
+}
+
+sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/docs-viewer"))
+
+tasks.named("processResources") {
+    dependsOn(copyDocsViewerAssets, copyDocsMarkdown)
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 tasks.withType<JavaCompile>().configureEach {
     options.release = 21
 }
