@@ -1,216 +1,58 @@
-# DMF-PoC
+# CG-DMF — Document Management Functie
 
-This repository is a Proof of Concept (PoC) for a new Document Registration Component (DRC) in the Common Ground
-landscape. It implements a minimal, functional version of the Documenten API, with additional filtering for new
-relations between non-Zaken objects.
+**CG-DMF** is een open source [Document Registratie Component (DRC)](https://vng-realisatie.github.io/gemma-zaken/standaard/documenten/) voor het [Common Ground](https://commonground.nl/) landschap.
+Het implementeert de VNG **Documenten API 1.5.0** en enkele experimentele functionaliteiten.
 
-## Configuration
+De applicatie bestaat uit een **backend** (Kotlin/Ktor) en een **admin portal** (Next.js). Documenten worden opgeslagen in S3-compatibele opslag (MinIO, AWS S3) of Azure Blob Storage.
 
-All settings are read from environment variables (or a `.env` file in development).
-Copy `.env.example` to `.env` and adjust the values before starting the application.
+## Functionaliteiten
 
-For more details, see [docs/configuratie.md](docs/configuratie.md).
+- Volledige implementatie van de [VNG Documenten API 1.5.0](https://vng-realisatie.github.io/gemma-zaken/)
+- Koppeling met documenten aan willekeurige objecten (niet alleen Zaken)
+- S3-compatibele opslag (MinIO, AWS S3) en Azure Blob Storage
+- Optionele integratie met [Open Notificaties](https://github.com/open-zaak/open-notificaties)
+- Optionele WOPI-host voor in-browser documentweergave en bewerken (bijv. Collabora Online)
+- Beheerinterface voor opslag, authenticatie en clientbeheer
 
-## Documentation
+## Doel
+Deze DRC implementatie is initieel geschreven in opdracht van de Gemeente Utrecht door Baseflow BV.
 
-- [Database Migrations](docs/DATABASE.md) - Migration workflow and limitations
-- [API Specification](docs/documenten-1.5.0.yaml) - OpenAPI spec
-- [Document API Implementation](docs/implementatie.md) - Implementation details
-- [WOPI integration](docs/wopi.md) - Document viewing integration
+Het doel van deze implementatie is het faciliteren van documenten opslag en registratie voor het Werven project en overige afdelingen waarbij documenten over objecten in de fysieke ruimte worden beheerd en bewaard.
+Hierbij speelt dat het probleem dat de informatie vaak het resultaat is van een proces, maar dat de raadpleging en ontsluiting van de informatie en document meer object georiënteerd is. We noemen dit ook wel 'objectgericht werken' in plaats van zaakgericht werken. Het [IKO](https://github.com/Integraal-Klant-en-Objectbeeld/iko) of wel Integraal Klant en Objectbeeld is een initiatief van de Gemeente Utrecht om dit te faciliteren.
 
-## Prerequisites
+In het huidige ontwerp van de Common Ground APIs zijn documenten gekoppeld aan Zaken. Maar voor het raadplegen vanuit 'een niet zaak' is dit erg inefficient. Zeker als je nagaat dat bijv. 1 foto makkelijk over 8 fysieke objecten kan gaan, en dat 1 fysiek object soms 10 duizenden documenten kan hebben over duizenden zaken. Veel documenten zijn ook van VOOR een tijd waarbij zaakgericht werd gewerkt.
 
-### macOS
+Deze implementatie wijzigt daardoor wat voor relaties een documentenregistratie kan hebben.
+Naast ObjectInformatieObject relaties van het type zaak en/of besluit kan het nu ook relaties van andere types hebben.
+Zowel IKO als GZAC kunnen hiervan gebruik maken door in de DRC configuratie te kiezen voor DRC api versie `1.5.0-baseflow`.
+Voor de API wijzigingen die hiervoor zijn gemaakt zie [docs/implementatie.md](docs/implementatie.md).
 
-```bash
-brew install openjdk@21 gradle docker docker-compose
-```
+Daarnaast experimenteert de implementatie met het gebruik van de [WOPI](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/concepts/wopi-overview) standaard voor in-browser documentweergave en bewerken. Hiermee kan een gebruiker een document direct openen in de browser zonder dat het eerst gedownload hoeft te worden.
 
-## Quick Start
+## Documentatie
 
-1. **Clone and build:**
+| Onderwerp                               | Beschrijving                                             |
+|-----------------------------------------|----------------------------------------------------------|
+| [Installatie](docs/installatie.md)      | Productie-installatie: Hel, Docker Compose, Helm         |
+| [Gebruik](docs/handleiding.md)          | Integratie met OpenZaak, GZAC, IKO, notificaties en WOPI |
+| [Ontwikkeling](docs/ontwikkeling.md)    | Lokale ontwikkelomgeving, testen, releases               |
+| [Configuratie](docs/configuratie.md)    | Alle omgevingsvariabelen en configuratieopties           |
+| [Documenten API](docs/implementatie.md) | Implementatiestatus van de API-endpoints                 |
+| [Databasemigraties](docs/DATABASE.md)   | Migratieworkflow (voor ontwikkelaars)                    |
+| [WOPI](docs/wopi/wopi.md)               | In-browser documentweergave via WOPI                     |
 
-    ```bash
-    git clone <repository-url>
-    cd DMF-PoC
-    ./gradlew build
-    ```
+## Snel aan de slag
 
-2. **Start services:**
-   The minimal services required for development can be started with Docker Compose:
+Voor een productie-installatie: zie [docs/installatie.md](docs/installatie.md).  
+Voor lokale ontwikkeling: zie [docs/ontwikkeling.md](docs/ontwikkeling.md).
 
-    ```bash
-    docker compose up -d postgres keycloak minio
-    ```
+## Bijdragen
 
-    Additional service dependencies for optional features can be started with Docker Compose as well.
+Bijdragen zijn welkom via pull requests op [github.com/Baseflow/cg-dmf](https://github.com/Baseflow/cg-dmf).  
+Zie [CONTRIBUTING.md](CONTRIBUTING.md) voor richtlijnen en [SECURITY.md](SECURITY.md) voor het melden van beveiligingsproblemen.
 
-    ```bash
-    docker compose up -d
-    ```
+## Licentie
 
-3. **Run migrations:**
-   Initialize the database with the initial layout:
+Copyright © 2025–2026 Gemeente Utrecht
 
-    ```bash
-    ./gradlew flywayMigrate
-    ```
-
-4. **Verify:**
-
-    ```bash
-    ./gradlew flywayInfo
-    ```
-
-5. **Configure**
-   Copy the .env.example file to .env and fill in any configuration that you may have modified from the defaults.
-
-## Common development tasks
-
-### Development
-
-```bash
-# Build
-./gradlew build
-
-# Run tests
-./gradlew test
-
-# Start application
-./gradlew run
-```
-
-### Use the API via Bruno
-
-You can use [Bruno](https://www.usebruno.com) to test the API. Bruno is a Postman like tool
-
-1. To use Bruno, open the collection located in `.bruno/CG-DMF` with the Bruno application.
-2. Click the "Shield" icon next to the environment selector and switch from Sandbox to Developer mode.
-3. Configure your environment at the top right of the window.
-   By default for local development we connect to the openzaak instance of baseflow development cluster.
-
-You can also run the Bruno test collection with the Bruno cli:
-
-1. Install the Bruno cli: `npm install -g @usebruno/cli`
-2. Run the collection:
-   `bru run --sandbox=developer --env Localhost --env-var jwt.clientSecret=yoursecret --env-var jwt.clientId=gzac --reporter-junit results.xml`
-    - This collection is also run as part of the CI pipeline, see `.github/workflows/INTEGRATION_TEST.yml` for details
-    - Make sure you set the following environment variables if you want the tests to pass (otherwise no bestandsdelen
-      will be created and the tests will fail):
-
-```
-BESTANDSDELEN_TRIGGER_SIZE=100000
-BESTANDSDELEN_CHUNK_SIZE=100000
-```
-
-### Run integration tests that are run on build server via Docker Compose
-
-```bash
-JWT_CLIENT_SECRET=your-secret docker compose -f docker-compose.integration-test.yml up bruno --build
-```
-
-### Database Migrations
-
-```bash
-# Check migration status
-./gradlew flywayInfo
-
-# Apply pending migrations
-./gradlew flywayMigrate
-
-# Undo last migration
-./gradlew flywayUndo
-
-# Undo a specific version
-./gradlew flywayUndo -Pargs=<version>
-
-# Generate migration from Exposed models
-./gradlew generateMigration -Pargs="V2__Description"
-```
-
-See [docs/DATABASE.md](docs/DATABASE.md) for detailed migration workflow.
-
-## Releasing
-
-Releases are driven by branch naming. The CI pipeline derives the version from the branch name — no version files need to be edited.
-
-### Creating a release
-
-1. Make sure `develop` is in the state you want to release.
-2. Prepare a `RELEASE_NOTES.md` file in the repo root describing what changed. Include sections for each component that changed: backend, admin portal, and/or Helm chart. For example:
-   ```markdown
-   ## Backend
-   - Initial release of the Documenten API v1.5.0 implementation
-
-   ## Admin Portal
-   - Initial release of the administrative interface
-
-   ## Helm Chart
-   - Initial release of the cg-dmf Helm chart (chart version 1.0.0)
-   ```
-3. Create and push a `release/X.Y.Z` branch from `develop`:
-   ```bash
-   git checkout develop
-   git pull
-   git checkout -b release/1.0.0
-   git push origin release/1.0.0
-   ```
-4. CI will automatically:
-   - Run the full test suite
-   - Build and publish Docker images tagged `1.0.0` and `latest` to both Azure Container Registry and Docker Hub
-   - Create a GitHub Release `v1.0.0` using the contents of `RELEASE_NOTES.md`
-5. Delete `RELEASE_NOTES.md` after the release and commit that to `develop`.
-6. Open a PR from `release/1.0.0` into `main` and merge it to keep `main` up to date.
-
-### Branch tagging behaviour
-
-| Branch | Docker image tag |
-|---|---|
-| `develop` | `develop-YYYYMMDDHHMM` |
-| `release/X.Y.Z` | `X.Y.Z` |
-| `hotfix/X.Y.Z` | `hotfix-X.Y.Z-YYYYMMDDHHMM` |
-| any other branch | branch name (no timestamp, no push) |
-
-### Hotfixes
-
-For a fix that needs to go to production without going through `develop`:
-
-1. Branch from `main`: `git checkout -b hotfix/1.0.1 main`
-2. Apply the fix and push — CI builds a timestamped image for testing.
-3. When ready, create a `release/1.0.1` branch from the hotfix branch and push it to trigger the full release.
-4. Merge `release/1.0.1` into both `main` and `develop`.
-
-## Project Structure
-
-- `/src/main/kotlin` — Application source code
-    - `documenten/` — Documenten API 1.5.0 routes and module (`com.baseflow.documenten`)
-    - `infra/` — Health checks and OpenAPI spec endpoints (`com.baseflow.infra`)
-    - `settings/` — Internal management endpoints (`com.baseflow.settings`)
-    - `wopi/` — WOPI protocol support (planned, not yet implemented) (`com.baseflow.wopi`)
-    - `shared/` - Consolidated shared code that is used across multiple domains
-      - `middleware/` — Shared Ktor plugins (auth, audit trail, notifications, etc.)
-      - `models/` — Shared request/response models
-      - `config/` — Application configuration and dependency injection
-      - `entities/` — Exposed ORM table definitions
-      - `services/` — Business logic
-      - `tooling/` — Gradle tasks (migration generator, OpenAPI export)
-- `/src/main/resources/db/migration` — Flyway migration scripts
-- `/docs` — Documentation
-- `/docker` — Docker configuration
-
-## Tech Stack
-
-- **Language:** Kotlin
-- **ORM:** Exposed 1.0.0-rc-4
-- **Database:** PostgreSQL
-- **Migrations:** Flyway
-- **Build:** Gradle
-- **API Spec:** OpenAPI 3.0 (see `docs/documenten-1.5.0.yaml`)
-
-### Component Diagram
-
-![Component Diagram](docs/dmf-componenten.png)
-
-## License
-
-EUPL 1.2 - See [LICENSE.md](LICENSE.md)
+EUPL-1.2 — zie [LICENSE.md](LICENSE.md)
