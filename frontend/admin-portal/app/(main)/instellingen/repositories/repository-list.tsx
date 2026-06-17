@@ -241,7 +241,7 @@ export function RepositoryList({
       <SettingsTable
         data={repositories}
         columns={columns}
-        description="Object store repositories."
+        description="Configureer de objectopslag backends waar documenten in worden opgeslagen."
         emptyMessage="Nog geen repositories geconfigureerd."
         emptyAddLabel="Repository toevoegen"
         emptyIcon={<Database />}

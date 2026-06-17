@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "docsify": "^4",
     "swagger-ui-dist": "^5.32.1"
   }
 }

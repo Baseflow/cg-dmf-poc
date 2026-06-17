@@ -19,10 +19,12 @@ const base: ApiKoppeling = {
   baseUrl: "https://api.example.com",
   clientId: "client-id",
   hasSecret: true,
+  clientSecret: null,
   apiType: "zrc",
   authType: "zgw-auth",
   validationEnabled: true,
   enabled: true,
+  createdAt: "2026-01-01T00:00:00Z",
   updatedAt: "2026-01-01T00:00:00Z",
   readonly: false,
 }

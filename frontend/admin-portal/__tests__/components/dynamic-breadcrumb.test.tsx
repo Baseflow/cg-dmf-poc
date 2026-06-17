@@ -23,7 +23,7 @@ describe("DynamicBreadcrumb", () => {
     setPathname("/instellingen/dmf")
     render(<DynamicBreadcrumb />)
     expect(screen.getByText("Instellingen")).toBeInTheDocument()
-    expect(screen.getByText("DMF")).toBeInTheDocument()
+    expect(screen.getByText("DMF instellingen")).toBeInTheDocument()
   })
 
   it("capitalizes unknown segments", () => {
@@ -43,16 +43,25 @@ describe("DynamicBreadcrumb", () => {
     setPathname("/instellingen/dmf")
     render(<DynamicBreadcrumb />)
     // BreadcrumbPage renders with aria-current="page" and aria-disabled="true"
-    const page = screen.getByText("DMF")
+    const page = screen.getByText("DMF instellingen")
     expect(page).toHaveAttribute("aria-current", "page")
     expect(page.tagName).not.toBe("A")
+  })
+
+  it("renders verkenner routes under Documentatie > API verkenner", () => {
+    setPathname("/documenten-api/openapi-ui")
+    render(<DynamicBreadcrumb />)
+    expect(screen.getByText("Documentatie")).toBeInTheDocument()
+    const link = screen.getByRole("link", { name: "API verkenner" })
+    expect(link).toHaveAttribute("href", "/documenten-verkenner")
+    expect(screen.getByText("Documenten API")).toBeInTheDocument()
   })
 
   it("maps all known route slugs to their labels", () => {
     const cases: [string, string][] = [
       ["/instellingen/api-koppelingen", "API koppelingen"],
-      ["/instellingen/dmf", "DMF"],
-      ["/instellingen/repositories", "Repositories"],
+      ["/instellingen/dmf", "DMF instellingen"],
+      ["/instellingen/repositories", "Opslag repositories"],
       ["/instellingen/applicaties", "Applicaties"],
     ]
 

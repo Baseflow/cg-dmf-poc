@@ -12,12 +12,14 @@ export default async function Page() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 p-8">
       <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-foreground text-background [&>svg]:h-8 [&>svg]:w-8">
-          <BaseflowAvatar />
+        <div className="flex flex-row items-center gap-2">
+          <div className="flex h-12 w-12 flex-row items-center justify-center rounded-xl bg-foreground text-background [&>svg]:h-8 [&>svg]:w-8">
+            <BaseflowAvatar />
+          </div>
+          <h1 className="text-2xl font-bold">CG DMF Admin Portal</h1>
         </div>
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold">CG DMF Admin Portal</h1>
-          <p className="max-w-sm text-sm text-muted-foreground">
+          <p className="max-w-2xl text-sm text-muted-foreground">
             Configureer en beheer Document Management Framework integraties.
           </p>
         </div>
