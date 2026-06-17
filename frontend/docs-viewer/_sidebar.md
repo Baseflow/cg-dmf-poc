@@ -1,4 +1,4 @@
-- [Home](../../docs/home.md)
+- [Home](home.md)
 
 - **Gebruik**
 - [Installatie](installatie.md)
