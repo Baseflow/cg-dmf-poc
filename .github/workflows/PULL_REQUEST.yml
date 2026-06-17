@@ -44,12 +44,16 @@ jobs:
     if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/FRONTEND_TEST.yml
 
+  license-check:
+    uses: ./.github/workflows/LICENSE_CHECK.yml
+
   integration-test:
-    needs: [lint, helm-lint, test, frontend-test]
+    needs: [lint, helm-lint, test, frontend-test, license-check]
     if: >-
       always() &&
       needs.lint.result == 'success' &&
       needs.test.result == 'success' &&
+      needs.license-check.result == 'success' &&
       contains(fromJSON('["success","skipped"]'), needs.helm-lint.result) &&
       contains(fromJSON('["success","skipped"]'), needs.frontend-test.result)
     uses: ./.github/workflows/INTEGRATION_TEST.yml

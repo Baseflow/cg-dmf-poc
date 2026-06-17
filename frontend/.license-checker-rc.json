@@ -1,0 +1,4 @@
+{
+  "excludePrivatePackages": true,
+  "onlyAllow": "MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-3.0"
+}

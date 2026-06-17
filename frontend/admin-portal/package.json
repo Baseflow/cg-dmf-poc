@@ -54,6 +54,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "lint": "eslint",
     "start": "next start",
+    "license:check": "license-checker-rseidelsohn",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

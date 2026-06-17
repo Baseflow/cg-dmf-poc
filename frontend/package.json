@@ -4,7 +4,8 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "license:check": "license-checker-rseidelsohn"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +14,8 @@
   "dependencies": {
     "docsify": "^4",
     "swagger-ui-dist": "^5.32.1"
+  },
+  "devDependencies": {
+    "license-checker-rseidelsohn": "^4.4.2"
   }
 }
