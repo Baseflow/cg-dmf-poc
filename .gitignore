@@ -30,9 +30,10 @@ build/
 !**/src/test/**/build/
 
 # Node / npm (frontend tooling)
-# Ignore all of node_modules except swagger-ui-dist (needed for Docker builds without npm)
+# Ignore all of node_modules except vendored packages (needed for Docker builds without npm)
 frontend/node_modules/*
 !frontend/node_modules/swagger-ui-dist/
+!frontend/node_modules/docsify/
 
 # IntelliJ IDEA
 .idea/
