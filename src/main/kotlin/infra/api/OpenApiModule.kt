@@ -90,6 +90,10 @@ fun Application.openApiModule() {
 
             // Swagger UI — static assets served from classpath (copied from swagger-ui-dist by Gradle)
             staticResources("/swaggerui", "static/swagger-ui")
+
+            // Docsify viewer assets and markdown files — registered last so the more specific
+            // /openapi and /swaggerui routes above take priority.
+            staticResources("/", "static/docs-viewer")
         }.hide()
     }
 }
