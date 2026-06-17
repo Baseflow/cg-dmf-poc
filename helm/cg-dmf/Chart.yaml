@@ -4,8 +4,8 @@ description: >
   Document Management Facility (DMF) – a Proof-of-Concept implementation of the
   Common Ground Documenten API (DRC) written in Kotlin.
 type: application
-version: 0.3.0
-appVersion: "0.3.0"
+version: 0.9.5
+appVersion: "0.9.5"
 keywords:
   - common-ground
   - documenten-api
