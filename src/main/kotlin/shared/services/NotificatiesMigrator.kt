@@ -6,7 +6,6 @@ import com.baseflow.shared.config.Config.Companion.envOrSystem
 import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
 import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import com.baseflow.shared.entities.settings.ApiConnectionType
-
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
