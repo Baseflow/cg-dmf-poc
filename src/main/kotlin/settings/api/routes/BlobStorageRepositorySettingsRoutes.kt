@@ -21,8 +21,6 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -135,8 +133,8 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         accessKey = body.accessKey
                         secretKey = body.secretKey?.takeIf { it.isNotBlank() }
                         storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
-                        createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        createdAt = Clock.System.now()
+                        updatedAt = Clock.System.now()
                     }.toResponse()
                 }
             }.getOrElse { ex ->
@@ -247,7 +245,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         if (!body.accessKey.isNullOrBlank()) existing.accessKey = body.accessKey
                         if (!body.secretKey.isNullOrBlank()) existing.secretKey = body.secretKey
                         existing.storageAccountName = body.storageAccountName?.takeIf { it.isNotBlank() }
-                        existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        existing.updatedAt = Clock.System.now()
                         Pair(oldName, existing)
                     }
                 }.getOrElse { ex ->
@@ -320,7 +318,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         if (!body.accessKey.isNullOrBlank()) existing.accessKey = body.accessKey
                         if (!body.secretKey.isNullOrBlank()) existing.secretKey = body.secretKey
                         body.storageAccountName?.let { existing.storageAccountName = it.takeIf { s -> s.isNotBlank() } }
-                        existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        existing.updatedAt = Clock.System.now()
                         Pair(oldName, existing)
                     }
                 }.getOrElse { ex ->

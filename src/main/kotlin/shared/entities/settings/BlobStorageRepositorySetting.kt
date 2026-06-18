@@ -8,8 +8,8 @@ import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
 import org.jetbrains.exposed.v1.crypt.encryptedVarchar
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
+import org.jetbrains.exposed.v1.datetime.timestamp
 import java.util.UUID
 
 private val lazyEncryptor = multiAlgorithmEncryptor()
@@ -26,8 +26,8 @@ object BlobStorageRepositorySettingsTable : UUIDTable("blob_storage_repository_s
     val isDefault = bool("is_default").default(false)
     val storageAccountName = varchar("storage_account_name", 255).nullable()
     val enabled = bool("enabled").default(true)
-    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
-    val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 }
 
 class BlobStorageRepositorySettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {

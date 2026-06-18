@@ -5,8 +5,6 @@ package com.baseflow.shared.services
 import com.baseflow.shared.entities.settings.ApplicationSettingEntity
 import com.baseflow.shared.entities.settings.ApplicationSettingsTable
 import com.baseflow.shared.tooling.AllTables
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -57,7 +55,7 @@ class ApplicationCredentialRegistrarTest {
                 name = "db-app"
                 clientId = "db-client"
                 clientSecret = "db-secret"
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 
@@ -73,7 +71,7 @@ class ApplicationCredentialRegistrarTest {
                 name = "overlap-app"
                 clientId = "shared-client"
                 clientSecret = "db-secret"
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 
@@ -121,7 +119,7 @@ class ApplicationCredentialRegistrarTest {
                 name = "existing-app"
                 clientId = "existing-client"
                 clientSecret = null
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 
@@ -144,7 +142,7 @@ class ApplicationCredentialRegistrarTest {
                 name = "collision-client"
                 clientId = "some-other-client"
                 clientSecret = null
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 

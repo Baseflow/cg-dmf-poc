@@ -6,8 +6,7 @@ import com.baseflow.shared.config.Config.Companion.envOrSystem
 import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
 import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import com.baseflow.shared.entities.settings.ApiConnectionType
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -55,7 +54,7 @@ object NotificatiesMigrator {
                 existing.clientId = clientId
                 existing.clientSecret = clientSecret
                 existing.readonly = true
-                existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                existing.updatedAt = Clock.System.now()
                 logger.info(
                     "Updated NRC connection '{}' from NOTIFICATION_API_* env vars (url: {})",
                     existing.name,
@@ -71,7 +70,7 @@ object NotificatiesMigrator {
                     validationEnabled = false
                     enabled = true
                     readonly = true
-                    updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    updatedAt = Clock.System.now()
                 }
                 logger.info(
                     "Inserted NRC connection 'open-notificaties' from NOTIFICATION_API_* env vars (url: {})",

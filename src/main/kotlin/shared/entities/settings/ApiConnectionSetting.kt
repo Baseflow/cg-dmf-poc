@@ -8,8 +8,8 @@ import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
 import org.jetbrains.exposed.v1.crypt.encryptedVarchar
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
+import org.jetbrains.exposed.v1.datetime.timestamp
 import java.util.UUID
 
 private val lazyEncryptor = multiAlgorithmEncryptor()
@@ -24,8 +24,8 @@ object ApiConnectionSettingsTable : UUIDTable("api_connection_settings") {
     val validationEnabled = bool("validation_enabled").default(true)
     val enabled = bool("enabled").default(true)
     val readonly = bool("readonly").default(false)
-    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
-    val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 }
 
 class ApiConnectionSettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
