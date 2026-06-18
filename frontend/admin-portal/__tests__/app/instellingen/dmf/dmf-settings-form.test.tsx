@@ -4,113 +4,77 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import DmfSettingsForm from "@/app/(main)/instellingen/dmf/dmf-settings-form"
 
 vi.mock("@/app/(main)/instellingen/dmf/actions", () => ({
-  saveDmfSettings: vi.fn(),
+  upsertDmfSetting: vi.fn(),
 }))
 
-import { saveDmfSettings } from "@/app/(main)/instellingen/dmf/actions"
+import { upsertDmfSetting } from "@/app/(main)/instellingen/dmf/actions"
 
-const defaultSettings = {
-  triggerSize: 4294967296,
-  chunkSize: 3221225472,
-  validationEnabled: false,
-}
+const defaultSettings = [
+  {
+    key: "trigger_size_bytes",
+    type: "int",
+    value: "4294967296",
+    updatedAt: "2026-01-01",
+  },
+  {
+    key: "chunk_size_bytes",
+    type: "int",
+    value: "3221225472",
+    updatedAt: "2026-01-01",
+  },
+  {
+    key: "validation_enabled",
+    type: "boolean",
+    value: "true",
+    updatedAt: "2026-01-01",
+  },
+]
 
 describe("DmfSettingsForm", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Ensure the mock always returns a valid FormState so useActionState never
-    // sets state to undefined. Individual tests override this as needed.
-    vi.mocked(saveDmfSettings).mockResolvedValue({})
+    vi.mocked(upsertDmfSetting).mockResolvedValue(undefined)
   })
 
-  it("renders with initial values", () => {
-    render(<DmfSettingsForm initialSettings={defaultSettings} />)
+  it("renders with initial values from settings", () => {
+    render(<DmfSettingsForm settings={defaultSettings} />)
     expect(screen.getByDisplayValue("4294967296")).toBeInTheDocument()
     expect(screen.getByDisplayValue("3221225472")).toBeInTheDocument()
+    expect(screen.getByRole("checkbox")).toBeChecked()
   })
 
   it("renders the save button", () => {
-    render(<DmfSettingsForm initialSettings={defaultSettings} />)
+    render(<DmfSettingsForm settings={defaultSettings} />)
     expect(screen.getByRole("button", { name: /opslaan/i })).toBeInTheDocument()
   })
 
-  it("shows validation error when triggerSize is 0", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce({
-      errors: { triggerSize: "Moet minimaal 1 byte zijn." },
-    })
+  it("calls upsertDmfSetting for all three keys on submit", async () => {
+    render(<DmfSettingsForm settings={defaultSettings} />)
 
-    render(<DmfSettingsForm initialSettings={defaultSettings} />)
-
-    const triggerInput = screen.getByDisplayValue("4294967296")
-    fireEvent.change(triggerInput, { target: { value: "0" } })
-    fireEvent.submit(triggerInput.closest("form")!)
-
-    expect(
-      await screen.findByText("Moet minimaal 1 byte zijn.")
-    ).toBeInTheDocument()
-  })
-
-  it("shows validation error when chunkSize is empty", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce({
-      errors: { chunkSize: "Moet minimaal 1 byte zijn." },
-    })
-
-    const user = userEvent.setup()
-    render(<DmfSettingsForm initialSettings={defaultSettings} />)
-
-    const chunkInput = screen.getByDisplayValue("3221225472")
-    await user.clear(chunkInput)
     fireEvent.submit(
       screen.getByRole("button", { name: /opslaan/i }).closest("form")!
     )
 
-    expect(
-      await screen.findByText(/moet minimaal 1 byte zijn/i)
-    ).toBeInTheDocument()
-  })
-
-  it("calls saveDmfSettings on valid submit and passes form values", async () => {
-    const user = userEvent.setup()
-
-    render(
-      <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: false,
-        }}
-      />
-    )
-
-    await user.click(screen.getByRole("button", { name: /opslaan/i }))
-
     await waitFor(() => {
-      expect(saveDmfSettings).toHaveBeenCalled()
+      expect(upsertDmfSetting).toHaveBeenCalledTimes(3)
     })
-
-    const [, formData] = vi.mocked(saveDmfSettings).mock.calls[0] as [
-      unknown,
-      FormData,
-    ]
-    expect(formData.get("triggerSize")).toBe("100")
-    expect(formData.get("chunkSize")).toBe("50")
+    expect(upsertDmfSetting).toHaveBeenCalledWith(
+      "trigger_size_bytes",
+      "4294967296"
+    )
+    expect(upsertDmfSetting).toHaveBeenCalledWith(
+      "chunk_size_bytes",
+      "3221225472"
+    )
+    expect(upsertDmfSetting).toHaveBeenCalledWith("validation_enabled", "true")
   })
 
-  it("shows success message after successful save", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce({ saved: true })
-    const user = userEvent.setup()
+  it("shows success message after saving", async () => {
+    render(<DmfSettingsForm settings={defaultSettings} />)
 
-    render(
-      <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: true,
-        }}
-      />
+    fireEvent.submit(
+      screen.getByRole("button", { name: /opslaan/i }).closest("form")!
     )
-
-    await user.click(screen.getByRole("button", { name: /opslaan/i }))
 
     expect(
       await screen.findByText("Instellingen opgeslagen.")
@@ -118,55 +82,74 @@ describe("DmfSettingsForm", () => {
   })
 
   it("shows error message when save fails", async () => {
-    vi.mocked(saveDmfSettings).mockResolvedValueOnce({
-      error: "Opslaan mislukt. Probeer het opnieuw.",
-    })
-    const user = userEvent.setup()
+    vi.mocked(upsertDmfSetting).mockRejectedValueOnce(new Error("HTTP 500"))
 
-    render(
-      <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: false,
-        }}
-      />
+    render(<DmfSettingsForm settings={defaultSettings} />)
+
+    fireEvent.submit(
+      screen.getByRole("button", { name: /opslaan/i }).closest("form")!
     )
 
-    await user.click(screen.getByRole("button", { name: /opslaan/i }))
-
-    expect(
-      await screen.findByText("Opslaan mislukt. Probeer het opnieuw.")
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/opslaan mislukt/i)).toBeInTheDocument()
   })
 
-  it("toggles validationEnabled when checkbox is clicked", async () => {
-    const user = userEvent.setup()
+  it("renders unchecked when validation_enabled is false", () => {
+    const settings = defaultSettings.map((s) =>
+      s.key === "validation_enabled" ? { ...s, value: "false" } : s
+    )
+    render(<DmfSettingsForm settings={settings} />)
+    expect(screen.getByRole("checkbox")).not.toBeChecked()
+  })
 
-    render(
-      <DmfSettingsForm
-        initialSettings={{
-          triggerSize: 100,
-          chunkSize: 50,
-          validationEnabled: false,
-        }}
-      />
+  // -----------------------------------------------------------------------
+  // Type serialization / deserialization
+  // -----------------------------------------------------------------------
+
+  it("submits boolean as 'false' after unchecking the checkbox", async () => {
+    const user = userEvent.setup()
+    render(<DmfSettingsForm settings={defaultSettings} />)
+
+    await user.click(screen.getByRole("checkbox"))
+    fireEvent.submit(
+      screen.getByRole("button", { name: /opslaan/i }).closest("form")!
     )
 
-    const checkbox = screen.getByRole("checkbox")
-    expect(checkbox).not.toBeChecked()
+    await waitFor(() => expect(upsertDmfSetting).toHaveBeenCalled())
+    expect(upsertDmfSetting).toHaveBeenCalledWith("validation_enabled", "false")
+  })
 
-    await user.click(checkbox)
-    await user.click(screen.getByRole("button", { name: /opslaan/i }))
+  it("submits boolean as 'true' after checking the checkbox", async () => {
+    const user = userEvent.setup()
+    const uncheckedSettings = defaultSettings.map((s) =>
+      s.key === "validation_enabled" ? { ...s, value: "false" } : s
+    )
+    render(<DmfSettingsForm settings={uncheckedSettings} />)
 
-    await waitFor(() => {
-      expect(saveDmfSettings).toHaveBeenCalled()
-    })
+    await user.click(screen.getByRole("checkbox"))
+    fireEvent.submit(
+      screen.getByRole("button", { name: /opslaan/i }).closest("form")!
+    )
 
-    const [, formData] = vi.mocked(saveDmfSettings).mock.calls[0] as [
-      unknown,
-      FormData,
-    ]
-    expect(formData.get("validationEnabled")).toBe("on")
+    await waitFor(() => expect(upsertDmfSetting).toHaveBeenCalled())
+    expect(upsertDmfSetting).toHaveBeenCalledWith("validation_enabled", "true")
+  })
+
+  it("submits updated int value after changing the trigger size input", async () => {
+    const user = userEvent.setup()
+    render(<DmfSettingsForm settings={defaultSettings} />)
+
+    const input = screen.getByDisplayValue("4294967296")
+    await user.clear(input)
+    await user.type(input, "1073741824")
+
+    fireEvent.submit(
+      screen.getByRole("button", { name: /opslaan/i }).closest("form")!
+    )
+
+    await waitFor(() => expect(upsertDmfSetting).toHaveBeenCalled())
+    expect(upsertDmfSetting).toHaveBeenCalledWith(
+      "trigger_size_bytes",
+      "1073741824"
+    )
   })
 })

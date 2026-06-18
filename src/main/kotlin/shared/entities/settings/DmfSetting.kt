@@ -2,28 +2,32 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.shared.entities.settings
 
-import org.jetbrains.exposed.v1.core.dao.id.EntityID
-import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
-import org.jetbrains.exposed.v1.dao.java.UUIDEntity
-import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.CurrentDateTime
 import org.jetbrains.exposed.v1.datetime.datetime
-import java.util.UUID
 
-object DmfSettingsTable : UUIDTable("dmf_settings") {
-    val triggerSizeBytes = long("trigger_size_bytes")
-    val chunkSizeBytes = long("chunk_size_bytes")
-    val validationEnabled = bool("validation_enabled")
+/**
+ * Generic typed key/value settings table for runtime-configurable DMF settings.
+ *
+ * Only keys present in [KNOWN_SETTINGS] are accepted by the API.
+ */
+object DmfSettingsTable : Table("dmf_settings") {
+    /** Maps every recognised setting key to its type ("string", "int", or "boolean"). */
+    val KNOWN_SETTINGS: Map<String, String> = mapOf(
+        "trigger_size_bytes" to "int",
+        "chunk_size_bytes" to "int",
+        "validation_enabled" to "boolean",
+    )
+
+    /** Per-key minimum value for "int" keys that must be strictly positive. */
+    val KEY_MIN_VALUES: Map<String, Long> = mapOf(
+        "trigger_size_bytes" to 1L,
+        "chunk_size_bytes" to 1L,
+    )
+
+    val key = varchar("key", 100)
+    val type = varchar("type", 20)
+    val value = text("value")
     val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
-}
-
-class DmfSettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
-    companion object : UUIDEntityClass<DmfSettingEntity>(DmfSettingsTable) {
-        val SINGLETON_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
-    }
-
-    var triggerSizeBytes by DmfSettingsTable.triggerSizeBytes
-    var chunkSizeBytes by DmfSettingsTable.chunkSizeBytes
-    var validationEnabled by DmfSettingsTable.validationEnabled
-    var updatedAt by DmfSettingsTable.updatedAt
+    override val primaryKey = PrimaryKey(key)
 }
