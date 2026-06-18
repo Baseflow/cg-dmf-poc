@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27753849371",
+    "runNumber": "912",
+    "branch": "166-bestandsdelen-settings",
+    "date": "2026-06-18T10:44:33Z",
+    "path": "integration/27753849371/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27728519134",
     "runNumber": "158",
