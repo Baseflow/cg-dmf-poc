@@ -55,6 +55,8 @@ services:
       BLOB_STORAGE_ACCESS_KEY1: minioadmin
       BLOB_STORAGE_SECRET_KEY1: minioadmin
       OPENZAAK_CLIENT_SECRET: ${OPENZAAK_CLIENT_SECRET:-}
+      ENCRYPTION_SECRET_KEY: ${ENCRYPTION_SECRET_KEY:-local-dev-only-secret}
+      ENCRYPTION_SALT: ${ENCRYPTION_SALT:-local-dev-only-salt}
     healthcheck:
       test:
         [
@@ -80,6 +82,22 @@ services:
     command: server --address ":9000" --console-address ":9001" /data
     volumes:
       - minio_data:/data
+
+  admin-portal:
+    build:
+      context: ./frontend/admin-portal
+    container_name: ${COMPOSE_PROJECT_NAME:-cg-dmf-poc}-admin-portal
+    environment:
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://host.docker.internal:8081}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-cg-dmf}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-dmf-dashboard}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-dmf-dashboard-client-secret}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-local-dev-only-secret}
+      BACKEND_URL: http://app:8080
+    depends_on:
+      app:
+        condition: service_healthy
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
