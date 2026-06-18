@@ -6,8 +6,6 @@ import com.baseflow.shared.config.Config.Companion.envOrSystem
 import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
 import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import com.baseflow.shared.entities.settings.ApiConnectionType
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -71,7 +69,7 @@ object OpenZaakMigrator {
             existing.clientSecret = clientSecret
             existing.validationEnabled = validationEnabled
             existing.readonly = true
-            existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            existing.updatedAt = Clock.System.now()
             if (urlChanged) {
                 logger.info(
                     "Updated {} connection '{}' from OPENZAAK_* env vars (url changed to: {})",
@@ -97,7 +95,7 @@ object OpenZaakMigrator {
                 this.validationEnabled = validationEnabled
                 enabled = true
                 readonly = true
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
             logger.info(
                 "Inserted {} connection '{}' from OPENZAAK_* env vars (url: {})",

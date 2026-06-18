@@ -19,8 +19,6 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -80,7 +78,7 @@ fun Route.applicationSettingsRoutes() {
                         name = body.name
                         clientId = body.clientId
                         clientSecret = body.clientSecret?.takeIf { it.isNotBlank() }
-                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        updatedAt = Clock.System.now()
                     }.toResponse(),
                 )
             }
@@ -147,7 +145,7 @@ fun Route.applicationSettingsRoutes() {
                     if (!body.clientSecret.isNullOrBlank()) {
                         existing.clientSecret = body.clientSecret
                     }
-                    existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    existing.updatedAt = Clock.System.now()
                     UpdateResult.Success(existing.toResponse())
                 }
                 when (updated) {
@@ -233,7 +231,7 @@ fun Route.applicationSettingsRoutes() {
                     val existing = ApplicationSettingEntity.findById(id) ?: return@transaction RotateResult.NotFound
                     if (existing.readonly) return@transaction RotateResult.ReadOnly
                     existing.clientSecret = plaintext
-                    existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    existing.updatedAt = Clock.System.now()
                     RotateResult.Success(existing.clientId)
                 }
 

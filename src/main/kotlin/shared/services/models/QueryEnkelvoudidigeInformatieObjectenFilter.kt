@@ -3,7 +3,7 @@
 package com.baseflow.shared.services.models
 
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 
 /**
  * Defines the valid ordering options for EnkelvoudigInformatieObject queries.
@@ -67,9 +67,9 @@ class QueryEnkelvoudigeInformatieObjectenFilter(
     /** EXPERIMENTEEL: creatiedatum on or after this date (format: date, YYYY-MM-DD) */
     val creatiedatumGte: LocalDate? = null,
     /** EXPERIMENTEEL: beginRegistratie on or before this datetime (format: date-time, ISO 8601) */
-    val registratiedatumLte: LocalDateTime? = null,
+    val registratiedatumLte: Instant? = null,
     /** EXPERIMENTEEL: beginRegistratie on or after this datetime (format: date-time, ISO 8601) */
-    val registratiedatumGte: LocalDateTime? = null,
+    val registratiedatumGte: Instant? = null,
     /** EXPERIMENTEEL: locked (boolean) indication whether the information object is locked for editing */
     val locked: Boolean? = null,
     /** EXPERIMENTEEL: Ordering of the results. Prefix with '-' for descending order. */

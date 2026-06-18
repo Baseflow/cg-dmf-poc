@@ -101,7 +101,8 @@ private fun loadStubData() {
         val record = EIORecordEntity.new {
             lockToken = null
         }
-        val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        val now = Clock.System.now()
+        val nowLocal = now.toLocalDateTime(TimeZone.UTC)
         val eioVersion = EIOVersionEntity.new {
             recordId = record // Pass the entity, not UUID
             versie = 1
@@ -112,11 +113,11 @@ private fun loadStubData() {
             link = "https://example.com/test.pdf"
             integriteitAlgoritme = "sha_256"
             integriteitWaarde = "sha256:abcdef1234567890"
-            integriteitsDatum = now
+            integriteitsDatum = nowLocal.date
             beginRegistratie = now
             verschijningsVorm = "Inlevering"
             bronOrganisatie = "012345678"
-            creatieDatum = now.date
+            creatieDatum = nowLocal.date
             titel = "Test document"
             vertrouwlijkheidsAanduiding = "Niet vertrouwelijk"
             auteur = "Test auteur"

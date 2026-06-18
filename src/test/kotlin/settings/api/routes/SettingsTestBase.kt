@@ -10,8 +10,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -45,7 +43,7 @@ open class SettingsTestBase(dbNamePrefix: String) {
                 "chunk_size_bytes" to ("int" to "3221225472"),
                 "validation_enabled" to ("boolean" to "true"),
             )
-            val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val now = Clock.System.now()
             for ((k, tv) in seeds) {
                 if (k !in existingKeys) {
                     DmfSettingsTable.insert {

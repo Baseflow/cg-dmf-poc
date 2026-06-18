@@ -18,8 +18,6 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -62,7 +60,7 @@ fun Route.apiConnectionSettingsRoutes() {
                     ApiConnectionSettingsTable.name eq body.name
                 }.firstOrNull()
                 if (exists != null) return@transaction null
-                val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                val now = Clock.System.now()
                 ApiConnectionSettingEntity.new {
                     name = body.name
                     baseUrl = body.baseUrl
@@ -118,7 +116,7 @@ fun Route.apiConnectionSettingsRoutes() {
                     existing.authType = body.authType
                     existing.validationEnabled = body.validationEnabled
                     existing.enabled = body.enabled
-                    existing.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    existing.updatedAt = Clock.System.now()
                     PutOutcome.Ok(existing.toResponse())
                 }
                 when (outcome) {

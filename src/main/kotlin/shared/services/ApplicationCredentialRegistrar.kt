@@ -4,8 +4,6 @@ package com.baseflow.shared.services
 
 import com.baseflow.shared.config.AuthenticationConfig
 import com.baseflow.shared.entities.settings.ApplicationSettingEntity
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
@@ -104,7 +102,7 @@ object ApplicationCredentialRegistrar {
                         this.clientId = clientId
                         clientSecret = secret
                         readonly = true
-                        updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                        updatedAt = Clock.System.now()
                     }
                 }.isSuccess
                 if (!inserted) {

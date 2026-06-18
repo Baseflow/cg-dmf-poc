@@ -13,8 +13,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -50,7 +48,7 @@ class ApiConnectionSettingsRoutesTest : SettingsTestBase("api_connection_setting
             this.validationEnabled = validationEnabled
             this.enabled = enabled
             this.readonly = readonly
-            val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val now = Clock.System.now()
             this.createdAt = now
             this.updatedAt = now
         }.id.value

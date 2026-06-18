@@ -17,8 +17,6 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -143,7 +141,7 @@ open class AuditTrailService(private val context: AuditContext) {
                 this.resultaat = call.response.status()?.value
                 this.toelichting = toelichting
                 this.wijzigingen = wijzigingen
-                this.aanmaakdatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                this.aanmaakdatum = Clock.System.now()
             }
         }
     }

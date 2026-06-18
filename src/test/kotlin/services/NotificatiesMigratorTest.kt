@@ -5,8 +5,6 @@ package com.baseflow.shared.services
 import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
 import com.baseflow.shared.entities.settings.ApiConnectionType
 import com.baseflow.shared.tooling.AllTables
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -62,7 +60,7 @@ class NotificatiesMigratorTest {
                 validationEnabled = false
                 enabled = true
                 readonly = false
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 
@@ -124,7 +122,7 @@ class NotificatiesMigratorTest {
                 validationEnabled = false
                 enabled = true
                 readonly = false
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 

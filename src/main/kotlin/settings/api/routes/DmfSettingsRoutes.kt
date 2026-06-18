@@ -12,8 +12,6 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -98,7 +96,7 @@ fun Route.dmfSettingsRoutes() {
                     else -> Unit // "string" and future types: any value is accepted
                 }
 
-                val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                val now = Clock.System.now()
                 val entry = transaction {
                     DmfSettingsTable.upsert {
                         it[DmfSettingsTable.key] = key

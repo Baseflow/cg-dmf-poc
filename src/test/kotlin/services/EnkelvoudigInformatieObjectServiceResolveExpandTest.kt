@@ -19,8 +19,6 @@ import io.ktor.utils.io.ByteReadChannel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -87,7 +85,7 @@ class EnkelvoudigInformatieObjectServiceResolveExpandTest {
                 clientSecret = "test-secret"
                 apiType = ApiConnectionType.ZTC.value
                 validationEnabled = false
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                updatedAt = Clock.System.now()
             }
         }
 

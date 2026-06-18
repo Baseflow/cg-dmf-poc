@@ -14,8 +14,6 @@ import com.baseflow.shared.services.models.DeleteOIOResult
 import com.baseflow.shared.services.models.QueryObjectInformatieObjectenFilter
 import com.baseflow.shared.tooling.AllTables
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -58,7 +56,7 @@ class ObjectInformatieObjectServiceTest {
     // Helper to create test EIO with versions for version detection tests
     private fun createTestEIO(versie: Int = 1): UUID = transaction {
         val record = EIORecordEntity.new {}
-        val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        val now = Clock.System.now()
 
         EIOVersionEntity.new {
             recordId = record

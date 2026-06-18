@@ -3,8 +3,8 @@
 package com.baseflow.shared.entities.settings
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
+import org.jetbrains.exposed.v1.datetime.timestamp
 
 /**
  * Generic typed key/value settings table for runtime-configurable DMF settings.
@@ -28,6 +28,6 @@ object DmfSettingsTable : Table("dmf_settings") {
     val key = varchar("key", 100)
     val type = varchar("type", 20)
     val value = text("value")
-    val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
     override val primaryKey = PrimaryKey(key)
 }
