@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27753791957",
+    "runNumber": "911",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/form-data-4.0.6",
+    "date": "2026-06-18T10:46:54Z",
+    "path": "integration/27753791957/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27753849371",
     "runNumber": "912",
     "branch": "166-bestandsdelen-settings",
