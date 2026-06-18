@@ -11,8 +11,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -51,8 +49,8 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
             this.accessKey = accessKey
             this.secretKey = secretKey
             storageAccountName = null
-            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            createdAt = Clock.System.now()
+            updatedAt = Clock.System.now()
         }.id.value
     }
 

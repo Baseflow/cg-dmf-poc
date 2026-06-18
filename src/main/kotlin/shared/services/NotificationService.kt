@@ -19,8 +19,6 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.and
@@ -256,7 +254,7 @@ class NotificationService(private val context: AuditContext) {
 
         val resourceSegment = entity.getResourceSegment().value
         val resourceUrl = ApiUrlBuilder.absolute(resourceSegment, entity.id.toString())
-        val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        val now = Clock.System.now()
         val request = context.sourceRequest
 
         val message = NotificationMessage(

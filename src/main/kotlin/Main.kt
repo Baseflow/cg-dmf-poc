@@ -49,6 +49,7 @@ fun main() {
             username = DatabaseConfig.user
             password = DatabaseConfig.password
             maximumPoolSize = DatabaseConfig.poolSize
+            connectionInitSql = "SET TIME ZONE 'UTC'"
         },
     )
     Database.connect(dataSource)

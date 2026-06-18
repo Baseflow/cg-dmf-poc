@@ -8,8 +8,8 @@ import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
 import org.jetbrains.exposed.v1.crypt.encryptedVarchar
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
+import org.jetbrains.exposed.v1.datetime.timestamp
 import java.util.UUID
 
 private val lazyEncryptor = multiAlgorithmEncryptor()
@@ -19,8 +19,8 @@ object ApplicationSettingsTable : UUIDTable("application_settings") {
     val clientId = text("client_id").uniqueIndex()
     val clientSecret = encryptedVarchar("client_secret_encrypted", 512, lazyEncryptor).nullable()
     val readonly = bool("readonly").default(false)
-    val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
-    val updatedAt = datetime("updated_at").defaultExpression(CurrentDateTime)
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 }
 
 class ApplicationSettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {

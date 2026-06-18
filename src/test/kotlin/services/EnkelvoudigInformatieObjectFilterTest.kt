@@ -16,6 +16,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -434,7 +436,7 @@ class EnkelvoudigInformatieObjectFilterTest {
     fun `filter registratiedatum__lte geeft alle documenten terug als alle voor de opgegeven datum zijn`() = runBlocking {
         service.create(generateTestDocument(titel = "A"))
         service.create(generateTestDocument(titel = "B"))
-        val futureTime = LocalDateTime(2099, 1, 1, 0, 0, 0)
+        val futureTime = LocalDateTime(2099, 1, 1, 0, 0, 0).toInstant(TimeZone.UTC)
 
         val (results, count) = service.getAll(
             QueryEnkelvoudigeInformatieObjectenFilter(registratiedatumLte = futureTime),
@@ -447,7 +449,7 @@ class EnkelvoudigInformatieObjectFilterTest {
     @Test
     fun `filter registratiedatum__gte geeft geen documenten als alle documenten voor de opgegeven datum zijn`() = runBlocking {
         service.create(generateTestDocument(titel = "Oud"))
-        val futureTime = LocalDateTime(2099, 1, 1, 0, 0, 0)
+        val futureTime = LocalDateTime(2099, 1, 1, 0, 0, 0).toInstant(TimeZone.UTC)
 
         val (results, count) = service.getAll(
             QueryEnkelvoudigeInformatieObjectenFilter(registratiedatumGte = futureTime),

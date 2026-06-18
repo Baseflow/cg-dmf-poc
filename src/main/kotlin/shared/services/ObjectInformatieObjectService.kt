@@ -17,8 +17,6 @@ import com.baseflow.shared.entities.OIORecords
 import com.baseflow.shared.services.models.CreateOIOResult
 import com.baseflow.shared.services.models.DeleteOIOResult
 import com.baseflow.shared.services.models.QueryObjectInformatieObjectenFilter
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.dao.with
@@ -138,7 +136,7 @@ open class ObjectInformatieObjectService(
             }
 
             // Create new relation
-            val now = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            val now = Clock.System.now()
             val entity = OIORecordEntity.new {
                 informatieobject = eioRecord
                 informatieobjectVersie = versionEntity

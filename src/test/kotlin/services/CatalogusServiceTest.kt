@@ -12,8 +12,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -49,7 +47,7 @@ class CatalogusServiceTest {
             this.clientSecret = clientSecret
             this.apiType = apiType.value
             this.validationEnabled = validationEnabled
-            this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            this.updatedAt = Clock.System.now()
         }.id.value
     }
 

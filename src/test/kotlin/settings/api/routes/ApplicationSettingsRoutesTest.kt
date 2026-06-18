@@ -14,8 +14,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -37,7 +35,7 @@ class ApplicationSettingsRoutesTest : SettingsTestBase("application_settings") {
             this.clientId = clientId
             this.clientSecret = clientSecret
             this.readonly = readonly
-            this.updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            this.updatedAt = Clock.System.now()
         }.id.value
     }
 

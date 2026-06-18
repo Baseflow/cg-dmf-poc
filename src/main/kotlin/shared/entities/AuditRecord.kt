@@ -11,8 +11,8 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
+import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.json.json
 import java.util.UUID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable as UUIDTableCore
@@ -47,7 +47,7 @@ object AuditTrails : UUIDTableCore("audit_trails") {
     val resourceUrl = varchar("resource_url", 1000)
     val toelichting = text("toelichting").nullable()
     val resourceWeergave = varchar("resource_weergave", 200).nullable()
-    val aanmaakdatum = datetime("aanmaakdatum").defaultExpression(CurrentDateTime)
+    val aanmaakdatum = timestamp("aanmaakdatum").defaultExpression(CurrentTimestamp)
     val wijzigingen = json<Wijzigingen>("wijzigingen", Json.Default).default(Wijzigingen())
 }
 

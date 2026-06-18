@@ -28,8 +28,6 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -125,7 +123,7 @@ class WopiDocumentServiceTest {
             informatieobjectVersie = version
             subjectObject = "https://example.com/zaken/api/v1/zaken/${UUID.randomUUID()}"
             subjectType = "zaak"
-            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            createdAt = Clock.System.now()
         }
     }
 

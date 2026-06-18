@@ -10,8 +10,6 @@ import com.baseflow.shared.config.ApplicationConfig
 import com.baseflow.shared.entities.*
 import com.baseflow.shared.services.models.*
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atTime
-import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -78,13 +76,13 @@ class EnkelvoudigInformatieObjectService(
             titel = request.titel!!
             auteur = request.auteur!!
             creatieDatum = request.creatiedatum!!
-            beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            beginRegistratie = Clock.System.now()
             formaat = bestandsFormaat
             bestandsomvang = bestandsOmvang
             link = request.link.orEmpty()
             integriteitAlgoritme = request.integriteit?.algoritme?.toString().orEmpty()
             integriteitWaarde = request.integriteit?.waarde.orEmpty()
-            integriteitsDatum = request.integriteit?.datum?.atTime(0, 0, 0, 0)
+            integriteitsDatum = request.integriteit?.datum
             verschijningsVorm = request.verschijningsvorm.orEmpty()
             vertrouwlijkheidsAanduiding = request.vertrouwelijkheidaanduiding?.toString()
                 ?: ioType?.vertrouwelijkheidaanduiding
@@ -93,7 +91,7 @@ class EnkelvoudigInformatieObjectService(
             beschrijving = request.beschrijving.orEmpty()
             indicatieGebruiksrecht = request.indicatieGebruiksrecht ?: false
             ondertekening_soort = request.ondertekening?.soort?.toString().orEmpty()
-            ondertekenings_datum = request.ondertekening?.datum?.atTime(0, 0, 0, 0)
+            ondertekenings_datum = request.ondertekening?.datum
             identificatie = request.identificatie.orEmpty()
             bestandsLocatie = uploadResultaat.bestandsLocatie
             bestandsRepository = uploadResultaat.bestandsRepository.orEmpty()
@@ -407,7 +405,7 @@ class EnkelvoudigInformatieObjectService(
                 bestandsLocatie = uploadResultaat.bestandsLocatie
                 bestandsRepository = uploadResultaat.bestandsRepository
                     ?: latestVersion?.bestandsRepository.orEmpty()
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                beginRegistratie = Clock.System.now()
                 link = mergeOptionalString(partial, request.link, latestVersion?.link)
                 creatieDatum = mergeNullable(partial, request.creatiedatum, latestVersion?.creatieDatum)
                     ?: Clock.System.now()
@@ -428,7 +426,7 @@ class EnkelvoudigInformatieObjectService(
                     mergeOptionalString(partial, request.integriteit?.waarde, latestVersion?.integriteitWaarde)
                 integriteitsDatum = mergeNullable(
                     partial,
-                    request.integriteit?.datum?.atTime(0, 0, 0, 0),
+                    request.integriteit?.datum,
                     latestVersion?.integriteitsDatum,
                 )
                 verschijningsVorm =
@@ -453,7 +451,7 @@ class EnkelvoudigInformatieObjectService(
                 )
                 ondertekenings_datum = mergeNullable(
                     partial,
-                    request.ondertekening?.datum?.atTime(0, 0, 0, 0),
+                    request.ondertekening?.datum,
                     latestVersion?.ondertekenings_datum,
                 )
                 identificatie = mergeOptionalString(partial, request.identificatie, latestVersion?.identificatie)
@@ -535,7 +533,7 @@ class EnkelvoudigInformatieObjectService(
             version.integriteitAlgoritme.isNotEmpty() && version.integriteitsDatum != null -> Integriteit(
                 algoritme = IntegriteitAlgoritme.valueOf(version.integriteitAlgoritme),
                 waarde = version.integriteitWaarde,
-                datum = version.integriteitsDatum!!.date,
+                datum = version.integriteitsDatum!!,
             )
 
             else -> null
@@ -544,7 +542,7 @@ class EnkelvoudigInformatieObjectService(
         val ondertekening = when {
             version.ondertekening_soort.isNotEmpty() && version.ondertekenings_datum != null -> Ondertekening(
                 soort = OndertekeningSoort.valueOf(version.ondertekening_soort),
-                datum = version.ondertekenings_datum!!.date,
+                datum = version.ondertekenings_datum!!,
             )
 
             else -> null
@@ -600,9 +598,7 @@ class EnkelvoudigInformatieObjectService(
             inhoudIsVervallen = version.inhoudIsVervallen,
             locked = this.lockToken != null,
             versie = version.versie,
-            beginRegistratie = version.beginRegistratie
-                .toInstant(TimeZone.UTC)
-                .toString(),
+            beginRegistratie = version.beginRegistratie.toString(),
             lock = this.lockToken.orEmpty(),
             bestandsdelen = bestandsdelen,
         )
@@ -791,7 +787,7 @@ class EnkelvoudigInformatieObjectService(
                 auteur = latestVersion?.auteur.orEmpty()
                 creatieDatum = latestVersion?.creatieDatum
                     ?: Clock.System.now().toLocalDateTime(TimeZone.UTC).date
-                beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                beginRegistratie = Clock.System.now()
                 formaat = fileType ?: latestVersion?.formaat
                 bestandsomvang = bytes.size.toLong()
                 bestandsLocatie = newBestandsLocatie
@@ -799,7 +795,7 @@ class EnkelvoudigInformatieObjectService(
                 link = latestVersion?.link.orEmpty()
                 integriteitAlgoritme = integrityResult.algorithm
                 integriteitWaarde = integrityResult.hash
-                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
                 verschijningsVorm = latestVersion?.verschijningsVorm.orEmpty()
                 vertrouwlijkheidsAanduiding = latestVersion?.vertrouwlijkheidsAanduiding.orEmpty()
                 status = latestVersion?.status.orEmpty()

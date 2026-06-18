@@ -15,8 +15,6 @@ import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -65,8 +63,8 @@ class BlobStorageRepositoryRoutesTest : TestBase("blob_storage_routes") {
             extraProperties = "{}"
             this.isDefault = isDefault
             this.enabled = enabled
-            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-            updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+            createdAt = Clock.System.now()
+            updatedAt = Clock.System.now()
         }.id.value
     }
 

@@ -3,8 +3,6 @@
 package com.baseflow.shared.entities.settings
 
 import com.baseflow.shared.tooling.AllTables
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.util.UUID
@@ -37,8 +35,8 @@ class BlobStorageRepositorySettingEncryptionTest {
                 secretKey = null
                 bucket = "test"
                 storageAccountName = null
-                createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
-                updatedAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                createdAt = Clock.System.now()
+                updatedAt = Clock.System.now()
             }.id.value
         }
 
