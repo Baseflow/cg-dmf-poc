@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27765662251",
+    "runNumber": "917",
+    "branch": "task/settings-timestamps",
+    "date": "2026-06-18T14:18:36Z",
+    "path": "integration/27765662251/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27762295535",
     "runNumber": "916",
     "branch": "task/settings-timestamps",
