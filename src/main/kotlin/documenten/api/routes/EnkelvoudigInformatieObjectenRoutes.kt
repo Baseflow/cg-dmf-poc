@@ -24,6 +24,8 @@ import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.ktor.plugin.scope
 import java.util.*
@@ -698,9 +700,9 @@ private fun RoutingContext.getFilters(
     val creatiedatumLte = params["creatiedatum__lte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val creatiedatumGte = params["creatiedatum__gte"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     val registratiedatumLte =
-        params["registratiedatum__lte"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+        params["registratiedatum__lte"]?.let { runCatching { LocalDateTime.Formats.ISO.parse(it).toInstant(TimeZone.UTC) }.getOrNull() }
     val registratiedatumGte =
-        params["registratiedatum__gte"]?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+        params["registratiedatum__gte"]?.let { runCatching { LocalDateTime.Formats.ISO.parse(it).toInstant(TimeZone.UTC) }.getOrNull() }
     val locked = params["locked"]?.let { value ->
         when (value.lowercase()) {
             "true" -> true

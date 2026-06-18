@@ -7,7 +7,7 @@ import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.timestamp
 import java.util.UUID
 import kotlin.time.ExperimentalTime
 
@@ -17,8 +17,8 @@ object OIORecords : UUIDTable("oio_records") {
     val informatieobjectVersie = reference("informatieobject_versie", EIOVersions, onDelete = ReferenceOption.CASCADE)
     val subjectObject = varchar("subject_object", 1000)
     val subjectType = varchar("subject_type", 20)
-    val createdAt = datetime("created_at").nullable()
-    val updatedAt = datetime("updated_at").nullable()
+    val createdAt = timestamp("created_at").nullable()
+    val updatedAt = timestamp("updated_at").nullable()
 
     init {
         uniqueIndex("uq_oio_informatieobject_object", informatieobject, subjectObject)

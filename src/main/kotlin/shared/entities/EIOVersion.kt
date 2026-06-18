@@ -8,9 +8,9 @@ import org.jetbrains.exposed.v1.core.dao.id.java.UUIDTable
 import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import org.jetbrains.exposed.v1.datetime.CurrentDate
-import org.jetbrains.exposed.v1.datetime.CurrentDateTime
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.datetime.date
-import org.jetbrains.exposed.v1.datetime.datetime
+import org.jetbrains.exposed.v1.datetime.timestamp
 import java.util.UUID
 import kotlin.time.ExperimentalTime
 
@@ -27,8 +27,8 @@ object EIOVersions : UUIDTable("eio_versions") {
     val integriteitAlgoritme = varchar("integriteit_algoritme", 20).default("")
     val integriteitWaarde = varchar("integriteit_waarde", 128).default("")
 
-    val integriteitsDatum = datetime("integriteits_datum").nullable()
-    val beginRegistratie = datetime("begin_registratie").defaultExpression(CurrentDateTime)
+    val integriteitsDatum = date("integriteits_datum").nullable()
+    val beginRegistratie = timestamp("begin_registratie").defaultExpression(CurrentTimestamp)
     val verschijningsVorm = text("verschijnings_vorm").default("")
 
     val bronOrganisatie = varchar("bron_organisatie", 9).default("")
@@ -40,7 +40,7 @@ object EIOVersions : UUIDTable("eio_versions") {
     val beschrijving = text("beschrijving").default("")
     val indicatieGebruiksrecht = bool("indicatie_gebruiksrecht").default(false)
     val ondertekening_soort = varchar("ondertekening_soort", 10).default("")
-    val ondertekenings_datum = datetime("ondertekenings_datum").nullable()
+    val ondertekenings_datum = date("ondertekenings_datum").nullable()
     val identificatie = varchar("identificatie", 40).default("")
     val informatieobject_type = varchar("informatieobject_type", 200).default("")
     val bestandsLocatie = varchar("bestands_locatie", 1000).default("")

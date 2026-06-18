@@ -227,7 +227,7 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
                     titel = targetFileName
                     auteur = sourceMeta.auteur
                     creatieDatum = sourceMeta.creatieDatum
-                    beginRegistratie = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    beginRegistratie = Clock.System.now()
                     formaat = fileType
                     this.bestandsomvang = contentLength
                     this.bestandsLocatie = bestandsLocatie
@@ -238,7 +238,7 @@ open class WopiDocumentService(private val eioService: EnkelvoudigInformatieObje
                     indicatieGebruiksrecht = sourceMeta.indicatieGebruiksrecht
                     integriteitAlgoritme = integrityResult.algorithm
                     integriteitWaarde = integrityResult.hash
-                    integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+                    integriteitsDatum = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
                 }
             }
         } catch (dbEx: Exception) {

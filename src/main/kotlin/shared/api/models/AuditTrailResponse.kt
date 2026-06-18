@@ -4,8 +4,8 @@ package com.baseflow.shared.api.models
 
 import com.baseflow.shared.entities.Wijzigingen
 import io.ktor.openapi.JsonSchema
-import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @JsonSchema.Title("AuditTrailRegel")
 @JsonSchema.Description("Een audittrail-regel die een wijziging op een INFORMATIEOBJECT vastlegt.")
@@ -26,7 +26,7 @@ import kotlinx.serialization.Serializable
   "resourceWeergave": "Besluit vergunning omgevingsrecht",
   "toelichting": "",
   "wijzigingen": {"oud": {}, "nieuw": {"titel": "Besluit vergunning omgevingsrecht"}},
-  "aanmaakdatum": "2024-01-15T10:30:00"
+  "aanmaakdatum": "2024-01-15T10:30:00Z"
 }""",
 )
 @Serializable
@@ -90,5 +90,5 @@ data class AuditTrailResponse(
     @JsonSchema.Description("De datum-tijd waarop de audittrail-regel is aangemaakt (ISO 8601 date-time).")
     @JsonSchema.Format("date-time")
     @JsonSchema.ReadOnly
-    val aanmaakdatum: LocalDateTime?,
+    val aanmaakdatum: Instant?,
 ) : ApiResponse
