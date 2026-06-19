@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27830440764",
+    "runNumber": "932",
+    "branch": "dependabot/gradle/com.zaxxer-HikariCP-7.1.0",
+    "date": "2026-06-19T14:13:00Z",
+    "path": "integration/27830440764/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27830404765",
     "runNumber": "928",
     "branch": "dependabot/gradle/com.diffplug.spotless-8.7.0",
