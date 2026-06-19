@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27830394523",
+    "runNumber": "924",
+    "branch": "dependabot/github_actions/actions/checkout-7",
+    "date": "2026-06-19T14:09:04Z",
+    "path": "integration/27830394523/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27829853257",
     "runNumber": "923",
     "branch": "CGDMF-179-initialize-chunk-size",
