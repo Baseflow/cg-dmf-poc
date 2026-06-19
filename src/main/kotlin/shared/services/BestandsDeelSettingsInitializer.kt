@@ -36,18 +36,20 @@ object BestandsDeelSettingsInitializer {
     }
 
     private fun insertIfAbsent(key: String, type: String, value: String) {
-        val exists = DmfSettingsTable.selectAll()
-            .where { DmfSettingsTable.key eq key }
-            .count() > 0L
-        if (exists) {
+        try {
+            DmfSettingsTable.insert {
+                it[DmfSettingsTable.key] = key
+                it[DmfSettingsTable.type] = type
+                it[DmfSettingsTable.value] = value
+            }
+            logger.info("Initialized dmf_settings['{}'] = {}", key, value)
+        } catch (e: org.jetbrains.exposed.v1.exceptions.ExposedSQLException) {
+            // Keep existing value when the key already exists (or was inserted concurrently).
+            val exists = DmfSettingsTable.selectAll()
+                .where { DmfSettingsTable.key eq key }
+                .count() > 0L
+            if (!exists) throw e
             logger.debug("dmf_settings['{}'] already present – skipping", key)
-            return
         }
-        DmfSettingsTable.insert {
-            it[DmfSettingsTable.key] = key
-            it[DmfSettingsTable.type] = type
-            it[DmfSettingsTable.value] = value
-        }
-        logger.info("Initialized dmf_settings['{}'] = {}", key, value)
     }
 }
