@@ -101,7 +101,7 @@ export default function DmfSettingsForm({
         <BytesField
           id="trigger-size"
           label="Trigger grootte"
-          description="Minimale bestandsgrootte voordat een bestand wordt gesplitst. Minimaal 1 byte, standaard 4 GB."
+          description="Minimale bestandsgrootte voordat een bestand wordt gesplitst. Minimaal 1 byte, standaard 300 MB."
           value={triggerSize}
           onChange={setTriggerSize}
           disabled={isPending}
@@ -110,7 +110,7 @@ export default function DmfSettingsForm({
         <BytesField
           id="chunk-size"
           label="Chunk grootte"
-          description="Grootte van elk fragment bij het splitsen van een bestand. Minimaal 1 byte, standaard 3 GB."
+          description="Grootte van elk fragment bij het splitsen van een bestand. Minimaal 1 byte, standaard 100 MB."
           value={chunkSize}
           onChange={setChunkSize}
           disabled={isPending}
