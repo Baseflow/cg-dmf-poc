@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27830404765",
+    "runNumber": "928",
+    "branch": "dependabot/gradle/com.diffplug.spotless-8.7.0",
+    "date": "2026-06-19T14:09:55Z",
+    "path": "integration/27830404765/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27830397684",
     "runNumber": "925",
     "branch": "dependabot/gradle/aws-sdk-1c9274de8b",
