@@ -12,28 +12,19 @@ De DMF implementeert een **WOPI-host** zodat een WOPI-client zoals [Collabora On
 
 De WOPI-routes zijn beschikbaar onder het basispad `/wopi/api/v1`.
 
-| Endpoint                                    | Method | X-WOPI-Override header         | WOPI-operatie      | Beschrijving                                                                                          |
-| ------------------------------------------- | ------ |--------------------------------| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `/wopi/api/v1/token/{file_id}`              | POST   | —                              | IssueToken         | Geeft een kortlopend toegangstoken (SLAT) terug voor het opgegeven document.                          |
-| `/wopi/api/v1/files/{file_id}`              | GET    | —                              | CheckFileInfo      | Geeft metadata terug (bestandsnaam, grootte, versie, rechten) als JSON.                               |
-| `/wopi/api/v1/files/{file_id}`              | POST   | `LOCK`                         | Lock               | Vergrendelt het document. Als het bestand al vergrendeld is met hetzelfde token, wordt de vergrendeling vernieuwd (RefreshLock). |
-| `/wopi/api/v1/files/{file_id}`              | POST   | `LOCK` + X-WOPI-OldLock header | UnlockAndRelock | Vervangt een bestaande vergrendeling door een nieuwe.                                      |
-| `/wopi/api/v1/files/{file_id}`              | POST   | `UNLOCK`                       | Unlock             | Ontgrendelt het document.                                                                             |
-| `/wopi/api/v1/files/{file_id}`              | POST   | `RENAME_FILE`                  | RenameFile         | Hernoemt het document via de `X-WOPI-RequestedName` header.                                           |
-| `/wopi/api/v1/files/{file_id}`              | POST   | `DELETE`                       | Delete             | Verwijdert het document, mits het niet vergrendeld is en geen referenties heeft.                      |
-| `/wopi/api/v1/files/{file_id}`              | POST   | `PUT_RELATIVE`                 | PutRelativeFile    | Maakt een nieuwe versie of kopie aan van het document op basis van `X-WOPI-RelativeTarget` of `X-WOPI-SuggestedTarget`. |
-| `/wopi/api/v1/files/{file_id}/contents`     | GET    | —                              | GetFile            | Streamt de binaire bestandsinhoud van het document.                                                   |
-| `/wopi/api/v1/files/{file_id}/contents`     | POST   | `PUT`                          | PutFile            | Slaat nieuwe bestandsinhoud op (vereist een actieve vergrendeling voor bestaande documenten).         |
-| `/wopi/api/v1/containers/{container_id}`    | GET    | —                              | CheckContainerInfo | ⚠️ Niet ondersteund in deze implementatie (geeft HTTP 501 terug).                                    |
-
-### CheckFileInfo response
-
-```json
-{
-  "BaseFileName": "voorbeeld.docx",
-  "Size": 102400
-}
-```
+| Endpoint                                    | Method | X-WOPI-Override header         | WOPI-operatie      | Beschrijving                                                                                          | Geïmplementeerd |
+| ------------------------------------------- | ------ | ------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------- | :-------------: |
+| `/wopi/api/v1/token/{file_id}`              | POST   | —                              | IssueToken *(DMF-specifiek)* | Geeft een kortlopend toegangstoken (SLAT) terug voor het opgegeven document.            | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | GET    | —                              | [CheckFileInfo](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo) | Geeft metadata terug (bestandsnaam, grootte, versie, rechten) als JSON. | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | POST   | `LOCK`                         | [Lock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/lock) / [RefreshLock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock) | Vergrendelt het document. Als het bestand al vergrendeld is met hetzelfde token, wordt de vergrendeling vernieuwd (RefreshLock). | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | POST   | `LOCK` + `X-WOPI-OldLock`     | [UnlockAndRelock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock) | Vervangt een bestaande vergrendeling door een nieuwe. | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | POST   | `UNLOCK`                       | [Unlock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlock) | Ontgrendelt het document. | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | POST   | `RENAME_FILE`                  | [RenameFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/renamefile) | Hernoemt het document via de `X-WOPI-RequestedName` header. | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | POST   | `DELETE`                       | [DeleteFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile) | Verwijdert het document, mits het niet vergrendeld is en geen referenties heeft. | ✅ |
+| `/wopi/api/v1/files/{file_id}`              | POST   | `PUT_RELATIVE`                 | [PutRelativeFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile) | Maakt een nieuwe versie of kopie aan van het document op basis van `X-WOPI-RelativeTarget` of `X-WOPI-SuggestedTarget`. | ✅ |
+| `/wopi/api/v1/files/{file_id}/contents`     | GET    | —                              | [GetFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile) | Streamt de binaire bestandsinhoud van het document. | ✅ |
+| `/wopi/api/v1/files/{file_id}/contents`     | POST   | `PUT`                          | [PutFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile) | Slaat nieuwe bestandsinhoud op (vereist een actieve vergrendeling voor bestaande documenten). | ✅ |
+| `/wopi/api/v1/containers/{container_id}`    | GET    | —                              | [CheckContainerInfo](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo) | Niet ondersteund in deze implementatie (geeft HTTP 501 terug). | ❌ |
 
 ---
 
