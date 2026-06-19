@@ -85,7 +85,7 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.0")
 
     // Koin for dependency injection - use koin-ktor3 for Ktor 3.x compatibility
-    implementation(platform("io.insert-koin:koin-bom:4.2.1"))
+    implementation(platform("io.insert-koin:koin-bom:4.2.2"))
     implementation("io.insert-koin:koin-core")
     implementation("io.insert-koin:koin-ktor")
     implementation("io.insert-koin:koin-logger-slf4j")
