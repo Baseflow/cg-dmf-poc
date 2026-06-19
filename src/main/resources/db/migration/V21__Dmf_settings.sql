@@ -13,6 +13,3 @@ CREATE TABLE dmf_settings
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT pk_dmf_settings PRIMARY KEY (id)
 );
-
-INSERT INTO dmf_settings (id, trigger_size_bytes, chunk_size_bytes, validation_enabled)
-VALUES ('00000000-0000-0000-0000-000000000001', 4294967296, 3221225472, true);
