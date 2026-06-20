@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27881830279",
+    "runNumber": "934",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/dompurify-3.4.11",
+    "date": "2026-06-20T19:45:51Z",
+    "path": "integration/27881830279/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27870477736",
     "runNumber": "933",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/undici-7.28.0",
