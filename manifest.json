@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27830403389",
+    "runNumber": "927",
+    "branch": "dependabot/gradle/flyway-880155f4ad",
+    "date": "2026-06-22T07:38:33Z",
+    "path": "integration/27830403389/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27922343298",
     "runNumber": "164",
