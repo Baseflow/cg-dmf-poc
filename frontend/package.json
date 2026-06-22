@@ -16,6 +16,6 @@
     "swagger-ui-dist": "^5.32.6"
   },
   "devDependencies": {
-    "license-checker-rseidelsohn": "^4.4.2"
+    "license-checker-rseidelsohn": "^5.0.1"
   }
 }
