@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "27980115062",
+    "runNumber": "935",
+    "branch": "CGDMF-179-initialize-chunk-size",
+    "date": "2026-06-22T20:03:52Z",
+    "path": "integration/27980115062/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27942989236",
     "runNumber": "166",
