@@ -15,4 +15,6 @@ CREATE TABLE dmf_settings
     CONSTRAINT pk_dmf_settings PRIMARY KEY (key)
 );
 
+INSERT INTO dmf_settings (key, type, value) VALUES ('trigger_size_bytes', 'int', '4294967296');
+INSERT INTO dmf_settings (key, type, value) VALUES ('chunk_size_bytes', 'int', '3221225472');
 INSERT INTO dmf_settings (key, type, value) VALUES ('validation_enabled', 'boolean', 'true');

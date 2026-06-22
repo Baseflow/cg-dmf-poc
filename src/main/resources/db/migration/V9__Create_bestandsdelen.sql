@@ -3,7 +3,7 @@
 --
 -- V7: Create bestandsdelen table for chunked file upload support.
 -- A row is created per expected chunk whenever an EnkelvoudigInformatieObject is
--- registered with a bestandsomvang that exceeds the configured trigger size (default 300 MB).
+-- registered with a bestandsomvang that exceeds the configured trigger size (default 4 GB).
 
 CREATE TABLE bestandsdelen
 (
