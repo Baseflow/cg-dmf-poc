@@ -1,18 +1,27 @@
-# Gebruikshandleiding — Integratie in een Common Ground landschap
+# Gebruikshandleiding
 
-Deze handleiding beschrijft hoe CG-DMF wordt geïntegreerd in een Common Ground landschap. Behandeld worden: OpenZaak, GZAC/Valtimo, IKO, Open Notificaties en WOPI.
+Integratie in een Common Ground landschap. Deze handleiding beschrijft hoe CG-DMF wordt geïntegreerd in een Common Ground landschap. Behandeld worden: OpenZaak, GZAC/Valtimo, IKO, Open Notificaties en WOPI.
 
-## OpenZaak koppelen
-
-### Vereisten
-
-- Een werkende OpenZaak-installatie
-- Een CG-DMF-instantie bereikbaar vanuit OpenZaak
-- ZGW client credentials voor communicatie van Openzaak naar DMF-DRC (aangemaakt via de admin portal of `CLIENT_CREDENTIALS`)
-
-### DMF registreren als DRC-service in OpenZaak
-
+## DMF registreren als DRC-service in OpenZaak
 OpenZaak moet weten dat de CG-DMF de DRC is, zodat het objectreferenties kan valideren en aanmaken.
+
+### Maak applicatie aan in CG-DMF
+
+1. Log in bij de admin-portal van CG-DMF
+2. Ga naar **Applicaties**
+3. Klik op **Toevoegen**
+4. Kies een applicatie-naam (bijv. openzaak-dmf)
+5. Creëer of genereer een client-secret
+6. Sla op
+
+<table><tr>
+<td><img src="images/applicatie-toevoegen.png" alt="Applicatie toevoegen"></td>
+<td><img src="images/applicaties-lijst.png" alt="Applicaties lijst"></td>
+</tr></table>
+
+Het is ook mogelijk om met behulp van de environmentvariabele `CLIENT_SECRETS` een client-secret aa te maken.
+
+### Registreer service in OpenZaak
 
 1. Ga in de OpenZaak-beheerinterface naar **API autorisaties → Services**
 2. Klik op **Service toevoegen**
@@ -21,15 +30,21 @@ OpenZaak moet weten dat de CG-DMF de DRC is, zodat het objectreferenties kan val
    - **Type**: `DRC (informatieobjecten)`
    - **API root URL**: `https://cg-dmf.example.com/documenten/api/v1/`
    - **Autorisatietype**: `ZGW client_id + secret`
-   - **Client id**: het client-ID waarmee CG-DMF zichzelf identificeert bij OpenZaak (zie ook `CLIENT_CREDENTIALS` of Applicaties in de admin-portal)
+   - **Client id**: het client-ID waarmee CG-DMF zichzelf identificeert bij OpenZaak.
    - **Client secret**: het bijbehorende secret
    - **Gebruikers-id**: `openzaak`
    - **Gebruikersrepresentatie**: `Open Zaak`
 4. Sla op
 
-### CG-DMF toegang geven tot de OpenZaak-catalogus
+![OpenZaak service toevoegen](images/openzaak-service-toevoegen.png)
+
+--- 
+
+## CG-DMF toegang geven tot de OpenZaak-catalogus
 
 De DMF valideert het `informatieobjecttype` van elk document tegen de catalogus in OpenZaak.
+
+### Applicatie aanmaken in OpenZaak
 
 1. Ga in OpenZaak naar **API autorisaties → Applicaties**
 2. Klik op **Applicatie toevoegen**
@@ -37,12 +52,33 @@ De DMF valideert het `informatieobjecttype` van elk document tegen de catalogus 
    - **Naam**: `DMF`
    - **Client id**: kies een client-ID voor de communicatie van DMF naar OpenZaak (bijv. `cg-dmf`)
    - **Client secret**: kies een secret
+   - Selecteer **Heeft alle authorisaties**, of kies in Beheer authorisaties, iig. voor alle `Documenten API` autorisaties.
 4. Sla op
-5. Voeg een nieuwe API integratie toe vanuit de admin-portal voor Zaaktype catalogus. 
 
-   óf
+![OpenZaak applicatie lijst](images/openzaak-applicatie-lijst.png)
 
-   stel de waarden in als omgevingsvariabelen in de configuratie van de DMF:
+### API-koppeling aanmaken in CG-DMF
+
+1. Log in bij de admin-portal van CG-DMF
+2. Ga naar **API koppelingen**
+3. Klik op **Toevoegen**
+4. Geef de API-koppeling een naam
+5. Vul in:
+   - **Type** selecteer: ZTC - Catalogi API
+   - **Base URL**: https://openzaak.example.com/catalogi/api/v1/
+   - **Authenticatie type**: ZGW authenticatie
+   - **Client ID**: Naam als aangemaakt in de vorige stap
+   - **Client secret**: Secret als aangemaakt in de vorige stap
+   - **Validatie**: Ja om te valideren. Dit kan uitgeschakeld worden, maar dan worden `informatieobjecttype`-waarden niet gevalideerd tegen de OpenZaak-catalogus. Valideren heeft een aanzienlijke performance-impact, maar is wel belangrijk om consistentie te bewaken.
+6. Sla op
+7. Herhaal deze stappen om ook de `ZRC-Zaken API` te koppelen.
+
+<table><tr>
+<td><img src="images/api-koppeling-toevoegen.png" alt="API koppeling toevoegen"></td>
+<td><img src="images/api-koppelingen-lijst.png" alt="API koppelingen lijst"></td>
+</tr></table>
+
+Het is ook mogelijk om de waarden als omgevingsvariabelen in de [configuratie](/docs/configuratie.md) van de DMF in te stellen.
    ```env
    OPENZAAK_ENDPOINT=https://openzaak.example.com
    OPENZAAK_CLIENT_ID=cg-dmf
@@ -58,33 +94,53 @@ Zorg dat in OpenZaak de benodigde zaaktypen en informatieobjecttypen zijn geconf
 
 ## GZAC / Valtimo koppelen
 
-### Vereisten
+### Credentials aanmaken
+Maak credentials aan voor GZAC/Valtimo in zowel CG-DMF als in OpenZaak.
 
-- Een werkende GZAC/Valtimo-installatie
-- Een CG-DMF-instantie bereikbaar vanuit GZAC
-- ZGW client credentials voor communicatie van GZAC naar DMF (aangemaakt via de admin portal of `CLIENT_CREDENTIALS`)
+Zie ook:
+- [Maak een applicatie aan in CG-DMF](#maak-een-applicatie-aan-in-gzac)
+- [Maak een applicatie aan in OpenZaak](#applicatie-aanmaken-in-openzaak)
 
 ### 1. Authenticatie-plugins instellen
+In GZAC/Valtimo is een authenticatie-plugin vereist voor communicatie met de Documenten API.
 
-Maak twee instanties van de **Open Zaak authenticatie plugin** aan:
+1. Navigeer in de sidebar link naar `Admin`
+2. Kies hier `Plugins`
+3. Kies `Plugin configureren` en voeg een nieuwe plugin toe van het type `Open Zaak`. Deze plugin implementeert de ZGW-authenticatie en kan door andere plugins gebruikt worden als authorisatie plugin.
+4. Configureer de plugin met:
+   - **Configuratie-naam**: bijv. `OpenZaak-auth`
+   - **Client ID**: het client-ID dat u in de vorige stap heeft aangemaakt in OpenZaak
+   - **Client secret**: het bijbehorende secret
+5. Sla op
+6. Voeg nu een tweede plugin toe van het type `Open Zaak`.
+7. Configureer deze plugin met:
+   - **Configuratie-naam**: bijv. `CG-DMF-auth`
+   - **Client ID**: het client-ID dat u in de vorige stap heeft aangemaakt in CG-DMF
+   - **Client secret**: het bijbehorende secret
+8. Sla op
 
-- Eén voor communicatie van GZAC naar **OpenZaak** (zaakbeheer)
-- Eén voor communicatie van GZAC naar **CG-DMF** (documentbeheer)
+![GZAC plugins lijst](images/gzac-plugins-lijst.png)
 
-Elk met hun eigen client ID en secret.
+### 2. Zaken API-plugin instellen
 
-### 2. OpenZaak-plugin instellen
+Voeg nog een plugin toe van het type `Zaken API`.
 
-Configureer de **OpenZaak-plugin** met:
-- De basis-URL van uw OpenZaak-instantie
-- De authenticatieplugin voor OpenZaak (stap 1)
+Configureer de plugin met:
+- **Naam**: bv. `OpenZaak Zaken API`
+- **Zaken API URL**: bv. `https://openzaak.example.com/zaken/api/v1/`
+- **Configuratie authenticatie-plug-in (vereist)**: de OpenZaak-authenticatieplugin (stap 1)
 
 ### 3. Documenten-plugin instellen
+Voeg nog een plugin toe van het type `Documenten API`.
 
-Configureer de **Documenten-plugin** (of DMF-plugin) met:
-- **Documenten API URL**: `https://cg-dmf.example.com/documenten/api/v1/`
-- **Authenticatieplugin**: de authenticatieplugin voor CG-DMF (stap 1)
-- **Versie**: `1.5.0` of hoger
+Configureer de plugin met:
+- **Naam**: bv. `CG-DMF Documenten API`
+- **Documenten API URL**: bv. `https://cg-dmf.example.com/documenten/api/v1/`
+- **Bronorganisatie RSIN**: Het RSIN van de bronorganisatie waarin de documenten worden opgeslagen.
+- **Configuratie authenticatie-plug-in (vereist)**: de CG-DMF authenticatieplugin (stap 1)
+- **Documenten API-versie**: Kies voor `1.5.0-baseflow`. Deze versie is vereist om extra object relatie acties te kunnen gebruiken vanuit GZAC.
+
+![GZAC documenten plugin](images/gzac-documenten-plugin.png)
 
 Raadpleeg de [GZAC/Valtimo documentatie](https://docs.valtimo.nl/features/plugins/configure-documenten-api-plugin) voor aanvullende details over de plugin-configuratie.
 

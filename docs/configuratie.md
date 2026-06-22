@@ -41,7 +41,7 @@ Voor autorisatie op de beheer-endpoints gebruikt de API role-claims op basis van
 
 `ADMIN_ROLE` moet voorkomen in de claim-bron die hoort bij het token-type van de aanvraag.
 
-## Versleuteling (at-rest encryptie van opslaginloggegevens)
+## Versleuteling
 
 Toegangssleutels en geheime sleutels van blobopslag-repositories worden versleuteld opgeslagen in de database
 met AES-256-PBE-GCM. De volgende omgevingsvariabelen zijn verplicht:
