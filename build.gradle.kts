@@ -142,8 +142,22 @@ application {
     applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
+// ── Frontend npm dependencies ─────────────────────────────────────────────────
+val npmInstall by tasks.registering(Exec::class) {
+    group = "frontend"
+    description = "Install frontend npm dependencies"
+    workingDir = file("frontend")
+    commandLine("npm", "ci")
+    inputs.file("frontend/package-lock.json")
+    outputs.file("frontend/node_modules/.package-lock.json")
+    onlyIf("npm is available on PATH") {
+        try { ProcessBuilder("npm", "--version").start().waitFor() == 0 } catch (_: Exception) { false }
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── Swagger UI ────────────────────────────────────────────────────────────────
-// Copy swagger-ui-dist assets (committed to git) into the build resources directory,
+// Copy swagger-ui-dist assets into the build resources directory,
 // so they are bundled with the server JAR.
 
 val swaggerUiSrc = layout.projectDirectory.dir("frontend/node_modules/swagger-ui-dist")
@@ -152,6 +166,7 @@ val swaggerUiDest = layout.buildDirectory.dir("generated/swagger-ui/static/swagg
 val copySwaggerUi by tasks.registering(Copy::class) {
     group = "swagger-ui"
     description = "Copy swagger-ui-dist assets into the build resources directory"
+    dependsOn(npmInstall)
     from(swaggerUiSrc) {
         include(
             "swagger-ui-bundle.js",
@@ -220,6 +235,7 @@ val docsViewerDest = layout.buildDirectory.dir("generated/docs-viewer/static/doc
 val copyDocsViewerAssets by tasks.registering(Copy::class) {
     group = "documentation"
     description = "Copy docsify.min.js and viewer config files into build resources"
+    dependsOn(npmInstall)
     from(layout.projectDirectory.dir("frontend/node_modules/docsify/lib")) {
         include("docsify.min.js")
     }
