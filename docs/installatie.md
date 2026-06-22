@@ -7,7 +7,7 @@ Deze handleiding beschrijft hoe u CG-DMF DRC in productie installeert. Voor loka
 - [Architectuuroverzicht](#architectuuroverzicht)
 - [Vereisten](#vereisten)
 - [Optie A: Helm chart](#optie-a-helm-chart)
-- [Optie B: Docker Compose (server)](#optie-a-docker-compose-server)
+- [Optie B: Docker Compose (server)](#optie-b-docker-compose-server)
 - [Keycloak configuratie](#keycloak-configuratie)
 - [Admin portal](#admin-portal)
   - [Blob-opslagrepositories](#blob-opslagrepositories)
@@ -39,11 +39,11 @@ CG-DMF hoeft niet samen te worden geïnstalleerd met OpenZaak — het kan ook al
 
 ## Optie A: Helm chart
 
-De meegeleverde Helm chart (`helm/cg-dmf`) biedt een volledige configureerbare installatie met ondersteuning voor external secrets, HPA en de admin portal.
+De meegeleverde Helm chart (`helm/cg-dmf`) biedt een volledig configureerbare installatie met ondersteuning voor external secrets, HPA en de admin portal.
 
 Zie [`helm/cg-dmf/README.md`](../helm/cg-dmf/README.md) voor de volledige installatiehandleiding en configuratie documentatie.
 
-Snelstart:
+In het kort:
 
 ```bash
 helm install cg-dmf ./helm/cg-dmf \
@@ -54,7 +54,7 @@ helm install cg-dmf ./helm/cg-dmf \
 
 ---
 
-## Optie A: Docker Compose (server)
+## Optie B: Docker Compose (server)
 
 Deze opstelling draait de gepubliceerde Docker-images direct op een server zonder Kubernetes.
 

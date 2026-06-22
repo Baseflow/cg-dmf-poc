@@ -29,7 +29,7 @@ Om authenticatie en autorisatie met Keycloak en via ZGW authenticatie mogelijk t
 
 Zorg ervoor dat de Keycloak-realm en client zijn geconfigureerd om overeen te komen met deze waarden.
 
-OIDC issuer is voor rechtstreeks toegang van gebruikers tot de API. Dit gebruiken we o.a. ook voor de beheerinterface.
+OIDC issuer is voor rechtstreekse toegang van gebruikers tot de API. Dit gebruiken we om de beheerinterface te faciliteren.
 CLIENT_CREDENTIALS wordt gebruikt door GZAC en/of openzaak om te communiceren met de DMF als service
 
 ### Rolclaims voor beheer-endpoints (`/settings/**`)
@@ -117,7 +117,7 @@ die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
 
 ## OpenZaak-integratie
 
-Om het opgegeven bestandstype te valideren in de catalogus (in OpenZaak), stel de volgende omgevingsvariabelen in:
+Om het opgegeven informatieobjecttype te valideren in de catalogus, stel de volgende omgevingsvariabelen in:
 
 Ga naar OpenZaak en navigeer naar API Autorisaties -> Applicaties
 - Kies voor Applicatie toevoegen

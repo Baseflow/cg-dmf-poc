@@ -27,9 +27,9 @@ Beschikbare endpoints:
 | `/{uuid}/download`             | GET    | Binaire inhoud downloaden         | ✅      |
 | `/{uuid}/lock`                 | POST   | Vergrendelen                      | ✅      |
 | `/{uuid}/unlock`               | POST   | Ontgrendelen                      | ✅      |
-| `/{uuid}/_zoek`                | POST   | Zoeken op basis van verzoekinhoud | ✅      |
 | `/{uuid}/audittrail`           | GET    | Audittrail opvragen               | ✅      |
 | `/{uuid}/audittrail/{at_uuid}` | GET    | Enkel audittrailrecord opvragen   | ✅      |
+| `/_zoek`                       | POST   | Zoeken op basis van verzoekinhoud | ✅      |
 
 ## objectinformatieobject
 
