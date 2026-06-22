@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27830401713",
+    "runNumber": "926",
+    "branch": "dependabot/gradle/koin-50b240cc41",
+    "date": "2026-06-22T07:40:10Z",
+    "path": "integration/27830401713/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27830403389",
     "runNumber": "927",
     "branch": "dependabot/gradle/flyway-880155f4ad",
