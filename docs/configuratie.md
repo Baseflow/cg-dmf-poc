@@ -112,8 +112,8 @@ die afzonderlijk via `PUT /bestandsdelen/{uuid}` kunnen worden geüpload.
 
 | Variabele                    | Standaardwaarde | Beschrijving                                                                                                        |
 |------------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------|
-| `BESTANDSDELEN_TRIGGER_SIZE` | `4294967296`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 4 GB) |
-| `BESTANDSDELEN_CHUNK_SIZE`   | `3221225472`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 3 GB)                                          |
+| `BESTANDSDELEN_TRIGGER_SIZE` | `314572800`    | Minimale bestandsgrootte in bytes (exclusief) waarbij de bestandsdelen-workflow wordt geactiveerd (standaard: 300 MB) |
+| `BESTANDSDELEN_CHUNK_SIZE`   | `104857600`    | Grootte in bytes van elk afzonderlijk bestandsdeel-chunk (standaard: 100 MB)                                          |
 
 ## OpenZaak-integratie
 
