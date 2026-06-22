@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "27830422331",
+    "runNumber": "929",
+    "branch": "dependabot/npm_and_yarn/frontend/license-checker-rseidelsohn-5.0.1",
+    "date": "2026-06-22T07:41:32Z",
+    "path": "integration/27830422331/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "27830434174",
     "runNumber": "931",
     "branch": "dependabot/npm_and_yarn/frontend/swagger-ui-dist-5.32.6",
