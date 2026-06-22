@@ -14,10 +14,8 @@ OpenZaak moet weten dat de CG-DMF de DRC is, zodat het objectreferenties kan val
 5. Creëer of genereer een client-secret
 6. Sla op
 
-<table><tr>
-<td><img src="images/applicatie-toevoegen.png" alt="Applicatie toevoegen"></td>
-<td><img src="images/applicaties-lijst.png" alt="Applicaties lijst"></td>
-</tr></table>
+![Applicatie toevoegen](images/applicatie-toevoegen.png)
+![Applicaties lijst](images/applicaties-lijst.png)
 
 Het is ook mogelijk om met behulp van de environmentvariabele `CLIENT_SECRETS` een client-secret aa te maken.
 
@@ -73,10 +71,8 @@ De DMF valideert het `informatieobjecttype` van elk document tegen de catalogus 
 6. Sla op
 7. Herhaal deze stappen om ook de `ZRC-Zaken API` te koppelen.
 
-<table><tr>
-<td><img src="images/api-koppeling-toevoegen.png" alt="API koppeling toevoegen"></td>
-<td><img src="images/api-koppelingen-lijst.png" alt="API koppelingen lijst"></td>
-</tr></table>
+![API koppeling toevoegen](images/api-koppeling-toevoegen.png)
+![API koppelingen lijst](images/api-koppelingen-lijst.png)
 
 Het is ook mogelijk om de waarden als omgevingsvariabelen in de [configuratie](/docs/configuratie.md) van de DMF in te stellen.
    ```env
@@ -144,48 +140,105 @@ Configureer de plugin met:
 
 Raadpleeg de [GZAC/Valtimo documentatie](https://docs.valtimo.nl/features/plugins/configure-documenten-api-plugin) voor aanvullende details over de plugin-configuratie.
 
-### 4. Systeem upload-proces aanmaken
+### 4. upload-proces aanmaken
 
 Het systeem-uploadproces koppelt een formuliercomponent voor bestandsuploads aan de DMF en OpenZaak.
 
 1. Ga naar **Admin → System processes → Processen**
 2. Maak een nieuw proces aan met de naam `DMF upload proces`
-3. Voeg toe: start event → taak **Upload document** → taak **Link document aan zaak** → eind event
-4. Maak van beide taken een **service task**
-5. Configureer **Upload document**:
-   - **Process link → Proceskoppeling aanmaken**
-   - Kies de Documenten-plugin
-   - Kies **Geüpload document opslaan**
-6. Configureer **Link document aan zaak**:
-   - **Process link → Proceskoppeling aanmaken**
-   - Kies de OpenZaak-plugin
-   - Kies **Koppel geüpload document aan zaak**
-7. Sla het proces op
+3. Kies rechts bij _General_ eerst een naam: bv. `upload-dmf-drc`
+4. Voeg toe: start event → taak **Upload document** → taak **Link document aan zaak** → eind event
+5. Maak van beide taken een **service task**. Dit doe je door de Taak te selecteren en op het _wrench_ icoon te klikken en in de dropdown voor `Service task` te kiezen..
+6. Configureer **Upload document** taak door deze te selecteren en in het menu rechts:
+    - **Process link → Proceskoppeling aanmaken**
+    - Kies de Documenten-plugin van de CG-DMF DRC zoals aangemaakt in stap 3 en dan Volgende.
+    - Kies **Geüpload document opslaan**
+7. Configureer **Link document aan zaak**:
+    - **Process link → Proceskoppeling aanmaken**
+    - Kies de Zaken API-plugin
+    - Kies **Koppel geüpload document aan zaak**
+8. Sla het proces op
+
+<!-- screenshots: gzac-process-flow, gzac-process-plugin gzac-process-upload, gzac-process-linkzaak -->
 
 ### 5. Dossier aanmaken
+We maken hier een voorbeeld dossier aan met een simpele upload flow naar de DRC. Hierbij:
+- Identificeren we een 'fysiek object' genaamd _Werfkelder_ bij de start van het proces.
+- Hebben we een taak waarbij iemand in het dossier een document moet uploaden.
+- Dit document wordt geupload naar de CG-DMF DRC en aan de aangemaakte zaak gekoppeld. Het document is nu 'vindbaar' bij de zaak, maar nog niet bij het fysieke object _Werfkelder_. 
+- De volgende stap in het proces is het uitvoeren van een nieuwe taak; Link document
+- Na het uitvoeren van deze Taak, wordt er een nieuwe link gemaakt tussen het document en de _Werfkelder_. Het document is nu gekoppeld aan zowel de zaak als het fysieke object _Werfkelder_ en ook via beide te relaties vindbaar.
+- De laatste taak in het process is het weer verwijderen van de net toegevoegde link. Na het verwijderen van de link is het document weer enkel gekoppeld via de zaak-relatie.
 
-1. Ga naar **Admin → Configuratie → Dossiers** en maak een nieuw dossier aan
-2. Ga naar **Formulieren** en maak drie formulieren aan:
-   - **Start**: enkel een submit-knop
-   - **Upload**: bevat het DMF-uploadcomponent (zie hieronder)
-   - **Eind**: standaard submit-knop
-3. Voeg in het Upload-formulier het **Documenten API upload**-component toe:
-   - Stel onder **Advanced** de sectie `DMF upload proces` in
-   - Stel de property in als `documentenApiUrl`
-4. Ga naar **Processen** en maak een gebruikersproces aan:
-   - Start event → user task **Upload document** → user task **Afronden** → end event
-   - Koppel de formulieren aan de overeenkomstige taken via **Process link**
-5. Ga naar **Algemeen** en stel in:
-   - **Uploadproces**: `Documenten API upload document`
-   - Vink aan: **Start een nieuw dossier** en **Door de gebruiker te starten**
-   - Koppel het start-formulier aan het start event
-6. Ga naar **ZGW** en stel in:
-   - Controleer: **De Documenten API-plugin gebruikt versie 1.5.0**
+Ga naar **Admin → Configuratie → Dossiers** en maak een nieuw dossier aan.
+Gebruik een naam en key die nog niet bestaan. Deze eigenschappen zijn later lastig te wijzigen.
+
+1. Ga naar de **Algemeen**-tab en stel in:
+   - **Uploadproces**: `Documenten API upload document` zoals aangemaakt in de vorige stap.
+2. Ga naar **ZGW**-tab en stel in:
+   - Controleer: De Documenten API-plugin gebruikt **versie** 1.5.0-baseflow
    - Kies een **zaaktype** uit de catalogus
    - Stel de **OpenZaak-plugin** in
    - Kies **Automatisch aanmaken voor elk dossier**
-7. Ga naar **Document** en zet `additionalProperties` op `true`
-8. Activeer de dossierversie via **Meer → Actief maken**
+3. Ga naar **Document**-tab en zet `additionalProperties` op `true`
+
+#### Formuleren
+Ga naar **Formulieren**-tab van het dossier en maak enkele formulieren aan
+- **Start**: naam `werfkelder.start`. Het formulier is enkel een tekstinvoer voor Werfkelder en een submit-knop. Dit is het beginpunt van het process. Het werfkelder ID in dit tekstveld is het ID waarmee de upload gaan koppelen.
+- **Upload**: naam `werfkelder.upload`. Het formulier vraagt een gebruiker een bestand te uploaden, en de DRC metadata te verzamelen.
+  - Kies vanuit de component builder links, voor **Advanced** en sleep een `Documenten API File Upload` in het formulier.
+  - Stel de property in als `documentenApiUrl`. In deze property wordt de URL van het geregistreerde Documenten API-proces doorgegeven voor later gebruik.
+- **Link**: naam `werfkelder.link`. Dit formulier is enkel een submit knop voor de gebruiker om te bevestigen dat ze de volgende stap (het linken) bevestigen.
+- **Unlink**: naam `werfkelder.unlink`.Dit formulier is enkel een submit knop voor de gebruiker om te bevestigen dat ze de volgende stap (het unlinken) bevestigen.
+
+#### Gebruikers process aanmaken
+Ga naar **Processen** en maak een nieuw gebruikersproces aan met `Proces creëren`
+- Vink aan: **Start een nieuw dossier** en **Door de gebruiker te starten**
+- Voeg toe: een start, 5 taken, en een eind event en verbind ze
+- Start:
+  - Selecteer de start-taak, klik in het rechter menu op _Process link_ en dan _Proceskoppeling aanmaken_.
+  - Kies in het dialoogvenster voor _Formulier_
+  - Koppel het `werfkelder.start`-formulier aan de start van het proces
+  - Sla op.
+- Taak 1:
+  - Selecteer de eerste taak. Klik op de _wrench_-icoon en maak dit een _User Task_.
+  - Kies rechts voor _Process link_ en dan voor _Formulier_.
+  - Configureer met formulier naam: `werfkelder.upload` en voor de grootte: Modaal en Medium
+  - De waarde van 
+  - Kies dan **Voltooien**
+- Taak 2:
+  - Maak dit een _User Task_.
+  - Kies rechts voor _Process link_ en dan voor _Formulier_.
+  - Configureer met formulier naam: `werfkelder.link` en voor de grootte: Modaal en Medium
+  - Kies dan **Voltooien**
+- Taak 3:
+  - Maak dit een _Service Task_.
+  - Kies rechts voor _Process link_.
+  - Kies de plugin configuratie `CG-DMF Documenten API` zoals eerder toegevoegd in stap 3. 
+  - Kies voor **Document koppelen aan object**
+  - In het dialoogvenster dien je nu Object URL en Object type in te vullen.
+    - ObjectUrl is bijv: `pv:werfkelderObjectUrl`
+    - Objecttype is bijv: `wistor`
+    - Deze waardes zijn de toekomstige waardes van het `objectinformatieobject` dat aangemaakt zal worden.
+    - De URL van het aangemaakte `objectinformatieobject` zal later in het process beschikbaar zijn als: `pv:objectInformatieObjectUrl`
+  - Kies dan **Voltooien**
+- Taak 4:
+  - Maak dit een _User Task_.
+  - Kies rechts voor _Process link_ en dan voor _Formulier_.
+  - Configureer met formulier naam: `werfkelder.unlink` en voor de grootte: Modaal en Medium
+  - Kies dan **Voltooien**
+- Taak 5:
+  - Maak dit een _Service Task_.
+  - Kies rechts voor _Process link_.
+  - Kies de plugin configuratie `CG-DMF Documenten API` zoals eerder toegevoegd in stap 3.
+  - Kies voor **Document koppeling verwijderen**
+  - In het dialoogvenster dien je nu Object URL en Object type in te vullen.
+    - Objectinformatieobject-URL is: `pv:objectInformatieObjectUrl`
+    - Hiermee wordt de relatie met ID zoals vastgelegd in deze process variabele verwijderd.
+  - Kies dan **Voltooien**
+
+#### Afronden configuratie
+Activeer de dossierversie via **Meer → Actief maken**
 
 ---
 
