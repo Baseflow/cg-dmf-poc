@@ -58,6 +58,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useTransition,
   type FormEvent,
 } from "react"
 import {
@@ -65,6 +66,7 @@ import {
   deleteRepositories,
   deleteRepository,
   type Repository,
+  setDefaultRepository,
   type StorageType,
   updateRepository,
 } from "./actions"
@@ -108,6 +110,33 @@ export function RepositoryList({
     deleteOne,
     deleteBulk,
   } = useDeleteState<Repository>()
+
+  const [setDefaultError, setSetDefaultError] = useState<string | null>(null)
+  const [isSettingDefault, startSetDefault] = useTransition()
+
+  const handleSetDefault = useCallback(
+    (repo: Repository) => {
+      if (!repo.enabled) {
+        setSetDefaultError(
+          "Een uitgeschakelde repository kan niet als standaard worden ingesteld."
+        )
+        return
+      }
+      setSetDefaultError(null)
+      startSetDefault(async () => {
+        try {
+          await setDefaultRepository(repo.name)
+        } catch (e) {
+          setSetDefaultError(
+            e instanceof Error
+              ? e.message
+              : "Er is een fout opgetreden. Probeer het opnieuw."
+          )
+        }
+      })
+    },
+    [startSetDefault]
+  )
 
   function handleSave(data: {
     name: string
@@ -221,6 +250,14 @@ export function RepositoryList({
                 <DropdownMenuItem onClick={() => openEdit(row.original)}>
                   {row.original.readonly ? "Bekijken" : "Bewerken"}
                 </DropdownMenuItem>
+                {!row.original.isDefault && (
+                  <DropdownMenuItem
+                    onClick={() => handleSetDefault(row.original)}
+                    disabled={isSettingDefault}
+                  >
+                    Maak standaard
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => setDeleteTarget(row.original)}
@@ -233,7 +270,7 @@ export function RepositoryList({
         ),
       },
     ],
-    [openEdit, setDeleteTarget]
+    [openEdit, setDeleteTarget, handleSetDefault, isSettingDefault]
   )
 
   return (
@@ -346,6 +383,25 @@ export function RepositoryList({
               disabled={isDeleting}
             >
               {isDeleting ? "Verwijderen..." : "Verwijderen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={setDefaultError !== null}
+        onOpenChange={(open) => {
+          if (!open) setSetDefaultError(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Standaard repository instellen</AlertDialogTitle>
+            <AlertDialogDescription>{setDefaultError}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSetDefaultError(null)}>
+              Sluiten
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

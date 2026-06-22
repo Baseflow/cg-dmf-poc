@@ -69,6 +69,18 @@ export async function deleteRepository(id: string) {
   revalidatePath(ROUTES.instellingen.repositories)
 }
 
+export async function setDefaultRepository(name: string) {
+  const res = await apiFetch("/settings/storage-repositories/default", {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  })
+  if (!res.ok)
+    await throwOnError(res, {
+      on404: "Repository niet gevonden. Ververs de pagina en probeer opnieuw.",
+    })
+  revalidatePath(ROUTES.instellingen.repositories)
+}
+
 export async function deleteRepositories(ids: string[]) {
   const results = await Promise.allSettled(
     ids.map(async (id) => {
