@@ -1,0 +1,260 @@
+{
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "LIST oio 200": {
+                    "name": "LIST oio 200",
+                    "path": "::LIST oio 200",
+                    "id": "59a6e0a663dbeae78e8b3461a9dbf1a5",
+                    "passes": 765,
+                    "fails": 0
+                },
+                "CREATE eio 201": {
+                    "fails": 0,
+                    "name": "CREATE eio 201",
+                    "path": "::CREATE eio 201",
+                    "id": "211281383ca8f70b62ffe68b0186f2d7",
+                    "passes": 2367
+                },
+                "LIST eio 200": {
+                    "passes": 3975,
+                    "fails": 0,
+                    "name": "LIST eio 200",
+                    "path": "::LIST eio 200",
+                    "id": "f1e11da33781938d9b436f48f123cb8e"
+                },
+                "GET eio 200": {
+                    "name": "GET eio 200",
+                    "path": "::GET eio 200",
+                    "id": "ee7f46f7715cbfd9722124303550bd1f",
+                    "passes": 6400,
+                    "fails": 0
+                },
+                "CREATE oio 201": {
+                    "name": "CREATE oio 201",
+                    "path": "::CREATE oio 201",
+                    "id": "336b5c36451b5104fc5d41e4e67b342d",
+                    "passes": 737,
+                    "fails": 0
+                },
+                "PATCH eio 200 or 409": {
+                    "name": "PATCH eio 200 or 409",
+                    "path": "::PATCH eio 200 or 409",
+                    "id": "32712bb339702c71a7a3f314ee8d5ba9",
+                    "passes": 1600,
+                    "fails": 0
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "metrics": {
+        "checks": {
+            "passes": 15844,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_duration{name:eio_get}": {
+            "med": 10.5883655,
+            "max": 5090.224252,
+            "p(90)": 66.4667196,
+            "p(95)": 92.73059634999987,
+            "avg": 40.835244893437554,
+            "min": 1.297748,
+            "thresholds": {
+                "p(50)<60": false,
+                "p(95)<200": false
+            }
+        },
+        "http_req_waiting": {
+            "med": 20.207152999999998,
+            "max": 5160.927427,
+            "p(90)": 76.49971850000001,
+            "p(95)": 103.93474409999989,
+            "avg": 49.174322311242534,
+            "min": 0
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "max": 139.551639,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.08109245403672033
+        },
+        "http_req_duration": {
+            "p(90)": 80.1268591,
+            "p(95)": 107.21959459999987,
+            "avg": 50.22300985349624,
+            "min": 1.029638,
+            "med": 20.520685,
+            "max": 5161.172872
+        },
+        "data_sent": {
+            "count": 767463435,
+            "rate": 6261739.326501355
+        },
+        "data_received": {
+            "count": 101379786,
+            "rate": 827158.3556400853
+        },
+        "http_req_receiving": {
+            "max": 123.995291,
+            "p(90)": 0.08536100000000005,
+            "p(95)": 0.19346449999999993,
+            "avg": 0.3287483015593552,
+            "min": 0.009655,
+            "med": 0.040932
+        },
+        "perf_errors_total": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "iterations": {
+            "count": 15844,
+            "rate": 129.27130253324376
+        },
+        "perf_success_rate": {
+            "passes": 15844,
+            "fails": 0,
+            "value": 1
+        },
+        "vus": {
+            "min": 0,
+            "max": 50,
+            "value": 0
+        },
+        "vus_max": {
+            "max": 50,
+            "value": 50,
+            "min": 50
+        },
+        "http_req_duration{name:eio_create}": {
+            "avg": 56.32546982340506,
+            "min": 2.57397,
+            "med": 36.597293,
+            "max": 4945.054659,
+            "p(90)": 104.0845012,
+            "p(95)": 139.830977,
+            "thresholds": {
+                "p(50)<60": false,
+                "p(95)<200": false
+            }
+        },
+        "iteration_duration": {
+            "p(90)": 364.18138330000016,
+            "p(95)": 411.9366188,
+            "avg": 285.23505298592585,
+            "min": 101.489781,
+            "med": 232.599782,
+            "max": 7289.545775
+        },
+        "http_req_duration{name:eio_list}": {
+            "p(95)": 111.1529552,
+            "avg": 56.84632208546599,
+            "min": 2.999273,
+            "med": 27.532267,
+            "max": 5161.172872,
+            "p(90)": 81.24012439999994,
+            "thresholds": {
+                "p(95)<200": false,
+                "p(50)<60": false
+            }
+        },
+        "http_reqs": {
+            "count": 15904,
+            "rate": 129.7608429366769
+        },
+        "http_req_blocked": {
+            "p(90)": 0.005839,
+            "p(95)": 0.00695,
+            "avg": 0.10702747289989668,
+            "min": 0.00034,
+            "med": 0.004297,
+            "max": 348.075561
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 15904,
+            "value": 0
+        },
+        "http_req_duration{name:eio_patch}": {
+            "p(95)": 101.75908744999997,
+            "avg": 49.95470600187513,
+            "min": 3.035505,
+            "med": 14.647558,
+            "max": 5057.233147,
+            "p(90)": 73.9192929,
+            "thresholds": {
+                "p(50)<60": false,
+                "p(95)<200": false
+            }
+        },
+        "http_req_duration{name:oio_list}": {
+            "med": 10.089832,
+            "max": 5067.893201,
+            "p(90)": 72.54013220000003,
+            "p(95)": 91.75958879999996,
+            "avg": 43.86144312287584,
+            "min": 1.029638,
+            "thresholds": {
+                "p(50)<60": false,
+                "p(95)<200": false
+            }
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 50.22300985349624,
+            "min": 1.029638,
+            "med": 20.520685,
+            "max": 5161.172872,
+            "p(90)": 80.1268591,
+            "p(95)": 107.21959459999987
+        },
+        "http_req_sending": {
+            "p(95)": 0.9314161999999987,
+            "avg": 0.7199392406941695,
+            "min": 0.006069,
+            "med": 0.015654,
+            "max": 286.565548,
+            "p(90)": 0.2292260000000002
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0.008884389021629779,
+            "min": 0,
+            "med": 0,
+            "max": 141.297323,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_duration{name:oio_create}": {
+            "avg": 81.12541157123476,
+            "min": 2.479692,
+            "med": 14.013414,
+            "max": 5062.522429,
+            "p(90)": 76.0379414,
+            "p(95)": 108.8796774,
+            "thresholds": {
+                "p(50)<60": false,
+                "p(95)<200": false
+            }
+        }
+    },
+    "setup_data": {
+        "iotUrls": [
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/1e6bb72f-29fe-4ad1-8a6d-5f59f15824aa",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/0936a638-7de2-429d-9f98-30934b07490d",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/7aedc5f9-6640-4c34-989c-5a55a9d2e3f4",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/231f71e9-2d8b-4584-a12e-7b65d50247a4",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/5d9d4ec2-7f47-4718-91d8-662fb6f0f427",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/d17dcf94-3912-4796-b680-4839c23a5768",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/725f2530-ea3d-4843-a646-e8c1beeee2b8",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/975b832d-93b8-4d69-a7b2-0f2a9b276da2",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/4a36a13b-4782-4f87-a838-0b4dec1d529a",
+            "https://openzaak.dev.baseflow.com/catalogi/api/v1/informatieobjecttypen/a3743a39-eb8e-4cbc-b0f3-5a914855e6c0"
+        ]
+    }
+}
