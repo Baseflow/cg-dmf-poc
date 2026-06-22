@@ -16,6 +16,7 @@ import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.config.authenticationModule
 import com.baseflow.shared.config.dmfKoinModule
 import com.baseflow.shared.services.ApplicationCredentialRegistrar
+import com.baseflow.shared.services.BestandsDeelSettingsInitializer
 import com.baseflow.shared.services.BlobStorageRegistrar
 import com.baseflow.shared.services.NotificatiesMigrator
 import com.baseflow.shared.services.NotificationService
@@ -66,6 +67,9 @@ fun main() {
     repairV7ChecksumIfNeeded(flyway)
 
     flyway.migrate()
+
+    // Seed dmf_settings from BestandsDeelConfig defaults (insert-if-absent)
+    BestandsDeelSettingsInitializer.initialise()
 
     // Register blob storage repositories from env vars into database
     BlobStorageRegistrar.initialise()

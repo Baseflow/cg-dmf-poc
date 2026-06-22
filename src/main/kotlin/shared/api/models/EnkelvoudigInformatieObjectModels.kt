@@ -120,7 +120,7 @@ data class EnkelvoudigInformatieObjectRequest(
     val bestandsnaam: String? = null,
 
     @JsonSchema.Description(
-        "Base64-gecodeerde bestandsinhoud. Gebruik dit veld alleen voor kleine bestanden (<4 GB); stuur anders via BESTANDSDELen.",
+        "Base64-gecodeerde bestandsinhoud. Gebruik dit veld alleen voor kleine bestanden (<300 MB); stuur anders via BESTANDSDELen.",
     )
     @JsonSchema.Format("byte")
     val inhoud: String? = null,

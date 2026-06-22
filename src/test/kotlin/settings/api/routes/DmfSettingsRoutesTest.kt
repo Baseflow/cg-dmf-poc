@@ -4,6 +4,7 @@ package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.settings.DmfSettingEntry
 import com.baseflow.shared.api.models.settings.UpsertDmfSettingRequest
+import com.baseflow.shared.config.BestandsDeelConfig
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -33,11 +34,11 @@ class DmfSettingsRoutesTest : SettingsTestBase("dmf_settings") {
 
         val triggerEntry = body.first { it.key == "trigger_size_bytes" }
         assertEquals("int", triggerEntry.type)
-        assertEquals("4294967296", triggerEntry.value)
+        assertEquals(BestandsDeelConfig.triggerSizeBytes.toString(), triggerEntry.value)
 
         val chunkEntry = body.first { it.key == "chunk_size_bytes" }
         assertEquals("int", chunkEntry.type)
-        assertEquals("3221225472", chunkEntry.value)
+        assertEquals(BestandsDeelConfig.chunkSizeBytes.toString(), chunkEntry.value)
 
         val validationEntry = body.first { it.key == "validation_enabled" }
         assertEquals("boolean", validationEntry.type)

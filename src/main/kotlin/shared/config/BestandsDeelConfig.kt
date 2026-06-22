@@ -13,20 +13,20 @@ import org.slf4j.LoggerFactory
  *
  * Environment variables:
  *   - BESTANDSDELEN_TRIGGER_SIZE  – file size in bytes above which chunking is used
- *                                   (default: 4 GB)
+ *                                   (default: 300 MB)
  *   - BESTANDSDELEN_CHUNK_SIZE    – target size in bytes of each individual chunk
- *                                   (default: 3 GB)
+ *                                   (default: 100 MB)
  */
 open class BestandsDeelConfig : Config() {
     private val logger = LoggerFactory.getLogger(BestandsDeelConfig::class.java)
 
-    /** Minimum file size (exclusive) that triggers the bestandsdelen workflow. Default: 4 GB. */
+    /** Minimum file size (exclusive) that triggers the bestandsdelen workflow. Default: 300 MB. */
     open val triggerSizeBytes: Long =
-        envOrSystem("BESTANDSDELEN_TRIGGER_SIZE", (4L * 1024 * 1024 * 1024).toString()).toLong()
+        envOrSystem("BESTANDSDELEN_TRIGGER_SIZE", (300L * 1024 * 1024).toString()).toLong()
 
-    /** Target size of each individual bestandsdeel chunk. Default: 3 GB. */
+    /** Target size of each individual bestandsdeel chunk. Default: 100 MB. */
     open val chunkSizeBytes: Long =
-        envOrSystem("BESTANDSDELEN_CHUNK_SIZE", (3L * 1024 * 1024 * 1024).toString()).toLong()
+        envOrSystem("BESTANDSDELEN_CHUNK_SIZE", (100L * 1024 * 1024).toString()).toLong()
 
     override fun printConfig() {
         logger.info(
