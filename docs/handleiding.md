@@ -21,7 +21,7 @@ OpenZaak moet weten dat de CG-DMF de DRC is, zodat het objectreferenties kan val
    - **Type**: `DRC (informatieobjecten)`
    - **API root URL**: `https://cg-dmf.example.com/documenten/api/v1/`
    - **Autorisatietype**: `ZGW client_id + secret`
-   - **Client id**: het client-ID waarmee CG-DMF zichzelf identificeert bij OpenZaak (zie ook `CLIENT_CREDENTIALS`)
+   - **Client id**: het client-ID waarmee CG-DMF zichzelf identificeert bij OpenZaak (zie ook `CLIENT_CREDENTIALS` of Applicaties in de admin-portal)
    - **Client secret**: het bijbehorende secret
    - **Gebruikers-id**: `openzaak`
    - **Gebruikersrepresentatie**: `Open Zaak`
@@ -38,7 +38,11 @@ De DMF valideert het `informatieobjecttype` van elk document tegen de catalogus 
    - **Client id**: kies een client-ID voor de communicatie van DMF naar OpenZaak (bijv. `cg-dmf`)
    - **Client secret**: kies een secret
 4. Sla op
-5. Stel de waarden in als omgevingsvariabelen op de DMF:
+5. Voeg een nieuwe API integratie toe vanuit de admin-portal voor Zaaktype catalogus. 
+
+   óf
+
+   stel de waarden in als omgevingsvariabelen in de configuratie van de DMF:
    ```env
    OPENZAAK_ENDPOINT=https://openzaak.example.com
    OPENZAAK_CLIENT_ID=cg-dmf

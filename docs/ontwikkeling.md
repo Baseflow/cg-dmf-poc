@@ -54,6 +54,13 @@ De applicatie heeft minimaal PostgreSQL, Keycloak en MinIO nodig:
 ```bash
 docker compose up -d postgres keycloak minio
 ```
+
+Voor ontwikkeling is het meestal handiger om de backend en de admin-portal met gradle en npm op te starten.
+Als je ook de app en admin-portal vanuit Docker wilt draaien dan kan dat met:
+```bash
+docker compose up -d --build app admin-portal
+```
+
 Voor de volledige stack inclusief Open Notificaties, Azure Blob-emulator (Azurite), RabbitMQ en Redis:
 
 ```bash

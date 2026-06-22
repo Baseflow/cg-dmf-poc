@@ -18,7 +18,7 @@ De applicatie bestaat uit een **backend** (Kotlin/Ktor) en een **admin portal** 
 Deze DRC implementatie is initieel geschreven in opdracht van de Gemeente Utrecht door Baseflow BV.
 
 Het doel van deze implementatie is het faciliteren van documenten opslag en registratie voor het Werven project en overige afdelingen waarbij documenten over objecten in de fysieke ruimte worden beheerd en bewaard.
-Hierbij speelt dat het probleem dat de informatie vaak het resultaat is van een proces, maar dat de raadpleging en ontsluiting van de informatie en document meer object georiënteerd is. We noemen dit ook wel 'objectgericht werken' in plaats van zaakgericht werken. Het [IKO](https://github.com/Integraal-Klant-en-Objectbeeld/iko) of wel Integraal Klant en Objectbeeld is een initiatief van de Gemeente Utrecht om dit te faciliteren.
+Hierbij speelt het probleem dat de informatie vaak het resultaat is van een zaak (proces), maar dat de raadpleging en ontsluiting van de informatie en documenten meer object georiënteerd is. We noemen dit ook wel 'objectgericht werken' in plaats van zaakgericht werken. Het [IKO](https://github.com/Integraal-Klant-en-Objectbeeld/iko) of wel Integraal Klant en Objectbeeld is een initiatief van de Gemeente Utrecht om dit te faciliteren.
 
 In het huidige ontwerp van de Common Ground APIs zijn documenten gekoppeld aan Zaken. Maar voor het raadplegen vanuit 'een niet zaak' is dit erg inefficient. Zeker als je nagaat dat bijv. 1 foto makkelijk over 8 fysieke objecten kan gaan, en dat 1 fysiek object soms 10 duizenden documenten kan hebben over duizenden zaken. Veel documenten zijn ook van VOOR een tijd waarbij zaakgericht werd gewerkt.
 
