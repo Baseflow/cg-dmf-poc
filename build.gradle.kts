@@ -151,7 +151,11 @@ val npmInstall by tasks.registering(Exec::class) {
     inputs.file("frontend/package-lock.json")
     outputs.file("frontend/node_modules/.package-lock.json")
     onlyIf("npm is available on PATH") {
-        try { ProcessBuilder("npm", "--version").start().waitFor() == 0 } catch (_: Exception) { false }
+        try {
+            ProcessBuilder("npm", "--version").start().waitFor() == 0
+        } catch (_: Exception) {
+            false
+        }
     }
 }
 // ─────────────────────────────────────────────────────────────────────────────
