@@ -34,7 +34,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
-import io.ktor.server.auth.AuthenticationStrategy
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -85,7 +84,7 @@ fun Route.wopiApiRoutes() {
         install(WopiFileIdPlugin)
 
         // ── Token issuance ─────────────────────────────────────────────────────
-        authenticate("auth-jwt", "auth-zgw", strategy = AuthenticationStrategy.FirstSuccessful) {
+        authenticate("auth-zgw") {
             post("/token/{file_id}") {
                 issueToken(slatService)
             }.describe {

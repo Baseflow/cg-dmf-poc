@@ -62,7 +62,7 @@ Een frontend opent een document in een WOPI-client door een HTML-formulier te `P
 <form method="POST"
       action="{WOPI_CLIENT_BASE_URL}/browser/{hash}/cool.html?WOPISrc={WOPI_HOST_BASE_URL}/wopi/api/v1/files/{uuid}"
       target="collabora-iframe">
-  <input type="hidden" name="access_token" value="{JWT_TOKEN}" />
+  <input type="hidden" name="access_token" value="{ACCESS_TOKEN}" />
   <input type="submit" value="Open document" />
 </form>
 ```
