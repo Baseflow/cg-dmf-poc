@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28011743126",
+    "runNumber": "941",
+    "branch": "feature/CGDMF-282-openapi-standard-path",
+    "date": "2026-06-23T08:11:32Z",
+    "path": "integration/28011743126/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28009728976",
     "runNumber": "939",
     "branch": "feat/use-dmfsettings-table",
