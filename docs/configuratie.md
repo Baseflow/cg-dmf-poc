@@ -195,12 +195,12 @@ Deze paden worden uitsluitend gebruikt door Kubernetes-interne componenten (kube
 
 ### Primaire functionaliteit (authenticatie vereist)
 
-Beschikbaar stellen aan consumenten (GZAC, Open Zaak, etc.). Alle verzoeken vereisen een geldig JWT-token (OIDC of ZGW).
+Beschikbaar stellen aan consumenten (GZAC, Open Zaak, etc.). Alle verzoeken vereisen een geldig ZGW JWT-token.
 
 | Pad                      | Omschrijving                                                                          |
 |--------------------------|---------------------------------------------------------------------------------------|
 | `/documenten/api/v1/*`   | VNG Documenten API 1.5.0 — documenten, relaties en bestandsdelen                     |
-| `/wopi/api/v1/*`         | WOPI-host — tokenuitgifte (JWT) en bestandsbewerkingen (kortlevend SLAT-token)        |
+| `/wopi/api/v1/*`         | WOPI-host — tokenuitgifte (ZGW) en bestandsbewerkingen (kortlevend SLAT-token)        |
 
 ### Alleen beheer
 
