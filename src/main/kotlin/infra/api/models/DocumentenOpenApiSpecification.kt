@@ -60,6 +60,5 @@ internal class DocumentenOpenApiSpecification : OpenApiSpecification {
         Tag("objectinformatieobjecten", "Koppelen van documenten aan objecten"),
         Tag("bestandsdelen", "Chunked upload voor grote bestanden"),
         Tag("audittrail", "Audit log regels per INFORMATIEOBJECT"),
-        Tag("admin", "Interne beheerfuncties voor opslagconfiguratie (niet onderdeel van de publieke API)"),
     )
 }
