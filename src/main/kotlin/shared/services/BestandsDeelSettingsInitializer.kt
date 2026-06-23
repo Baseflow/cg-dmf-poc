@@ -9,6 +9,8 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import org.slf4j.LoggerFactory
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 /**
  * Seeds [DmfSettingsTable] with bestandsdeel defaults on startup.
@@ -37,13 +39,16 @@ object BestandsDeelSettingsInitializer {
         )
     }
 
+    @OptIn(ExperimentalTime::class)
     private fun seed(key: String, type: String, value: String, readonly: Boolean) {
         if (readonly) {
+            val now = Clock.System.now()
             transaction {
                 DmfSettingsTable.upsert {
                     it[DmfSettingsTable.key] = key
                     it[DmfSettingsTable.type] = type
                     it[DmfSettingsTable.value] = value
+                    it[DmfSettingsTable.updatedAt] = now
                 }
             }
             logger.debug("Pinned dmf_settings['{}'] = {} (from env)", key, value)
