@@ -6,6 +6,7 @@ import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.CatalogusService
+import com.baseflow.shared.services.DmfSettingsService
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.HealthCheckService
 import com.baseflow.shared.services.NotificationService
@@ -31,7 +32,7 @@ val dmfKoinModule = module {
     requestScope {
         scoped { AuditContext() }
         scoped { AuditTrailService(get()) }
-        scoped { BestandsDeelService(BestandsDeelConfig.Default) }
+        scoped { BestandsDeelService(DmfSettingsService::loadBestandsDeelSettings) }
         scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
         scoped { NotificationService(get()) }
         scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }
