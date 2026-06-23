@@ -21,6 +21,7 @@ object DmfSettingsService {
     private val logger = LoggerFactory.getLogger(DmfSettingsService::class.java)
 
     private val cacheTtl = 30.seconds
+    @OptIn(ExperimentalTime::class)
     private val cache = AtomicReference<Pair<BestandsDeelSettings, Instant>?>(null)
 
     @OptIn(ExperimentalTime::class)
