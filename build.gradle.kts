@@ -209,32 +209,34 @@ val npmInstall =
 val swaggerUiSrc = layout.projectDirectory.dir("frontend/node_modules/swagger-ui-dist")
 val swaggerUiDest = layout.buildDirectory.dir("generated/swagger-ui/static/swagger-ui")
 
-val copySwaggerUi by tasks.registering(Copy::class) {
-    group = "swagger-ui"
-    description = "Copy swagger-ui-dist assets into the build resources directory"
-    dependsOn(npmInstall)
-    from(swaggerUiSrc) {
-        include(
-            "swagger-ui-bundle.js",
-            "swagger-ui-bundle.js.map",
-            "swagger-ui.css",
-            "swagger-ui.css.map",
-            "favicon-16x16.png",
-            "favicon-32x32.png",
-            "oauth2-redirect.html",
-            "oauth2-redirect.js",
-        )
+val copySwaggerUi =
+    tasks.register<Copy>("copySwaggerUi") {
+        group = "swagger-ui"
+        description = "Copy swagger-ui-dist assets into the build resources directory"
+        dependsOn(npmInstall)
+        from(swaggerUiSrc) {
+            include(
+                "swagger-ui-bundle.js",
+                "swagger-ui-bundle.js.map",
+                "swagger-ui.css",
+                "swagger-ui.css.map",
+                "favicon-16x16.png",
+                "favicon-32x32.png",
+                "oauth2-redirect.html",
+                "oauth2-redirect.js",
+            )
+        }
+        into(swaggerUiDest)
     }
-    into(swaggerUiDest)
-}
 
 // Also copy our hand-written *.html Swagger files into the same build directory
-val copySwaggerUiIndex by tasks.registering(Copy::class) {
-    group = "swagger-ui"
-    description = "Copy the Swagger UI documenten-api.html into the build resources directory"
-    from(layout.projectDirectory.dir("frontend/swagger-ui")) { include("*.html") }
-    into(swaggerUiDest)
-}
+val copySwaggerUiIndex =
+    tasks.register<Copy>("copySwaggerUiIndex") {
+        group = "swagger-ui"
+        description = "Copy the Swagger UI documenten-api.html into the build resources directory"
+        from(layout.projectDirectory.dir("frontend/swagger-ui")) { include("*.html") }
+        into(swaggerUiDest)
+    }
 
 // Add the generated directory as an extra resource source so it ends up on the classpath
 sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/swagger-ui"))
@@ -251,19 +253,20 @@ tasks.named("processResources") {
 
 val openApiSpecsDest = layout.buildDirectory.dir("generated/openapi-specs/static/openapi-specs")
 
-val copyOpenApiSpecs by tasks.registering(Copy::class) {
-    group = "documentation"
-    description = "Copy reference OpenAPI YAML specs from docs/ into build resources"
-    from(layout.projectDirectory.dir("docs")) {
-        include(
-            "documenten-1.5.0.yaml",
-            "documenten-1.6.0.yaml",
-            "documenten-1.7.0-rc.yaml",
-            "maykin-documenten-1.5.0.yaml",
-        )
+val copyOpenApiSpecs =
+    tasks.register<Copy>("copyOpenApiSpecs") {
+        group = "documentation"
+        description = "Copy reference OpenAPI YAML specs from docs/ into build resources"
+        from(layout.projectDirectory.dir("docs")) {
+            include(
+                "documenten-1.5.0.yaml",
+                "documenten-1.6.0.yaml",
+                "documenten-1.7.0-rc.yaml",
+                "maykin-documenten-1.5.0.yaml",
+            )
+        }
+        into(openApiSpecsDest)
     }
-    into(openApiSpecsDest)
-}
 
 sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/openapi-specs"))
 
@@ -278,25 +281,27 @@ tasks.named("processResources") {
 
 val docsViewerDest = layout.buildDirectory.dir("generated/docs-viewer/static/docs-viewer")
 
-val copyDocsViewerAssets by tasks.registering(Copy::class) {
-    group = "documentation"
-    description = "Copy docsify.min.js and viewer config files into build resources"
-    dependsOn(npmInstall)
-    from(layout.projectDirectory.dir("frontend/node_modules/docsify/lib")) {
-        include("docsify.min.js")
+val copyDocsViewerAssets =
+    tasks.register<Copy>("copyDocsViewerAssets") {
+        group = "documentation"
+        description = "Copy docsify.min.js and viewer config files into build resources"
+        dependsOn(npmInstall)
+        from(layout.projectDirectory.dir("frontend/node_modules/docsify/lib")) {
+            include("docsify.min.js")
+        }
+        from(layout.projectDirectory.dir("frontend/docs-viewer"))
+        into(docsViewerDest)
     }
-    from(layout.projectDirectory.dir("frontend/docs-viewer"))
-    into(docsViewerDest)
-}
 
-val copyDocsMarkdown by tasks.registering(Copy::class) {
-    group = "documentation"
-    description = "Copy docs/*.md files into build resources for docsify"
-    from(layout.projectDirectory.dir("docs")) {
-        include("*.md", "wopi/*.md", "images/*")
+val copyDocsMarkdown =
+    tasks.register<Copy>("copyDocsMarkdown") {
+        group = "documentation"
+        description = "Copy docs/*.md files into build resources for docsify"
+        from(layout.projectDirectory.dir("docs")) {
+            include("*.md", "wopi/*.md", "images/*")
+        }
+        into(docsViewerDest)
     }
-    into(docsViewerDest)
-}
 
 sourceSets["main"].resources.srcDir(layout.buildDirectory.dir("generated/docs-viewer"))
 
