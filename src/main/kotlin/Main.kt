@@ -32,7 +32,6 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.coroutines.runBlocking
 import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.MigrationState
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
@@ -59,12 +58,6 @@ fun main() {
     val flyway = Flyway.configure()
         .dataSource(dataSource)
         .load()
-
-    // Targeted repair: V7 was amended to remove the pgcrypto dependency.
-    // Systems that already applied the original V7 will have a checksum
-    // mismatch. We detect this specifically and repair only when needed.
-    // TODO: Remove this block once all environments have been upgraded past V10.
-    repairV7ChecksumIfNeeded(flyway)
 
     flyway.migrate()
 
@@ -118,36 +111,3 @@ fun Application.module() {
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
 
-/**
- * Targeted checksum repair for V7 (BlobStorageRepositories).
- *
- * V7 was amended to remove the pgcrypto extension dependency so that systems
- * still on V6 can upgrade without requiring pgcrypto. Systems that already
- * applied the original V7 will have a stale checksum in flyway_schema_history.
- *
- * This function detects if V7 specifically has a checksum mismatch and calls
- * [Flyway.repair] only in that case. Repair updates **all** checksums, but
- * since V7 is the only amended migration, no other checksums will change.
- *
- * We use [org.flywaydb.core.api.MigrationInfo.isChecksumMatching] to detect mismatches, because
- * the [MigrationState] enum does not expose a dedicated "checksum mismatch"
- * state for versioned migrations — the mismatch is only surfaced as a
- * validation failure during [Flyway.migrate].
- *
- * This is a no-op when checksums already match and is safe to leave in place
- * until all environments have been upgraded.
- *
- * TODO: Remove once all environments have been upgraded past V10.
- */
-private fun repairV7ChecksumIfNeeded(flyway: Flyway) {
-    val v7Info = flyway.info().all().firstOrNull { it.version?.version == "7" }
-        ?: return // V7 not yet applied — nothing to repair
-
-    if (!v7Info.isChecksumMatching) {
-        println("V7 checksum mismatch detected (pgcrypto removal). Repairing...")
-        println("  Applied checksum : ${v7Info.appliedChecksum}")
-        println("  Resolved checksum: ${v7Info.resolvedChecksum}")
-        flyway.repair()
-        println("V7 checksum repaired.")
-    }
-}
