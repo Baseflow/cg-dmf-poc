@@ -1,4 +1,7 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.gradle.api.provider.ValueSource
+import org.gradle.api.provider.ValueSourceParameters
+import java.io.File
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -143,21 +146,60 @@ application {
 }
 
 // ── Frontend npm dependencies ─────────────────────────────────────────────────
-val npmInstall by tasks.registering(Exec::class) {
-    group = "frontend"
-    description = "Install frontend npm dependencies"
-    workingDir = file("frontend")
-    commandLine("npm", "ci")
-    inputs.file("frontend/package-lock.json")
-    outputs.file("frontend/node_modules/.package-lock.json")
-    onlyIf("npm is available on PATH") {
-        try {
-            ProcessBuilder("npm", "--version").start().waitFor() == 0
-        } catch (_: Exception) {
-            false
+// Wrapped in a ValueSource so that the ProcessBuilder calls are configuration-
+// cache safe. Tries the current PATH first, then falls back to spawning a login
+// shell (-l) to obtain the PATH set in a terminal session — covering version
+// managers like nvm, volta, and fnm that only add npm to PATH interactively.
+abstract class ResolveNpmSource : ValueSource<String, ValueSourceParameters.None> {
+    override fun obtain(): String? {
+        if (runCatching { ProcessBuilder("npm", "--version").start().waitFor() == 0 }.getOrDefault(false)) {
+            return "npm"
         }
+        val shell = System.getenv("SHELL") ?: return null
+        val loginPath =
+            runCatching {
+                val proc = ProcessBuilder(shell, "-l", "-c", "echo \$PATH").start()
+                proc.inputStream
+                    .bufferedReader()
+                    .readLine()
+                    .also { proc.waitFor() }
+            }.getOrNull() ?: return null
+        return loginPath
+            .split(":")
+            .map { File(it, "npm") }
+            .firstOrNull { it.canExecute() }
+            ?.absolutePath
     }
 }
+
+val npmPath = providers.of(ResolveNpmSource::class) {}
+
+val npmInstall =
+    tasks.register<Exec>("npmInstall") {
+        group = "frontend"
+        description = "Install frontend npm dependencies"
+        workingDir = file("frontend")
+        inputs.file("frontend/package-lock.json")
+        outputs.file("frontend/node_modules/.package-lock.json")
+        val npm = npmPath.orNull
+        val nodeModulesPath =
+            layout.projectDirectory
+                .dir("frontend/node_modules")
+                .asFile.absolutePath
+        commandLine(npm ?: "npm", "ci")
+        onlyIf("npm is available") {
+            if (npm == null) {
+                if (!File(nodeModulesPath).exists()) {
+                    throw GradleException(
+                        "'npm' not found and 'frontend/node_modules' does not exist.\n" +
+                            "Install Node.js, ensure 'npm' is on your PATH, then run 'npm ci' in the frontend/ directory.",
+                    )
+                }
+                it.logger.warn("npmInstall skipped: 'npm' not found on PATH or login shell PATH. Using existing node_modules.")
+            }
+            npm != null
+        }
+    }
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Swagger UI ────────────────────────────────────────────────────────────────
