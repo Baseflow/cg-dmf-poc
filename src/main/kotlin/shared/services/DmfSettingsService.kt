@@ -14,6 +14,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 object DmfSettingsService {
 
     data class BestandsDeelSettings(val triggerSizeBytes: Long, val chunkSizeBytes: Long)
@@ -25,7 +26,6 @@ object DmfSettingsService {
     @OptIn(ExperimentalTime::class)
     private val cache = AtomicReference<Pair<BestandsDeelSettings, Instant>?>(null)
 
-    @OptIn(ExperimentalTime::class)
     fun loadBestandsDeelSettings(): BestandsDeelSettings {
         val now = Clock.System.now()
         cache.get()?.let { (settings, expiresAt) -> if (expiresAt > now) return settings }

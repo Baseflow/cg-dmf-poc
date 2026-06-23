@@ -49,7 +49,7 @@ open class TestBase(dbNamePrefix: String) {
      * regular create/unlock tests are not affected, while still allowing targeted tests
      * to trigger chunking with sizes just above the trigger.
      */
-    private val testBestandsDeelSettings = DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 1024L, chunkSizeBytes = 512L)
+    val testBestandsDeelSettings = DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 1024L, chunkSizeBytes = 512L)
 
     fun connectDb() {
         Database.connect(
