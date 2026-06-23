@@ -338,7 +338,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
     fun `unlock returns 500 when merged bestandsdelen integrity does not match and keeps resource locked`() = testApplication {
         application { setup() }
 
-        // Use a size that exceeds the test config's triggerSizeBytes so chunking kicks in.
+        // Use a size that exceeds 1Kb so chunking kicks in.
         val totalSize = 1024L + 1
 
         val createReq = generateTestDocument(bestandsnaam = "big.pdf").copy(

@@ -155,7 +155,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
+        assertEquals(true, body["detail"]?.jsonPrimitive?.content?.isNotBlank())
     }
 
     @Test
@@ -183,7 +183,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
+        assertEquals(true, body["detail"]?.jsonPrimitive?.content?.isNotBlank())
     }
 
     @Test
@@ -227,7 +227,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.Forbidden, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
+        assertEquals(true, body["detail"]?.jsonPrimitive?.content?.isNotBlank())
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -252,6 +252,6 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
+        assertEquals(true, body["detail"]?.jsonPrimitive?.content?.isNotBlank())
     }
 }
