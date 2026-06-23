@@ -1,7 +1,7 @@
 # Configuratiehandleiding
 
-Deze handleiding geeft gedetailleerde instructies voor het configureren van verschillende componenten om samen te werken
-met de DMF (als DRC-component).
+Deze handleiding geeft gedetailleerde instructies voor het configureren van DMF voor systeembeheerders.
+Voor dag tot dag configuratie voor beheerders van ZGW landschappen, zie [handleiding.md](handleiding.md)
 
 ## Databaseconfiguratie
 
