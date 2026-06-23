@@ -182,7 +182,7 @@ Gebruik een naam en key die nog niet bestaan. Deze eigenschappen zijn later last
    - Kies **Automatisch aanmaken voor elk dossier**
 3. Ga naar **Document**-tab en zet `additionalProperties` op `true`
 
-#### Formuleren
+#### Formulieren
 Ga naar **Formulieren**-tab van het dossier en maak enkele formulieren aan
 - **Start**: naam `werfkelder.start`. Het formulier is enkel een tekstinvoer voor Werfkelder en een submit-knop. Dit is het beginpunt van het process. Het werfkelder ID in dit tekstveld is het ID waarmee de upload gaan koppelen.
 - **Upload**: naam `werfkelder.upload`. Het formulier vraagt een gebruiker een bestand te uploaden, en de DRC metadata te verzamelen.

@@ -171,6 +171,7 @@ Let op dat de proxy geen beperkingen oplegt aan de requestgrootte: bij grote bes
 ## Keycloak configuratie
 
 CG-DMF valideert binnenkomende JWT-tokens via een OIDC-provider. De onderstaande stappen beschrijven de inrichting met Keycloak.
+Bij gebruik van docker-compose worden deze automatisch geïmporteerd, maar let erop dat de standaard setup niet geschikt is voor productie doeleinden.
 
 ### 1. Realm aanmaken
 
@@ -219,24 +220,29 @@ Maak deze credentials aan via de admin portal (zie [Admin portal — Client cred
 
 De admin portal is bereikbaar op de URL die u heeft ingesteld als `NEXTAUTH_URL` (standaard: `https://admin.cg-dmf.example.com`). Inloggen gaat via Keycloak; gebruikers hebben de rol `dmf-admin` nodig (instelbaar via `ADMIN_ROLE`).
 
-### Blob-opslagrepositories
+![Admin portal](images/admin-portal.png)
 
-<!-- TODO: screenshot van de opslagbeheerpagina -->
+> Veel van de opties in de admin portal kunnen ook vanuit environment variabelen worden geconfigureerd. Zie hiervoor [configuratie.md](configuratie.md).
+
+### Blob-opslagrepositories
 
 Onder **Opslag** beheert u de gekoppelde S3- of Azure Blob-repositories. Per repository configureert u:
 
 - Naam, type (S3 of Azure Blob Storage), URL, bucket/container
 - Toegangssleutel en geheime sleutel (worden versleuteld opgeslagen)
 
-U kunt meerdere repositories aanmaken. Alle repositories zijn beschikbaar als doellocatie bij het aanmaken van documenten.
+![Repositories](images/repositories-lijst.png)
+![Repositories](images/repositories-toevoegen.png)
+
+U kunt meerdere repositories aanmaken. Er kan op dit moment maar één repository tegelijk actief zijn voor nieuwe uploads. Om de **Standaard** repository te wijzigen kies in het dropdown menu voor `Maak standaard repository`. Ook is het mogelijk om een repository uit te schakelen door hem te bewerken.
 
 > Blob-opslagrepositories kunnen ook worden geconfigureerd via omgevingsvariabelen (`BLOB_STORAGE_*1`) — zie [configuratie.md](configuratie.md). Dit is handig voor geautomatiseerde of containergebaseerde deployments. Deze repositories zijn zichtbaar in de admin portal maar kunnen daar niet bewerkt worden.
 
-### Client credentials
+### Applicaties
+![Applicaties](images/applicaties-lijst.png)
+![Applicaties](images/applicatie-toevoegen.png)
 
-<!-- TODO: screenshot van de clientbeheer-pagina -->
-
-Onder **Clients** beheert u de ZGW-authenticatiegegevens voor consumers zoals GZAC (en OpenZaak). Per gebruikersysteem van de DMF-DRC maakt u een client aan met:
+Onder **Applicaties** beheert u de ZGW-authenticatiegegevens voor systemen zoals GZAC (en OpenZaak). Per gebruikersysteem van de DMF-DRC maakt u een client aan met:
 
 - Een client ID (bijv. `gzac`, `openzaak`)
 - Een client secret (automatisch gegenereerd of zelf in te stellen)
@@ -245,7 +251,12 @@ Nadat deze zijn aangemaakt kunt u deze instellen in het andere systeem. Bijv. bi
 
 > Client credentials kunnen ook worden ingesteld via de omgevingsvariabele `CLIENT_CREDENTIALS` (kommagescheiden `client_id:secret`-paren). Dit is handig voor geautomatiseerde of containergebaseerde deployments.
 
-## OpenZaak registreren
+### API-koppelingen
+![API-koppelingen](images/api-koppelingen-lijst.png)
+![API-koppelingen](images/api-koppeling-toevoegen.png)
 
+Onder API-koppelingen is het mogelijk om externe APIs die het systeem nodig heeft te registreren. Dit kunnen verschilellende systemen zijn zoals de ZRC en ZTC componenent, maar bijvoorbeeld ook de URLs die geregistreerd worden als `objectinformatieobject`-relaties van een document.
+
+## OpenZaak registreren
 Registreer de DMF als DRC-service in OpenZaak zodat OpenZaak de URLs van de DMF herkent. Zie [handleiding.md — OpenZaak koppelen](handleiding.md#openzaak-koppelen) voor de stappen.
 
