@@ -28,9 +28,19 @@ open class BestandsDeelConfig : Config() {
     open val chunkSizeBytes: Long =
         envOrSystem("BESTANDSDELEN_CHUNK_SIZE", (100L * 1024 * 1024).toString()).toLong()
 
+    /**
+     * Keys in [DmfSettingsTable][com.baseflow.shared.entities.settings.DmfSettingsTable] whose values
+     * are pinned by an explicit environment variable.  The initializer upserts these on every startup
+     * so the env var wins over any previously stored value; the settings API refuses to mutate them.
+     */
+    open val envReadonlyKeys: Set<String> = buildSet {
+        if (isEnvPresent("BESTANDSDELEN_TRIGGER_SIZE")) add("trigger_size_bytes")
+        if (isEnvPresent("BESTANDSDELEN_CHUNK_SIZE")) add("chunk_size_bytes")
+    }
+
     override fun printConfig() {
         logger.info(
-            "BestandsDeelConfig: triggerSizeBytes={}, chunkSizeBytes={}",
+            "BestandsDeelConfig (seed defaults from env): triggerSizeBytes={}, chunkSizeBytes={}",
             triggerSizeBytes,
             chunkSizeBytes,
         )

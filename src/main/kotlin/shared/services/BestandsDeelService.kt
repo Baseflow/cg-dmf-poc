@@ -4,10 +4,10 @@ package com.baseflow.shared.services
 
 import com.baseflow.shared.api.ApiUrlBuilder
 import com.baseflow.shared.api.models.BestandsDeelResponse
-import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.entities.BestandsDeelEntity
 import com.baseflow.shared.entities.BestandsDelen
 import com.baseflow.shared.entities.EIOVersionEntity
+import com.baseflow.shared.services.DmfSettingsService.BestandsDeelSettings
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -21,18 +21,17 @@ internal fun bestandsDeelStorageKey(recordId: UUID, versie: Int, bestandsDeelId:
  * Service responsible for managing bestandsdelen (file parts) used in the
  * chunked-upload workflow for large files.
  *
- * When an [EIOVersionEntity] is created with a `bestandsomvang` that exceeds
- * [BestandsDeelConfig.triggerSizeBytes], this service creates the corresponding
- * set of [BestandsDeelEntity] rows and returns them as [BestandsDeelResponse] objects.
+ * When an [EIOVersionEntity] is created with a `bestandsomvang` that exceeds the configured
+ * trigger size, this service creates the corresponding set of [BestandsDeelEntity] rows and
+ * returns them as [BestandsDeelResponse] objects. Settings are read from [DmfSettingsService].
  *
  * The upload of each individual part is handled by the `PUT /bestandsdelen/{uuid}` endpoint.
  */
-class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelConfig.Default) {
-
+class BestandsDeelService(private val settingsProvider: () -> BestandsDeelSettings = DmfSettingsService::loadBestandsDeelSettings) {
     /**
      * Returns true when [bestandsomvang] exceeds the configured trigger size.
      */
-    fun requiresChunking(bestandsomvang: Long?): Boolean = bestandsomvang != null && bestandsomvang > config.triggerSizeBytes
+    fun requiresChunking(bestandsomvang: Long?): Boolean = bestandsomvang != null && bestandsomvang > settingsProvider().triggerSizeBytes
 
     /**
      * Creates [BestandsDeelEntity] rows for [version] based on [bestandsomvang] and
@@ -129,12 +128,8 @@ class BestandsDeelService(private val config: BestandsDeelConfig = BestandsDeelC
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    /**
-     * Splits [totalSize] into a list of chunk sizes where all chunks are at most
-     * [BestandsDeelConfig.chunkSizeBytes] bytes and their sum equals [totalSize].
-     */
     internal fun splitIntoChunks(totalSize: Long): List<Long> {
-        val chunkSize = config.chunkSizeBytes
+        val chunkSize = settingsProvider().chunkSizeBytes
         require(chunkSize > 0) { "chunkSizeBytes must be > 0" }
         val chunks = mutableListOf<Long>()
         var remaining = totalSize

@@ -9,11 +9,11 @@ import com.baseflow.shared.api.apiJsonConfig
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.api.middleware.configureStatusPages
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.BlobStorageRegistrar
 import com.baseflow.shared.services.CatalogusService
+import com.baseflow.shared.services.DmfSettingsService
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.NotificationService
 import com.baseflow.shared.services.ObjectInformatieObjectService
@@ -135,7 +135,7 @@ class AdminRoleCheckTest : TestBase("admin_role_check") {
                     requestScope {
                         scoped { AuditContext() }
                         scoped { AuditTrailService(get()) }
-                        scoped { BestandsDeelService(BestandsDeelConfig.Default) }
+                        scoped { BestandsDeelService(DmfSettingsService::loadBestandsDeelSettings) }
                         scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
                         scoped { NotificationService(get()) }
                         scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }

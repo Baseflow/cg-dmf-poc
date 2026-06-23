@@ -3,11 +3,14 @@
 package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.badRequest
+import com.baseflow.shared.api.models.conflict
 import com.baseflow.shared.api.models.notFound
 import com.baseflow.shared.api.models.respondProblem
 import com.baseflow.shared.api.models.settings.DmfSettingEntry
 import com.baseflow.shared.api.models.settings.UpsertDmfSettingRequest
+import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.entities.settings.DmfSettingsTable
+import com.baseflow.shared.services.DmfSettingsService
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -31,6 +34,8 @@ import kotlin.time.Clock
  * - `DELETE /{key}`   — delete an entry
  */
 fun Route.dmfSettingsRoutes() {
+    val readonlyKeys = BestandsDeelConfig.Default.envReadonlyKeys
+
     route("/dmf-settings") {
         get {
             val entries = transaction {
@@ -42,6 +47,7 @@ fun Route.dmfSettingsRoutes() {
                             type = row[DmfSettingsTable.type],
                             value = row[DmfSettingsTable.value],
                             updatedAt = row[DmfSettingsTable.updatedAt].toString(),
+                            readonly = row[DmfSettingsTable.key] in readonlyKeys,
                         )
                     }
             }
@@ -65,6 +71,16 @@ fun Route.dmfSettingsRoutes() {
                             call.request.path(),
                         ),
                     )
+
+                if (key in readonlyKeys) {
+                    return@put call.respondProblem(
+                        HttpStatusCode.Conflict,
+                        conflict(
+                            "Setting '$key' is readonly (managed by environment variable) and cannot be changed via the API.",
+                            call.request.path(),
+                        ),
+                    )
+                }
 
                 val body = runCatching { call.receive<UpsertDmfSettingRequest>() }.getOrNull()
                     ?: return@put call.respondProblem(
@@ -104,9 +120,10 @@ fun Route.dmfSettingsRoutes() {
                         it[DmfSettingsTable.value] = body.value
                         it[DmfSettingsTable.updatedAt] = now
                     }
-                    DmfSettingEntry(key = key, type = type, value = body.value, updatedAt = now.toString())
+                    DmfSettingEntry(key = key, type = type, value = body.value, updatedAt = now.toString(), readonly = key in readonlyKeys)
                 }
 
+                DmfSettingsService.invalidateCache()
                 call.respond(HttpStatusCode.OK, entry)
             }
 
@@ -128,6 +145,16 @@ fun Route.dmfSettingsRoutes() {
                     )
                 }
 
+                if (key in readonlyKeys) {
+                    return@delete call.respondProblem(
+                        HttpStatusCode.Conflict,
+                        conflict(
+                            "Setting '$key' is readonly (managed by environment variable) and cannot be changed via the API.",
+                            call.request.path(),
+                        ),
+                    )
+                }
+
                 val deleted = transaction {
                     DmfSettingsTable.deleteWhere { DmfSettingsTable.key eq key } > 0
                 }
@@ -139,6 +166,7 @@ fun Route.dmfSettingsRoutes() {
                     )
                 }
 
+                DmfSettingsService.invalidateCache()
                 call.respond(HttpStatusCode.NoContent)
             }
         }

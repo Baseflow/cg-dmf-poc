@@ -20,6 +20,8 @@ abstract class Config {
 
         fun envOrSystem(key: String, default: String): String = env[key] ?: System.getenv(key) ?: default
 
+        fun isEnvPresent(key: String): Boolean = env[key] != null || System.getenv(key) != null
+
         fun envOrThrow(key: String): String =
             env[key] ?: System.getenv(key) ?: throw IllegalStateException("Environment variable '$key' is required but not set.")
 
