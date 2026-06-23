@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "28009728976",
+    "runNumber": "939",
+    "branch": "feat/use-dmfsettings-table",
+    "date": "2026-06-23T07:33:03Z",
+    "path": "integration/28009728976/index.html"
+  },
+  {
     "category": "k6",
     "runId": "27993293065",
     "runNumber": "169",
