@@ -15,7 +15,6 @@ import io.ktor.http.ContentType
 import io.ktor.openapi.Components
 import io.ktor.openapi.OpenApiDoc
 import io.ktor.openapi.ReferenceOr
-import io.ktor.openapi.SecurityRequirement
 import io.ktor.openapi.SecurityScheme
 import io.ktor.openapi.Server
 import io.ktor.server.application.Application
@@ -120,15 +119,10 @@ fun Application.openApiModule() {
 private fun Application.buildOpenApiDoc(openApiSpec: OpenApiSpecification): OpenApiDoc {
     val baseUrl = ApplicationConfig.baseUrl()
 
-    // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-zgw (Bearer)
+    // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-zgw (Bearer).
+    // All registered schemes are included in the components block so Swagger UI can resolve them,
+    // but which schemes are actually required per-operation is controlled by openApiSpec.security.
     val securitySchemes = buildSecuritySchemes()
-
-    // Global security: OIDC via Keycloak (auth-jwt) OR paste-in ZGW token (auth-zgw).
-    // These names MUST match the keys in securitySchemes above so Swagger UI can resolve them.
-    val globalSecurity: List<SecurityRequirement> = listOf(
-        mapOf("auth-jwt" to listOf("openid", "profile", "email")),
-        mapOf("auth-zgw" to emptyList()),
-    )
 
     val apiRoutes = routingRoot.descendants().filter { route ->
         route.toString().contains(openApiSpec.basePath)
@@ -147,8 +141,9 @@ private fun Application.buildOpenApiDoc(openApiSpec: OpenApiSpecification): Open
         components = (routeDoc.components ?: Components()).copy(
             securitySchemes = securitySchemes,
         ),
-        // Apply global security so every operation shows the Authorize options.
-        security = globalSecurity,
+        // Apply per-spec security requirements so Swagger UI shows the correct Authorize options.
+        // Each OpenApiSpecification declares which schemes it accepts (e.g. Documenten: ZGW only).
+        security = openApiSpec.security,
     )
 }
 
