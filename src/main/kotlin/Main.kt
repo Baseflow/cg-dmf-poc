@@ -110,4 +110,3 @@ fun Application.module() {
     settingsModule() // Settings API at /settings
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
-
