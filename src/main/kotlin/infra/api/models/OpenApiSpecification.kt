@@ -4,6 +4,7 @@ package com.baseflow.infra.api.models
 
 import com.baseflow.shared.config.WopiConfig
 import io.ktor.openapi.OpenApiInfo
+import io.ktor.openapi.SecurityRequirement
 import io.ktor.openapi.Tag
 
 internal val openApiSpecifications = listOf(
@@ -29,4 +30,9 @@ interface OpenApiSpecification {
     val basePath: String
     val apiInfo: OpenApiInfo
     val tags: List<Tag>
+    val security: List<SecurityRequirement>
+        get() = listOf(
+            mapOf("auth-jwt" to listOf("openid", "profile", "email")),
+            mapOf("auth-zgw" to emptyList()),
+        )
 }

@@ -5,6 +5,7 @@ package com.baseflow.infra.api.models
 import com.baseflow.shared.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.shared.api.DOCUMENTEN_API_VERSION
 import io.ktor.openapi.OpenApiInfo
+import io.ktor.openapi.SecurityRequirement
 import io.ktor.openapi.Tag
 
 internal class DocumentenOpenApiSpecification : OpenApiSpecification {
@@ -50,6 +51,9 @@ internal class DocumentenOpenApiSpecification : OpenApiSpecification {
             url = "https://opensource.org/licenses/EUPL-1.2",
         ),
     )
+
+    override val security: List<SecurityRequirement>
+        get() = listOf(mapOf("auth-zgw" to emptyList()))
 
     override val tags: List<Tag> get() = listOf(
         Tag("enkelvoudiginformatieobjecten", "Beheer van document registraties, bestanden en hun metadata"),
