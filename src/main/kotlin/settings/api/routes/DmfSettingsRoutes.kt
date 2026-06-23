@@ -8,6 +8,7 @@ import com.baseflow.shared.api.models.respondProblem
 import com.baseflow.shared.api.models.settings.DmfSettingEntry
 import com.baseflow.shared.api.models.settings.UpsertDmfSettingRequest
 import com.baseflow.shared.entities.settings.DmfSettingsTable
+import com.baseflow.shared.services.DmfSettingsService
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -107,6 +108,7 @@ fun Route.dmfSettingsRoutes() {
                     DmfSettingEntry(key = key, type = type, value = body.value, updatedAt = now.toString())
                 }
 
+                DmfSettingsService.invalidateCache()
                 call.respond(HttpStatusCode.OK, entry)
             }
 
@@ -139,6 +141,7 @@ fun Route.dmfSettingsRoutes() {
                     )
                 }
 
+                DmfSettingsService.invalidateCache()
                 call.respond(HttpStatusCode.NoContent)
             }
         }

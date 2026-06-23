@@ -7,10 +7,10 @@ import com.baseflow.settings.api.settingsModule
 import com.baseflow.shared.api.apiJsonConfig
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.CatalogusService
+import com.baseflow.shared.services.DmfSettingsService
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.NotificationService
 import com.baseflow.shared.services.ObjectInformatieObjectService
@@ -43,16 +43,13 @@ open class TestBase(dbNamePrefix: String) {
         protected set
 
     /**
-     * Small-chunk config used for route tests so that bestandsdelen behaviour
-     * can be triggered with small file sizes instead of relying on the default 300 MB threshold.
+     * Small-chunk settings for route tests so that bestandsdelen behaviour can be triggered
+     * with small file sizes instead of relying on the default 300 MB threshold.
      * The trigger size is chosen to be above the default test document size (630 bytes) so that
      * regular create/unlock tests are not affected, while still allowing targeted tests
      * to trigger chunking with sizes just above the trigger.
      */
-    val testBestandsDeelConfig = object : BestandsDeelConfig() {
-        override val triggerSizeBytes: Long = 1024L
-        override val chunkSizeBytes: Long = 512L
-    }
+    private val testBestandsDeelSettings = DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 1024L, chunkSizeBytes = 512L)
 
     fun connectDb() {
         Database.connect(
@@ -97,7 +94,7 @@ open class TestBase(dbNamePrefix: String) {
                     requestScope {
                         scoped { AuditContext() }
                         scoped { AuditTrailService(get()) }
-                        scoped { BestandsDeelService(testBestandsDeelConfig) }
+                        scoped { BestandsDeelService { testBestandsDeelSettings } }
                         scoped { EnkelvoudigInformatieObjectService(get(), get(), get(), get(), get(), get()) }
                         scoped { NotificationService(get()) }
                         scoped { params -> ObjectInformatieObjectService(params.get(), get(), get()) }

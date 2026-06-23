@@ -30,7 +30,7 @@ open class BestandsDeelConfig : Config() {
 
     override fun printConfig() {
         logger.info(
-            "BestandsDeelConfig: triggerSizeBytes={}, chunkSizeBytes={}",
+            "BestandsDeelConfig (seed defaults from env): triggerSizeBytes={}, chunkSizeBytes={}",
             triggerSizeBytes,
             chunkSizeBytes,
         )

@@ -5,10 +5,10 @@ package com.baseflow.documenten.api.routes
 import com.baseflow.shared.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.BestandsDeelService
 import com.baseflow.shared.services.CatalogusService
+import com.baseflow.shared.services.DmfSettingsService
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.StorageService
 import com.baseflow.testutils.TestDataFactory
@@ -44,10 +44,8 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
          * Tiny trigger/chunk config so an EIO with a small [com.baseflow.shared.entities.EIOVersions.bestandsomvang] triggers chunking
          * without needing multi-gigabyte values.
          */
-        private val SMALL_CHUNK_CONFIG: BestandsDeelConfig = object : BestandsDeelConfig() {
-            override val triggerSizeBytes: Long = 10L
-            override val chunkSizeBytes: Long = 4L
-        }
+        private val SMALL_CHUNK_CONFIG: () -> DmfSettingsService.BestandsDeelSettings =
+            { DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 10L, chunkSizeBytes = 4L) }
     }
 
     /**
@@ -72,7 +70,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
             bestandsDeelService = bestandsDeelService,
         )
 
-        // bestandsomvang = 11 bytes > trigger of 10  →  3 chunks: [4, 4, 3]
+        // bestandsomvang = 11 bytes > trigger of 10 → 3 chunks: [4, 4, 3]
         val request = TestDataFactory.generateTestDocument().copy(bestandsomvang = 11L)
         val response = service.create(request)
 
@@ -157,7 +155,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertTrue(body["detail"]?.jsonPrimitive?.content?.isNotBlank() == true)
+        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
     }
 
     @Test
@@ -185,7 +183,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertTrue(body["detail"]?.jsonPrimitive?.content?.isNotBlank() == true)
+        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
     }
 
     @Test
@@ -229,7 +227,7 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.Forbidden, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertTrue(body["detail"]?.jsonPrimitive?.content?.isNotBlank() == true)
+        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -254,6 +252,6 @@ class BestandsDelenRoutesTest : TestBase("bestandsdelen_routes") {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
         val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-        assertTrue(body["detail"]?.jsonPrimitive?.content?.isNotBlank() == true)
+        assertEquals(body["detail"]?.jsonPrimitive?.content?.isNotBlank(), true)
     }
 }

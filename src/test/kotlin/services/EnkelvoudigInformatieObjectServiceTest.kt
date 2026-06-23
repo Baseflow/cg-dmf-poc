@@ -13,12 +13,12 @@ import com.baseflow.shared.api.models.Ondertekening
 import com.baseflow.shared.api.models.OndertekeningSoort
 import com.baseflow.shared.api.models.Vertrouwelijkheidaanduiding
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.entities.BestandsDeelEntity
 import com.baseflow.shared.entities.BestandsDelen
 import com.baseflow.shared.entities.EIORecordEntity
 import com.baseflow.shared.entities.EIOVersionTrefwoorden
 import com.baseflow.shared.entities.Trefwoorden
+import com.baseflow.shared.services.DmfSettingsService
 import com.baseflow.shared.services.models.DeleteResult
 import com.baseflow.shared.services.models.EIOOrdering
 import com.baseflow.shared.services.models.LockResult
@@ -234,10 +234,8 @@ class EnkelvoudigInformatieObjectServiceTest {
     @Test
     fun `unlock with bestandsdelen merges parts uploads merged file and removes parts`() = runBlocking {
         // Use a small trigger size so chunking kicks in for our test file
-        val smallChunkConfig = object : BestandsDeelConfig() {
-            override val triggerSizeBytes: Long = 1L
-            override val chunkSizeBytes: Long = 100L
-        }
+        val smallChunkConfig: () -> DmfSettingsService.BestandsDeelSettings =
+            { DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 1L, chunkSizeBytes = 100L) }
         val auditContext = AuditContext()
         val serviceWithChunking = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
@@ -349,10 +347,8 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `unlock should throw when merged bestandsdelen hash does not match expected integrity`() = runBlocking {
-        val smallChunkConfig = object : BestandsDeelConfig() {
-            override val triggerSizeBytes: Long = 1L
-            override val chunkSizeBytes: Long = 100L
-        }
+        val smallChunkConfig: () -> DmfSettingsService.BestandsDeelSettings =
+            { DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 1L, chunkSizeBytes = 100L) }
         val auditContext = AuditContext()
         val serviceWithChunking = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,
@@ -443,10 +439,8 @@ class EnkelvoudigInformatieObjectServiceTest {
 
     @Test
     fun `unlock should throw when not all bestandsdelen are completed`() = runBlocking {
-        val smallChunkConfig = object : BestandsDeelConfig() {
-            override val triggerSizeBytes: Long = 1L
-            override val chunkSizeBytes: Long = 100L
-        }
+        val smallChunkConfig: () -> DmfSettingsService.BestandsDeelSettings =
+            { DmfSettingsService.BestandsDeelSettings(triggerSizeBytes = 1L, chunkSizeBytes = 100L) }
         val auditContext = AuditContext()
         val serviceWithChunking = EnkelvoudigInformatieObjectService(
             storageService = mockStorageService,

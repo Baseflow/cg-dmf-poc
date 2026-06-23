@@ -339,7 +339,7 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         application { setup() }
 
         // Use a size that exceeds the test config's triggerSizeBytes so chunking kicks in.
-        val totalSize = testBestandsDeelConfig.triggerSizeBytes + 1
+        val totalSize = 1024L + 1
 
         val createReq = generateTestDocument(bestandsnaam = "big.pdf").copy(
             bestandsomvang = totalSize,

@@ -4,8 +4,8 @@ package com.baseflow.shared.services
 
 import com.baseflow.shared.api.middleware.AuditContext
 import com.baseflow.shared.config.ApplicationConfig
-import com.baseflow.shared.config.BestandsDeelConfig
 import com.baseflow.shared.entities.BestandsDeelEntity
+import com.baseflow.shared.services.DmfSettingsService.BestandsDeelSettings
 import com.baseflow.shared.tooling.AllTables
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.mockk.every
@@ -437,9 +437,7 @@ class BestandsDeelServiceTest {
     private companion object {
         const val GB = 1024L * 1024 * 1024
 
-        fun testConfig(triggerSize: Long = 4L * GB, chunkSize: Long = 3L * GB): BestandsDeelConfig = object : BestandsDeelConfig() {
-            override val triggerSizeBytes = triggerSize
-            override val chunkSizeBytes = chunkSize
-        }
+        fun testConfig(triggerSize: Long = 4L * GB, chunkSize: Long = 3L * GB): () -> BestandsDeelSettings =
+            { BestandsDeelSettings(triggerSizeBytes = triggerSize, chunkSizeBytes = chunkSize) }
     }
 }

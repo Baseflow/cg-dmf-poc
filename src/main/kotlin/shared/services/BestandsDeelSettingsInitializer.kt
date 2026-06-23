@@ -26,10 +26,11 @@ object BestandsDeelSettingsInitializer {
         insertIfAbsent("trigger_size_bytes", "int", config.triggerSizeBytes.toString())
         insertIfAbsent("chunk_size_bytes", "int", config.chunkSizeBytes.toString())
         insertIfAbsent("validation_enabled", "boolean", "true")
+        val effective = DmfSettingsService.loadBestandsDeelSettings()
         logger.info(
-            "BestandsDeelSettingsInitializer: trigger_size_bytes={}, chunk_size_bytes={}",
-            config.triggerSizeBytes,
-            config.chunkSizeBytes,
+            "Effective bestandsdeel settings: trigger_size_bytes={}, chunk_size_bytes={}",
+            effective.triggerSizeBytes,
+            effective.chunkSizeBytes,
         )
     }
 
