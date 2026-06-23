@@ -24,6 +24,7 @@ fun Application.configureStatusPages() {
 
     install(StatusPages) {
         exception<UnauthorizedException> { call, cause ->
+            logger.warn("Unauthorized at ${call.request.path()}: ${cause.message}")
             call.respondProblem(
                 HttpStatusCode.Unauthorized,
                 unauthorized(
@@ -34,6 +35,7 @@ fun Application.configureStatusPages() {
         }
 
         exception<ForbiddenException> { call, cause ->
+            logger.warn("Access denied at ${call.request.path()}: ${cause.message}")
             call.respondProblem(
                 HttpStatusCode.Forbidden,
                 forbidden(
