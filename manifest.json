@@ -1,6 +1,14 @@
 [
   {
     "category": "k6",
+    "runId": "28029980396",
+    "runNumber": "174",
+    "branch": "develop",
+    "date": "2026-06-23T13:38:00Z",
+    "path": "k6/28029980396/index.html"
+  },
+  {
+    "category": "k6",
     "runId": "28022713108",
     "runNumber": "173",
     "branch": "develop",
