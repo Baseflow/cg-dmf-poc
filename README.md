@@ -39,7 +39,7 @@ Daarnaast experimenteert de implementatie met het gebruik van de [WOPI](https://
 | [Configuratie](docs/configuratie.md)    | Alle omgevingsvariabelen en configuratieopties           |
 | [Documenten API](docs/implementatie.md) | Implementatiestatus van de API-endpoints                 |
 | [Databasemigraties](docs/DATABASE.md)   | Migratieworkflow (voor ontwikkelaars)                    |
-| [WOPI](docs/wopi/wopi.md)               | In-browser documentweergave via WOPI                     |
+| [WOPI](docs/wopi/wopi.md)               | In-browser documentweergave en -bewerking via WOPI       |
 
 ## Snel aan de slag
 

@@ -8,23 +8,49 @@ De DMF implementeert een **WOPI-host** zodat een WOPI-client zoals [Collabora On
 
 ---
 
-## Geïmplementeerde WOPI-endpoints
+## WOPI-endpoints
 
-De WOPI-routes zijn beschikbaar onder het basispad `/wopi/api/v1/files`.
+De WOPI-routes zijn beschikbaar onder het basispad `/wopi/api/v1`.
 
-| Endpoint                             | Method | WOPI-operatie | Beschrijving                                               |
-| ------------------------------------ | ------ | ------------- | ---------------------------------------------------------- |
-| `/wopi/api/v1/files/{file_id}`       | GET    | CheckFileInfo | Geeft metadata terug (bestandsnaam, grootte) als JSON      |
-| `/wopi/api/v1/files/{file_id}/contents` | GET    | GetFile       | Streamt de binaire bestandsinhoud van het document         |
+### Token (DMF-specifiek)
 
-### CheckFileInfo response
+| Endpoint                        | Method | X-WOPI-Override | WOPI-operatie                | Beschrijving                                                                         | Geïmplementeerd |
+| ------------------------------- | ------ | --------------- | ---------------------------- | ------------------------------------------------------------------------------------ | :-------------: |
+| `/wopi/api/v1/token/{file_id}`  | POST   | —               | IssueToken *(DMF-specifiek)* | Geeft een kortlopend toegangstoken (SLAT) terug voor het opgegeven document.         | ✅ |
 
-```json
-{
-  "BaseFileName": "voorbeeld.docx",
-  "Size": 102400
-}
-```
+### Files
+
+| Endpoint                                 | Method | X-WOPI-Override                                            | WOPI-operatie      | Beschrijving                                                                                                            | Geïmplementeerd |
+| ---------------------------------------- | ------ |------------------------------------------------------------| ------------------ |-------------------------------------------------------------------------------------------------------------------------|:---------------:|
+| `/wopi/api/v1/files/{file_id}`           | GET    | —                                                          | [CheckFileInfo](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/checkfileinfo) | Geeft metadata terug (bestandsnaam, grootte, versie, rechten) als JSON.                                                 |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `LOCK`                                                     | [Lock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/lock)| Vergrendelt het document.                                                                                               |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `REFRESH_LOCK`                                             | [RefreshLock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/refreshlock) | Vergrendelt het document. Als het bestand al vergrendeld is met hetzelfde token, wordt de vergrendeling vernieuwd.      |        ❌         |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `LOCK` | [UnlockAndRelock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlockandrelock) | Vervangt een bestaande vergrendeling door een nieuwe. Vereist de `X-WOPI-OldLock`- en `X-WOPI-Lock`-request headers.                                                                  |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `UNLOCK`                                                   | [Unlock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/unlock) | Ontgrendelt het document.                                                                                               |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `GET_LOCK`                                                 | [GetLock](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getlock) | Geeft de huidige vergrendelingswaarde van het document terug.                                                           |        ❌        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `RENAME_FILE`                                              | [RenameFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/renamefile) | Hernoemt het document via de `X-WOPI-RequestedName` header.                                                             |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `DELETE`                                                   | [DeleteFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/deletefile) | Verwijdert het document, mits het niet vergrendeld is en geen referenties heeft.                                        |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `PUT_RELATIVE`                                             | [PutRelativeFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putrelativefile) | Maakt een nieuwe versie of kopie aan van het document op basis van `X-WOPI-RelativeTarget` of `X-WOPI-SuggestedTarget`. |        ✅        |
+| `/wopi/api/v1/files/{file_id}`           | POST   | `GET_SHARE_URL`                                            | [GetShareUrl](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getshareurl) | Geeft een deelbare URL terug voor het document (bijv. voor view-only toegang).                                          |        ❌        |
+| `/wopi/api/v1/files/{file_id}/contents`  | GET    | —                                                          | [GetFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/getfile) | Streamt de binaire bestandsinhoud van het document.                                                                     |        ✅        |
+| `/wopi/api/v1/files/{file_id}/contents`  | POST   | `PUT`                                                      | [PutFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/files/putfile) | Slaat nieuwe bestandsinhoud op (vereist een actieve vergrendeling voor bestaande documenten).                           |        ✅        |
+
+### Containers
+
+| Endpoint                                                          | Method | X-WOPI-Override      | WOPI-operatie      | Beschrijving                                                                                   | Geïmplementeerd |
+| ----------------------------------------------------------------- | ------ | -------------------- | ------------------ | ---------------------------------------------------------------------------------------------- | :-------------: |
+| `/wopi/api/v1/containers/{container_id}`                          | GET    | —                    | [CheckContainerInfo](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/checkcontainerinfo) | Geeft metadata en capabilities terug voor de opgegeven container. | ❌ |
+| `/wopi/api/v1/containers/{container_id}`                          | POST   | `DELETE`             | [DeleteContainer](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/deletecontainer) | Verwijdert de container en alle inhoud. | ❌ |
+| `/wopi/api/v1/containers/{container_id}`                          | POST   | `RENAME_CONTAINER`   | [RenameContainer](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/renamecontainer) | Hernoemt de container. | ❌ |
+| `/wopi/api/v1/containers/{container_id}/children`                 | GET    | —                    | [EnumerateChildren](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/enumeratechildren) | Geeft een lijst van bestanden en subcontainers terug. | ❌ |
+| `/wopi/api/v1/containers/{container_id}/children/containers`      | POST   | —                    | [CreateChildContainer](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/createchildcontainer) | Maakt een nieuwe subcontainer aan. | ❌ |
+| `/wopi/api/v1/containers/{container_id}/children/files`           | POST   | —                    | [CreateChildFile](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/containers/createchildfile) | Maakt een nieuw bestand aan in de container. | ❌ |
+
+### Ecosystem
+
+| Endpoint                  | Method | X-WOPI-Override | WOPI-operatie      | Beschrijving                                                                                   | Geïmplementeerd |
+| ------------------------- | ------ | --------------- | ------------------ | ---------------------------------------------------------------------------------------------- | :-------------: |
+| `/wopi/api/v1/ecosystem`  | GET    | —               | [CheckEcosystem](https://learn.microsoft.com/en-us/microsoft-365/cloud-storage-partner-program/rest/ecosystem/checkecosystem) | Geeft de root-URL terug voor de WOPI-host en ondersteunde capabilities. | ❌ |
 
 ---
 
