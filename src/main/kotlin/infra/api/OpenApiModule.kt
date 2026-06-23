@@ -6,6 +6,7 @@ package com.baseflow.infra.api
 
 import com.baseflow.infra.api.models.OpenApiSpecification
 import com.baseflow.infra.api.models.openApiSpecifications
+import com.baseflow.shared.api.DOCUMENTEN_API_BASE_PATH
 import com.baseflow.shared.config.ApplicationConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
@@ -64,6 +65,19 @@ fun Application.openApiModule() {
     }
 
     routing {
+        // The VNG-Realisatie standard requires every API component to serve its OAS schema at
+        // {API root URL}/openapi.json (and optionally /openapi.yaml).
+        // See: https://vng-realisatie.github.io/gemma-zaken/standaard/#beschikbaar-stellen-van-de-oas
+        route(DOCUMENTEN_API_BASE_PATH) {
+            get("/openapi.json") {
+                call.respond(cache["Documenten"]!!.get())
+            }
+            get("/openapi.yaml") {
+                val json = openApiJson.encodeToString(cache["Documenten"]?.get())
+                call.respondText(convertJsonToYaml(json), contentType = ContentType.parse("application/yaml"))
+            }
+        }.hide()
+
         // Hide all /docs routes from the generated OpenAPI spec (the library checks the full
         // route lineage, so hiding the parent is enough to hide every child route).
         route("/docs") {
