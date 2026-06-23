@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28053481786",
+    "runNumber": "946",
+    "branch": "task/cgdmf-280-remove-old-migrations",
+    "date": "2026-06-23T20:08:55Z",
+    "path": "integration/28053481786/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28052850036",
     "runNumber": "944",
     "branch": "task/cgdmf-280-remove-old-migrations",
