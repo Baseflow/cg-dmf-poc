@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "28093254818",
+    "runNumber": "947",
+    "branch": "task/download-error-fix",
+    "date": "2026-06-24T10:55:13Z",
+    "path": "integration/28093254818/index.html"
+  },
+  {
     "category": "k6",
     "runId": "28066092594",
     "runNumber": "176",
