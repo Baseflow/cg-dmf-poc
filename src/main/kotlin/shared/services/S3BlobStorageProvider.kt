@@ -41,6 +41,14 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
     }
 
     private fun buildClient(): S3AsyncClient {
+        logger.info(
+            "Building S3 client for '{}': bucket={}, region={}, disableChecksums={}, disableChunkedEncoding={}",
+            name,
+            config.bucket,
+            config.region,
+            config.disableChecksums,
+            config.disableChunkedEncoding,
+        )
         val creds = StaticCredentialsProvider.create(
             AwsBasicCredentials.create(config.accessKey, config.secretKey),
         )

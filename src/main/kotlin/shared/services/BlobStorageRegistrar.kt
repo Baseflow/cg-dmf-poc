@@ -165,7 +165,7 @@ object BlobStorageRegistrar {
      *
      * Must be called inside a [transaction].
      */
-    private fun loadConfigsFromDatabase(): List<BlobStorageRepoConfig> {
+    internal fun loadConfigsFromDatabase(): List<BlobStorageRepoConfig> {
         val entities = BlobStorageRepositorySettingEntity
             .find { BlobStorageRepositorySettingsTable.enabled eq true }
             .toList()
