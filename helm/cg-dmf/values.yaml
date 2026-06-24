@@ -62,10 +62,12 @@ ingress:
   # -- Ingress class name.
   ingressClassName: "nginx"
   # -- Ingress annotations.
-  annotations: {}
-    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
-    # nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    # nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/proxy-body-size: "4096m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
   # cert-manager.io/cluster-issuer: letsencrypt-production
   hosts:
     - host: cg-dmf.example.com
@@ -302,7 +304,9 @@ adminPortal:
     # -- Ingress class name.
     ingressClassName: "nginx"
     # -- Ingress annotations.
-    annotations: {}
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+      nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
     hosts:
       - host: admin.cg-dmf.example.com
         paths:
