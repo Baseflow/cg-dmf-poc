@@ -449,7 +449,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
     // -----------------------------------------------------------------------
 
     @Test
-    fun `POST stores extraProperties and returns them in response`() = testApplication {
+    fun `POST with disableChecksums and disableChunkedEncoding true returns them in response`() = testApplication {
         application { setup() }
 
         val response = client.post("/settings/storage-repositories") {
@@ -458,10 +458,11 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
                 Json.encodeToString(
                     CreateBlobStorageRepositorySettingsRequest.serializer(),
                     CreateBlobStorageRepositorySettingsRequest(
-                        name = "extra-props-repo",
+                        name = "flags-repo",
                         storageType = "S3",
                         accessKey = "key",
-                        extraProperties = mapOf("DISABLE_CHECKSUMS" to "true", "DISABLE_CHUNKED_ENCODING" to "true"),
+                        disableChecksums = true,
+                        disableChunkedEncoding = true,
                     ),
                 ),
             )
@@ -469,12 +470,14 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
 
         assertEquals(HttpStatusCode.Created, response.status)
         val body = Json.decodeFromString<BlobStorageRepositorySettingsResponse>(response.bodyAsText())
+        assertTrue(body.disableChecksums)
+        assertTrue(body.disableChunkedEncoding)
         assertEquals("true", body.extraProperties["DISABLE_CHECKSUMS"])
         assertEquals("true", body.extraProperties["DISABLE_CHUNKED_ENCODING"])
     }
 
     @Test
-    fun `POST with DISABLE_CHUNKED_ENCODING true persists it to the database`() = testApplication {
+    fun `POST with disableChunkedEncoding true persists it to the database`() = testApplication {
         application { setup() }
 
         val response = client.post("/settings/storage-repositories") {
@@ -486,7 +489,7 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
                         name = "chunked-disabled",
                         storageType = "S3",
                         accessKey = "key",
-                        extraProperties = mapOf("DISABLE_CHUNKED_ENCODING" to "true"),
+                        disableChunkedEncoding = true,
                     ),
                 ),
             )
@@ -502,9 +505,9 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
     }
 
     @Test
-    fun `PUT updates extraProperties and they are returned in subsequent GET`() = testApplication {
+    fun `PUT with disableChecksums and disableChunkedEncoding true is returned in subsequent GET`() = testApplication {
         application { setup() }
-        val id = insertRepo("extra-repo")
+        val id = insertRepo("flags-update-repo")
 
         client.put("/settings/storage-repositories/$id") {
             contentType(ContentType.Application.Json)
@@ -512,9 +515,10 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
                 Json.encodeToString(
                     UpdateBlobStorageRepositorySettingsRequest.serializer(),
                     UpdateBlobStorageRepositorySettingsRequest(
-                        name = "extra-repo",
+                        name = "flags-update-repo",
                         storageType = "S3",
-                        extraProperties = mapOf("DISABLE_CHECKSUMS" to "true", "DISABLE_CHUNKED_ENCODING" to "true"),
+                        disableChecksums = true,
+                        disableChunkedEncoding = true,
                     ),
                 ),
             )
@@ -523,6 +527,8 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         val getResponse = client.get("/settings/storage-repositories")
         val body = Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(getResponse.bodyAsText())
             .single { it.id == id.toString() }
+        assertTrue(body.disableChecksums)
+        assertTrue(body.disableChunkedEncoding)
         assertEquals("true", body.extraProperties["DISABLE_CHECKSUMS"])
         assertEquals("true", body.extraProperties["DISABLE_CHUNKED_ENCODING"])
     }
