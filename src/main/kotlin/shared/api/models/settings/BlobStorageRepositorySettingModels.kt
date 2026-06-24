@@ -17,6 +17,7 @@ data class BlobStorageRepositorySettingsResponse(
     val extraProperties: Map<String, String> = emptyMap(),
     val isDefault: Boolean,
     val enabled: Boolean,
+    val readonly: Boolean = false,
     val accessKey: String? = null,
     val secretKey: String? = null,
     val storageAccountName: String? = null,

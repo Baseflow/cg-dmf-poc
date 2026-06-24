@@ -4,6 +4,7 @@ package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.badRequest
 import com.baseflow.shared.api.models.conflict
+import com.baseflow.shared.api.models.forbidden
 import com.baseflow.shared.api.models.notFound
 import com.baseflow.shared.api.models.respondProblem
 import com.baseflow.shared.api.models.settings.BlobStorageRepositorySettingsResponse
@@ -233,6 +234,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     transaction {
                         val existing = BlobStorageRepositorySettingEntity.findById(id)
                             ?: return@transaction null
+                        if (existing.readonly) return@transaction "readonly"
                         val nameConflict = existing.repoName != body.name &&
                             BlobStorageRepositorySettingEntity.find {
                                 BlobStorageRepositorySettingsTable.repoName eq body.name
@@ -309,6 +311,7 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     transaction {
                         val existing = BlobStorageRepositorySettingEntity.findById(id)
                             ?: return@transaction null
+                        if (existing.readonly) return@transaction "readonly"
                         val newName = body.name ?: existing.repoName
                         val nameConflict = newName != existing.repoName &&
                             BlobStorageRepositorySettingEntity.find {
@@ -363,19 +366,28 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         badRequest("Invalid UUID.", call.request.path()),
                     )
 
-                val name = transaction {
-                    val existing = BlobStorageRepositorySettingEntity.findById(id) ?: return@transaction null
+                val result = transaction {
+                    val existing = BlobStorageRepositorySettingEntity.findById(id) ?: return@transaction "notfound"
+                    if (existing.readonly) return@transaction "readonly"
                     val repoName = existing.repoName
                     existing.delete()
                     repoName
-                } ?: return@delete call.respondProblem(
-                    HttpStatusCode.NotFound,
-                    notFound("Repository not found.", call.request.path()),
-                )
+                }
 
-                BlobStorageRegistrar.unregisterProvider(name)
-
-                call.respond(HttpStatusCode.NoContent)
+                when (result) {
+                    "notfound" -> return@delete call.respondProblem(
+                        HttpStatusCode.NotFound,
+                        notFound("Repository not found.", call.request.path()),
+                    )
+                    "readonly" -> return@delete call.respondProblem(
+                        HttpStatusCode.Forbidden,
+                        forbidden("This repository is read-only and cannot be deleted.", call.request.path()),
+                    )
+                    else -> {
+                        BlobStorageRegistrar.unregisterProvider(result as String)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+                }
             }
         }
     }
@@ -386,6 +398,7 @@ private val logger = LoggerFactory.getLogger("com.baseflow.settings.api.routes.B
 private suspend fun ApplicationCall.respondWithUpdateResult(result: Any?, path: String) {
     when (result) {
         null -> respondProblem(HttpStatusCode.NotFound, notFound("Repository not found.", path))
+        "readonly" -> respondProblem(HttpStatusCode.Forbidden, forbidden("This repository is read-only and cannot be modified.", path))
         "conflict" -> respondProblem(HttpStatusCode.Conflict, conflict("A repository with this name already exists.", path))
         else -> {
             val (oldName, updatedEntity) =
@@ -463,6 +476,7 @@ private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageReposito
         extraProperties = extra,
         isDefault = isDefault,
         enabled = enabled,
+        readonly = readonly,
         accessKey = decryptedAccessKey,
         secretKey = decryptedSecretKey,
         storageAccountName = storageAccountName,

@@ -325,6 +325,7 @@ object BlobStorageRegistrar {
             existing.bucket = cfg.bucket
             existing.region = cfg.region
             existing.extraProperties = extraJson
+            existing.readonly = true
             logger.info("Updated blob storage repository '{}' in database", cfg.name)
         } else {
             BlobStorageRepositorySettingEntity.new {
@@ -337,6 +338,7 @@ object BlobStorageRegistrar {
                 region = cfg.region
                 extraProperties = extraJson
                 enabled = true
+                readonly = true
             }
             logger.info("Inserted blob storage repository '{}' into database", cfg.name)
         }

@@ -17,7 +17,7 @@ export interface Repository {
   disableChecksums: boolean
   disableChunkedEncoding: boolean
   isDefault: boolean
-  readonly?: boolean
+  readonly: boolean
   enabled: boolean
   accessKey: string | null
   secretKey: string | null

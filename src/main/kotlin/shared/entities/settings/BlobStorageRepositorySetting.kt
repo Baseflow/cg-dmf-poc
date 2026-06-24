@@ -26,6 +26,7 @@ object BlobStorageRepositorySettingsTable : UUIDTable("blob_storage_repository_s
     val isDefault = bool("is_default").default(false)
     val storageAccountName = varchar("storage_account_name", 255).nullable()
     val enabled = bool("enabled").default(true)
+    val readonly = bool("readonly").default(false)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 }
@@ -44,6 +45,7 @@ class BlobStorageRepositorySettingEntity(id: EntityID<UUID>) : UUIDEntity(id) {
     var isDefault by BlobStorageRepositorySettingsTable.isDefault
     var storageAccountName by BlobStorageRepositorySettingsTable.storageAccountName
     var enabled by BlobStorageRepositorySettingsTable.enabled
+    var readonly by BlobStorageRepositorySettingsTable.readonly
     var createdAt by BlobStorageRepositorySettingsTable.createdAt
     var updatedAt by BlobStorageRepositorySettingsTable.updatedAt
 }
