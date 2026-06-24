@@ -1,11 +1,5 @@
-## 0.9.7
+## 0.9.8
 
 ### Backend
-* Additional logging for S3 blobstorage
-
-### Admin portal
-* Make it possible to configure disableChecksums and disableChunkedEncoding
-
-### Helm charts
-* Set ingress settings to allow for larger cookie values
-* Allow longer and bigger requests to the backend API
+* When disableChunkedEncoding is true, do not use data streams. This is for
+  the S3-proxy, which doesn't handle signing and streaming.
