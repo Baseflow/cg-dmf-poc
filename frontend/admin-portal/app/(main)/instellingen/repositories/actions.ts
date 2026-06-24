@@ -13,6 +13,9 @@ export interface Repository {
   storageType: string
   url: string
   bucket: string
+  region: string | null
+  disableChecksums: boolean
+  disableChunkedEncoding: boolean
   isDefault: boolean
   readonly?: boolean
   enabled: boolean
@@ -27,6 +30,9 @@ type RepositoryInput = {
   storageType: StorageType
   url: string
   bucket: string
+  region?: string
+  disableChecksums?: boolean
+  disableChunkedEncoding?: boolean
   isDefault: boolean
   enabled: boolean
   accessKey?: string

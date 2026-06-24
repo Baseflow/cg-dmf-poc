@@ -127,7 +127,13 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         url = body.url
                         bucket = body.bucket ?: ""
                         region = body.region
-                        extraProperties = encodeExtraProperties(body.extraProperties)
+                        extraProperties = encodeExtraProperties(
+                            body.extraProperties +
+                                mapOf(
+                                    "DISABLE_CHECKSUMS" to body.disableChecksums.toString(),
+                                    "DISABLE_CHUNKED_ENCODING" to body.disableChunkedEncoding.toString(),
+                                ),
+                        )
                         isDefault = body.isDefault
                         enabled = body.enabled
                         accessKey = body.accessKey
@@ -148,6 +154,11 @@ fun Route.blobStorageRepositorySettingsRoutes() {
             }
 
             if (body.enabled) {
+                val mergedExtra = body.extraProperties +
+                    mapOf(
+                        "DISABLE_CHECKSUMS" to body.disableChecksums.toString(),
+                        "DISABLE_CHUNKED_ENCODING" to body.disableChunkedEncoding.toString(),
+                    )
                 val cfg = BlobStorageRepoConfig(
                     index = -1,
                     name = body.name,
@@ -157,9 +168,9 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                     secretKey = body.secretKey ?: "",
                     bucket = body.bucket ?: "",
                     region = body.region,
-                    disableChecksums = body.extraProperties["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
-                    disableChunkedEncoding = body.extraProperties["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
-                    extraProperties = body.extraProperties,
+                    disableChecksums = body.disableChecksums,
+                    disableChunkedEncoding = body.disableChunkedEncoding,
+                    extraProperties = mergedExtra,
                     isDefault = body.isDefault,
                 )
                 runCatching { BlobStorageRegistrar.registerProvider(cfg) }.onFailure { ex ->
@@ -239,7 +250,13 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         existing.url = body.url
                         existing.bucket = body.bucket ?: ""
                         existing.region = body.region
-                        existing.extraProperties = encodeExtraProperties(body.extraProperties)
+                        existing.extraProperties = encodeExtraProperties(
+                            body.extraProperties +
+                                mapOf(
+                                    "DISABLE_CHECKSUMS" to body.disableChecksums.toString(),
+                                    "DISABLE_CHUNKED_ENCODING" to body.disableChunkedEncoding.toString(),
+                                ),
+                        )
                         existing.isDefault = body.isDefault
                         existing.enabled = body.enabled
                         if (!body.accessKey.isNullOrBlank()) existing.accessKey = body.accessKey
@@ -313,7 +330,11 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         body.url?.let { existing.url = it }
                         body.bucket?.let { existing.bucket = it }
                         body.region?.let { existing.region = it }
-                        body.extraProperties?.let { existing.extraProperties = encodeExtraProperties(it) }
+                        val patchedExtra = decodeExtraProperties(existing.extraProperties).toMutableMap()
+                        body.extraProperties?.forEach { (k, v) -> patchedExtra[k] = v }
+                        body.disableChecksums?.let { patchedExtra["DISABLE_CHECKSUMS"] = it.toString() }
+                        body.disableChunkedEncoding?.let { patchedExtra["DISABLE_CHUNKED_ENCODING"] = it.toString() }
+                        existing.extraProperties = encodeExtraProperties(patchedExtra)
                         body.enabled?.let { existing.enabled = it }
                         if (!body.accessKey.isNullOrBlank()) existing.accessKey = body.accessKey
                         if (!body.secretKey.isNullOrBlank()) existing.secretKey = body.secretKey
@@ -429,6 +450,7 @@ private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageReposito
         null
     }
 
+    val extra = decodeExtraProperties(extraProperties)
     return BlobStorageRepositorySettingsResponse(
         id = id.value.toString(),
         name = repoName,
@@ -436,7 +458,9 @@ private fun BlobStorageRepositorySettingEntity.toResponse(): BlobStorageReposito
         url = url,
         bucket = bucket,
         region = region,
-        extraProperties = decodeExtraProperties(extraProperties),
+        disableChecksums = extra["DISABLE_CHECKSUMS"]?.toBoolean() ?: false,
+        disableChunkedEncoding = extra["DISABLE_CHUNKED_ENCODING"]?.toBoolean() ?: false,
+        extraProperties = extra,
         isDefault = isDefault,
         enabled = enabled,
         accessKey = decryptedAccessKey,
