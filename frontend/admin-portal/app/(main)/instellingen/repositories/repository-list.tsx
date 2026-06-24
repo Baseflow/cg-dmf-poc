@@ -145,6 +145,9 @@ export function RepositoryList({
     accessKey: string
     secretKey: string
     bucket: string
+    region: string
+    disableChecksums: boolean
+    disableChunkedEncoding: boolean
     isDefault: boolean
     enabled: boolean
   }) {
@@ -157,12 +160,12 @@ export function RepositoryList({
       enabled: data.enabled,
     }
     if (data.storageType === "S3") {
-      if (data.accessKey) body.accessKey = data.accessKey
-      if (data.secretKey) body.secretKey = data.secretKey
-    } else {
-      if (data.accessKey) body.accessKey = data.accessKey
-      if (data.secretKey) body.secretKey = data.secretKey
+      if (data.region) body.region = data.region
+      body.disableChecksums = data.disableChecksums
+      body.disableChunkedEncoding = data.disableChunkedEncoding
     }
+    if (data.accessKey) body.accessKey = data.accessKey
+    if (data.secretKey) body.secretKey = data.secretKey
 
     save(async () => {
       if (!editingRepo && !data.accessKey) {
@@ -430,6 +433,9 @@ function RepositoryForm({
     accessKey: string
     secretKey: string
     bucket: string
+    region: string
+    disableChecksums: boolean
+    disableChunkedEncoding: boolean
     isDefault: boolean
     enabled: boolean
   }) => void
@@ -444,6 +450,13 @@ function RepositoryForm({
   const [accessKey, setAccessKey] = useState(repo?.accessKey ?? "")
   const [secretKey, setSecretKey] = useState(repo?.secretKey ?? "")
   const [bucket, setBucket] = useState(repo?.bucket ?? "")
+  const [region, setRegion] = useState(repo?.region ?? "")
+  const [disableChecksums, setDisableChecksums] = useState(
+    repo?.disableChecksums ?? false
+  )
+  const [disableChunkedEncoding, setDisableChunkedEncoding] = useState(
+    repo?.disableChunkedEncoding ?? false
+  )
   const [isDefault, setIsDefault] = useState(repo?.isDefault ?? false)
   const [enabled, setEnabled] = useState(repo?.enabled ?? true)
 
@@ -454,6 +467,9 @@ function RepositoryForm({
     accessKey !== (repo?.accessKey ?? "") ||
     secretKey !== "" ||
     bucket !== (repo?.bucket ?? "") ||
+    region !== (repo?.region ?? "") ||
+    disableChecksums !== (repo?.disableChecksums ?? false) ||
+    disableChunkedEncoding !== (repo?.disableChunkedEncoding ?? false) ||
     isDefault !== (repo?.isDefault ?? false) ||
     enabled !== (repo?.enabled ?? true)
 
@@ -480,6 +496,9 @@ function RepositoryForm({
       accessKey,
       secretKey,
       bucket,
+      region,
+      disableChecksums,
+      disableChunkedEncoding,
       isDefault,
       enabled,
     })
@@ -612,6 +631,62 @@ function RepositoryForm({
               disabled={saving || readOnly}
               copyable
             />
+          </Field>
+        )}
+
+        {isS3 && (
+          <Field>
+            <FieldLabel htmlFor="repo-region">Regio (optioneel)</FieldLabel>
+            <Input
+              id="repo-region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="eu-west-1"
+              disabled={saving || readOnly}
+            />
+            <FieldDescription>
+              AWS-regio van de S3-bucket. Standaard: eu-west-1.
+            </FieldDescription>
+          </Field>
+        )}
+
+        {isS3 && (
+          <Field orientation="horizontal">
+            <Checkbox
+              id="repo-disable-chunked-encoding"
+              checked={disableChunkedEncoding}
+              onCheckedChange={(v) => setDisableChunkedEncoding(v === true)}
+              disabled={saving || readOnly}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="repo-disable-chunked-encoding">
+                Chunked encoding uitschakelen
+              </FieldLabel>
+              <FieldDescription>
+                Schakel chunked encoding uit bij uploads. Nodig voor sommige
+                S3-compatibele opslag die dit niet ondersteunt.
+              </FieldDescription>
+            </FieldContent>
+          </Field>
+        )}
+
+        {isS3 && (
+          <Field orientation="horizontal">
+            <Checkbox
+              id="repo-disable-checksums"
+              checked={disableChecksums}
+              onCheckedChange={(v) => setDisableChecksums(v === true)}
+              disabled={saving || readOnly}
+            />
+            <FieldContent>
+              <FieldLabel htmlFor="repo-disable-checksums">
+                Checksums uitschakelen
+              </FieldLabel>
+              <FieldDescription>
+                Schakel checksum-berekening en -validatie uit. Nodig voor
+                S3-compatibele opslag die checksums niet ondersteunt.
+              </FieldDescription>
+            </FieldContent>
           </Field>
         )}
 
