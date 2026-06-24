@@ -234,7 +234,10 @@ settings:
     # Set to true when the S3-compatible endpoint does not support AWS checksum extensions.
     disableChecksums: false
     # -- Disable chunked encoding on S3 requests (S3 only).
-    # Set to true when the endpoint or an intermediate proxy does not support chunked transfer encoding.
+    # Set to true when the S3 endpoint is behind a proxy (e.g. an S3-proxy service) that does not
+    # support chunked transfer encoding. When enabled, the SDK switches from a streaming body to
+    # AsyncRequestBody.fromInputStream, which reads and hashes the full payload before sending —
+    # this disables true file streaming and increases memory pressure for large uploads.
     disableChunkedEncoding: false
 
   # ---------------------------------------------------------------------------

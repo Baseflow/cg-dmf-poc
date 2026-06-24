@@ -107,22 +107,35 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
                 .contentLength(contentLength)
                 .build()
 
-            val body = AsyncRequestBody.forBlockingOutputStream(contentLength)
-            val future = s3Client.putObject(putRequest, body)
-            val os = body.outputStream()
             val actualBytes: Long
-            try {
-                actualBytes = stream.transferTo(os)
-            } finally {
-                os.close()
-            }
-            if (actualBytes != contentLength) {
-                future.cancel(true)
-                throw IllegalStateException(
-                    "Upload size mismatch for $objectName: declared $contentLength bytes but streamed $actualBytes bytes",
+            val response = if (config.disableChunkedEncoding) {
+                // forBlockingOutputStream cannot pre-compute the payload hash required when chunked
+                // encoding is disabled; use fromInputStream instead so the SDK reads and hashes the
+                // stream upfront before signing.
+                val body = AsyncRequestBody.fromInputStream(
+                    stream,
+                    contentLength,
+                    java.util.concurrent.Executors.newSingleThreadExecutor(),
                 )
+                actualBytes = contentLength
+                s3Client.putObject(putRequest, body).join()
+            } else {
+                val body = AsyncRequestBody.forBlockingOutputStream(contentLength)
+                val future = s3Client.putObject(putRequest, body)
+                val os = body.outputStream()
+                try {
+                    actualBytes = stream.transferTo(os)
+                } finally {
+                    os.close()
+                }
+                if (actualBytes != contentLength) {
+                    future.cancel(true)
+                    throw IllegalStateException(
+                        "Upload size mismatch for $objectName: declared $contentLength bytes but streamed $actualBytes bytes",
+                    )
+                }
+                future.join()
             }
-            val response = future.join()
 
             logger.info(
                 "Uploaded {}/{} via stream (ETag: {}, {} bytes)",

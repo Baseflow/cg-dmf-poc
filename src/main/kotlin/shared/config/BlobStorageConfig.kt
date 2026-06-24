@@ -39,8 +39,8 @@ data class BlobStorageRepoConfig(
  * BLOB_STORAGE_SECRET_KEY1=minioadmin
  * BLOB_STORAGE_BUCKET1=documenten
  * BLOB_STORAGE_REGION1=eu-west-1          # optional, type-dependent
- * BLOB_STORAGE_DISABLE_CHECKSUMS1=false   # optional
- * BLOB_STORAGE_DISABLE_CHUNKED_ENCODING1=false # optional
+ * BLOB_STORAGE_DISABLE_CHECKSUMS1=false   # optional; set true when endpoint rejects AWS checksum extensions
+ * BLOB_STORAGE_DISABLE_CHUNKED_ENCODING1=false # optional; set true for S3-proxy endpoints — disables streaming uploads
  * BLOB_STORAGE_NAME1=my-repo             # optional human-readable name
  * ```
  *
