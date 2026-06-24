@@ -148,3 +148,10 @@ fun notImplemented(detail: String, instance: String? = null) = ProblemDetailsRes
     detail = detail,
     instance = instance,
 )
+
+fun serviceUnavailable(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Service Unavailable",
+    status = HttpStatusCode.ServiceUnavailable.value,
+    detail = detail,
+    instance = instance,
+)

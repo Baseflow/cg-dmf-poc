@@ -109,6 +109,11 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
         return future
     }
 
+    override fun openDownloadStream(objectName: String): InputStream {
+        logger.debug("Opening download stream for {} from container {}", objectName, containerName)
+        return containerClient.getBlobClient(objectName).openInputStream()
+    }
+
     override fun isHealthy(): Boolean = try {
         blobServiceClient.accountInfo
         true

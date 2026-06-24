@@ -769,4 +769,22 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         assertContains(response.headers.names(), HttpHeaders.ContentDisposition)
         assertContains(response.headers.names(), HttpHeaders.ContentType)
     }
+
+    @Test
+    fun `GET download returns 503 when storage is unavailable`() = testApplication {
+        application { setup() }
+
+        val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(withContent = true)))
+        }
+        assertEquals(HttpStatusCode.Created, created.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText()).id
+
+        every { mockStorageService.openDownloadStream(any(), anyNullable()) } throws RuntimeException("S3 unavailable")
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$id/download")
+
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+    }
 }

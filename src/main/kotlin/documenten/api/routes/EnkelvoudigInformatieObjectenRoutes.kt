@@ -945,6 +945,19 @@ private suspend fun RoutingContext.download() {
             ContentType.Application.OctetStream
         }
 
+        // Open the storage stream before committing the response — if storage is unavailable this
+        // throws and we can still return a 5xx rather than a 200 with an empty body.
+        val storageStream = try {
+            service.openDownloadStream(bestandsnaam = objectKey, repoName = eio.bestandsRepository)
+        } catch (e: Exception) {
+            call.application.environment.log.error("Storage unavailable for object {}: {}", objectKey, e.message, e)
+            call.respondProblem(
+                HttpStatusCode.ServiceUnavailable,
+                serviceUnavailable("Document content is temporarily unavailable", call.request.path()),
+            )
+            return
+        }
+
         // Set headers before starting the stream
         call.response.headers.append(
             HttpHeaders.ContentDisposition,
@@ -955,9 +968,8 @@ private suspend fun RoutingContext.download() {
         call.response.headers.append(HttpHeaders.ContentType, contentType.toString())
         // TODO: support Range requests, ETag, Last-Modified when metadata is available
 
-        // Stream the object from storage directly to the HTTP response
         call.respondOutputStream {
-            service.streamByBestandsnaam(bestandsnaam = objectKey, output = this, repoName = eio.bestandsRepository)
+            storageStream.use { it.copyTo(this) }
         }
     } catch (_: IllegalArgumentException) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("Invalid UUID format", call.request.path()))
