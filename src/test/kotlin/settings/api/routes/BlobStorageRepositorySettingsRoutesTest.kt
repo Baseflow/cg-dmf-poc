@@ -444,6 +444,89 @@ class BlobStorageRepositorySettingsRoutesTest : SettingsTestBase("blob_storage_r
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
 
+    // -----------------------------------------------------------------------
+    // extraProperties / DISABLE_CHECKSUMS / DISABLE_CHUNKED_ENCODING round-trip
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `POST stores extraProperties and returns them in response`() = testApplication {
+        application { setup() }
+
+        val response = client.post("/settings/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(
+                        name = "extra-props-repo",
+                        storageType = "S3",
+                        accessKey = "key",
+                        extraProperties = mapOf("DISABLE_CHECKSUMS" to "true", "DISABLE_CHUNKED_ENCODING" to "true"),
+                    ),
+                ),
+            )
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        val body = Json.decodeFromString<BlobStorageRepositorySettingsResponse>(response.bodyAsText())
+        assertEquals("true", body.extraProperties["DISABLE_CHECKSUMS"])
+        assertEquals("true", body.extraProperties["DISABLE_CHUNKED_ENCODING"])
+    }
+
+    @Test
+    fun `POST with DISABLE_CHUNKED_ENCODING true persists it to the database`() = testApplication {
+        application { setup() }
+
+        val response = client.post("/settings/storage-repositories") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    CreateBlobStorageRepositorySettingsRequest.serializer(),
+                    CreateBlobStorageRepositorySettingsRequest(
+                        name = "chunked-disabled",
+                        storageType = "S3",
+                        accessKey = "key",
+                        extraProperties = mapOf("DISABLE_CHUNKED_ENCODING" to "true"),
+                    ),
+                ),
+            )
+        }
+        assertEquals(HttpStatusCode.Created, response.status)
+        val id = Json.decodeFromString<BlobStorageRepositorySettingsResponse>(response.bodyAsText()).id
+
+        transaction {
+            val entity = BlobStorageRepositorySettingEntity.findById(java.util.UUID.fromString(id))!!
+            assertTrue(entity.extraProperties.contains("DISABLE_CHUNKED_ENCODING"))
+            assertTrue(entity.extraProperties.contains("true"))
+        }
+    }
+
+    @Test
+    fun `PUT updates extraProperties and they are returned in subsequent GET`() = testApplication {
+        application { setup() }
+        val id = insertRepo("extra-repo")
+
+        client.put("/settings/storage-repositories/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                Json.encodeToString(
+                    UpdateBlobStorageRepositorySettingsRequest.serializer(),
+                    UpdateBlobStorageRepositorySettingsRequest(
+                        name = "extra-repo",
+                        storageType = "S3",
+                        extraProperties = mapOf("DISABLE_CHECKSUMS" to "true", "DISABLE_CHUNKED_ENCODING" to "true"),
+                    ),
+                ),
+            )
+        }
+
+        val getResponse = client.get("/settings/storage-repositories")
+        val body = Json.decodeFromString<List<BlobStorageRepositorySettingsResponse>>(getResponse.bodyAsText())
+            .single { it.id == id.toString() }
+        assertEquals("true", body.extraProperties["DISABLE_CHECKSUMS"])
+        assertEquals("true", body.extraProperties["DISABLE_CHUNKED_ENCODING"])
+    }
+
     @Test
     fun `PUT can recover a repository with a new secret`() = testApplication {
         application { setup() }
