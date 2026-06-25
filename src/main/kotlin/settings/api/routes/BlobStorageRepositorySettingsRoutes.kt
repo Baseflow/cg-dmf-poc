@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
+@file:OptIn(ExperimentalKtorApi::class)
+
 package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.badRequest
@@ -18,10 +20,13 @@ import com.baseflow.shared.entities.settings.BlobStorageRepositorySettingEntity
 import com.baseflow.shared.entities.settings.BlobStorageRepositorySettingsTable
 import com.baseflow.shared.services.BlobStorageRegistrar
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -40,6 +45,20 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 BlobStorageRepositorySettingEntity.all().map { it.toResponse() }
             }
             call.respond(repos)
+        }.describe {
+            operationId = "storage_repositories_list"
+            tag("storage-repositories")
+            summary = "Lijst alle blob storage repositories op."
+            description = "Geeft alle geconfigureerde blob storage backends terug. " +
+                "Ondersteunde opslagtypes: `S3`, `Azure Blob Storage`."
+            responses {
+                response(200) {
+                    description = "Lijst van opslag-repositories."
+                    ContentType.Application.Json { schema = jsonSchema<List<BlobStorageRepositorySettingsResponse>>() }
+                }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+            }
         }
 
         get("/default") {
@@ -59,6 +78,20 @@ fun Route.blobStorageRepositorySettingsRoutes() {
             )
 
             call.respond(repo)
+        }.describe {
+            operationId = "storage_repositories_get_default"
+            tag("storage-repositories")
+            summary = "Haal de standaard blob storage repository op."
+            description = "Geeft de huidige standaard blob storage backend terug."
+            responses {
+                response(200) {
+                    description = "De standaard opslag-repository."
+                    ContentType.Application.Json { schema = jsonSchema<BlobStorageRepositorySettingsResponse>() }
+                }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                response(404) { description = "Not found — geen standaard repository geconfigureerd." }
+            }
         }
 
         put("/default") {
@@ -90,6 +123,28 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 notFound("Repository '${body.name}' not found.", call.request.path()),
             )
             call.respond(HttpStatusCode.OK, updated)
+        }.describe {
+            operationId = "storage_repositories_set_default"
+            tag("storage-repositories")
+            summary = "Stel de standaard blob storage repository in."
+            description = "Wijzigt de actieve standaard opslag-backend. De repository met de opgegeven naam moet bestaan."
+            requestBody {
+                required = true
+                description = "Naam van de repository die de nieuwe standaard wordt."
+                content {
+                    schema = jsonSchema<SetDefaultRepositorySettingsRequest>()
+                }
+            }
+            responses {
+                response(200) {
+                    description = "Standaard repository bijgewerkt."
+                    ContentType.Application.Json { schema = jsonSchema<BlobStorageRepositorySettingsResponse>() }
+                }
+                response(400) { description = "Bad request — naam is leeg of repository kan niet worden geactiveerd." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                response(404) { description = "Not found — repository niet gevonden." }
+            }
         }
 
         post {
@@ -184,6 +239,32 @@ fun Route.blobStorageRepositorySettingsRoutes() {
             }
 
             call.respond(HttpStatusCode.Created, created)
+        }.describe {
+            operationId = "storage_repositories_create"
+            tag("storage-repositories")
+            summary = "Maak een blob storage repository aan."
+            description = "Registreert een nieuwe blob storage backend. " +
+                "`storageType` moet `S3` of `Azure Blob Storage` zijn. " +
+                "Voor S3 zijn `accessKey` en `secretKey` vereist. " +
+                "Voor Azure Blob Storage zijn `storageAccountName` en `accessKey` (de account key) vereist. " +
+                "Optionele `extraProperties`: `DISABLE_CHECKSUMS` (boolean), `DISABLE_CHUNKED_ENCODING` (boolean)."
+            requestBody {
+                required = true
+                description = "Configuratie van de nieuwe opslag-repository."
+                content {
+                    schema = jsonSchema<CreateBlobStorageRepositorySettingsRequest>()
+                }
+            }
+            responses {
+                response(201) {
+                    description = "Aangemaakt."
+                    ContentType.Application.Json { schema = jsonSchema<BlobStorageRepositorySettingsResponse>() }
+                }
+                response(400) { description = "Bad request — ontbrekend of ongeldig veld." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                response(409) { description = "Conflict — naam bestaat al." }
+            }
         }
 
         route("/{id}") {
@@ -203,6 +284,26 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 )
 
                 call.respond(repo)
+            }.describe {
+                operationId = "storage_repositories_get"
+                tag("storage-repositories")
+                summary = "Haal een blob storage repository op."
+                parameters {
+                    path("id") {
+                        description = "UUID van de opslag-repository."
+                        required = true
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "De gevraagde opslag-repository."
+                        ContentType.Application.Json { schema = jsonSchema<BlobStorageRepositorySettingsResponse>() }
+                    }
+                    response(400) { description = "Bad request — ongeldige UUID." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                    response(404) { description = "Not found." }
+                }
             }
 
             put {
@@ -278,6 +379,36 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 }
 
                 call.respondWithUpdateResult(result, call.request.path())
+            }.describe {
+                operationId = "storage_repositories_update"
+                tag("storage-repositories")
+                summary = "Vervang een blob storage repository volledig (PUT)."
+                description = "Vervangt alle velden van een bestaande opslag-repository. " +
+                    "Als `accessKey` of `secretKey` weggelaten of `null` zijn, blijven de bestaande waarden ongewijzigd."
+                parameters {
+                    path("id") {
+                        description = "UUID van de opslag-repository."
+                        required = true
+                    }
+                }
+                requestBody {
+                    required = true
+                    description = "Nieuwe configuratie van de repository."
+                    content {
+                        schema = jsonSchema<UpdateBlobStorageRepositorySettingsRequest>()
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Bijgewerkt."
+                        ContentType.Application.Json { schema = jsonSchema<BlobStorageRepositorySettingsResponse>() }
+                    }
+                    response(400) { description = "Bad request — ontbrekend of ongeldig veld." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict — naam bestaat al." }
+                }
             }
 
             patch {
@@ -356,6 +487,36 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                 }
 
                 call.respondWithUpdateResult(result, call.request.path())
+            }.describe {
+                operationId = "storage_repositories_patch"
+                tag("storage-repositories")
+                summary = "Werk een blob storage repository gedeeltelijk bij (PATCH)."
+                description = "Werkt alleen de opgegeven velden van een bestaande opslag-repository bij. " +
+                    "Weggelaten velden blijven ongewijzigd."
+                parameters {
+                    path("id") {
+                        description = "UUID van de opslag-repository."
+                        required = true
+                    }
+                }
+                requestBody {
+                    required = true
+                    description = "Velden die bijgewerkt moeten worden."
+                    content {
+                        schema = jsonSchema<PatchBlobStorageRepositorySettingsRequest>()
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Bijgewerkt."
+                        ContentType.Application.Json { schema = jsonSchema<BlobStorageRepositorySettingsResponse>() }
+                    }
+                    response(400) { description = "Bad request — ongeldig veld." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict — naam bestaat al." }
+                }
             }
 
             delete {
@@ -387,6 +548,23 @@ fun Route.blobStorageRepositorySettingsRoutes() {
                         BlobStorageRegistrar.unregisterProvider(result as String)
                         call.respond(HttpStatusCode.NoContent)
                     }
+                }
+            }.describe {
+                operationId = "storage_repositories_delete"
+                tag("storage-repositories")
+                summary = "Verwijder een blob storage repository."
+                parameters {
+                    path("id") {
+                        description = "UUID van de opslag-repository."
+                        required = true
+                    }
+                }
+                responses {
+                    response(204) { description = "Verwijderd." }
+                    response(400) { description = "Bad request — ongeldige UUID." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt of de repository is readonly." }
+                    response(404) { description = "Not found." }
                 }
             }
         }

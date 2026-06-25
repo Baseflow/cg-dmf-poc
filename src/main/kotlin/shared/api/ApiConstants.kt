@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: EUPL-1.2
-// Copyright (C) 2025 Gemeente Utrecht
+// Copyright (C) 2025-2026 Gemeente Utrecht
 package com.baseflow.shared.api
 
 /**
@@ -21,3 +21,8 @@ const val WOPI_API_VERSION: String = "1.0.0"
  * Base path for the WOPI API routes. Reuse this constant across routes and tests.
  */
 const val WOPI_API_BASE_PATH: String = "/wopi/api/v1"
+
+/**
+ * Base path for the Settings API routes.
+ */
+const val SETTINGS_API_BASE_PATH: String = "/settings"

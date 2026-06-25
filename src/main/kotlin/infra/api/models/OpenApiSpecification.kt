@@ -9,6 +9,7 @@ import io.ktor.openapi.Tag
 
 internal val openApiSpecifications = listOf(
     DocumentenOpenApiSpecification(),
+    SettingsOpenApiSpecification(),
 ).let { specs ->
     val config = WopiConfig.fromEnv()
 

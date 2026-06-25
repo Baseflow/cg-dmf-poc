@@ -156,5 +156,23 @@ export const navigation: {
       icon: <Braces />,
       description: "OpenAPI YAML specificatie van de WOPI API",
     },
+    {
+      name: "Settings API",
+      url: "/settings/openapi-ui",
+      icon: <FileCode />,
+      description: "Scalar verkenner van de interne Settings API",
+    },
+    {
+      name: "Settings API JSON",
+      url: "/api/docs/openapi/settings.json",
+      icon: <Braces />,
+      description: "OpenAPI JSON specificatie van de Settings API",
+    },
+    {
+      name: "Settings API YAML",
+      url: "/api/docs/openapi/settings.yaml",
+      icon: <Braces />,
+      description: "OpenAPI YAML specificatie van de Settings API",
+    },
   ],
 }
