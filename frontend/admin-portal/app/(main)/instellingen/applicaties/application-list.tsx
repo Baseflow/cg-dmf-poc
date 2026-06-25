@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -57,6 +58,7 @@ import { type ColumnDef } from "@tanstack/react-table"
 import {
   AlertTriangle,
   AppWindow,
+  Lock,
   MoreHorizontal,
   RefreshCw,
 } from "lucide-react"
@@ -193,7 +195,15 @@ export function ApplicationList({
         accessorKey: "name",
         header: "Naam",
         cell: ({ row }) => (
-          <span className="font-medium">{row.original.name}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{row.original.name}</span>
+            {row.original.readonly && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <Lock className="size-3" />
+                Omgeving
+              </Badge>
+            )}
+          </div>
         ),
       },
       {

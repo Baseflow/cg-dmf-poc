@@ -52,7 +52,7 @@ import { useDrawerState } from "@/hooks/use-drawer-state"
 import { parseActionError, ValidationError } from "@/lib/errors"
 import { formatNlDate } from "@/lib/format"
 import { type ColumnDef } from "@tanstack/react-table"
-import { Database, MoreHorizontal } from "lucide-react"
+import { Database, Lock, MoreHorizontal } from "lucide-react"
 import {
   useCallback,
   useEffect,
@@ -198,6 +198,12 @@ export function RepositoryList({
                 className="text-xs text-muted-foreground"
               >
                 Uitgeschakeld
+              </Badge>
+            )}
+            {row.original.readonly && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <Lock className="size-3" />
+                Omgeving
               </Badge>
             )}
           </div>
