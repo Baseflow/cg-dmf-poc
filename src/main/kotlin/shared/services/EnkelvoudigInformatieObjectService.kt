@@ -336,6 +336,9 @@ class EnkelvoudigInformatieObjectService(
         storageService.downloadFileTo(bestandsnaam, output, repoName.takeUnless { it.isNullOrBlank() }).join()
     }
 
+    fun openDownloadStream(bestandsnaam: String, repoName: String? = null): InputStream =
+        storageService.openDownloadStream(bestandsnaam, repoName.takeUnless { it.isNullOrBlank() })
+
     /**
      * Update an EnkelvoudigInformatieObject (creates new version)
      * Increments version and creates new EIOVersion in a transaction

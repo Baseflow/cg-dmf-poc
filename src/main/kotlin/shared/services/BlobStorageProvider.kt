@@ -32,6 +32,13 @@ interface BlobStorageProvider {
     fun downloadFileTo(objectName: String, output: OutputStream): CompletableFuture<Void>
 
     /**
+     * Open a download stream for [objectName], blocking until the storage backend confirms the
+     * object exists and is readable. Throws if the backend is unavailable or the object is missing.
+     * Callers MUST close the returned [InputStream].
+     */
+    fun openDownloadStream(objectName: String): InputStream
+
+    /**
      * Delete the object identified by [objectName].
      * Implementations that do not support deletion (or where deletion is not
      * needed) may no-op. Used for best-effort clean-up of health-check probe objects.

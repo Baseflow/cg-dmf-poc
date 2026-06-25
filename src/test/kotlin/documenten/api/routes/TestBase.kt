@@ -78,6 +78,7 @@ open class TestBase(dbNamePrefix: String) {
                 thirdArg<Long>()
             }
             every { it.downloadFileTo(any(), any(), anyNullable()) } returns CompletableFuture.completedFuture(null)
+            every { it.openDownloadStream(any(), anyNullable()) } returns InputStream.nullInputStream()
         }
 
         install(Koin) {
