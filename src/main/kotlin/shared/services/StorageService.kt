@@ -52,6 +52,14 @@ open class StorageService {
         resolveProvider(repoName).downloadFileTo(objectName, output)
 
     /**
+     * Open a download stream for [objectName], blocking until the storage backend confirms the
+     * object is readable. Throws if the backend is unavailable or the object is missing.
+     * Callers MUST close the returned [InputStream].
+     */
+    fun openDownloadStream(objectName: String, repoName: String? = null): InputStream =
+        resolveProvider(repoName).openDownloadStream(objectName)
+
+    /**
      * Deletes one or more objects from blob storage. Empty or blank keys are silently skipped.
      * Errors are logged but do not throw, so a missing file will not abort a delete operation.
      */

@@ -204,6 +204,18 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
         return result
     }
 
+    override fun openDownloadStream(objectName: String): InputStream {
+        logger.debug("Opening download stream for {} from bucket {}", objectName, bucketName)
+        val request = GetObjectRequest.builder().bucket(bucketName).key(objectName).build()
+        return try {
+            s3Client.getObject(request, AsyncResponseTransformer.toBlockingInputStream<GetObjectResponse>()).join()
+        } catch (e: NoSuchKeyException) {
+            throw StorageObjectNotFoundException(objectName, e)
+        } catch (e: NoSuchBucketException) {
+            throw StorageObjectNotFoundException(objectName, e)
+        }
+    }
+
     override fun isHealthy(): Boolean = try {
         s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build()).join()
         true
