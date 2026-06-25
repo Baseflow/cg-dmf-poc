@@ -90,12 +90,17 @@ fun main() {
     }
 
     // Raise Netty's header buffer to support large cookie/auth header values in enterprise/commercial SSO setups.
-    embeddedServer(Netty, port = ApplicationConfig.port, configure = {
-        maxInitialLineLength = 8192
-        maxHeaderSize = 32768
-    }) {
-        module()
-    }.start(wait = true)
+    embeddedServer(
+        Netty,
+        rootConfig = serverConfig {
+            module(Application::module)
+        },
+        configure = {
+            connector { port = ApplicationConfig.port }
+            maxInitialLineLength = 8192
+            maxHeaderSize = 32768
+        },
+    ).start(wait = true)
 }
 
 @OptIn(ExperimentalKtorApi::class)
