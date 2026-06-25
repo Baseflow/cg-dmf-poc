@@ -7,6 +7,7 @@ import com.azure.core.http.rest.Response
 import com.azure.storage.blob.BlobContainerClientBuilder
 import com.azure.storage.blob.BlobServiceClientBuilder
 import com.azure.storage.blob.batch.BlobBatchClientBuilder
+import com.azure.storage.blob.models.BlobStorageException
 import com.azure.storage.blob.models.DeleteSnapshotsOptionType
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.baseflow.shared.config.BlobStorageRepoConfig
@@ -111,7 +112,11 @@ class AzureBlobStorageProvider(config: BlobStorageRepoConfig) : BlobStorageProvi
 
     override fun openDownloadStream(objectName: String): InputStream {
         logger.debug("Opening download stream for {} from container {}", objectName, containerName)
-        return containerClient.getBlobClient(objectName).openInputStream()
+        return try {
+            containerClient.getBlobClient(objectName).openInputStream()
+        } catch (e: BlobStorageException) {
+            if (e.statusCode == 404) throw StorageObjectNotFoundException(objectName, e) else throw e
+        }
     }
 
     override fun isHealthy(): Boolean = try {

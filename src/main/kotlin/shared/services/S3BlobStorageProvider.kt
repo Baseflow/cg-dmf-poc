@@ -206,23 +206,14 @@ class S3BlobStorageProvider(private val config: BlobStorageRepoConfig) : BlobSto
 
     override fun openDownloadStream(objectName: String): InputStream {
         logger.debug("Opening download stream for {} from bucket {}", objectName, bucketName)
-        // headObject blocks until S3 responds — throws immediately if S3 is unavailable or the
-        // object is missing, so callers can detect the failure before committing an HTTP response.
-        val headRequest = HeadObjectRequest.builder().bucket(bucketName).key(objectName).build()
-        s3Client.headObject(headRequest).join()
-
-        val pipedIn = java.io.PipedInputStream(65536)
-        val pipedOut = java.io.PipedOutputStream(pipedIn)
-        Thread.ofVirtual().start {
-            try {
-                downloadFileTo(objectName, pipedOut).join()
-            } catch (e: Exception) {
-                logger.error("Error streaming {} from bucket {}: {}", objectName, bucketName, e.message, e)
-            } finally {
-                runCatching { pipedOut.close() }
-            }
+        val request = GetObjectRequest.builder().bucket(bucketName).key(objectName).build()
+        return try {
+            s3Client.getObject(request, AsyncResponseTransformer.toBlockingInputStream<GetObjectResponse>()).join()
+        } catch (e: NoSuchKeyException) {
+            throw StorageObjectNotFoundException(objectName, e)
+        } catch (e: NoSuchBucketException) {
+            throw StorageObjectNotFoundException(objectName, e)
         }
-        return pipedIn
     }
 
     override fun isHealthy(): Boolean = try {

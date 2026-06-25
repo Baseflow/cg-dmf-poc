@@ -9,6 +9,7 @@ import com.baseflow.shared.api.models.*
 import com.baseflow.shared.entities.EIORecordEntity
 import com.baseflow.shared.entities.latestVersion
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
+import com.baseflow.shared.services.StorageObjectNotFoundException
 import com.baseflow.shared.services.models.DeleteResult
 import com.baseflow.shared.services.models.EIOOrdering
 import com.baseflow.shared.services.models.LockPayload
@@ -22,6 +23,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.routing.openapi.describe
 import io.ktor.utils.io.ExperimentalKtorApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -546,6 +549,8 @@ fun Route.enkelvoudigInformatieObjectenRoutes() {
                     response(401) { description = "Unauthorized." }
                     response(403) { description = "Forbidden." }
                     response(404) { description = "Not found." }
+                    response(500) { description = "Internal server error — document content is missing from storage." }
+                    response(503) { description = "Service unavailable — storage backend is temporarily unreachable." }
                 }
             }
 
@@ -945,10 +950,20 @@ private suspend fun RoutingContext.download() {
             ContentType.Application.OctetStream
         }
 
-        // Open the storage stream before committing the response — if storage is unavailable this
-        // throws and we can still return a 5xx rather than a 200 with an empty body.
+        // Open the storage stream before committing the response — if storage fails we can still
+        // return a proper error instead of a 200 with an empty body. Runs on IO dispatcher because
+        // openDownloadStream blocks until the backend confirms the object is readable.
         val storageStream = try {
-            service.openDownloadStream(bestandsnaam = objectKey, repoName = eio.bestandsRepository)
+            withContext(Dispatchers.IO) {
+                service.openDownloadStream(bestandsnaam = objectKey, repoName = eio.bestandsRepository)
+            }
+        } catch (e: StorageObjectNotFoundException) {
+            call.application.environment.log.error("Storage object missing for EIO {}: {}", objectKey, e.message, e)
+            call.respondProblem(
+                HttpStatusCode.InternalServerError,
+                internalServerError("Document content is missing from storage", call.request.path()),
+            )
+            return
         } catch (e: Exception) {
             call.application.environment.log.error("Storage unavailable for object {}: {}", objectKey, e.message, e)
             call.respondProblem(

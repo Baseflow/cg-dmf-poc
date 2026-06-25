@@ -8,6 +8,7 @@ import com.baseflow.shared.api.models.*
 import com.baseflow.shared.entities.BestandsDeelEntity
 import com.baseflow.shared.entities.BestandsDelen
 import com.baseflow.shared.entities.EIORecordEntity
+import com.baseflow.shared.services.StorageObjectNotFoundException
 import com.baseflow.shared.services.bestandsDeelStorageKey
 import com.baseflow.testutils.TestDataFactory.generateTestDocument
 import io.ktor.client.request.*
@@ -786,5 +787,24 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
         val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$id/download")
 
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+    }
+
+    @Test
+    fun `GET download returns 500 when storage object is missing`() = testApplication {
+        application { setup() }
+
+        val created = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(withContent = true)))
+        }
+        assertEquals(HttpStatusCode.Created, created.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(created.bodyAsText()).id
+
+        every { mockStorageService.openDownloadStream(any(), anyNullable()) } throws
+            StorageObjectNotFoundException("missing-object")
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$id/download")
+
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
     }
 }

@@ -149,6 +149,13 @@ fun notImplemented(detail: String, instance: String? = null) = ProblemDetailsRes
     instance = instance,
 )
 
+fun internalServerError(detail: String, instance: String? = null) = ProblemDetailsResponse(
+    title = "Internal Server Error",
+    status = HttpStatusCode.InternalServerError.value,
+    detail = detail,
+    instance = instance,
+)
+
 fun serviceUnavailable(detail: String, instance: String? = null) = ProblemDetailsResponse(
     title = "Service Unavailable",
     status = HttpStatusCode.ServiceUnavailable.value,
