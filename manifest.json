@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28163542782",
+    "runNumber": "949",
+    "branch": "task/settings-oas",
+    "date": "2026-06-25T10:28:25Z",
+    "path": "integration/28163542782/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28162073932",
     "runNumber": "948",
     "branch": "task/download-error-fix",
