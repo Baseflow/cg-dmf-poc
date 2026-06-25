@@ -1,5 +1,4 @@
-## 0.9.8
+## 1.0.0
 
-### Backend
-* When disableChunkedEncoding is true, do not use data streams. This is for
-  the S3-proxy, which doesn't handle signing and streaming.
+### Admin portal
+* Voeg omgeving badge toe aan readonly entries van storage repositories
