@@ -38,8 +38,8 @@ describe("DmfSettingsForm", () => {
 
   it("renders with initial values from settings", () => {
     render(<DmfSettingsForm settings={defaultSettings} />)
-    expect(screen.getByDisplayValue("4294967296")).toBeInTheDocument()
-    expect(screen.getByDisplayValue("3221225472")).toBeInTheDocument()
+    expect(screen.getByDisplayValue("4096")).toBeInTheDocument()
+    expect(screen.getByDisplayValue("3072")).toBeInTheDocument()
     expect(screen.getByRole("checkbox")).toBeChecked()
   })
 
@@ -138,9 +138,9 @@ describe("DmfSettingsForm", () => {
     const user = userEvent.setup()
     render(<DmfSettingsForm settings={defaultSettings} />)
 
-    const input = screen.getByDisplayValue("4294967296")
+    const input = screen.getByDisplayValue("4096")
     await user.clear(input)
-    await user.type(input, "1073741824")
+    await user.type(input, "1024")
 
     fireEvent.submit(
       screen.getByRole("button", { name: /opslaan/i }).closest("form")!
