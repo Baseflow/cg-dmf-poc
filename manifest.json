@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28243155997",
+    "runNumber": "954",
+    "branch": "dependabot/gradle/aws-sdk-844a8453bf",
+    "date": "2026-06-26T14:10:03Z",
+    "path": "integration/28243155997/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28243132393",
     "runNumber": "952",
     "branch": "dependabot/docker/gradle-9.6.0-jdk21",
