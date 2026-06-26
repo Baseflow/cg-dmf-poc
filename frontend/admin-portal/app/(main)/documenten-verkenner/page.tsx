@@ -1,5 +1,7 @@
 import { type NavItem, navigation } from "@/lib/navigation"
-import { ExternalLink } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ROUTES } from "@/lib/routes"
+import { ExternalLink, KeyRound } from "lucide-react"
 import Link from "next/link"
 
 function NavCard({ url, icon, name, description }: NavItem) {
@@ -54,11 +56,19 @@ const sections = [
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col gap-8 p-6">
-      <div>
-        <h1 className="text-xl font-semibold">API verkenner</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          API browsers en OpenAPI specificaties
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold">API verkenner</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            API browsers en OpenAPI specificaties
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href={ROUTES.tools.zgwToken}>
+            <KeyRound className="size-4" />
+            ZGW Token Generator
+          </Link>
+        </Button>
       </div>
       {sections.map(({ label, items }) => (
         <section key={label} className="flex flex-col gap-3">
