@@ -244,18 +244,55 @@ Activeer de dossierversie via **Meer → Actief maken**
 
 ## IKO — Integraal Klant Objectbeeld
 
-IKO is een systeem dat naast GZAC kan worden ingezet om via diverse API's een geïntegreerd overzicht te tonen van informatie rondom een klant of zaak (het "beeld"). IKO kan de Documenten API van CG-DMF bevragen om documenten op te nemen in dit overzicht.
+IKO is een systeem dat naast GZAC kan worden ingezet om via diverse API's een geïntegreerd overzicht te tonen van informatie rondom een object of zaak (het "beeld"). IKO kan de Documenten API van CG-DMF bevragen om documenten op te nemen in dit overzicht.
 
-### Koppeling
+IKO bestaat uit twee centrale concepten:
+- **Connector** — haalt data op uit een extern systeem (zoals de CG-DMF) en verzorgt de authenticatie
+- **Aggregated Data Profile (ADP)** — combineert de uitvoer van meerdere connectors en transformeert de data tot een samenhangend beeld dat in GZAC wordt getoond
 
-IKO communiceert met de Documenten API via ZGW client credentials. Maak een credential aan via de admin portal (zie [installatie.md — Client credentials](installatie.md#client-credentials)) en configureer deze in IKO als authenticatiemethode voor de DMF.
+### Connector instellen
 
-Stel de **Documenten API URL** in IKO in op:
+Maak in de IKO-beheerpagina een connector aan voor de CG-DMF.
+Stel de volgende configuratie in:
+
+- host: `https://cg-dmf.example.com/documenten/api/v1/` (geen pad)
+- clientId: 
+- clientSecret:
+- specificationUri: `https://cg-dmf.example.com/documenten/api/v1/openapi.json`
+
+IKO communiceert met de Documenten API via ZGW client credentials.
+Maak een credential aan via de admin portal (zie [installatie.md — Client credentials](installatie.md#client-credentials)) en configureer deze als clientId en clientSecret in de IKO-connector als authenticatiemethode voor de DMF.
+
+Voeg als Endpoints toe:
+- enkelvoudiginformatieobject_list: `enkelvoudiginformatieobject_list`
+- enkelvoudiginformatieobject_read: `enkelvoudiginformatieobject_read`
+
+Voort connector code, zie https://github.com/Integraal-Klant-en-Objectbeeld/iko/blob/HEAD/doc/connectors/opendocumenten.md
+
+Stel als laatste de rollen in
+
+## Aggregated Data Profile (ADP) configuratie
+In relaties, voeg een relatie `objectdocumenten` toe. Selecteer hierbij de hiervoor aangemaakte connector instance.
+Kies als connector endpoint `enkelvoudiginformatieobject_list`
+
+Voeg als endpoint parameter Mapping Transform toe:
+
+Om documenten te tonen die aan een specifiek object gekoppeld zijn, configureert u in het Aggregated Data Profile de volgende filterparameters op de DMF-connector:
+
 ```
-https://cg-dmf.example.com/documenten/api/v1/
+{
+objectinformatieobjecten__object: ("https://example.com/objecttype/" + .source.objectId),
+objectinformatieobjecten__objectType: "mijnExampleObjectType"
+}
 ```
 
-Raadpleeg de IKO-documentatie voor de specifieke configuratiestappen in IKO zelf.
+Hiermee haalt IKO uitsluitend de documenten op die via een objectkoppeling aan het betreffende object zijn gekoppeld.
+Zie [objectkoppelingen.md](objectkoppelingen.md) voor uitleg over objecttypes en object-URLs.
+
+### Beeld configureren in GZAC
+
+Het ADP dat de DMF-connector bevat kan in GZAC worden ingesteld als beeld.
+GZAC toont dit beeld als een documentenlijst. Let op: de documentenlijst in een IKO-beeld gedraagt zich anders dan de documentenlijst in een zaakoverzicht (andere UI-component, zonder dropdown-acties voor download en preview). Verdere verfijning hiervan staat open als doorontwikkelpunt.
 
 ---
 

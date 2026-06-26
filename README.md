@@ -35,6 +35,7 @@ Daarnaast experimenteert de implementatie met het gebruik van de [WOPI](https://
 |-----------------------------------------|----------------------------------------------------------|
 | [Installatie](docs/installatie.md)      | Productie-installatie: Hel, Docker Compose, Helm         |
 | [Gebruik](docs/handleiding.md)          | Integratie met OpenZaak, GZAC, IKO, notificaties en WOPI |
+| [Objectkoppelingen](docs/objectkoppelingen.md) | Objectgericht werken — koppelen van documenten aan willekeurige objecten |
 | [Ontwikkeling](docs/ontwikkeling.md)    | Lokale ontwikkelomgeving, testen, releases               |
 | [Configuratie](docs/configuratie.md)    | Alle omgevingsvariabelen en configuratieopties           |
 | [Documenten API](docs/implementatie.md) | Implementatiestatus van de API-endpoints                 |
