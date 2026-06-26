@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "28243130419",
+    "runNumber": "951",
+    "branch": "dependabot/docker/node-26-slim",
+    "date": "2026-06-26T14:09:16Z",
+    "path": "integration/28243130419/index.html"
+  },
+  {
     "category": "k6",
     "runId": "28227707240",
     "runNumber": "188",
