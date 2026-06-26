@@ -1,4 +1,4 @@
-FROM node:22-slim AS npm-install
+FROM node:26-slim AS npm-install
 
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
