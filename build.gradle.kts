@@ -151,10 +151,15 @@ application {
 // shell (-l) to obtain the PATH set in a terminal session — covering version
 // managers like nvm, volta, and fnm that only add npm to PATH interactively.
 abstract class ResolveNpmSource : ValueSource<String, ValueSourceParameters.None> {
+    private fun npmInPath(path: String): String? =
+        path
+            .split(":")
+            .map { File(it, "npm") }
+            .firstOrNull { it.canExecute() }
+            ?.absolutePath
+
     override fun obtain(): String? {
-        if (runCatching { ProcessBuilder("npm", "--version").start().waitFor() == 0 }.getOrDefault(false)) {
-            return "npm"
-        }
+        npmInPath(System.getenv("PATH") ?: "")?.let { return it }
         val shell = System.getenv("SHELL") ?: return null
         val loginPath =
             runCatching {
@@ -164,11 +169,7 @@ abstract class ResolveNpmSource : ValueSource<String, ValueSourceParameters.None
                     .readLine()
                     .also { proc.waitFor() }
             }.getOrNull() ?: return null
-        return loginPath
-            .split(":")
-            .map { File(it, "npm") }
-            .firstOrNull { it.canExecute() }
-            ?.absolutePath
+        return npmInPath(loginPath)
     }
 }
 
