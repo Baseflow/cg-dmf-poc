@@ -26,23 +26,23 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("com.h2database:h2:2.4.240")
     testImplementation("io.mockk:mockk:1.14.11")
-    testImplementation("io.ktor:ktor-client-mock:3.5.0")
-    testImplementation("io.ktor:ktor-server-test-host-jvm:3.5.0")
-    testImplementation("io.ktor:ktor-client-content-negotiation:3.5.0")
+    testImplementation("io.ktor:ktor-client-mock:3.5.1")
+    testImplementation("io.ktor:ktor-server-test-host-jvm:3.5.1")
+    testImplementation("io.ktor:ktor-client-content-negotiation:3.5.1")
     testImplementation("io.insert-koin:koin-test")
     testImplementation("io.insert-koin:koin-test-junit5")
 
     // Ktor server and client
-    implementation("io.ktor:ktor-server-core-jvm:3.5.0")
-    implementation("io.ktor:ktor-server-netty-jvm:3.5.0")
-    implementation("io.ktor:ktor-client-core:3.5.0")
-    implementation("io.ktor:ktor-client-cio:3.5.0")
-    implementation("io.ktor:ktor-server-content-negotiation:3.5.0")
-    implementation("io.ktor:ktor-server-conditional-headers:3.5.0")
-    implementation("io.ktor:ktor-server-status-pages:3.5.0")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.0")
-    implementation("io.ktor:ktor-server-auth:3.5.0")
-    implementation("io.ktor:ktor-server-auth-jwt:3.5.0")
+    implementation("io.ktor:ktor-server-core-jvm:3.5.1")
+    implementation("io.ktor:ktor-server-netty-jvm:3.5.1")
+    implementation("io.ktor:ktor-client-core:3.5.1")
+    implementation("io.ktor:ktor-client-cio:3.5.1")
+    implementation("io.ktor:ktor-server-content-negotiation:3.5.1")
+    implementation("io.ktor:ktor-server-conditional-headers:3.5.1")
+    implementation("io.ktor:ktor-server-status-pages:3.5.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.1")
+    implementation("io.ktor:ktor-server-auth:3.5.1")
+    implementation("io.ktor:ktor-server-auth-jwt:3.5.1")
 
     // Connection pool
     implementation("com.zaxxer:HikariCP:7.1.0")
@@ -95,7 +95,7 @@ dependencies {
     implementation("io.insert-koin:koin-annotations")
 
     // Open-API specification generation + routing annotations
-    implementation("io.ktor:ktor-server-routing-openapi:3.5.0")
+    implementation("io.ktor:ktor-server-routing-openapi:3.5.1")
 
     // To override a transitive dependency version to fix a CVE, use a constraint block like this:
     // constraints {
