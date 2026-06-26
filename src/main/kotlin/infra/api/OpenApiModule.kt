@@ -43,7 +43,7 @@ private val openApiJson = Json {
  *
  * Schemes are registered in [com.baseflow.shared.config.AuthenticationModule] via [registerSecurityScheme]
  * and discovered here through [findSecuritySchemes]:
- * - "auth-jwt" → OAuth2 Authorization Code + PKCE (full OIDC login via Keycloak)
+ * - "auth-jwt" → OAuth2 Authorization Code + PKCE (full OIDC login via Keycloak) — temporarily disabled for Documenten/WOPI (CGDMF-177)
  * - "auth-zgw" → HTTP Bearer (paste-in ZGW/GZAC token)
  *
  * Using the exact same names as the Ktor `authenticate(...)` provider names is required so that
@@ -120,9 +120,11 @@ private fun Application.buildOpenApiDoc(openApiSpec: OpenApiSpecification): Open
     val baseUrl = ApplicationConfig.baseUrl()
 
     // Discover schemes registered in AuthenticationModule: auth-jwt (OAuth2 PKCE) + auth-zgw (Bearer).
-    // All registered schemes are included in the components block so Swagger UI can resolve them,
-    // but which schemes are actually required per-operation is controlled by openApiSpec.security.
-    val securitySchemes = buildSecuritySchemes()
+    // Only schemes declared in openApiSpec.security are included in the components block so that
+    // Swagger UI's Authorize dialog only shows the schemes each API actually supports.
+    // auth-jwt is temporarily not supported for the Documenten and WOPI APIs (CGDMF-177).
+    val allowedSchemes = openApiSpec.security.flatMap { it.keys }.toSet()
+    val securitySchemes = buildSecuritySchemes().filterKeys { it in allowedSchemes }
 
     val apiRoutes = routingRoot.descendants().filter { route ->
         route.toString().contains(openApiSpec.basePath)
