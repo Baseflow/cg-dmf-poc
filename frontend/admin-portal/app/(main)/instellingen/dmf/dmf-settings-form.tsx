@@ -16,8 +16,9 @@ import { Input } from "@/components/ui/input"
 import { Check } from "lucide-react"
 import { useState, type FormEvent } from "react"
 import { type DmfSettingEntry, upsertDmfSetting } from "./actions"
+import { bytesToMB, mbToBytes } from "@/lib/format"
 
-function BytesField({
+function MBField({
   id,
   label,
   description,
@@ -40,6 +41,7 @@ function BytesField({
           id={id}
           type="number"
           min={1}
+          step={1}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="pr-14"
@@ -47,7 +49,7 @@ function BytesField({
           required
         />
         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
-          bytes
+          MB
         </span>
       </div>
       <FieldDescription>{description}</FieldDescription>
@@ -62,8 +64,8 @@ export default function DmfSettingsForm({
 }) {
   const get = (key: string) => settings.find((s) => s.key === key)?.value ?? ""
 
-  const [triggerSize, setTriggerSize] = useState(get("trigger_size_bytes"))
-  const [chunkSize, setChunkSize] = useState(get("chunk_size_bytes"))
+  const [triggerSize, setTriggerSize] = useState(bytesToMB(get("trigger_size_bytes")))
+  const [chunkSize, setChunkSize] = useState(bytesToMB(get("chunk_size_bytes")))
   const [validationEnabled, setValidationEnabled] = useState(
     get("validation_enabled") === "true"
   )
@@ -79,8 +81,8 @@ export default function DmfSettingsForm({
     setError(null)
     try {
       await Promise.all([
-        upsertDmfSetting("trigger_size_bytes", triggerSize),
-        upsertDmfSetting("chunk_size_bytes", chunkSize),
+        upsertDmfSetting("trigger_size_bytes", mbToBytes(triggerSize)),
+        upsertDmfSetting("chunk_size_bytes", mbToBytes(chunkSize)),
         upsertDmfSetting(
           "validation_enabled",
           validationEnabled ? "true" : "false"
@@ -98,19 +100,19 @@ export default function DmfSettingsForm({
     <div className="flex w-full max-w-sm flex-col gap-6">
       <p className="text-sm text-muted-foreground">DMF systeeminstellingen.</p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <BytesField
+        <MBField
           id="trigger-size"
           label="Trigger grootte"
-          description="Minimale bestandsgrootte voordat een bestand wordt gesplitst. Minimaal 1 byte, standaard 300 MB."
+          description="Minimale bestandsgrootte voordat een bestand wordt gesplitst. Minimaal 1 MB, standaard 300 MB."
           value={triggerSize}
           onChange={setTriggerSize}
           disabled={isPending}
         />
 
-        <BytesField
+        <MBField
           id="chunk-size"
           label="Chunk grootte"
-          description="Grootte van elk fragment bij het splitsen van een bestand. Minimaal 1 byte, standaard 100 MB."
+          description="Grootte van elk fragment bij het splitsen van een bestand. Minimaal 1 MB, standaard 100 MB."
           value={chunkSize}
           onChange={setChunkSize}
           disabled={isPending}
