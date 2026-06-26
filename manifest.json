@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28243222203",
+    "runNumber": "957",
+    "branch": "dependabot/npm_and_yarn/frontend/tar-7.5.17",
+    "date": "2026-06-26T14:11:20Z",
+    "path": "integration/28243222203/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28243148450",
     "runNumber": "953",
     "branch": "dependabot/gradle/ktor-231aee6f8e",
