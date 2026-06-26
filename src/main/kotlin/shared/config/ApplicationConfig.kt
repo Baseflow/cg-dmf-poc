@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory
 object ApplicationConfig : Config() {
     private val logger = LoggerFactory.getLogger(ApplicationConfig::class.java)
 
-    val port: Int = System.getenv("PORT")?.toIntOrNull() ?: 8080
+    val port: Int = envOrSystem("PORT", "8080").toInt()
     val baseUrl: String = envOrSystem("BASE_URL", "http://localhost:$port")
 
     override fun printConfig() {
