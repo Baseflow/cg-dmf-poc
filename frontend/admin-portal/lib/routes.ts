@@ -6,4 +6,7 @@ export const ROUTES = {
     repositories: "/instellingen/repositories",
     dmf: "/instellingen/dmf",
   },
+  tools: {
+    zgwToken: "/documenten-api/zgw-token",
+  },
 } as const
