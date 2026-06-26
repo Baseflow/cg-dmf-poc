@@ -13,7 +13,7 @@
   "description": "",
   "dependencies": {
     "docsify": "^4",
-    "swagger-ui-dist": "^5.32.6"
+    "swagger-ui-dist": "^5.32.8"
   },
   "devDependencies": {
     "license-checker-rseidelsohn": "^5.0.1"
