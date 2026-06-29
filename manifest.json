@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28243155997",
+    "runNumber": "954",
+    "branch": "dependabot/gradle/aws-sdk-844a8453bf",
+    "date": "2026-06-29T09:29:47Z",
+    "path": "integration/28243155997/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28243176265",
     "runNumber": "955",
     "branch": "dependabot/gradle/ch.qos.logback-logback-classic-1.5.36",
