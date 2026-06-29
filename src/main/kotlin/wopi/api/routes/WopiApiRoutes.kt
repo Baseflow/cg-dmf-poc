@@ -518,7 +518,7 @@ private suspend fun RoutingContext.getFileContents() {
 private suspend fun RoutingContext.getFileMetadata() {
     val fileId = call.attributes[WopiValidatedFileIdKey]
 
-    val result = service.getById(fileId, emptyList())
+    val result = service.getById(fileId, expand = emptyList())
 
     if (result == null) {
         call.respondProblem(

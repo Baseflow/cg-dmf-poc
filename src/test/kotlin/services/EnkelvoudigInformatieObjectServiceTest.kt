@@ -1238,4 +1238,46 @@ class EnkelvoudigInformatieObjectServiceTest {
         assertEquals("ger", result.taal)
         assertEquals("doc-v3.pdf", result.bestandsnaam)
     }
+
+    @Test
+    fun `getById with versie returns the requested version`() = runBlocking {
+        val created = service.create(generateTestDocument(taal = "dut", bestandsnaam = "v1.pdf"))
+        val uuid = UUID.fromString(created.id)
+        service.update(uuid, generateTestDocument(taal = "eng", bestandsnaam = "v2.pdf"))
+
+        val v1 = service.getById(uuid, versie = 1)
+        assertNotNull(v1)
+        assertEquals(1, v1.versie)
+        assertEquals("dut", v1.taal)
+        assertEquals("v1.pdf", v1.bestandsnaam)
+
+        val v2 = service.getById(uuid, versie = 2)
+        assertNotNull(v2)
+        assertEquals(2, v2.versie)
+        assertEquals("eng", v2.taal)
+        assertEquals("v2.pdf", v2.bestandsnaam)
+    }
+
+    @Test
+    fun `getById with versie returns null for non-existent version number`() = runBlocking {
+        val created = service.create(generateTestDocument())
+        val uuid = UUID.fromString(created.id)
+
+        val result = service.getById(uuid, versie = 99)
+        assertNull(result)
+    }
+
+    @Test
+    fun `getById without versie still returns latest after multiple updates`() = runBlocking {
+        val created = service.create(generateTestDocument(taal = "dut", bestandsnaam = "v1.pdf"))
+        val uuid = UUID.fromString(created.id)
+        service.update(uuid, generateTestDocument(taal = "eng", bestandsnaam = "v2.pdf"))
+        service.update(uuid, generateTestDocument(taal = "ger", bestandsnaam = "v3.pdf"))
+
+        val latest = service.getById(uuid)
+        assertNotNull(latest)
+        assertEquals(3, latest.versie)
+        assertEquals("ger", latest.taal)
+        assertEquals("v3.pdf", latest.bestandsnaam)
+    }
 }

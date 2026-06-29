@@ -1,0 +1,20 @@
+meta {
+  name: Delete
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{versieTestId}}
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 204
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

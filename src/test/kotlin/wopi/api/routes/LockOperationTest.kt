@@ -78,7 +78,7 @@ class LockOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
         coEvery { mockWopiDocumentService.wopiLock(dummyFileId, "lock-value") } returns WopiLockResult.Success
@@ -98,7 +98,7 @@ class LockOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
         coEvery { mockWopiDocumentService.wopiLock(dummyFileId, "lock-value") } returns WopiLockResult.Success
