@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28243187723",
+    "runNumber": "956",
+    "branch": "dependabot/npm_and_yarn/frontend/semver-7.8.5",
+    "date": "2026-06-29T09:14:08Z",
+    "path": "integration/28243187723/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28243233440",
     "runNumber": "958",
     "branch": "dependabot/npm_and_yarn/frontend/swagger-ui-dist-5.32.8",
