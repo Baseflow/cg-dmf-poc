@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "28243233440",
+    "runNumber": "958",
+    "branch": "dependabot/npm_and_yarn/frontend/swagger-ui-dist-5.32.8",
+    "date": "2026-06-29T09:13:19Z",
+    "path": "integration/28243233440/index.html"
+  },
+  {
     "category": "k6",
     "runId": "28341062504",
     "runNumber": "191",
