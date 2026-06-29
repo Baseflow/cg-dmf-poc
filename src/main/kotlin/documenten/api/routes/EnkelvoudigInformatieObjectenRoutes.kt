@@ -7,6 +7,8 @@ import com.baseflow.shared.api.DOCUMENTEN_API_VERSION
 import com.baseflow.shared.api.middleware.ApiVersionHeader
 import com.baseflow.shared.api.models.*
 import com.baseflow.shared.entities.EIORecordEntity
+import com.baseflow.shared.entities.EIOVersionEntity
+import com.baseflow.shared.entities.EIOVersions
 import com.baseflow.shared.entities.latestVersion
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.StorageObjectNotFoundException
@@ -29,6 +31,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.ktor.plugin.scope
 import java.util.*
@@ -780,18 +784,18 @@ private suspend fun RoutingContext.head() {
 }
 
 private suspend fun RoutingContext.get() {
-    // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
         return
     }
 
-    val expand = splitOnComma(call.parameters["expand"])
+    val versie = call.request.queryParameters["versie"]?.toIntOrNull()
+    val expand = splitOnComma(call.request.queryParameters["expand"])
 
     try {
         val uuid = UUID.fromString(uuidString)
-        val result = service.getById(uuid, expand)
+        val result = service.getById(uuid, versie, expand)
 
         if (result == null) {
             call.respondProblem(
@@ -908,19 +912,26 @@ private suspend fun RoutingContext.delete() {
 }
 
 private suspend fun RoutingContext.download() {
-    // TODO add version and registratieOp query parameters support
     val uuidString = call.parameters["uuid"]
     if (uuidString == null) {
         call.respondProblem(HttpStatusCode.BadRequest, badRequest("UUID parameter is required", call.request.path()))
         return
     }
 
+    val versie = call.request.queryParameters["versie"]?.toIntOrNull()
+
     try {
         val uuid = UUID.fromString(uuidString)
 
         val eio = transaction {
             val record = EIORecordEntity.findById(uuid) ?: return@transaction null
-            record.latestVersion()
+            if (versie != null) {
+                EIOVersionEntity.find {
+                    (EIOVersions.recordId eq record.id) and (EIOVersions.versie eq versie)
+                }.firstOrNull()
+            } else {
+                record.latestVersion()
+            }
         }
 
         if (eio == null) {

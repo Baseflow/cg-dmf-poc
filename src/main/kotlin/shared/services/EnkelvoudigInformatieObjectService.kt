@@ -195,12 +195,18 @@ class EnkelvoudigInformatieObjectService(
 
     /**
      * Get an EnkelvoudigInformatieObject by ID
-     * Returns the latest version data
+     * Returns the requested version, or the latest version when [versie] is null.
      */
-    suspend fun getById(id: UUID, expand: List<String> = emptyList()): EnkelvoudigInformatieObjectResponse? {
+    suspend fun getById(id: UUID, versie: Int? = null, expand: List<String> = emptyList()): EnkelvoudigInformatieObjectResponse? {
         val response = transaction {
             val record = EIORecordEntity.findById(id) ?: return@transaction null
-            val version = record.latestVersion() ?: return@transaction null
+            val version = if (versie != null) {
+                EIOVersionEntity.find {
+                    (EIOVersions.recordId eq record.id) and (EIOVersions.versie eq versie)
+                }.firstOrNull()
+            } else {
+                record.latestVersion()
+            } ?: return@transaction null
             val bestandsDelen = bestandsDeelService.getBestandsDelen(version)
             val trefwoorden = (EIOVersionTrefwoorden innerJoin Trefwoorden)
                 .select(Trefwoorden.woord)
