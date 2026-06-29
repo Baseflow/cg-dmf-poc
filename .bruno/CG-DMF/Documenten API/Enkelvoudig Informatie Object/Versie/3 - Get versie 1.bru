@@ -1,0 +1,24 @@
+meta {
+  name: Get versie 1
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{versieTestId}}?versie=1
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.versie: eq 1
+  res.body.taal: eq dut
+  res.body.bestandsnaam: eq versie-test-v1.txt
+  res.body.beschrijving: eq Versie 1
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

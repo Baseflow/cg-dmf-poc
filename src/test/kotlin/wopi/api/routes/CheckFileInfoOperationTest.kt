@@ -77,7 +77,7 @@ class CheckFileInfoOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
@@ -99,7 +99,7 @@ class CheckFileInfoOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
@@ -130,7 +130,7 @@ class CheckFileInfoOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
@@ -151,7 +151,7 @@ class CheckFileInfoOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns dummyEnkelvoudigInformatieObject
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns dummyEnkelvoudigInformatieObject
         }
 
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
@@ -174,7 +174,7 @@ class CheckFileInfoOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns null
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns null
         }
 
         val response: HttpResponse = client.get("${WOPI_API_BASE_PATH}/files/$dummyFileId?access_token=$dummyAccessToken")
@@ -188,7 +188,7 @@ class CheckFileInfoOperationTest {
         }
 
         mockEnkelvoudigInformatieObjectService.also {
-            coEvery { it.getById(dummyFileId, emptyList()) } returns EnkelvoudigInformatieObjectResponse(
+            coEvery { it.getById(dummyFileId, expand = emptyList()) } returns EnkelvoudigInformatieObjectResponse(
                 id = dummyFileId.toString(),
                 url = null,
                 identificatie = null,

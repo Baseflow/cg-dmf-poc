@@ -1,0 +1,41 @@
+meta {
+  name: Put (versie 2)
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{versieTestId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "bronorganisatie": "623058911",
+    "titel": "Versie test document v2",
+    "taal": "eng",
+    "bestandsnaam": "versie-test-v2.txt",
+    "auteur": "Bruno",
+    "creatiedatum": "2026-01-01",
+    "formaat": "text/plain",
+    "inhoud": "dmVyc2llIDJ2ZXJzaWUgMnZlcnNpZSAy",
+    "bestandsomvang": 24,
+    "beschrijving": "Versie 2",
+    "informatieobjecttype": "{{catalogusBaseUrl}}/informatieobjecttypen/1c8beee4-5b1b-4c7b-934c-925a3babd29d",
+    "status": "in_bewerking",
+    "inhoudIsVervallen": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.versie: eq 2
+  res.body.taal: eq eng
+  res.body.bestandsnaam: eq versie-test-v2.txt
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

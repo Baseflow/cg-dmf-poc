@@ -807,4 +807,90 @@ class EnkelvoudigInformatieObjectenRoutesTest : TestBase("eio_routes") {
 
         assertEquals(HttpStatusCode.InternalServerError, response.status)
     }
+
+    // ── versie query parameter ─────────────────────────────────────────────────
+
+    @Test
+    fun `GET with versie param returns the requested version`() = testApplication {
+        application { setup() }
+
+        val post = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(taal = "dut", bestandsnaam = "v1.pdf")))
+        }
+        assertEquals(HttpStatusCode.Created, post.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(post.bodyAsText()).id
+
+        val put = client.put("$API_BASE/$RESOURCE_SEGMENT/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(taal = "eng", bestandsnaam = "v2.pdf")))
+        }
+        assertEquals(HttpStatusCode.OK, put.status)
+
+        val getV1 = client.get("$API_BASE/$RESOURCE_SEGMENT/$id?versie=1")
+        assertEquals(HttpStatusCode.OK, getV1.status)
+        val responseV1 = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getV1.bodyAsText())
+        assertEquals(1, responseV1.versie)
+        assertEquals("dut", responseV1.taal)
+        assertEquals("v1.pdf", responseV1.bestandsnaam)
+
+        val getV2 = client.get("$API_BASE/$RESOURCE_SEGMENT/$id?versie=2")
+        assertEquals(HttpStatusCode.OK, getV2.status)
+        val responseV2 = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(getV2.bodyAsText())
+        assertEquals(2, responseV2.versie)
+        assertEquals("eng", responseV2.taal)
+        assertEquals("v2.pdf", responseV2.bestandsnaam)
+    }
+
+    @Test
+    fun `GET with non-existent versie returns 404`() = testApplication {
+        application { setup() }
+
+        val post = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument()))
+        }
+        assertEquals(HttpStatusCode.Created, post.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(post.bodyAsText()).id
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$id?versie=99")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `GET download with versie param serves the specified version`() = testApplication {
+        application { setup() }
+
+        val post = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(withContent = true)))
+        }
+        assertEquals(HttpStatusCode.Created, post.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(post.bodyAsText()).id
+
+        val put = client.put("$API_BASE/$RESOURCE_SEGMENT/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(withContent = true)))
+        }
+        assertEquals(HttpStatusCode.OK, put.status)
+
+        val download = client.get("$API_BASE/$RESOURCE_SEGMENT/$id/download?versie=1")
+        assertEquals(HttpStatusCode.OK, download.status)
+        assertContains(download.headers.names(), HttpHeaders.ContentDisposition)
+    }
+
+    @Test
+    fun `GET download with non-existent versie returns 404`() = testApplication {
+        application { setup() }
+
+        val post = client.post("$API_BASE/$RESOURCE_SEGMENT") {
+            contentType(ContentType.Application.Json)
+            setBody(Json.encodeToString(generateTestDocument(withContent = true)))
+        }
+        assertEquals(HttpStatusCode.Created, post.status)
+        val id = Json.decodeFromString<EnkelvoudigInformatieObjectResponse>(post.bodyAsText()).id
+
+        val response = client.get("$API_BASE/$RESOURCE_SEGMENT/$id/download?versie=99")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
 }
