@@ -790,12 +790,22 @@ private suspend fun RoutingContext.get() {
         return
     }
 
-    val versie = call.request.queryParameters["versie"]?.toIntOrNull()
+    val versieRaw = call.request.queryParameters["versie"]
+    val versie = if (versieRaw != null) {
+        val parsed = versieRaw.toIntOrNull()
+        if (parsed == null || parsed <= 0) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("versie must be a positive integer", call.request.path()))
+            return
+        }
+        parsed
+    } else {
+        null
+    }
     val expand = splitOnComma(call.request.queryParameters["expand"])
 
     try {
         val uuid = UUID.fromString(uuidString)
-        val result = service.getById(uuid, versie, expand)
+        val result = service.getById(id = uuid, versie = versie, expand = expand)
 
         if (result == null) {
             call.respondProblem(
@@ -918,7 +928,17 @@ private suspend fun RoutingContext.download() {
         return
     }
 
-    val versie = call.request.queryParameters["versie"]?.toIntOrNull()
+    val versieRaw = call.request.queryParameters["versie"]
+    val versie = if (versieRaw != null) {
+        val parsed = versieRaw.toIntOrNull()
+        if (parsed == null || parsed <= 0) {
+            call.respondProblem(HttpStatusCode.BadRequest, badRequest("versie must be a positive integer", call.request.path()))
+            return
+        }
+        parsed
+    } else {
+        null
+    }
 
     try {
         val uuid = UUID.fromString(uuidString)
