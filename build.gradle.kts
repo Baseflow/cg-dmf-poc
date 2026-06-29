@@ -76,8 +76,8 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.24.1")
 
     // AWS S3 storage
-    implementation("software.amazon.awssdk:s3:2.46.14")
-    implementation("software.amazon.awssdk:netty-nio-client:2.46.14")
+    implementation("software.amazon.awssdk:s3:2.46.17")
+    implementation("software.amazon.awssdk:netty-nio-client:2.46.17")
 
     // Azure Blob Storage
     implementation("com.azure:azure-storage-blob:12.35.0")
