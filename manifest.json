@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28243148450",
+    "runNumber": "953",
+    "branch": "dependabot/gradle/ktor-231aee6f8e",
+    "date": "2026-06-29T09:19:39Z",
+    "path": "integration/28243148450/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28243187723",
     "runNumber": "956",
     "branch": "dependabot/npm_and_yarn/frontend/semver-7.8.5",
