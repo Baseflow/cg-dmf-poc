@@ -1,0 +1,24 @@
+meta {
+  name: Download niet-bestaande versie geeft 404
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{versieTestId}}/download
+  body: none
+  auth: inherit
+}
+
+params:query {
+  versie: 99
+}
+
+assert {
+  res.status: eq 404
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

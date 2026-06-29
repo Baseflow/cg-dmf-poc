@@ -1,0 +1,24 @@
+meta {
+  name: Get niet-bestaande versie geeft 404
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/documenten/api/v1/enkelvoudiginformatieobjecten/{{versieTestId}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  versie: 99
+}
+
+assert {
+  res.status: eq 404
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
