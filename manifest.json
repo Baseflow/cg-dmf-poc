@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28665576646",
+    "runNumber": "967",
+    "branch": "dependabot/gradle/org.postgresql-postgresql-42.7.12",
+    "date": "2026-07-03T14:09:23Z",
+    "path": "integration/28665576646/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28665555830",
     "runNumber": "963",
     "branch": "dependabot/docker/gradle-9.6.1-jdk21",
