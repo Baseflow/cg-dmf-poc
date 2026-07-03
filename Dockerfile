@@ -5,7 +5,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev
 
-FROM gradle:9.6.0-jdk21 AS build
+FROM gradle:9.6.1-jdk21 AS build
 
 WORKDIR /app
 
