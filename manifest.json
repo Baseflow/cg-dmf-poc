@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28665609396",
+    "runNumber": "973",
+    "branch": "dependabot/gradle/com.diffplug.spotless-8.8.0",
+    "date": "2026-07-03T14:10:12Z",
+    "path": "integration/28665609396/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28665605431",
     "runNumber": "972",
     "branch": "dependabot/gradle/ch.qos.logback-logback-classic-1.5.37",
