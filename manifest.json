@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "28665647285",
+    "runNumber": "974",
+    "branch": "dependabot/npm_and_yarn/frontend/brace-expansion-5.0.7",
+    "date": "2026-07-03T14:10:39Z",
+    "path": "integration/28665647285/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "28665609396",
     "runNumber": "973",
     "branch": "dependabot/gradle/com.diffplug.spotless-8.8.0",
