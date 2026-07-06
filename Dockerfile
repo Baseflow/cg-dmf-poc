@@ -29,6 +29,6 @@ COPY --from=build /app/build/install/DMF-PoC ./app
 # The Gradle installDist startup script picks up JAVA_OPTS from the environment.
 ENV JAVA_OPTS="-XX:+UseZGC"
 
-EXPOSE 8080
+EXPOSE 8083
 
 ENTRYPOINT ["./app/bin/DMF-PoC"]

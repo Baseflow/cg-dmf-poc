@@ -10,6 +10,7 @@ import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.config.authenticationModule
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.WopiSlatService
+import com.baseflow.shared.services.models.SlatPayload
 import com.baseflow.wopi.api.models.CheckFileInfoResponse
 import com.baseflow.wopi.api.wopiApiModule
 import com.baseflow.wopi.services.WopiDocumentService
@@ -33,6 +34,7 @@ import org.koin.module.requestScope
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class CheckFileInfoOperationTest {
 
@@ -47,7 +49,7 @@ class CheckFileInfoOperationTest {
             modules(
                 module {
                     val mockWopiSlatService = mockk<WopiSlatService>(relaxed = true).also {
-                        every { it.validate(dummyAccessToken) } returns dummyFileId
+                        every { it.validate(dummyAccessToken) } returns dummySlatPayload
                     }
 
                     single<WopiConfig> { WopiConfig(true, "wopi automated tests") }
@@ -227,6 +229,12 @@ class CheckFileInfoOperationTest {
 
     companion object {
         private val dummyFileId = UUID.fromString("12345678-1234-1234-1234-123456789012")
+
+        private val dummyUserId = UUID.fromString("12345678-1234-1234-1234-123456789011")
+
+        private val dummyExpiryTime = Instant.parse("2026-05-26T11:38:05Z")
+
+        private val dummySlatPayload = SlatPayload(fileId = dummyFileId.toString(), dummyExpiryTime.epochSeconds, dummyUserId.toString())
 
         private val dummyAccessToken = "test_token"
 

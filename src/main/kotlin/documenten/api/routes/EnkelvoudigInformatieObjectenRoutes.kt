@@ -10,6 +10,7 @@ import com.baseflow.shared.entities.EIORecordEntity
 import com.baseflow.shared.entities.EIOVersionEntity
 import com.baseflow.shared.entities.EIOVersions
 import com.baseflow.shared.entities.latestVersion
+import com.baseflow.shared.services.AuditTrailService
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.StorageObjectNotFoundException
 import com.baseflow.shared.services.models.DeleteResult
@@ -35,6 +36,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.koin.ktor.plugin.scope
+import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.time.Instant
 
@@ -658,6 +660,7 @@ private suspend fun RoutingContext.create() {
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     try {
         val response = service.create(request)
+
         // Location header with the URL of the created resource
         val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
         call.response.headers.append(HttpHeaders.Location, locationUrl)

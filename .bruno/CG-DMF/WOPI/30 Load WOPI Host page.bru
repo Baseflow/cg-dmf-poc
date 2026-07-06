@@ -1,0 +1,37 @@
+meta {
+  name: 30 Load WOPI Host page
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{baseUrl}}/wopi/files/:file_id?wopiClient=https://collabora.dev.baseflow.com/browser/4610258811/cool.html
+  body: none
+  auth: bearer
+}
+
+params:query {
+  wopiClient: https://collabora.dev.baseflow.com/browser/4610258811/cool.html
+}
+
+params:path {
+  file_id: c4401ebb-a85e-455f-8ad3-28eba8f02e81
+}
+
+auth:bearer {
+  token: eyJmaWxlSWQiOiJjNDQwMWViYi1hODVlLTQ1NWYtOGFkMy0yOGViYThmMDJlODEiLCJleHBpcmVzQXQiOjE3ODE3MDY1MTcsInVzZXJJZCI6ImNnLWRtZiJ9.85nz_KrvPHbuYUaGVVdOcZWp_fA-99K0DUFcDw_jm5Q
+}
+
+vars:pre-request {
+  wopiEioId: c4401ebb-a85e-455f-8ad3-28eba8f02e81
+}
+
+script:pre-request {
+  const wopiAccessToken = bru.getVar("wopiAccessToken");
+  req.setHeader("Authorization", `Bearer ${wopiAccessToken}`);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

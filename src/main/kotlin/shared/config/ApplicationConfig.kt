@@ -8,11 +8,12 @@ object ApplicationConfig : Config() {
     private val logger = LoggerFactory.getLogger(ApplicationConfig::class.java)
 
     val port: Int = envOrSystem("PORT", "8080").toInt()
-    val baseUrl: String = envOrSystem("BASE_URL", "http://localhost:$port")
+    val host: String = envOrSystem("HOST", "localhost")
+    val baseUrl: String = envOrSystem("BASE_URL", "http://$host:$port")
 
     override fun printConfig() {
         val effective = baseUrl()
-        logger.info("ApplicationConfig: baseUrl={}, port={}", effective, port)
+        logger.info("ApplicationConfig: host={}, port={}, baseUrl={}", host, port, effective)
     }
 
     fun baseUrl(): String {

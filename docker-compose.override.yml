@@ -13,8 +13,18 @@ services:
       - '5432:5432'
 
   app:
+    hostname: drc.baseflow.local
     ports:
-      - '8080:8080'
+      - '8083:8083'
+    environment:
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8083}
+      BASE_URL: ${BASE_URL:-'http://drc.baseflow.local:8083/'}
+      OPENZAAK_ENDPOINT: ${OPENZAAK_ENDPOINT:-}
+      OPENZAAK_CLIENT_ID: ${OPENZAAK_CLIENT_ID:-}
+    networks:
+      - default
+      - wopi-network
 
   minio:
     ports:
@@ -23,7 +33,7 @@ services:
 
   keycloak:
     ports:
-      - '8081:8080'
+      - '8082:8080'
 
   azurite:
     ports:
@@ -38,4 +48,8 @@ services:
   notificaties-api:
     ports:
       - '8000:8000'
+
+networks:
+  wopi-network:
+    external: true
 
