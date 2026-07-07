@@ -13,7 +13,6 @@ import kotlinx.html.id
 import kotlinx.html.input
 import kotlinx.html.meta
 import kotlinx.html.script
-import kotlinx.html.span
 import kotlinx.html.style
 import kotlinx.html.title
 import kotlinx.html.unsafe
@@ -67,7 +66,7 @@ fun HTML.wopiHostPage(wopiClientUrl: URI, wopiSrcUrl: URI, accessToken: String, 
         form {
             id = "office_form"
             name = "office_form"
-            target = "office_frame"
+            target = "_self"
             method = FormMethod.post
 
             input {
@@ -82,43 +81,20 @@ fun HTML.wopiHostPage(wopiClientUrl: URI, wopiSrcUrl: URI, accessToken: String, 
             }
         }
 
-        span {
-            id = "frame_holder"
-        }
-
         script(type = ScriptType.textJavaScript) {
             unsafe {
                 raw(
                     """
-
             function createActionUrl() {
-                const actionUrl = URL("$wopiClientUrl")
+                const actionUrl = new URL("$wopiClientUrl")
 
-                actionUrl.searchParams.set('wopiSrc', '$wopiSrcUrl');
+                actionUrl.searchParams.set('WOPISrc', '$wopiSrcUrl');
                 return actionUrl;
-
             }
-
-            const frameHolder = document.getElementById('frame_holder');
-            const officeFrame = document.createElement('iframe');
-            officeFrame.name = 'office_frame';
-            officeFrame.id = 'office_frame';
-
-            // The title should be set for accessibility
-            officeFrame.title = 'Office Frame';
-
-            // This attribute allows true fullscreen mode in slideshow view
-            // when using PowerPoint's 'view' action.
-            officeFrame.setAttribute('allowfullscreen', 'true');
-
-            // The sandbox attribute is needed to allow automatic redirection to the O365 sign-in page in the business user flow
-            officeFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation allow-popups-to-escape-sandbox');
-            frameHolder.appendChild(officeFrame);
 
             const form = document.getElementById('office_form');
             form.action = createActionUrl().toString();
             form.submit();
-
                     """.trimIndent()
                 )
             }

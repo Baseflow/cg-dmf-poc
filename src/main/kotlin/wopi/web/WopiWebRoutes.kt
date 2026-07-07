@@ -33,7 +33,7 @@ fun Route.wopiWebRoutes() {
             val token: String =
                 call.getAccessToken() ?: throw UnauthorizedException("Missing access_token query parameter or Authorization header.")
             val slatPayload: SlatPayload = call.attributes[WopiSlatPayloadKey]
-            val accessTokenTtl: Long = slatPayload.expiresAt - Instant.now().epochSecond
+            val accessTokenTtl: Long = Instant.now().toEpochMilli() + (slatPayload.expiresAt * 1000)
             val wopiClientUrl: String = call.request.queryParameters["wopi_client"] ?: throw BadRequestException("Missing the \"wopi_client\" query parameter")
             val wopiClientUri: URI
             try {

@@ -19,7 +19,7 @@ services:
     environment:
       HOST: ${HOST:-0.0.0.0}
       PORT: ${PORT:-8083}
-      BASE_URL: ${BASE_URL:-'http://drc.baseflow.local:8083/'}
+      BASE_URL: ${BASE_URL:-'http://host.docker.internal:8083/'}
       OPENZAAK_ENDPOINT: ${OPENZAAK_ENDPOINT:-}
       OPENZAAK_CLIENT_ID: ${OPENZAAK_CLIENT_ID:-}
     networks:
