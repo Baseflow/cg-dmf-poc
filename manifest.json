@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "29055607508",
+    "runNumber": "975",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/multi-d75f95ca99",
+    "date": "2026-07-09T22:53:56Z",
+    "path": "integration/29055607508/index.html"
+  },
+  {
     "category": "k6",
     "runId": "28984984798",
     "runNumber": "203",
