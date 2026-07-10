@@ -56,7 +56,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.3.0")
     implementation("org.jetbrains.exposed:exposed-json:1.3.0")
     implementation("org.jetbrains.exposed:exposed-crypt:1.3.0")
-    implementation("org.postgresql:postgresql:42.7.11")
+    implementation("org.postgresql:postgresql:42.7.13")
 
     // Database migrations
     implementation("org.flywaydb:flyway-core:12.9.0")
