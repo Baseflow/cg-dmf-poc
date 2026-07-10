@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "29098509564",
+    "runNumber": "980",
+    "branch": "dependabot/gradle/org.postgresql-postgresql-42.7.13",
+    "date": "2026-07-10T14:10:40Z",
+    "path": "integration/29098509564/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "29098496716",
     "runNumber": "978",
     "branch": "dependabot/gradle/ch.qos.logback-logback-classic-1.5.38",
