@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "29586666766",
+    "runNumber": "982",
+    "branch": "dependabot/gradle/jvm-2.4.10",
+    "date": "2026-07-17T14:53:58Z",
+    "path": "integration/29586666766/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "29586497479",
     "runNumber": "981",
     "branch": "dependabot/github_actions/actions/setup-node-7",
