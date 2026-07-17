@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "29586497479",
+    "runNumber": "981",
+    "branch": "dependabot/github_actions/actions/setup-node-7",
+    "date": "2026-07-17T14:50:37Z",
+    "path": "integration/29586497479/index.html"
+  },
+  {
     "category": "k6",
     "runId": "29460930476",
     "runNumber": "210",
