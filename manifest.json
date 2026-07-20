@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "29771275409",
+    "runNumber": "983",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/axios-1.18.1",
+    "date": "2026-07-20T20:01:47Z",
+    "path": "integration/29771275409/index.html"
+  },
+  {
     "category": "k6",
     "runId": "29709279922",
     "runNumber": "214",
