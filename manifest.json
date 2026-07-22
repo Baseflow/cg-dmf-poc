@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "29877210445",
+    "runNumber": "984",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/body-parser-2.3.0",
+    "date": "2026-07-22T00:14:11Z",
+    "path": "integration/29877210445/index.html"
+  },
+  {
     "category": "k6",
     "runId": "29789811499",
     "runNumber": "215",
