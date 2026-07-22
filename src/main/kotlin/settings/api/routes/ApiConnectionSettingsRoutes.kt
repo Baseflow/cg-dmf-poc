@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
+@file:OptIn(ExperimentalKtorApi::class)
+
 package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.badRequest
@@ -15,9 +17,12 @@ import com.baseflow.shared.entities.settings.ApiConnectionSettingEntity
 import com.baseflow.shared.entities.settings.ApiConnectionSettingsTable
 import com.baseflow.shared.entities.settings.ApiConnectionType
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -43,6 +48,19 @@ fun Route.apiConnectionSettingsRoutes() {
                 ApiConnectionSettingEntity.all().map { it.toResponse() }
             }
             call.respond(all)
+        }.describe {
+            operationId = "api_connection_settings_list"
+            tag("api-connection-settings")
+            summary = "Lijst alle API-koppelingsinstellingen op."
+            description = "Geeft een lijst van alle geconfigureerde externe API-koppelingen (NRC, ZRC, ZTC, etc.)."
+            responses {
+                response(200) {
+                    description = "Lijst van API-koppelingsinstellingen."
+                    ContentType.Application.Json { schema = jsonSchema<List<ApiConnectionSettingResponse>>() }
+                }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+            }
         }
 
         post {
@@ -78,6 +96,31 @@ fun Route.apiConnectionSettingsRoutes() {
                 conflict("An API connection setting with this name already exists.", call.request.path()),
             )
             call.respond(HttpStatusCode.Created, created)
+        }.describe {
+            operationId = "api_connection_settings_create"
+            tag("api-connection-settings")
+            summary = "Maak een API-koppelingsinstelling aan."
+            description = "Registreert een nieuwe koppeling met een externe API. " +
+                "`apiType` moet een van de bekende types zijn: `ac`, `nrc`, `zrc`, `ztc`, `drc`, `brc`, `orc`. " +
+                "`authType` moet een van de ondersteunde authenticatiemethoden zijn: `zgw-auth`, `bearer`, `none`. " +
+                "Bij `zgw-auth` is `clientId` verplicht."
+            requestBody {
+                required = true
+                description = "Gegevens van de aan te maken API-koppeling."
+                content {
+                    schema = jsonSchema<CreateApiConnectionSettingRequest>()
+                }
+            }
+            responses {
+                response(201) {
+                    description = "Aangemaakt."
+                    ContentType.Application.Json { schema = jsonSchema<ApiConnectionSettingResponse>() }
+                }
+                response(400) { description = "Bad request — ontbrekend of ongeldig veld." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                response(409) { description = "Conflict — naam bestaat al." }
+            }
         }
 
         route("/{id}") {
@@ -134,6 +177,36 @@ fun Route.apiConnectionSettingsRoutes() {
                     )
                     is PutOutcome.Ok -> call.respond(HttpStatusCode.OK, outcome.response)
                 }
+            }.describe {
+                operationId = "api_connection_settings_update"
+                tag("api-connection-settings")
+                summary = "Werk een API-koppelingsinstelling bij."
+                description = "Vervangt alle velden van een bestaande koppeling. " +
+                    "Als `clientSecret` weggelaten of `null` is, blijft het bestaande secret ongewijzigd."
+                parameters {
+                    path("id") {
+                        description = "UUID van de API-koppelingsinstelling."
+                        required = true
+                    }
+                }
+                requestBody {
+                    required = true
+                    description = "Bijgewerkte gegevens van de koppeling."
+                    content {
+                        schema = jsonSchema<UpdateApiConnectionSettingRequest>()
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Bijgewerkt."
+                        ContentType.Application.Json { schema = jsonSchema<ApiConnectionSettingResponse>() }
+                    }
+                    response(400) { description = "Bad request — ontbrekend of ongeldig veld." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt of de instelling is readonly." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict — naam bestaat al." }
+                }
             }
 
             delete {
@@ -160,6 +233,22 @@ fun Route.apiConnectionSettingsRoutes() {
                         forbidden("This API connection setting is read-only and cannot be deleted.", call.request.path()),
                     )
                     DeleteOutcome.Deleted -> call.respond(HttpStatusCode.NoContent)
+                }
+            }.describe {
+                operationId = "api_connection_settings_delete"
+                tag("api-connection-settings")
+                summary = "Verwijder een API-koppelingsinstelling."
+                parameters {
+                    path("id") {
+                        description = "UUID van de API-koppelingsinstelling."
+                        required = true
+                    }
+                }
+                responses {
+                    response(204) { description = "Verwijderd." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt of de instelling is readonly." }
+                    response(404) { description = "Not found." }
                 }
             }
         }

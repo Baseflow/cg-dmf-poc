@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
+@file:OptIn(ExperimentalKtorApi::class)
+
 package com.baseflow.settings.api.routes
 
 import com.baseflow.shared.api.models.badRequest
@@ -16,9 +18,12 @@ import com.baseflow.shared.entities.settings.ApplicationSettingEntity
 import com.baseflow.shared.entities.settings.ApplicationSettingsTable
 import com.baseflow.shared.services.ApplicationCredentialRegistrar
 import io.ktor.http.*
+import io.ktor.openapi.jsonSchema
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.routing.openapi.describe
+import io.ktor.utils.io.ExperimentalKtorApi
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -45,6 +50,20 @@ fun Route.applicationSettingsRoutes() {
                 ApplicationSettingEntity.all().map { it.toResponse() }
             }
             call.respond(applications)
+        }.describe {
+            operationId = "application_settings_list"
+            tag("application-settings")
+            summary = "Lijst alle applicatie-instellingen op."
+            description = "Geeft een lijst van alle geregistreerde applicatie-credentials " +
+                "(clientId/secret paren) die gebruikt worden voor ZGW-authenticatie."
+            responses {
+                response(200) {
+                    description = "Lijst van applicatie-instellingen."
+                    ContentType.Application.Json { schema = jsonSchema<List<ApplicationSettingsResponse>>() }
+                }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+            }
         }
 
         post {
@@ -97,6 +116,29 @@ fun Route.applicationSettingsRoutes() {
                     }
                     call.respond(HttpStatusCode.Created, created.response)
                 }
+            }
+        }.describe {
+            operationId = "application_settings_create"
+            tag("application-settings")
+            summary = "Maak een applicatie-instelling aan."
+            description = "Registreert een nieuwe applicatie met een clientId en optioneel een clientSecret " +
+                "voor ZGW-authenticatie."
+            requestBody {
+                required = true
+                description = "Gegevens van de aan te maken applicatie."
+                content {
+                    schema = jsonSchema<CreateApplicationSettingsRequest>()
+                }
+            }
+            responses {
+                response(201) {
+                    description = "Aangemaakt."
+                    ContentType.Application.Json { schema = jsonSchema<ApplicationSettingsResponse>() }
+                }
+                response(400) { description = "Bad request — ontbrekend of ongeldig veld." }
+                response(401) { description = "Unauthorized." }
+                response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt." }
+                response(409) { description = "Conflict — naam of clientId bestaat al." }
             }
         }
 
@@ -180,6 +222,36 @@ fun Route.applicationSettingsRoutes() {
                         call.respond(HttpStatusCode.OK, response)
                     }
                 }
+            }.describe {
+                operationId = "application_settings_update"
+                tag("application-settings")
+                summary = "Werk een applicatie-instelling bij."
+                description = "Vervangt de naam, clientId en optioneel het clientSecret van een bestaande applicatie. " +
+                    "Als `clientSecret` weggelaten of `null` is, blijft het bestaande secret ongewijzigd."
+                parameters {
+                    path("id") {
+                        description = "UUID van de applicatie-instelling."
+                        required = true
+                    }
+                }
+                requestBody {
+                    required = true
+                    description = "Bijgewerkte gegevens van de applicatie."
+                    content {
+                        schema = jsonSchema<UpdateApplicationSettingsRequest>()
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Bijgewerkt."
+                        ContentType.Application.Json { schema = jsonSchema<ApplicationSettingsResponse>() }
+                    }
+                    response(400) { description = "Bad request — ontbrekend of ongeldig veld." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt of de instelling is readonly." }
+                    response(404) { description = "Not found." }
+                    response(409) { description = "Conflict — naam of clientId bestaat al." }
+                }
             }
 
             delete {
@@ -213,6 +285,22 @@ fun Route.applicationSettingsRoutes() {
                         ApplicationCredentialRegistrar.unregisterSecret(result.clientId)
                         call.respond(HttpStatusCode.NoContent)
                     }
+                }
+            }.describe {
+                operationId = "application_settings_delete"
+                tag("application-settings")
+                summary = "Verwijder een applicatie-instelling."
+                parameters {
+                    path("id") {
+                        description = "UUID van de applicatie-instelling."
+                        required = true
+                    }
+                }
+                responses {
+                    response(204) { description = "Verwijderd." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt of de instelling is readonly." }
+                    response(404) { description = "Not found." }
                 }
             }
 
@@ -250,6 +338,36 @@ fun Route.applicationSettingsRoutes() {
                         ApplicationCredentialRegistrar.registerSecret(rotateResult.clientId, plaintext)
                         call.respond(HttpStatusCode.OK, RotateSecretResponse(secret = plaintext))
                     }
+                }
+            }.describe {
+                operationId = "application_settings_rotate_secret"
+                tag("application-settings")
+                summary = "Roteer het clientSecret van een applicatie."
+                description = "Vervangt het huidige clientSecret door een nieuw geheim. " +
+                    "Als `newSecret` weggelaten of leeg is, wordt automatisch een 32-byte hex secret gegenereerd. " +
+                    "Het nieuwe secret wordt eenmalig in de response teruggegeven en daarna nooit meer in plaintext opgeslagen."
+                parameters {
+                    path("id") {
+                        description = "UUID van de applicatie-instelling."
+                        required = true
+                    }
+                }
+                requestBody {
+                    required = false
+                    description = "Optioneel nieuw secret. Weglaten om automatisch te genereren."
+                    content {
+                        schema = jsonSchema<RotateSecretRequest>()
+                    }
+                }
+                responses {
+                    response(200) {
+                        description = "Secret geroteerd. Het nieuwe plaintext secret wordt eenmalig teruggegeven."
+                        ContentType.Application.Json { schema = jsonSchema<RotateSecretResponse>() }
+                    }
+                    response(400) { description = "Bad request — ongeldige UUID." }
+                    response(401) { description = "Unauthorized." }
+                    response(403) { description = "Forbidden — de `dmf-admin` rol ontbreekt of de instelling is readonly." }
+                    response(404) { description = "Not found." }
                 }
             }
         }
