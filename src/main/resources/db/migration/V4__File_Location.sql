@@ -1,1 +1,0 @@
-ALTER TABLE eio_versions ADD bestands_locatie VARCHAR(1000) DEFAULT '';
