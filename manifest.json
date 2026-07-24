@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "30122124254",
+    "runNumber": "986",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/dompurify-3.4.12",
+    "date": "2026-07-24T20:43:47Z",
+    "path": "integration/30122124254/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "30066800235",
     "runNumber": "985",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/hono-4.12.31",
