@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "30233696073",
+    "runNumber": "990",
+    "branch": "dependabot/npm_and_yarn/frontend/tar-7.5.22",
+    "date": "2026-07-27T03:51:05Z",
+    "path": "integration/30233696073/index.html"
+  },
+  {
     "category": "k6",
     "runId": "30227115272",
     "runNumber": "221",
