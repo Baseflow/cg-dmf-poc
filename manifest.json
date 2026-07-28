@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "30376885856",
+    "runNumber": "992",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/postcss-8.5.18",
+    "date": "2026-07-28T16:55:11Z",
+    "path": "integration/30376885856/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "30340842196",
     "runNumber": "991",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/next-16.2.12",
