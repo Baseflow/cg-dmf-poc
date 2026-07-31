@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "30637094213",
+    "runNumber": "994",
+    "branch": "dependabot/gradle/org.flywaydb-flyway-database-postgresql-13.0.0",
+    "date": "2026-07-31T14:51:24Z",
+    "path": "integration/30637094213/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "30637098497",
     "runNumber": "995",
     "branch": "dependabot/github_actions/docker/login-action-4.5.2",
