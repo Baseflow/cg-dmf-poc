@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "30637266840",
+    "runNumber": "997",
+    "branch": "dependabot/gradle/ch.qos.logback-logback-classic-1.6.1",
+    "date": "2026-07-31T14:53:45Z",
+    "path": "integration/30637266840/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "30637094213",
     "runNumber": "994",
     "branch": "dependabot/gradle/org.flywaydb-flyway-database-postgresql-13.0.0",
