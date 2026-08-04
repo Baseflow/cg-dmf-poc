@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "30907010253",
+    "runNumber": "1001",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/undici-7.29.0",
+    "date": "2026-08-04T12:44:56Z",
+    "path": "integration/30907010253/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "30869861393",
     "runNumber": "1000",
     "branch": "dependabot/npm_and_yarn/frontend/ip-address-10.4.0",
