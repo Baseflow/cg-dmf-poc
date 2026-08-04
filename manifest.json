@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "30916545406",
+    "runNumber": "1002",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/hono-4.13.0",
+    "date": "2026-08-04T14:46:10Z",
+    "path": "integration/30916545406/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "30907010253",
     "runNumber": "1001",
     "branch": "dependabot/npm_and_yarn/frontend/admin-portal/undici-7.29.0",
