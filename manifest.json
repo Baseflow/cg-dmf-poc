@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "31027928422",
+    "runNumber": "1003",
+    "branch": "dependabot/npm_and_yarn/frontend/undici-6.28.0",
+    "date": "2026-08-05T17:47:40Z",
+    "path": "integration/31027928422/index.html"
+  },
+  {
     "category": "k6",
     "runId": "30962813110",
     "runNumber": "230",
