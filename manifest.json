@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "31309262399",
+    "runNumber": "1005",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/dompurify-3.4.13",
+    "date": "2026-08-09T11:36:18Z",
+    "path": "integration/31309262399/index.html"
+  },
+  {
     "category": "k6",
     "runId": "31285402396",
     "runNumber": "234",
