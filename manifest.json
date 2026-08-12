@@ -1,6 +1,14 @@
 [
   {
     "category": "integration",
+    "runId": "31637203478",
+    "runNumber": "1015",
+    "branch": "dependabot/npm_and_yarn/frontend/admin-portal/hono/node-server-1.19.17",
+    "date": "2026-08-12T21:07:02Z",
+    "path": "integration/31637203478/index.html"
+  },
+  {
+    "category": "integration",
     "runId": "31591985769",
     "runNumber": "1013",
     "branch": "dependabot/gradle/jvm-2.4.10",
