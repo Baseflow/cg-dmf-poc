@@ -1,5 +1,13 @@
 [
   {
+    "category": "integration",
+    "runId": "31591927752",
+    "runNumber": "1012",
+    "branch": "dependabot/gradle/ch.qos.logback-logback-classic-1.6.1",
+    "date": "2026-08-12T12:13:35Z",
+    "path": "integration/31591927752/index.html"
+  },
+  {
     "category": "k6",
     "runId": "31592848410",
     "runNumber": "240",
