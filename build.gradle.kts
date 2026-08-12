@@ -4,7 +4,7 @@ import org.gradle.api.provider.ValueSourceParameters
 import java.io.File
 
 plugins {
-    kotlin("jvm") version "2.4.0"
+    kotlin("jvm") version "2.4.10"
     application
     kotlin("plugin.serialization") version "2.4.0"
     id("com.github.ben-manes.versions") version "0.54.0"
