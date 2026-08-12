@@ -1,5 +1,6 @@
-## 1.0.1
+## 1.1.0
 
-### Backend
+### WOPI
 
-- Fix downloading and fetching information of old versions of an EIO
+- Adds support to unlock and relock a file.
+- Adds support to host a WOPI Host page, making integration through WOPI easier.
