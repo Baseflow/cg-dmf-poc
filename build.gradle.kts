@@ -40,6 +40,7 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:3.5.1")
     implementation("io.ktor:ktor-server-conditional-headers:3.5.1")
     implementation("io.ktor:ktor-server-status-pages:3.5.1")
+    implementation("io.ktor:ktor-server-html-builder:3.5.1")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.1")
     implementation("io.ktor:ktor-server-auth:3.5.1")
     implementation("io.ktor:ktor-server-auth-jwt:3.5.1")
@@ -67,6 +68,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.12.0")
 
     // Logging
     implementation("ch.qos.logback:logback-classic:1.5.36")

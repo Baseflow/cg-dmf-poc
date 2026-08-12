@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.wopi.api
+package com.baseflow.wopi.shared.middleware
 
+import com.baseflow.shared.services.models.SlatPayload
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.plugins.BadRequestException
 import java.util.UUID
+
+/** Attribute key to retrieve the WOPI Slat payload inside a route handler. */
+val WopiSlatPayloadKey = io.ktor.util.AttributeKey<SlatPayload>("WopiSlatPayload")
+
+/** Attribute key to retrieve the validated WOPI file UUID inside a route handler. */
+val WopiValidatedFileIdKey = io.ktor.util.AttributeKey<UUID>("WopiValidatedFileId")
 
 /**
  * Route-scoped Ktor plugin that parses the `file_id` path parameter as a [UUID]

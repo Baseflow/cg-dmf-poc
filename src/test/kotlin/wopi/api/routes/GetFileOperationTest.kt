@@ -9,6 +9,7 @@ import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.config.authenticationModule
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.WopiSlatService
+import com.baseflow.shared.services.models.SlatPayload
 import com.baseflow.testutils.decodeRfc5987
 import com.baseflow.wopi.api.wopiApiModule
 import com.baseflow.wopi.services.WopiDocumentService
@@ -36,6 +37,7 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 class GetFileOperationTest {
     private val mockWopiDocumentService = mockk<WopiDocumentService>(relaxed = true)
@@ -47,7 +49,7 @@ class GetFileOperationTest {
             modules(
                 module {
                     val mockWopiSlatService = mockk<WopiSlatService>(relaxed = true).also {
-                        every { it.validate(dummyAccessToken) } returns dummyFileId
+                        every { it.validate(dummyAccessToken) } returns dummySlatPayload
                     }
 
                     single<WopiConfig> { WopiConfig(true, "wopi automated tests") }
@@ -383,6 +385,12 @@ class GetFileOperationTest {
 
     companion object {
         private val dummyFileId = UUID.fromString("12345678-1234-1234-1234-123456789012")
+
+        private val dummySlatPayload = SlatPayload(
+            fileId = dummyFileId.toString(),
+            expiresAt = Clock.System.now().epochSeconds + 3600,
+            userId = "1",
+        )
 
         private val dummyAccessToken = "test_token"
     }

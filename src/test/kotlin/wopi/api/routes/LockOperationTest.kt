@@ -11,6 +11,7 @@ import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.config.authenticationModule
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.WopiSlatService
+import com.baseflow.shared.services.models.SlatPayload
 import com.baseflow.wopi.api.models.WopiLockPayload
 import com.baseflow.wopi.api.models.WopiLockResult
 import com.baseflow.wopi.api.wopiApiModule
@@ -34,6 +35,7 @@ import org.koin.module.requestScope
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Clock
 
 class LockOperationTest {
 
@@ -47,7 +49,8 @@ class LockOperationTest {
             modules(
                 module {
                     val mockWopiSlatService = mockk<WopiSlatService>(relaxed = true).also {
-                        every { it.validate(dummyAccessToken) } returns dummyFileId
+                        every { it.validate(dummyAccessToken) } returns dummySlatPayload
+                        every { it.validate(dummyInvalidAccessToken) } returns null
                     }
 
                     single<WopiConfig> { WopiConfig(true, "wopi automated tests") }
@@ -117,7 +120,7 @@ class LockOperationTest {
         }
 
         val response: HttpResponse =
-            client.post("$WOPI_API_BASE_PATH/files/$dummyFileId?access_token=invalid_token") {
+            client.post("$WOPI_API_BASE_PATH/files/$dummyFileId?access_token=$dummyInvalidAccessToken") {
                 header("X-WOPI-Override", "LOCK")
                 header("X-WOPI-Lock", "lock-value")
             }
@@ -162,7 +165,15 @@ class LockOperationTest {
     companion object {
         private val dummyFileId = UUID.fromString("12345678-1234-1234-1234-123456789012")
 
-        private val dummyAccessToken = "test_token"
+        private val dummySlatPayload = SlatPayload(
+            fileId = dummyFileId.toString(),
+            expiresAt = Clock.System.now().epochSeconds + 3600,
+            userId = "1",
+        )
+
+        private const val dummyInvalidAccessToken = "invalid_token"
+
+        private const val dummyAccessToken = "test_token"
 
         private val dummyEnkelvoudigInformatieObject = EnkelvoudigInformatieObjectResponse(
             id = dummyFileId.toString(),

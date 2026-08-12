@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Gemeente Utrecht
 package com.baseflow.shared.services
 
-import kotlinx.serialization.Serializable
+import com.baseflow.shared.services.models.SlatPayload
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.Base64
@@ -34,9 +34,6 @@ class WopiSlatService(
     private val decoder = Base64.getUrlDecoder()
     private val json = Json { ignoreUnknownKeys = false }
 
-    @Serializable
-    private data class SlatPayload(val fileId: String, val expiresAt: Long, val userId: String)
-
     /**
      * Issues a new SLAT for [fileId] and [userId].
      *
@@ -58,8 +55,8 @@ class WopiSlatService(
      *
      * @return The file UUID if the token is valid and not expired, `null` otherwise.
      */
-    fun validate(token: String): UUID? {
-        return try {
+    fun validate(token: String): SlatPayload? {
+        try {
             val lastDot = token.lastIndexOf('.')
             if (lastDot < 0) return null
 
@@ -78,9 +75,12 @@ class WopiSlatService(
             if (decodedPayload.userId.isBlank()) return null
             if (Instant.now().epochSecond > decodedPayload.expiresAt) return null
 
+            // Try to parse the fileId as a UUID, to ensure it's a valid UUID.
             UUID.fromString(decodedPayload.fileId)
+
+            return decodedPayload
         } catch (_: Exception) {
-            null
+            return null
         }
     }
 

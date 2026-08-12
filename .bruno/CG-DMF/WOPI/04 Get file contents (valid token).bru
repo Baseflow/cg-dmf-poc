@@ -7,11 +7,19 @@ meta {
 get {
   url: {{baseUrl}}/wopi/api/v1/files/{{wopiEioId}}/contents?access_token={{wopiAccessToken}}
   body: none
-  auth: none
+  auth: bearer
 }
 
 params:query {
   access_token: {{wopiAccessToken}}
+}
+
+auth:bearer {
+  token: d
+}
+
+vars:pre-request {
+  wopiEioId: c4401ebb-a85e-455f-8ad3-28eba8f02e81
 }
 
 assert {
