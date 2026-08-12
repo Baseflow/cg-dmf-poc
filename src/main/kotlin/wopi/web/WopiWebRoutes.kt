@@ -21,7 +21,6 @@ import io.ktor.server.routing.route
 import io.ktor.utils.io.ExperimentalKtorApi
 import java.net.URI
 import java.net.URISyntaxException
-import java.time.Instant
 
 @OptIn(ExperimentalKtorApi::class)
 fun Route.wopiWebRoutes() {
@@ -33,13 +32,13 @@ fun Route.wopiWebRoutes() {
             val token: String =
                 call.getAccessToken() ?: throw UnauthorizedException("Missing access_token query parameter or Authorization header.")
             val slatPayload: SlatPayload = call.attributes[WopiSlatPayloadKey]
-            val accessTokenTtl: Long = Instant.now().toEpochMilli() + (slatPayload.expiresAt * 1000)
-            val wopiClientUrl: String = call.request.queryParameters["wopi_client"] ?: throw BadRequestException("Missing the \"wopi_client\" query parameter")
+            val accessTokenTtl: Long = slatPayload.expiresAt * 1000
+            val wopiClientUrl: String = call.request.queryParameters["wopiClient"] ?: throw BadRequestException("Missing the \"wopiClient\" query parameter")
             val wopiClientUri: URI
             try {
                 wopiClientUri = URI(wopiClientUrl)
             } catch (e: URISyntaxException) {
-                throw BadRequestException("Invalid wopi_client URL: $wopiClientUrl", e)
+                throw BadRequestException("Invalid wopiClient URL: $wopiClientUrl", e)
             }
 
             val wopiSrcUrl: URI = buildWopiSrcUrl(call.request, slatPayload)
@@ -56,5 +55,5 @@ private fun buildWopiSrcUrl(call: ApplicationRequest, slatPayload: SlatPayload):
     val host: String = call.origin.serverHost
     val port: Int = call.origin.serverPort
 
-    return URI("$scheme://$host:$port/$WOPI_API_BASE_PATH/files/${slatPayload.fileId}")
+    return URI("$scheme://$host:$port$WOPI_API_BASE_PATH/files/${slatPayload.fileId}")
 }
