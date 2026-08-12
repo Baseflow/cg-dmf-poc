@@ -57,7 +57,7 @@ fun HTML.wopiHostPage(wopiClientUrl: URI, wopiSrcUrl: URI, accessToken: String, 
                 display: block;
             }
 
-                """.trimIndent(),
+                    """.trimIndent(),
                 )
             }
         }
@@ -95,7 +95,7 @@ fun HTML.wopiHostPage(wopiClientUrl: URI, wopiSrcUrl: URI, accessToken: String, 
             const form = document.getElementById('office_form');
             form.action = createActionUrl().toString();
             form.submit();
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
             }
         }

@@ -98,7 +98,8 @@ fun main() {
         },
         configure = {
             connector {
-                port = ApplicationConfig.port }
+                port = ApplicationConfig.port
+            }
             maxInitialLineLength = 8192
             maxHeaderSize = 32768
         },
