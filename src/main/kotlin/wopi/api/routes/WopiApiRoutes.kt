@@ -13,9 +13,6 @@ import com.baseflow.shared.api.models.unauthorized
 import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.services.EnkelvoudigInformatieObjectService
 import com.baseflow.shared.services.WopiSlatService
-import com.baseflow.wopi.api.WopiFileIdPlugin
-import com.baseflow.wopi.api.WopiSlatAuthPlugin
-import com.baseflow.wopi.api.WopiValidatedFileIdKey
 import com.baseflow.wopi.api.models.CheckContainerInfoResponse
 import com.baseflow.wopi.api.models.CheckFileInfoResponse
 import com.baseflow.wopi.api.models.PutRelativeFileResponse
@@ -29,6 +26,9 @@ import com.baseflow.wopi.api.models.WopiTokenResponse
 import com.baseflow.wopi.api.models.WopiUnlockAndRelockResult
 import com.baseflow.wopi.api.models.WopiUnlockResult
 import com.baseflow.wopi.services.WopiDocumentService
+import com.baseflow.wopi.shared.middleware.WopiFileIdPlugin
+import com.baseflow.wopi.shared.middleware.WopiSlatAuthPlugin
+import com.baseflow.wopi.shared.middleware.WopiValidatedFileIdKey
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders

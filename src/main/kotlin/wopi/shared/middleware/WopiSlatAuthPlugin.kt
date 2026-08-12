@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: EUPL-1.2
 // Copyright (C) 2026 Gemeente Utrecht
-package com.baseflow.wopi.api
+package com.baseflow.wopi.shared.middleware
 
 import com.baseflow.shared.api.middleware.UnauthorizedException
 import com.baseflow.shared.config.WopiConfig
 import com.baseflow.shared.services.WopiSlatService
+import com.baseflow.shared.services.models.SlatPayload
+import com.baseflow.wopi.shared.tooling.getAccessToken
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
-import io.ktor.util.AttributeKey
 import org.koin.core.parameter.parametersOf
 import org.koin.ktor.plugin.scope
 import java.util.UUID
@@ -24,21 +25,22 @@ val WopiSlatAuthPlugin = createRouteScopedPlugin(
     onCall { call ->
         val slatService: WopiSlatService = getWopiSlatService(call)
 
-        val token = call.request.queryParameters["access_token"]
-            ?: throw UnauthorizedException("Missing access_token query parameter.")
+        val token = call.getAccessToken() ?: throw UnauthorizedException("Missing access_token query parameter or Authorization header.")
 
-        val fileId = slatService.validate(token)
+        val slatPayload: SlatPayload = slatService.validate(token)
             ?: throw UnauthorizedException("Invalid or expired access_token.")
+        val fileId: UUID = UUID.fromString(slatPayload.fileId)
 
         // Verify the token was issued for the file_id in the URL path.
         // This prevents using a valid token for one file to access a different file.
         // WopiFileIdPlugin (installed on the same route) has already parsed and stored the UUID.
         val pathFileId = call.attributes.getOrNull(WopiValidatedFileIdKey)
         if (pathFileId != null && pathFileId != fileId) {
-            throw UnauthorizedException("access_token was not issued for this file.")
+            throw UnauthorizedException("The token supplied was not issued for this resource.")
         }
 
         // Store the validated UUID so route handlers can use it without re-parsing path params
+        call.attributes.put(WopiSlatPayloadKey, slatPayload)
         call.attributes.put(WopiValidatedFileIdKey, fileId)
     }
 }
@@ -50,6 +52,3 @@ private fun getWopiSlatService(call: ApplicationCall): WopiSlatService = call.sc
         config.slatTtlSeconds,
     )
 }
-
-/** Attribute key to retrieve the validated WOPI file UUID inside a route handler. */
-val WopiValidatedFileIdKey = AttributeKey<UUID>("WopiValidatedFileId")

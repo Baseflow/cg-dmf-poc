@@ -33,7 +33,7 @@ services:
       - KC_DB_URL_DATABASE=keycloak
       - KC_DB_USERNAME=documenten
     ports:
-      - '8081:8080'
+      - '8082:8080'
     volumes:
       - ./data/realm-export.json:/opt/keycloak/data/import/realm.json
     depends_on:

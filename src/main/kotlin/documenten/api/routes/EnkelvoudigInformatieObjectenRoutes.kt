@@ -658,6 +658,7 @@ private suspend fun RoutingContext.create() {
     val request = call.receive<EnkelvoudigInformatieObjectRequest>()
     try {
         val response = service.create(request)
+
         // Location header with the URL of the created resource
         val locationUrl = ApiUrlBuilder.absolute(RESOURCE_SEGMENT, response.id)
         call.response.headers.append(HttpHeaders.Location, locationUrl)

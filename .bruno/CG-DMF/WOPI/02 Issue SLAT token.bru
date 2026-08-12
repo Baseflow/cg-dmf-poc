@@ -10,6 +10,10 @@ post {
   auth: inherit
 }
 
+vars:pre-request {
+  wopiEioId: c4401ebb-a85e-455f-8ad3-28eba8f02e81
+}
+
 vars:post-response {
   wopiAccessToken: res.body.access_token
   wopiAccessTokenTtl: res.body.access_token_expires_at
@@ -24,16 +28,16 @@ assert {
 script:post-response {
   const token = res.body.access_token;
   const ttl = res.body.access_token_expires_at;
-
+  
   bru.setVar("wopiAccessToken", token);
   bru.setVar("wopiAccessTokenTtl", ttl);
-
+  
   // Basic sanity checks on the token structure: <base64payload>.<base64sig>
   const parts = token.split(".");
   test("Token has two dot-separated parts (payload + signature)", function() {
     expect(parts.length).to.equal(2);
   });
-
+  
   // TTL should be a future Unix epoch timestamp (more than "now")
   const nowEpoch = Math.floor(Date.now() / 1000);
   test("Token TTL is in the future", function() {
@@ -45,4 +49,3 @@ settings {
   encodeUrl: true
   timeout: 0
 }
-

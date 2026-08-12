@@ -24,7 +24,7 @@ class WopiSlatServiceTest {
         val fileId = UUID.randomUUID()
         val (token, _) = service.issue(fileId, issuerUserId)
         val result = service.validate(token)
-        assertEquals(fileId, result)
+        assertEquals(fileId.toString(), result?.fileId)
     }
 
     @Test
@@ -42,7 +42,7 @@ class WopiSlatServiceTest {
         val fileId = UUID.randomUUID()
         val (token, _) = service.issue(fileId, issuerUserId)
         repeat(3) {
-            assertEquals(fileId, service.validate(token))
+            assertEquals(fileId.toString(), service.validate(token)?.fileId)
         }
     }
 
@@ -52,8 +52,8 @@ class WopiSlatServiceTest {
         val id2 = UUID.randomUUID()
         val (token1, _) = service.issue(id1, issuerUserId)
         val (token2, _) = service.issue(id2, issuerUserId)
-        assertEquals(id1, service.validate(token1))
-        assertEquals(id2, service.validate(token2))
+        assertEquals(id1.toString(), service.validate(token1)?.fileId)
+        assertEquals(id2.toString(), service.validate(token2)?.fileId)
     }
 
     // ── Tampered signature ────────────────────────────────────────────────────

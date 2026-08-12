@@ -22,6 +22,7 @@ import com.baseflow.shared.services.NotificatiesMigrator
 import com.baseflow.shared.services.NotificationService
 import com.baseflow.shared.services.OpenZaakMigrator
 import com.baseflow.wopi.api.wopiApiModule
+import com.baseflow.wopi.web.wopiWebModule
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.serialization.kotlinx.json.json
@@ -96,7 +97,9 @@ fun main() {
             module(Application::module)
         },
         configure = {
-            connector { port = ApplicationConfig.port }
+            connector {
+                port = ApplicationConfig.port
+            }
             maxInitialLineLength = 8192
             maxHeaderSize = 32768
         },
@@ -123,6 +126,7 @@ fun Application.module() {
     healthModule() // Health endpoints at /health/liveness and /health/readiness
     documentenApiModule() // Documenten API at /documenten/api/v1
     wopiApiModule(wopiConfig) // Wopi API at /wopi/api/v1
+    wopiWebModule(wopiConfig) // WOPI Web module hosts the WOPI Host page which encapsulates the WOPI Client at /wopi/files/{fileId}
     settingsModule() // Settings API at /settings
     openApiModule() // OpenAPI spec at /openapi.json and Swagger UI at /docs
 }
