@@ -334,9 +334,10 @@ Zie [wopi/wopi.md](wopi/wopi.md) voor de volledige WOPI-integratiehandleiding.
 
 ```env
 WOPI_ENABLED=true
-WOPI_HOST_BASE_URL=https://cg-dmf.example.com
-WOPI_CLIENT_BASE_URL=https://collabora.example.com
+WOPI_SLAT_SECRET=<geheime waarde van minimaal 32 tekens>
 ```
 
-Een frontend opent een document door een HTML-formulier te POSTen naar de Collabora-URL met het WOPI-source-pad en een JWT-token. Zie [wopi/wopi.md](wopi/wopi.md) voor een werkend voorbeeldbestand.
+`WOPI_SLAT_SECRET` is verplicht zodra `WOPI_ENABLED=true` — zonder deze waarde start de applicatie niet op.
+
+Een frontend opent een document door een HTML-formulier te POSTen naar de WOPI-client (bijv. Collabora) met het WOPI-source-pad en een JWT-token. De basis-URLs van de DMF en de WOPI-client zijn hierbij aan de frontend/integrator zelf om te configureren — dit zijn geen omgevingsvariabelen van de DMF. Zie [wopi/wopi.md](wopi/wopi.md) voor een werkend voorbeeldbestand.
 

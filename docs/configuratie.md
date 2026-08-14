@@ -166,13 +166,13 @@ Stel de volgende omgevingsvariabelen in indien nodig:
 ## WOPI
 
 De DMF implementeert een WOPI-host waarmee WOPI-clients (bijvoorbeeld Collabora of Microsoft 365) documenten kunnen
-openen en bewerken in de browser. Zie [docs/wopi.md](wopi.md) voor een volledig overzicht.
+openen en bewerken in de browser. Zie [docs/wopi/wopi.md](wopi/wopi.md) voor een volledig overzicht.
 
-| Variabele              | Standaardwaarde | Beschrijving                                                                                                                                                                              |
-|------------------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `WOPI_ENABLED`         | `false`         | Zet op `true` om de WOPI functionaliteit beschikbaar te maken.                                                                                                                            |
-| `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF bereikbaar door de WOPI_client, bijv. `http://localhost:8080`. Het volledige WOPI-endpoint is dan bijv. `http://localhost:8080/wopi/api/v1/files/{file_id}` |
-| `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke basis-URL van de WOPI-client bijv. `https://collabora.dev.baseflow.com`                                                                                                          |
+| Variabele                | Standaardwaarde | Beschrijving                                                                                                                                                       |
+|--------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `WOPI_ENABLED`           | `false`         | Zet op `true` om de WOPI functionaliteit beschikbaar te maken.                                                                                                    |
+| `WOPI_SLAT_SECRET`       | _(geen)_        | **Verplicht wanneer `WOPI_ENABLED=true`.** Salt voor het encoderen/decoderen van het Short-Lived Access Token (SLAT). Minimaal aanbevolen lengte: 32 tekens. De applicatie start niet op als deze ontbreekt terwijl WOPI is ingeschakeld. |
+| `WOPI_SLAT_TTL_SECONDS`  | `3600`          | Levensduur in seconden van het SLAT-token.                                                                                                                        |
 
 ## Ingress en paden
 

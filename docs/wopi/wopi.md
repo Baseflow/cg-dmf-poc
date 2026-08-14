@@ -18,6 +18,12 @@ De WOPI-routes zijn beschikbaar onder het basispad `/wopi/api/v1`.
 | ------------------------------- | ------ | --------------- | ---------------------------- | ------------------------------------------------------------------------------------ | :-------------: |
 | `/wopi/api/v1/token/{file_id}`  | POST   | —               | IssueToken *(DMF-specifiek)* | Geeft een kortlopend toegangstoken (SLAT) terug voor het opgegeven document.         | ✅ |
 
+### Host page (DMF-specifiek)
+
+| Endpoint                                  | Method | Beschrijving                                                                                                                                                             | Geïmplementeerd |
+| ------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------: |
+| `/wopi/files/{file_id}?wopiClient={url}`   | GET    | Retourneert een pagina die automatisch een `POST` doet naar de opgegeven WOPI-client-URL, met een correct opgebouwde `WOPISrc` en het toegangstoken. Vereist het SLAT-token als `access_token` query parameter of `Authorization: Bearer`-header. | ✅ |
+
 ### Files
 
 | Endpoint                                 | Method | X-WOPI-Override                                            | WOPI-operatie      | Beschrijving                                                                                                            | Geïmplementeerd |
@@ -70,29 +76,48 @@ Wij gaan in dit hoofdstuk ook uit van de Collabora Online WOPI-client maar instr
 
 Stel de volgende omgevingsvariabelen in om WOPI te configureren:
 
-| Variabele              | Standaardwaarde | Beschrijving                                                                                      |
-|------------------------| --------------- | ------------------------------------------------------------------------------------------------- |
-| `WOPI_ENABLED`         | `false`         | Zet op `true` om de WOPI-routes in te schakelen                                                   |
-| `WOPI_CLIENT_BASE_URL` | _(leeg)_        | Publieke URL van de WOPI-client instantie, bijv. `https://collabora.example.com`                  |
-| `WOPI_HOST_BASE_URL`   | _(leeg)_        | Publieke basis-URL van de DMF die door de WOPI-client bereikbaar is, bijv. `https://dmf.example.com` |
+| Variabele               | Standaardwaarde | Beschrijving                                                                                      |
+|-------------------------|-----------------|-----------------------------------------------------------------------------------------------------|
+| `WOPI_ENABLED`          | `false`         | Zet op `true` om de WOPI-routes in te schakelen                                                   |
+| `WOPI_SLAT_SECRET`      | _(geen)_        | **Verplicht wanneer `WOPI_ENABLED=true`.** Salt voor het Short-Lived Access Token (SLAT). Minimaal aanbevolen lengte: 32 tekens. |
+| `WOPI_SLAT_TTL_SECONDS` | `3600`          | Levensduur in seconden van het SLAT-token.                                                         |
 
-> **Let op:** `WOPI_HOST_BASE_URL` moet bereikbaar zijn vanuit de WOPI-client container.
+`WOPI_HOST_BASE_URL` en `WOPI_CLIENT_BASE_URL` in het voorbeeld hieronder zijn **geen omgevingsvariabelen van de DMF** — ze worden nergens in de applicatiecode gelezen. Het zijn illustratieve placeholders voor basis-URLs die de **frontend/integrator** zelf moet kennen:
+- de publieke basis-URL van de DMF, bereikbaar vanuit de WOPI-clientcontainer (bijv. `https://dmf.example.com`), gebruikt om de `WOPISrc`-parameter op te bouwen;
+- de publieke URL van de WOPI-clientinstantie (bijv. `https://collabora.example.com`), gebruikt als doel van het formulier.
+
+> **Let op:** de DMF-basis-URL moet bereikbaar zijn vanuit de WOPI-clientcontainer.
 
 ---
 
 ## Document openen via een WOPI-client (bijv. Collabora Online)
 
-Een frontend opent een document in een WOPI-client door een HTML-formulier te `POST`en naar de client-URL. Het onderstaande voorbeeld gebruikt Collabora Online, maar de structuur is vergelijkbaar voor andere WOPI-clients:
+De eenvoudigste manier om een document te openen is via de WOPI Host pagina van de DMF zelf (`GET /wopi/files/{file_id}`).
 
-```html
-<form method="POST"
-      action="{WOPI_CLIENT_BASE_URL}/browser/{hash}/cool.html?WOPISrc={WOPI_HOST_BASE_URL}/wopi/api/v1/files/{uuid}"
-      target="collabora-iframe">
-  <input type="hidden" name="access_token" value="{ACCESS_TOKEN}" />
-  <input type="submit" value="Open document" />
-</form>
-```
+### Stappen
 
-Een werkend voorbeeldbestand met Collabora Online is beschikbaar in [`wopi_test.html`](../../docs/wopi/wopi_test.html) in de projectroot.
+1. Vraag een kortlopend toegangstoken (SLAT) op via `POST /wopi/api/v1/token/{file_id}`.
+2. Laad (bijv. in een `<iframe>`, of door de browser te redirecten) de host page van de DMF:
+
+   ```
+   GET {DMF_BASE_URL}/wopi/files/{file_id}?wopiClient={WOPI_CLIENT_PAGE_URL}&access_token={SLAT}
+   ```
+
+   - `{DMF_BASE_URL}` is het adres waarop de DMF voor de gebruiker bereikbaar is.
+   - `{WOPI_CLIENT_PAGE_URL}` is de volledige, URL-encoded pagina-URL van de WOPI-client (bijv. `https://collabora.example.com/browser/<hash>/cool.html`). Deze is clientspecifiek en meestal op te vragen via de discovery-endpoint van de WOPI-client.
+   - `{SLAT}` mag in plaats van de query parameter ook worden meegegeven via de `Authorization: Bearer`-header.
+
+   Voorbeeld:
+
+   ```
+   GET https://dmf.example.com/wopi/files/dd3283aa-04c1-4f37-809c-345606ecddc9?wopiClient=https%3A%2F%2Fcollabora.example.com%2Fbrowser%2F4610258811%2Fcool.html&access_token=eyJ...
+   ```
+
+3. De DMF retourneert een HTML-pagina die automatisch een `POST` doet naar de WOPI-client met de juiste `WOPISrc`- en 
+   `access_token`-velden. De WOPI-client haalt het document vervolgens zelf op bij de DMF via `/wopi/api/v1/files/{file_id}`.
+
+> **Let op:** [`wopi_test.html`](../../docs/wopi/wopi_test.html) in de projectroot demonstreert nog de oudere, 
+> handmatige formulier-aanpak en is niet bijgewerkt naar de `/wopi/files/{file_id}`-hostpagina hierboven. Gebruik dit
+> voorbeeld als referentie om zelf een WOPI Host pagina te bouwen.
 
 ---
