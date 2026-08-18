@@ -36,6 +36,10 @@ jobs:
           VERSION="${GITHUB_REF_NAME#release/}"
           sed -i "s/^version:.*/version: ${VERSION}/" helm/cg-dmf/Chart.yaml
           sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" helm/cg-dmf/Chart.yaml
+          if git diff --quiet -- helm/cg-dmf/Chart.yaml; then
+            echo "Helm chart already at ${VERSION}, nothing to commit"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add helm/cg-dmf/Chart.yaml
