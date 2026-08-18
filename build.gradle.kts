@@ -72,7 +72,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.12.0")
 
     // Logging
-    implementation("ch.qos.logback:logback-classic:1.5.36")
+    implementation("ch.qos.logback:logback-classic:1.6.3")
     implementation("net.logstash.logback:logstash-logback-encoder:9.0")
 
     // Authentication
