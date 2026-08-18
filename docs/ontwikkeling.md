@@ -263,7 +263,7 @@ Releases worden gestuurd door de branchnaam — er hoeven geen versiebestanden b
 ### Een release aanmaken
 
 1. Zorg dat `develop` de staat heeft die u wilt releasen.
-2. Maak een `RELEASE_NOTES.md` aan in de root met een beschrijving van de wijzigingen. Voeg secties toe per gewijzigd onderdeel: backend, admin portal en/of Helm chart.
+2. Open de file `RELEASE_NOTES.md` in de root en voeg een nieuwe versie toe met beschrijving van de wijzigingen. Voeg secties toe per gewijzigd onderdeel: backend, admin portal en/of Helm chart.
 3. Maak en push een `release/X.Y.Z`-branch van `develop`:
    ```bash
    git checkout develop && git pull
@@ -271,7 +271,6 @@ Releases worden gestuurd door de branchnaam — er hoeven geen versiebestanden b
    git push origin release/1.0.0
    ```
 4. CI bouwt automatisch Docker-images, publiceert ze naar Docker Hub en Azure Container Registry, en maakt een GitHub Release aan.
-5. Verwijder `RELEASE_NOTES.md` na de release en commit dat naar `develop`.
 6. Open een PR van `release/1.0.0` naar `main` om `main` up-to-date te houden.
 
 ### Branch- en imagetag-schema
