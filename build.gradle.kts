@@ -2,6 +2,7 @@ import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.api.provider.ValueSource
 import org.gradle.api.provider.ValueSourceParameters
 import java.io.File
+import java.util.zip.ZipFile
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -326,12 +327,62 @@ tasks.test {
     environment("CLIENT_SECRET_ENCRYPTION_KEY", System.getenv("CLIENT_SECRET_ENCRYPTION_KEY") ?: "test-client-secret-key-for-unit-tests")
 }
 
+// Multiple dependencies (e.g. flyway-core and flyway-database-postgresql) ship a
+// META-INF/services/* file at the same path. With DuplicatesStrategy.EXCLUDE below,
+// only the first copy encountered survives in the fat JAR, silently dropping the
+// other dependency's ServiceLoader providers (e.g. Flyway's dry-run plugin stub,
+// which Flyway looks up unconditionally on startup and NPEs on when missing).
+// This task merges those files line-by-line so all providers are preserved.
+val mergedServiceFiles = layout.buildDirectory.dir("generated/merged-services")
+
+val mergeServiceFiles by tasks.registering {
+    description = "Merges META-INF/services/* entries from all runtime dependencies for the fat JAR"
+    // The doLast action below reads jar contents directly (via ZipFile) and writes merged output,
+    // which closes over build-script state in a way the configuration cache can't serialize.
+    notCompatibleWithConfigurationCache("Reads jar entries directly and writes merged files in doLast")
+    val runtimeJarFiles = configurations.runtimeClasspath.get().filter { it.isFile && it.extension == "jar" }
+    inputs.files(runtimeJarFiles)
+    outputs.dir(mergedServiceFiles)
+    doLast {
+        val merged = mutableMapOf<String, LinkedHashSet<String>>()
+        runtimeJarFiles.forEach { jarFile ->
+            ZipFile(jarFile).use { zip ->
+                zip
+                    .entries()
+                    .asSequence()
+                    .filter { !it.isDirectory && it.name.startsWith("META-INF/services/") }
+                    .forEach { entry ->
+                        val providers =
+                            zip
+                                .getInputStream(entry)
+                                .bufferedReader()
+                                .readLines()
+                                .filter { it.isNotBlank() && !it.startsWith("#") }
+                        merged.getOrPut(entry.name) { LinkedHashSet() }.addAll(providers)
+                    }
+            }
+        }
+        val dir = mergedServiceFiles.get().asFile
+        dir.deleteRecursively()
+        merged.forEach { (path, providers) ->
+            File(dir, path).apply {
+                parentFile.mkdirs()
+                writeText(providers.joinToString("\n"))
+            }
+        }
+    }
+}
+
 tasks.jar {
+    dependsOn(mergeServiceFiles)
     manifest {
         attributes["Main-Class"] = "com.baseflow.MainKt"
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    from(mergedServiceFiles)
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) }) {
+        exclude("META-INF/services/*")
+    }
     // Exclude signature files from signed dependency JARs; merging them into a
     // fat JAR invalidates their digests and causes a SecurityException at startup.
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "META-INF/*.EC")

@@ -1,6 +1,5 @@
-## 1.1.0
+## 1.1.1
 
-### WOPI
+### Bug fixes
 
-- Adds support to unlock and relock a file.
-- Adds support to host a WOPI Host page, making integration through WOPI easier.
+- Fixes null reference exception thrown by FlywayDB.
