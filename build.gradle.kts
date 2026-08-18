@@ -320,6 +320,13 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
+    // Run in an empty working directory so a developer's local .env file can't leak into unit
+    // tests: Config loads .env via dotenv-kotlin relative to the process's working directory,
+    // independently of the environment(...) overrides below, so a local .env (e.g. setting
+    // BESTANDSDELEN_TRIGGER_SIZE) would otherwise make settings look env-managed in tests.
+    val isolatedWorkingDir = layout.buildDirectory.dir("test-workdir").get().asFile
+    doFirst { isolatedWorkingDir.mkdirs() }
+    workingDir = isolatedWorkingDir
     // Provide default encryption keys for unit tests so that the lazy Encryptor
     // in BlobStorageRepositories can initialise when encrypted columns are used.
     environment("ENCRYPTION_SECRET_KEY", System.getenv("ENCRYPTION_SECRET_KEY") ?: "test-secret-key-for-unit-tests")
