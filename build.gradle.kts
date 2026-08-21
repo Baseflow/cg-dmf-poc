@@ -50,14 +50,14 @@ dependencies {
     implementation("com.zaxxer:HikariCP:7.1.0")
 
     // Database - Exposed ORM
-    implementation("org.jetbrains.exposed:exposed-core:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-dao:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-jdbc:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-migration-core:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-json:1.3.0")
-    implementation("org.jetbrains.exposed:exposed-crypt:1.3.0")
+    implementation("org.jetbrains.exposed:exposed-core:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-dao:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-migration-core:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-migration-jdbc:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-json:1.4.0")
+    implementation("org.jetbrains.exposed:exposed-crypt:1.4.0")
     implementation("org.postgresql:postgresql:42.7.11")
 
     // Database migrations
