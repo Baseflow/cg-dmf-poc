@@ -55,6 +55,7 @@ jobs:
           registry: 'commongroundacr.azurecr.io'
           push: ${{ github.event_name != 'pull_request' }}
           vulnerability_scan: false
+          dockerfile: Dockerfile
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && startsWith(github.ref_name, 'release/')
