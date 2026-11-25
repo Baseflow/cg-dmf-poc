@@ -174,6 +174,16 @@ openen en bewerken in de browser. Zie [docs/wopi/wopi.md](wopi/wopi.md) voor een
 | `WOPI_SLAT_SECRET`       | _(geen)_        | **Verplicht wanneer `WOPI_ENABLED=true`.** Salt voor het encoderen/decoderen van het Short-Lived Access Token (SLAT). Minimaal aanbevolen lengte: 32 tekens. De applicatie start niet op als deze ontbreekt terwijl WOPI is ingeschakeld. |
 | `WOPI_SLAT_TTL_SECONDS`  | `3600`          | Levensduur in seconden van het SLAT-token.                                                                                                                        |
 
+## HTTP-server
+
+| Variabele                 | Standaardwaarde         | Beschrijving                                                                                                                                                  |
+|---------------------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PORT`                    | `8080`                  | Poort waarop de backend luistert.                                                                                                                             |
+| `HOST`                    | `localhost`             | Hostnaam die gebruikt wordt voor de standaard `BASE_URL`.                                                                                                     |
+| `BASE_URL`                | `http://$HOST:$PORT`    | Externe basis-URL van de backend, gebruikt in gegenereerde URL's.                                                                                             |
+| `MAX_HEADER_SIZE`         | `131072`                | Maximale totale grootte (bytes) van de HTTP-request-headers. Verhoog deze als SSO-tokens in de `Authorization`-header groter zijn; zet de ingress-buffers (`proxy-buffer-size`) en de admin-portal (`--max-http-header-size`) dan mee. |
+| `MAX_INITIAL_LINE_LENGTH` | `16384`                 | Maximale lengte (bytes) van de HTTP-request-regel (methode, pad en querystring).                                                                              |
+
 ## Ingress en paden
 
 De DMF-backend stelt een aantal HTTP-paden beschikbaar. Bij het inrichten van een reverse proxy of ingress-controller
