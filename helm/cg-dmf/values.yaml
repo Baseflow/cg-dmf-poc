@@ -63,8 +63,8 @@ ingress:
   ingressClassName: "nginx"
   # -- Ingress annotations.
   annotations:
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
-    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "64k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
     nginx.ingress.kubernetes.io/proxy-body-size: "4096m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
@@ -308,8 +308,8 @@ adminPortal:
     ingressClassName: "nginx"
     # -- Ingress annotations.
     annotations:
-      nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
-      nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "64k"
+      nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
     hosts:
       - host: admin.cg-dmf.example.com
         paths:

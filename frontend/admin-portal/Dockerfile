@@ -81,7 +81,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 # Raise Node.js header buffer to support large cookie/auth header values in enterprise/commercial SSO setups.
-ENV NODE_OPTIONS="--max-http-header-size=32768"
+ENV NODE_OPTIONS="--max-http-header-size=131072"
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry

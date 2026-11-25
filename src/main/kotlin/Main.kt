@@ -100,8 +100,8 @@ fun main() {
             connector {
                 port = ApplicationConfig.port
             }
-            maxInitialLineLength = 8192
-            maxHeaderSize = 32768
+            maxInitialLineLength = ApplicationConfig.maxInitialLineLength
+            maxHeaderSize = ApplicationConfig.maxHeaderSize
         },
     ).start(wait = true)
 }
